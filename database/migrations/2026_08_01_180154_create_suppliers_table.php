@@ -1,0 +1,46 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('suppliers', function (Blueprint $table) {
+
+            $table->id();
+
+            $table->string('supplier_code', 30)->unique();
+
+            $table->string('supplier_name');
+
+            $table->string('contact_person')->nullable();
+
+            $table->string('email')->nullable();
+
+            $table->string('contact_number', 30)->nullable();
+
+            $table->text('address')->nullable();
+
+            $table->enum('status', [
+                'Active',
+                'Inactive'
+            ])->default('Active');
+
+            $table->text('remarks')->nullable();
+
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('supplier_name');
+            $table->index('status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('suppliers');
+    }
+};

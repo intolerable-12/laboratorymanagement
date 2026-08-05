@@ -1,0 +1,151 @@
+@extends('layouts.app')
+
+@section('title', 'Student Dashboard')
+@section('user-name', 'Jane Doe Cruz')
+@section('user-role', 'Student')
+
+@section('nav-links')
+    <div class="role-nav nav nav-pills flex-nowrap overflow-auto gap-2 pb-1">
+        <a class="nav-link active" href="{{ route('student.dashboard') }}">Dashboard</a>
+        <a class="nav-link" href="#">Reservation</a>
+        <a class="nav-link" href="#">Borrowing item</a>
+        <a class="nav-link" href="#">Activity Log</a>
+        <a class="nav-link" href="#">Report</a>
+        <a class="nav-link" href="#">Notification</a>
+        <a class="nav-link" href="#">Feedback</a>
+        <a class="nav-link" href="{{ route('student.myaccount') }}">My Account</a>
+    </div>
+@endsection
+
+@section('content')
+    <div class="student-dashboard">
+        <section class="hero-banner card border-0 mb-4">
+            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <h2 class="h3 fw-semibold mb-2 text-dark">Welcome Back, Student!</h2>
+                    <p class="mb-0 text-secondary">Here’s your laboratory reservation and borrowing overview</p>
+                </div>
+                <button class="btn btn-light border px-3 px-lg-4">College Campus</button>
+            </div>
+        </section>
+
+        <section class="row g-3 g-xl-4 mb-4">
+            @foreach ([
+                ['label' => 'Currently Borrowed', 'value' => '1', 'note' => 'Active items'],
+                ['label' => 'Pending Returns', 'value' => '2', 'note' => 'Due this week'],
+                ['label' => 'Total Borrowed', 'value' => '3', 'note' => 'Active items'],
+                ['label' => 'On-time Returns', 'value' => '100%', 'note' => 'Active items'],
+            ] as $metric)
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card metric-card border-0 h-100 text-center">
+                        <div class="card-body p-4">
+                            <div class="h4 fw-semibold mb-1 text-dark">{{ $metric['label'] }}</div>
+                            <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
+                            <div class="small text-secondary">{{ $metric['note'] }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </section>
+
+        <section class="row g-4 mb-4">
+            <div class="col-xl-6">
+                <div class="card section-card border-0 h-100">
+                    <div class="card-body p-4 p-xl-5">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h4 fw-semibold mb-0 text-dark">Borrowing History</h3>
+                            <span class="text-secondary small">Last 7 Months</span>
+                        </div>
+                        <div class="chart-placeholder chart-tall rounded-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="card section-card border-0 h-100">
+                    <div class="card-body p-4 p-xl-5">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h4 fw-semibold mb-0 text-dark">My Borrowing Equipment</h3>
+                            <span class="text-secondary small">Last 7 Months</span>
+                        </div>
+
+                        <div class="vstack gap-2">
+                            @foreach ([
+                                ['item' => 'Microscope (Compound)', 'return' => '2026-02-15'],
+                                ['item' => 'Digital pH Meter', 'return' => '2026-02-20'],
+                                ['item' => 'Safety Goggles', 'return' => '2026-02-16'],
+                            ] as $equipment)
+                                <div class="activity-item d-flex flex-column gap-1">
+                                    <div class="fw-semibold text-dark">{{ $equipment['item'] }}</div>
+                                    <div class="small text-secondary">Return: {{ $equipment['return'] }}</div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="mt-3">
+                            <button class="btn btn-outline-secondary w-100">View All Borrowed Items</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="row g-4 mb-4">
+            <div class="col-lg-7">
+                <div class="card section-card border-0 h-100">
+                    <div class="card-body p-4 p-xl-5">
+                        <h3 class="h4 fw-semibold mb-4 text-dark">Recent Activity</h3>
+
+                        <div class="vstack gap-2">
+                            @foreach ([
+                                ['text' => 'Requested Microscope (Compound)', 'meta' => '2026-02-15 | Qty: 2', 'status' => 'Approved'],
+                                ['text' => 'Requested Digital pH Meter', 'meta' => '2026-02-16 | Qty: 1', 'status' => 'Pending'],
+                                ['text' => 'Requested Safety Goggles', 'meta' => '2026-02-16 | Qty: 10', 'status' => 'Pending'],
+                            ] as $activity)
+                                <div class="activity-item d-flex align-items-center justify-content-between gap-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ $activity['text'] }}</div>
+                                        <div class="small text-secondary">{{ $activity['meta'] }}</div>
+                                    </div>
+                                    <span class="badge text-bg-light border text-secondary">{{ $activity['status'] }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card section-card border-0 h-100 mb-4 mb-lg-0">
+                    <div class="card-body p-4 p-xl-5">
+                        <h3 class="h4 fw-semibold mb-4 text-dark">Quick Actions</h3>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary">Borrow Equipment</button>
+                            <button class="btn btn-outline-secondary">Report Damage</button>
+                            <button class="btn btn-outline-secondary">View History</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card section-card border-0">
+                    <div class="card-body p-4 p-xl-5">
+                        <h3 class="h4 fw-semibold mb-3 text-dark">Borrowing Status</h3>
+                        <div class="display-6 fw-semibold mb-1 text-dark">Excellent</div>
+                        <p class="mb-0 text-secondary">Keep it up, good work!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card section-card border-0 mb-4">
+            <div class="card-body p-4 p-xl-5">
+                <h3 class="h4 fw-semibold mb-4 text-dark">Important Notices</h3>
+                <ul class="mb-0 text-dark">
+                    <li class="mb-3">Laboratory will be closed for maintenance on February 20-21, 2026</li>
+                    <li class="mb-3">New safety equipment available for borrowing in Biology Lab</li>
+                    <li>Please return all items before semester break</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+@endsection
