@@ -1,0 +1,289 @@
+<?php
+
+namespace App\Http\Controllers\Student\Borrow;
+
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Student\Borrow\StudentBorrowEmailController;
+use App\Models\BorrowItem;
+use App\Models\BorrowTransaction;
+use App\Models\Chemical;
+use App\Models\Equipment;
+use App\Services\RequestNotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+class StudentBorrowController extends Controller
+{
+	public function index(Request $request)
+	{
+		$this->ensureStudent($request);
+
+		$borrows = BorrowTransaction::with(['borrower', 'items.item'])
+			->where('borrower_id', $request->user()->userNo)
+			->latest()
+			->paginate(10);
+
+		return view('users.student.borrow.index', compact('borrows'));
+	}
+
+	public function create(Request $request)
+	{
+		$this->ensureStudent($request);
+
+		$activeTab = $request->query('tab', 'equipment');
+		$borrowDateMin = $this->minimumBorrowDateTime()->format('Y-m-d\TH:i');
+		$equipmentQuery = Equipment::query()
+			->where('status', 'Available')
+			->orderBy('equipment_name');
+		$chemicalQuery = Chemical::query()
+			->where('status', 'Available')
+			->orderBy('chemical_name');
+
+		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
+		$chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
+
+		if ($request->ajax()) {
+			$fragment = $request->query('fragment', $activeTab);
+
+			if ($fragment === 'equipment') {
+				return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
+			}
+
+			if ($fragment === 'chemical') {
+				return view('users.student.borrow.partials.chemical-tab', compact('chemicalItems'));
+			}
+		}
+
+		return view('users.student.borrow.create', compact('equipmentItems', 'chemicalItems', 'activeTab', 'borrowDateMin'));
+	}
+
+	public function store(Request $request)
+	{
+		$this->ensureStudent($request);
+
+		$data = $this->validateBorrowRequest($request);
+		$items = $this->collectRequestedItems($request);
+		$notificationService = app(RequestNotificationService::class);
+
+		if ($items === []) {
+			throw ValidationException::withMessages([
+				'items' => 'Select at least one equipment or chemical item.',
+			]);
+		}
+
+		$borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
+			$borrowTransaction = BorrowTransaction::create([
+				'borrow_no' => $this->generateBorrowNumber(),
+				'reservation_id' => null,
+				'borrower_id' => $request->user()->userNo,
+				'released_by' => null,
+				'received_by' => null,
+				'borrowed_at' => $data['borrowed_at'],
+				'due_at' => $data['due_at'],
+				'returned_at' => null,
+				'status' => 'Pending',
+				'remarks' => $data['remarks'] ?? null,
+			]);
+
+			foreach ($items as $item) {
+				BorrowItem::create([
+					'borrow_transaction_id' => $borrowTransaction->id,
+					'item_type' => $item['item_type'],
+					'item_id' => $item['item_id'],
+					'quantity_borrowed' => $item['quantity'],
+					'quantity_returned' => 0,
+					'quantity_lost' => 0,
+					'quantity_damaged' => 0,
+					'condition_out' => 'Good',
+					'condition_in' => null,
+					'remarks' => $item['remarks'],
+				]);
+			}
+
+			$notificationService->notifyRoleUsers(
+				'Instructor',
+				'Borrow',
+				'New borrow request',
+				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
+				$borrowTransaction
+			);
+
+			return $borrowTransaction;
+		});
+
+		app(StudentBorrowEmailController::class)->sendSubmittedToRequester($borrowTransaction, $request->user());
+
+		return redirect()
+			->route('student.borrow.show', $borrowTransaction)
+			->with('status', 'Borrow request submitted successfully.');
+	}
+
+	public function show(Request $request, BorrowTransaction $borrowTransaction)
+	{
+		$this->ensureStudent($request);
+
+		abort_unless($borrowTransaction->borrower_id === $request->user()->userNo, 403);
+
+		$borrowTransaction->load(['borrower', 'items.item', 'releasedBy', 'receivedBy']);
+
+		return view('users.student.borrow.show', compact('borrowTransaction'));
+	}
+
+	private function validateBorrowRequest(Request $request): array
+	{
+		$data = $request->validate([
+			'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
+			'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
+			'remarks' => ['nullable', 'string', 'max:1000'],
+			'equipment_items' => ['nullable', 'array'],
+			'chemical_items' => ['nullable', 'array'],
+			'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
+			'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
+			'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
+			'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
+		]);
+
+		$borrowedAt = Carbon::parse($data['borrowed_at']);
+		$dueAt = Carbon::parse($data['due_at']);
+
+		if ($borrowedAt->isWeekend()) {
+			throw ValidationException::withMessages([
+				'borrowed_at' => 'Borrow dates cannot fall on Saturday or Sunday.',
+			]);
+		}
+
+		if ($dueAt->isWeekend()) {
+			throw ValidationException::withMessages([
+				'due_at' => 'Borrow due dates cannot fall on Saturday or Sunday.',
+			]);
+		}
+
+		return $data;
+	}
+
+	private function collectRequestedItems(Request $request): array
+	{
+		$errors = [];
+		$items = [];
+
+		foreach ((array) $request->input('equipment_items', []) as $equipmentId => $payload) {
+			$rawQuantity = $payload['quantity'] ?? null;
+
+			if ($rawQuantity === null || $rawQuantity === '') {
+				continue;
+			}
+
+			if (is_numeric($rawQuantity) && (float) $rawQuantity === 0.0) {
+				continue;
+			}
+
+			if (filter_var($rawQuantity, FILTER_VALIDATE_INT) === false || (int) $rawQuantity < 1) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Equipment quantities must be a whole number of at least 1.';
+				continue;
+			}
+
+			$equipment = Equipment::find($equipmentId);
+
+			if (! $equipment) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
+				continue;
+			}
+
+			if ($equipment->status !== 'Available') {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment is not currently available.';
+				continue;
+			}
+
+			$quantity = (int) $rawQuantity;
+
+			if ($quantity > (int) $equipment->available_quantity) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
+				continue;
+			}
+
+			$items[] = [
+				'item_type' => 'Equipment',
+				'item_id' => $equipment->id,
+				'quantity' => $quantity,
+				'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
+			];
+		}
+
+		foreach ((array) $request->input('chemical_items', []) as $chemicalId => $payload) {
+			$rawQuantity = $payload['quantity'] ?? null;
+
+			if ($rawQuantity === null || $rawQuantity === '') {
+				continue;
+			}
+
+			if (is_numeric($rawQuantity) && (float) $rawQuantity === 0.0) {
+				continue;
+			}
+
+			if (! is_numeric($rawQuantity) || (float) $rawQuantity <= 0) {
+				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'Chemical quantities must be a positive number.';
+				continue;
+			}
+
+			$chemical = Chemical::find($chemicalId);
+
+			if (! $chemical) {
+				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'Selected chemical was not found.';
+				continue;
+			}
+
+			if ($chemical->status !== 'Available') {
+				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently available.';
+				continue;
+			}
+
+			$quantity = (float) $rawQuantity;
+
+			if ($quantity > (float) $chemical->quantity) {
+				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
+				continue;
+			}
+
+			$items[] = [
+				'item_type' => 'Chemical',
+				'item_id' => $chemical->id,
+				'quantity' => $quantity,
+				'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
+			];
+		}
+
+		if ($errors !== []) {
+			throw ValidationException::withMessages($errors);
+		}
+
+		return $items;
+	}
+
+	private function generateBorrowNumber(): string
+	{
+		do {
+			$borrowNo = 'BRW-' . Str::upper(Str::random(10));
+		} while (BorrowTransaction::where('borrow_no', $borrowNo)->exists());
+
+		return $borrowNo;
+	}
+
+	private function ensureStudent(Request $request): void
+	{
+		abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
+	}
+
+	private function minimumBorrowDateTime(): Carbon
+	{
+		$minimumDate = now();
+
+		while ($minimumDate->isWeekend()) {
+			$minimumDate->addDay();
+		}
+
+		return $minimumDate->startOfDay();
+	}
+}

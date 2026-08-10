@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.3",
         "laravel/framework": "^13.8",
+        "laravel/socialite": "^5.29",
         "laravel/tinker": "^3.0",
         "laravel/ui": "^4.6",
         "picqer/php-barcode-generator": "^3.2"

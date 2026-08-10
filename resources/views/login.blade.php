@@ -8,18 +8,20 @@
     <link rel="stylesheet" href="{{ asset('styles/login.css') }}">
 </head>
 <body>
-    <main class="login-page d-flex align-items-center justify-content-center py-5">
+    <main class="login-page d-flex align-items-center justify-content-center py-4 py-lg-5">
         <div class="container">
             <div class="auth-card card border-0 mx-auto mt-4">
-                <div class="card-body p-4 p-md-5">
-                    @php
-                        $currentTab = old('_auth_tab', $activeTab ?? 'login');
-                    @endphp
+                <div class="card-body p-4 p-lg-5">
 
                     <div class="login-brand text-center mx-auto mb-4">
                         <img src="{{ asset('images/pnglogo.png') }}" alt="Lourdes College logo" class="brand-logo img-fluid mb-3">
                         <p class="brand-title mb-2">Centralize Science Laboratory Management System</p>
-                        <p class="brand-subtitle mb-0">Lourdes College</p>
+                        
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <h1 class="auth-title mb-2">Sign in</h1>
+                        <p class="auth-subtitle mb-0">Use your email and password, or continue with your @lccdo.edu.ph Google account.</p>
                     </div>
 
                     @if (session('status'))
@@ -38,89 +40,40 @@
                         </div>
                     @endif
 
-                    <ul class="nav nav-tabs auth-tabs border-0 justify-content-center mb-4" id="authTabs" role="tablist">
-                        <li class="nav-item flex-fill text-center" role="presentation">
-                            <button class="nav-link {{ $currentTab === 'login' ? 'active' : '' }}" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button" role="tab" aria-controls="login-pane" aria-selected="{{ $currentTab === 'login' ? 'true' : 'false' }}">
-                                LOGIN
-                            </button>
-                        </li>
-                        <li class="nav-item flex-fill text-center" role="presentation">
-                            <button class="nav-link {{ $currentTab === 'signup' ? 'active' : '' }}" id="signup-tab" data-bs-toggle="tab" data-bs-target="#signup-pane" type="button" role="tab" aria-controls="signup-pane" aria-selected="{{ $currentTab === 'signup' ? 'true' : 'false' }}">
-                                SIGN UP
-                            </button>
-                        </li>
-                    </ul>
+                    <form method="POST" action="{{ route('login.store') }}" class="vstack gap-3">
+                        @csrf
 
-                    <div class="tab-content">
-                        <div class="tab-pane fade {{ $currentTab === 'login' ? 'show active' : '' }}" id="login-pane" role="tabpanel" aria-labelledby="login-tab" tabindex="0">
-                            <form method="POST" action="{{ route('login.store') }}">
-                                @csrf
-                                <input type="hidden" name="_auth_tab" value="login">
-
-                                <div class="mb-3">
-                                    <label for="login-email" class="form-label auth-label">Email Address</label>
-                                    <input type="email" class="form-control auth-input" id="login-email" name="email" value="{{ old('_auth_tab') === 'login' ? old('email') : '' }}" autocomplete="email" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="login-password" class="form-label auth-label">Password</label>
-                                    <input type="password" class="form-control auth-input" id="login-password" name="password" autocomplete="current-password" required>
-                                </div>
-                                <div class="mb-4">
-                                    <a href="#" class="forgot-link">Forgot password?</a>
-                                </div>
-                                <button type="submit" class="btn auth-button w-100">SIGN IN</button>
-                            </form>
+                        <div>
+                            <label for="login-email" class="form-label auth-label">Email Address</label>
+                            <input type="email" class="form-control auth-input" id="login-email" name="email" value="{{ old('email') }}" autocomplete="email" required>
                         </div>
 
-                        <div class="tab-pane fade {{ $currentTab === 'signup' ? 'show active' : '' }}" id="signup-pane" role="tabpanel" aria-labelledby="signup-tab" tabindex="0">
-                            <form method="POST" action="">
-                                @csrf
-                                <input type="hidden" name="_auth_tab" value="signup">
-
-                                <div class="mb-3">
-                                    <label for="full-name" class="form-label auth-label">Full Name *</label>
-                                    <input type="text" class="form-control auth-input" id="full-name" name="name" value="{{ old('name') }}" placeholder="Enter your full name*" autocomplete="name" required>
-                                </div>
-
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-6">
-                                        <label for="user-id" class="form-label auth-label">Student/Instructor ID *</label>
-                                        <input type="text" class="form-control auth-input" id="user-id" name="user_id" value="{{ old('user_id') }}" placeholder="e.g C-23014" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="role" class="form-label auth-label">Role *</label>
-                                        <select class="form-select auth-input" id="role" name="role" required>
-                                            <option value="" selected>Select Role</option>
-                                            <option value="student" @selected(old('role') === 'student')>Student</option>
-                                            <option value="instructor" @selected(old('role') === 'instructor')>Instructor</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="contact-number" class="form-label auth-label">Contact Number *</label>
-                                    <input type="tel" class="form-control auth-input" id="contact-number" name="contact_number" value="{{ old('contact_number') }}" autocomplete="tel" required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="signup-email" class="form-label auth-label">Email Address *</label>
-                                    <input type="email" class="form-control auth-input" id="signup-email" name="email" value="{{ old('_auth_tab') === 'signup' ? old('email') : '' }}" placeholder="firstname.lastname@lccdo.edu.ph" autocomplete="email" required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="signup-password" class="form-label auth-label">Password *</label>
-                                    <input type="password" class="form-control auth-input" id="signup-password" name="password" autocomplete="new-password" required>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label for="confirm-password" class="form-label auth-label">Confirm password *</label>
-                                    <input type="password" class="form-control auth-input" id="confirm-password" name="password_confirmation" placeholder="Re-enter password" autocomplete="new-password" required>
-                                </div>
-
-                                <button type="submit" class="btn auth-button w-100">CREATE ACCOUNT</button>
-                            </form>
+                        <div>
+                            <label for="login-password" class="form-label auth-label">Password</label>
+                            <input type="password" class="form-control auth-input" id="login-password" name="password" autocomplete="current-password" required>
                         </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="#" class="forgot-link">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" class="btn auth-button w-100">SIGN IN</button>
+                    </form>
+
+                    <div class="auth-divider my-4" role="separator" aria-label="Or continue with Google">
+                        <span>or</span>
                     </div>
+
+                    <a href="{{ route('auth.google.redirect') }}" class="btn google-auth-button w-100">
+                        <svg class="google-auth-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.8 30.4 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.8 9.5 24 9.5z"/>
+                            <path fill="#FBBC05" d="M10.5 28.1c-.6-1.6-1-3.3-1-5.1s.4-3.5 1-5.1L2.6 11.8C.9 15.1 0 19.6 0 24s.9 8.9 2.6 12.2l7.9-6.1z"/>
+                            <path fill="#34A853" d="M24 48c6.4 0 11.8-2.1 15.7-5.8l-8.1-6.3c-2.2 1.5-5 2.4-7.6 2.4-6.2 0-11.6-3.7-13.5-9.3l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+                            <path fill="#4285F4" d="M46.5 24.5c0-1.2-.1-2.8-.3-4.2H24v8.5h12.8c-1.2 3.3-4 5.8-8.1 7.4l8.1 6.3c4.7-4.3 7-10.7 7-18z"/>
+                        </svg>
+                        <span>Sign in using @lccdo.edu.ph google account</span>
+                    </a>
+
                 </div>
             </div>
         </div>

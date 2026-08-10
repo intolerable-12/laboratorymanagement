@@ -5,16 +5,7 @@
 @section('user-role', 'Student')
 
 @section('nav-links')
-    <div class="role-nav nav nav-pills flex-nowrap overflow-auto gap-2 pb-1">
-        <a class="nav-link active" href="{{ route('student.dashboard') }}">Dashboard</a>
-        <a class="nav-link" href="#">Reservation</a>
-        <a class="nav-link" href="#">Borrowing item</a>
-        <a class="nav-link" href="#">Activity Log</a>
-        <a class="nav-link" href="#">Report</a>
-        <a class="nav-link" href="#">Notification</a>
-        <a class="nav-link" href="#">Feedback</a>
-        <a class="nav-link" href="{{ route('student.myaccount') }}">My Account</a>
-    </div>
+    @include('users.student.partials.nav-links', ['active' => 'dashboard'])
 @endsection
 
 @section('content')

@@ -12,6 +12,16 @@ class ForumPost extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const CATEGORIES = [
+        'General',
+        'Question',
+        'Laboratory',
+        'Equipment',
+        'Reservation',
+        'Borrowing',
+        'Announcement',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -20,6 +30,7 @@ class ForumPost extends Model
     protected $fillable = [
         'user_no',
         'title',
+        'category',
         'content',
         'views',
         'is_pinned',
@@ -56,5 +67,15 @@ class ForumPost extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(ForumComment::class, 'post_id');
+    }
+
+    /**
+     * Get the supported forum categories.
+     *
+     * @return array<int, string>
+     */
+    public static function categories(): array
+    {
+        return self::CATEGORIES;
     }
 }

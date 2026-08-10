@@ -1,10 +1,21 @@
 <header class="role-navbar sticky-top bg-white border-bottom">
     <div class="container-fluid px-3 px-lg-4 px-xxl-5 py-3">
         @php
-            $user = auth()->user();
-            $user?->loadMissing('role');
+            $user = auth()->id() ? \App\Models\User::with('role')->find(auth()->id()) : null;
 
-            $displayName = $user->name ?? trim($__env->yieldContent('user-name', 'John Doe'));
+            $displayName = $user
+                ? trim(collect([
+                    $user->first_name,
+                    $user->middle_name,
+                    $user->last_name,
+                    $user->suffix,
+                ])->filter()->implode(' '))
+                : trim($__env->yieldContent('user-name', 'John Doe'));
+
+            if ($displayName === '' && $user) {
+                $displayName = $user->userID ?? trim($__env->yieldContent('user-name', 'John Doe'));
+            }
+
             $displayRole = $user
                 ? ($user->role?->role_name ?? trim($__env->yieldContent('user-role', 'Coordinator')))
                 : trim($__env->yieldContent('user-role', 'Coordinator'));
@@ -20,6 +31,8 @@
             </div>
 
             <div class="d-flex align-items-center gap-3 ms-xl-auto">
+                @include('partials.notification-bell')
+
                 <div class="text-end">
                     <div class="fw-semibold text-dark lh-1">{{ $displayName }}</div>
                     <small class="text-secondary">{{ $displayRole }}</small>

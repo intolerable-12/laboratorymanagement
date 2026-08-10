@@ -2,7 +2,6 @@
 
 @section('title', 'Chemical Categories')
 @section('page-title', 'Chemical Categories')
-@section('page-subtitle', 'Organize chemicals into reusable categories')
 
 @section('content')
     @if (session('status'))
@@ -26,8 +25,7 @@
                         <span class="h4 mb-0 fw-semibold">C</span>
                     </div>
                     <div>
-                        <h2 class="display-6 fw-semibold text-dark mb-2">Create a clear category structure for every chemical.</h2>
-                        <p class="lead text-secondary mb-0" style="max-width: 58rem;">Use categories to keep chemical records organized across laboratories and reports.</p>
+                        <h2 class="display-6 fw-semibold text-dark mb-2">Chemical Categories</h2>
                     </div>
                 </div>
             </div>
@@ -111,7 +109,6 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <h3 class="h5 fw-semibold mb-1">Category list</h3>
-                    <p class="mb-0 text-secondary">Review chemical groups and jump into the record you need.</p>
                 </div>
 
                 <a href="{{ route('coordinator.chemical.categories.create') }}" class="btn btn-primary px-4">Add category</a>

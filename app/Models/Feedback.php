@@ -25,6 +25,8 @@ class Feedback extends Model
      */
     protected $fillable = [
         'user_no',
+        'feedback_type',
+        'laboratory_id',
         'reservation_id',
         'rating',
         'comments',
@@ -51,6 +53,14 @@ class Feedback extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_no', 'userNo');
+    }
+
+    /**
+     * Get the laboratory related to the feedback, if any.
+     */
+    public function laboratory(): BelongsTo
+    {
+        return $this->belongsTo(Laboratory::class);
     }
 
     /**

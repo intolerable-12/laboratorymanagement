@@ -5,14 +5,7 @@
 @section('user-role', 'Facilitator')
 
 @section('nav-links')
-    <div class="role-nav nav nav-pills flex-nowrap overflow-auto gap-2 pb-1">
-        <a class="nav-link active" href="{{ route('facilitator.dashboard') }}">Dashboard</a>
-        <a class="nav-link" href="#">Inventory</a>
-        <a class="nav-link" href="#">Barcode Scanner</a>
-        <a class="nav-link" href="#">Activity Log</a>
-        <a class="nav-link" href="#">Report Logs</a>
-        <a class="nav-link" href="{{ route('facilitator.myaccount') }}">My Account</a>
-    </div>
+    @include('users.facilitator.partials.nav-links', ['active' => 'dashboard'])
 @endsection
 
 @section('content')

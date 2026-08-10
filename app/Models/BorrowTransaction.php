@@ -19,6 +19,7 @@ class BorrowTransaction extends Model
      */
     protected $fillable = [
         'borrow_no',
+        'laboratory_id',
         'reservation_id',
         'borrower_id',
         'released_by',
@@ -50,6 +51,14 @@ class BorrowTransaction extends Model
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /**
+     * Get the laboratory associated with the transaction.
+     */
+    public function laboratory(): BelongsTo
+    {
+        return $this->belongsTo(Laboratory::class);
     }
 
     /**

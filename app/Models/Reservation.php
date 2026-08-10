@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Reservation extends Model
@@ -75,5 +76,29 @@ class Reservation extends Model
     public function semester(): BelongsTo
     {
         return $this->belongsTo(Semester::class);
+    }
+
+    /**
+     * Get the requested items attached to the reservation.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(ReservationItem::class);
+    }
+
+    /**
+     * Get the approval logs associated with the reservation.
+     */
+    public function approvalLogs(): HasMany
+    {
+        return $this->hasMany(ApprovalLog::class);
+    }
+
+    /**
+     * Get the borrow transactions created from this reservation.
+     */
+    public function borrowTransactions(): HasMany
+    {
+        return $this->hasMany(BorrowTransaction::class);
     }
 }

@@ -1,0 +1,140 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\BorrowTransaction;
+use App\Models\Notification as UserNotification;
+use App\Models\Reservation;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+
+class RequestNotificationService
+{
+    public function displayName(User $user): string
+    {
+        return trim(collect([
+            $user->first_name,
+            $user->middle_name,
+            $user->last_name,
+            $user->suffix,
+        ])->filter()->implode(' '));
+    }
+
+    public function notifyUser(User $user, string $type, string $title, string $message, ?Model $reference = null): UserNotification
+    {
+        return UserNotification::create([
+            'user_no' => $user->userNo,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'reference_id' => $reference?->getKey(),
+            'reference_type' => $reference?->getMorphClass(),
+            'is_read' => false,
+            'read_at' => null,
+            'sent_at' => now(),
+        ]);
+    }
+
+    public function notifyRoleUsers(
+        string $roleName,
+        string $type,
+        string $title,
+        string $message,
+        ?Model $reference = null,
+        ?int $exceptUserNo = null
+    ): void {
+        User::query()
+            ->where('status', 'Active')
+            ->whereHas('role', fn ($query) => $query->where('role_name', $roleName))
+            ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
+            ->get()
+            ->each(fn (User $user) => $this->notifyUser($user, $type, $title, $message, $reference));
+    }
+
+    public function notifyRequester(Model $reference, string $type, string $title, string $message): void
+    {
+        $user = $this->requesterFor($reference);
+
+        if ($user) {
+            $this->notifyUser($user, $type, $title, $message, $reference);
+        }
+    }
+
+    public function summaryFor(User $user, int $limit = 5): array
+    {
+        $notifications = UserNotification::query()
+            ->where('user_no', $user->userNo)
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id');
+
+        return [
+            'unreadCount' => (clone $notifications)->where('is_read', false)->count(),
+            'items' => (clone $notifications)->limit($limit)->get(),
+        ];
+    }
+
+    public function markAsRead(UserNotification $notification): void
+    {
+        if ($notification->is_read) {
+            return;
+        }
+
+        $notification->forceFill([
+            'is_read' => true,
+            'read_at' => now(),
+        ])->save();
+    }
+
+    public function markAllAsRead(User $user): int
+    {
+        return UserNotification::query()
+            ->where('user_no', $user->userNo)
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+    }
+
+    public function routeFor(UserNotification $notification, User $user): string
+    {
+        $notification->loadMissing('reference');
+
+        $reference = $notification->reference;
+
+        if ($reference instanceof Reservation) {
+            return match ($user->role?->role_name) {
+                'Coordinator' => route('coordinator.reservations.show', $reference),
+                'Facilitator' => route('facilitator.reservations.show', $reference),
+                'Instructor' => route('instructor.reservations.show', $reference),
+                'Student' => route('student.reservations.show', $reference),
+                default => route('notifications.index'),
+            };
+        }
+
+        if ($reference instanceof BorrowTransaction) {
+            return match ($user->role?->role_name) {
+                'Coordinator' => route('coordinator.borrow.show', $reference),
+                'Facilitator' => route('facilitator.borrow.show', $reference),
+                'Instructor' => route('instructor.borrow.show', $reference),
+                'Student' => route('student.borrow.show', $reference),
+                default => route('notifications.index'),
+            };
+        }
+
+        return route('notifications.index');
+    }
+
+    private function requesterFor(Model $reference): ?User
+    {
+        if ($reference instanceof Reservation) {
+            return $reference->user;
+        }
+
+        if ($reference instanceof BorrowTransaction) {
+            return $reference->borrower;
+        }
+
+        return null;
+    }
+}

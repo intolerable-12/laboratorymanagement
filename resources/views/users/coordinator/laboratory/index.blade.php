@@ -2,7 +2,6 @@
 
 @section('title', 'Laboratories')
 @section('page-title', 'Laboratories')
-@section('page-subtitle', 'Showcase and manage laboratory spaces across the campus')
 
 @section('content')
     @if (session('status'))
@@ -22,8 +21,7 @@
                         <span class="h4 mb-0 fw-semibold">L</span>
                     </div>
                     <div>
-                        <h2 class="display-6 fw-semibold text-dark mb-2">Manage laboratories in a visual, space-aware layout.</h2>
-                        <p class="lead text-secondary mb-0" style="max-width: 60rem;">Each laboratory keeps the same image frame whether or not a photo exists, so the grid stays balanced.</p>
+                        <h2 class="display-6 fw-semibold text-dark mb-2">Laboratories</h2>
                     </div>
                 </div>
             </div>
@@ -130,7 +128,6 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <h3 class="h5 fw-semibold mb-1">Laboratory table</h3>
-                    <p class="mb-0 text-secondary">A compact list for quick review and actions.</p>
                 </div>
 
                 <a href="{{ route('coordinator.laboratories.create') }}" class="btn btn-primary px-4">Add laboratory</a>

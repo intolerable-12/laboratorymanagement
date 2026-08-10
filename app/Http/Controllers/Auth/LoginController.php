@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,6 +14,13 @@ class LoginController extends Controller
      */
     public function create()
     {
+        $user = Auth::id() ? User::with('role')->find(Auth::id()) : null;
+        $dashboardRoute = $this->dashboardRouteName($user);
+
+        if ($dashboardRoute) {
+            return redirect()->route($dashboardRoute);
+        }
+
         return view('login');
     }
 
@@ -21,6 +29,21 @@ class LoginController extends Controller
      */
     public function store(Request $request)
     {
+        if (Auth::check()) {
+            $user = Auth::id() ? User::with('role')->find(Auth::id()) : null;
+            $dashboardRoute = $this->dashboardRouteName($user);
+
+            if ($dashboardRoute) {
+                return redirect()->route($dashboardRoute);
+            }
+
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Unauthorized account.',
+            ]);
+        }
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -37,9 +60,11 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        $user = Auth::user()->load('role');
+        $user = Auth::id() ? User::with('role')->find(Auth::id()) : null;
 
-        if (!$user->role) {
+        $dashboardRoute = $this->dashboardRouteName($user);
+
+        if (! $dashboardRoute) {
             Auth::logout();
 
             return back()
@@ -48,27 +73,7 @@ class LoginController extends Controller
                 ]);
         }
 
-        switch (strtolower($user->role->role_name)) {
-
-            case 'coordinator':
-                return redirect()->route('coordinator.dashboard');
-
-            case 'instructor':
-                return redirect()->route('instructor.dashboard');
-
-            case 'student':
-                return redirect()->route('student.dashboard');
-
-            case 'facilitator':
-                return redirect()->route('facilitator.dashboard');
-
-            default:
-                Auth::logout();
-
-                return back()->withErrors([
-                    'email' => 'Unauthorized account.',
-                ]);
-        }
+        return redirect()->route($dashboardRoute);
     }
 
     /**
@@ -82,5 +87,18 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function dashboardRouteName(?User $user): ?string
+    {
+        $roleName = strtolower((string) $user?->role?->role_name);
+
+        return match ($roleName) {
+            'coordinator' => 'coordinator.dashboard',
+            'instructor' => 'instructor.dashboard',
+            'student' => 'student.dashboard',
+            'facilitator' => 'facilitator.dashboard',
+            default => null,
+        };
     }
 }

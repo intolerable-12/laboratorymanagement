@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Services\RequestNotificationService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,5 +31,19 @@ class AppServiceProvider extends ServiceProvider
             'Equipment' => Equipment::class,
             'Chemical' => Chemical::class,
         ]);
+
+        View::composer([
+            'layouts.navbar',
+            'users.coordinator.layouts.navbar',
+        ], function ($view) {
+            $user = auth()->user();
+
+            $view->with('notificationSummary', $user
+                ? app(RequestNotificationService::class)->summaryFor($user)
+                : [
+                    'unreadCount' => 0,
+                    'items' => collect(),
+                ]);
+        });
     }
 }

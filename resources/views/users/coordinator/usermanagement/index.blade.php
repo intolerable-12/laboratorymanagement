@@ -2,7 +2,6 @@
 
 @section('title', 'User Management')
 @section('page-title', 'User Management')
-@section('page-subtitle', 'Create, review, and maintain user accounts')
 
 @section('content')
     @if (session('status'))
@@ -14,11 +13,9 @@
             <div class="col-lg-8">
                 <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white border mb-3">
                     <span class="badge rounded-pill text-bg-primary">User administration</span>
-                    <span class="small text-secondary">Manage access and account records</span>
                 </div>
 
-                <h2 class="display-6 fw-semibold text-dark mb-2">Centralize every user account from one place.</h2>
-                <p class="lead text-secondary mb-0" style="max-width: 58rem;">Create, review, update, and remove coordinator, facilitator, instructor, and student accounts without leaving the dashboard.</p>
+                <h2 class="display-6 fw-semibold text-dark mb-2">User Management</h2>
             </div>
 
             <div class="col-lg-4">
@@ -130,7 +127,6 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <h3 class="h5 fw-semibold mb-1">Users</h3>
-                    <p class="mb-0 text-secondary">Browse accounts and take action with the buttons on the right.</p>
                 </div>
 
                 <a href="{{ route('coordinator.users.create') }}" class="btn btn-primary px-4">Add user</a>

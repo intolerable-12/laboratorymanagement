@@ -33,6 +33,8 @@
         </div>
 
         <div class="ms-auto d-flex align-items-center gap-3">
+            @include('partials.notification-bell')
+
             <button class="btn btn-light border rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center" type="button" style="width: 40px; height: 40px;">
                 <span class="fw-semibold text-secondary">?</span>
             </button>

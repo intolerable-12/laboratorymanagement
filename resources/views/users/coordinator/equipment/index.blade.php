@@ -2,7 +2,6 @@
 
 @section('title', 'Equipment Management')
 @section('page-title', 'Equipment Management')
-@section('page-subtitle', 'Track laboratory equipment, stock levels, and assignments')
 
 @section('content')
     @if (session('status'))
@@ -22,8 +21,7 @@
                         <span class="h4 mb-0 fw-semibold">E</span>
                     </div>
                     <div>
-                        <h2 class="display-6 fw-semibold text-dark mb-1">Manage every equipment record from one polished workspace.</h2>
-                        <p class="lead text-secondary mb-0" style="max-width: 60rem;">Review status, stock, and image assets without leaving the coordinator dashboard.</p>
+                        <h2 class="display-6 fw-semibold text-dark mb-1">Equipment Management</h2>
                     </div>
                 </div>
             </div>
@@ -147,7 +145,6 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <h3 class="h5 fw-semibold mb-1">Equipment list</h3>
-                    <p class="mb-0 text-secondary">Use the actions on the right to view, edit, or delete a record.</p>
                 </div>
 
                 <a href="{{ route('coordinator.equipment.create') }}" class="btn btn-primary px-4">Add equipment</a>
