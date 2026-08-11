@@ -18,9 +18,6 @@ return new class extends Migration
 
             $table->string('chemical_name');
 
-            // CAS Registry Number
-            $table->string('cas_number')->nullable();
-
             // Relationships
             $table->foreignId('category_id')
                 ->constrained('chemical_categories')
@@ -41,9 +38,9 @@ return new class extends Migration
             // Inventory
             $table->decimal('quantity',12,2)->default(0);
 
-            $table->string('unit',20); // g, kg, mL, L, bottle, etc.
+            $table->string('unit',20); // ml, cc, liter, kg, g
 
-            $table->decimal('minimum_stock',12,2)->default(1);
+            $table->decimal('minimum_stock',12,2)->default(15);
 
             // Dates
             $table->date('manufactured_date')->nullable();
@@ -51,8 +48,6 @@ return new class extends Migration
             $table->date('expiration_date')->nullable();
 
             $table->date('received_date')->nullable();
-
-            $table->decimal('unit_cost',12,2)->nullable();
 
             // Classification
             $table->enum('hazard_classification',[

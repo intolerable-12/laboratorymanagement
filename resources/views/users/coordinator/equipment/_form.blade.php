@@ -1,4 +1,24 @@
 @php
+    $storageLocations = $storageLocations ?? [
+        'Cabinet 1',
+        'Cabinet 2',
+        'Flammable storage',
+        'Freezers',
+        'Racks',
+        'Shelf A',
+        'Shelf B',
+        'Cold room',
+        'Other',
+    ];
+
+    $selectedStorageLocation = old('storage_location', $equipment->storage_location ?? '');
+
+    if ($selectedStorageLocation && ! in_array($selectedStorageLocation, $storageLocations, true)) {
+        array_unshift($storageLocations, $selectedStorageLocation);
+    }
+@endphp
+
+@php
     $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
     $statuses = ['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'];
     $imageUrl = !empty($equipment?->image) ? asset('storage/' . $equipment->image) : null;
@@ -11,7 +31,9 @@
                 <img src="{{ $imageUrl }}" alt="{{ $equipment->equipment_name ?? 'Equipment image' }}" class="equipment-preview rounded-4 mb-3">
             @else
                 <div class="equipment-image-placeholder rounded-4 d-flex flex-column align-items-center justify-content-center text-center px-4 py-5 mb-3">
-                    <div class="equipment-image-placeholder__icon">+</div>
+                    <div class="equipment-image-placeholder__icon">
+                        <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                    </div>
                     <div class="fw-semibold">No image uploaded</div>
                     <div class="small text-secondary">Add a photo to make the inventory easier to scan.</div>
                 </div>
@@ -32,6 +54,9 @@
                     @if (!empty($equipment?->equipment_code))
                         <div class="mt-2 fw-semibold text-dark">Current equipment code: {{ $equipment->equipment_code }}</div>
                     @endif
+                    <div class="mt-2 small text-secondary">
+                        Available quantity is saved automatically as the same value as quantity.
+                    </div>
                 </div>
             </div>
 
@@ -99,27 +124,10 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label" for="unit_cost">Unit cost</label>
-                <input type="number" id="unit_cost" name="unit_cost" value="{{ old('unit_cost', $equipment->unit_cost ?? '') }}" class="form-control admin-form-control @error('unit_cost') is-invalid @enderror" min="0" step="0.01">
-                @error('unit_cost') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
                 <label class="form-label" for="quantity">Quantity</label>
                 <input type="number" id="quantity" name="quantity" value="{{ old('quantity', $equipment->quantity ?? 0) }}" class="form-control admin-form-control @error('quantity') is-invalid @enderror" min="0" required>
+                <div class="form-text">Available quantity will match this value automatically.</div>
                 @error('quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label" for="available_quantity">Available quantity</label>
-                <input type="number" id="available_quantity" name="available_quantity" value="{{ old('available_quantity', $equipment->available_quantity ?? 0) }}" class="form-control admin-form-control @error('available_quantity') is-invalid @enderror" min="0" required>
-                @error('available_quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label" for="minimum_stock">Minimum stock</label>
-                <input type="number" id="minimum_stock" name="minimum_stock" value="{{ old('minimum_stock', $equipment->minimum_stock ?? 1) }}" class="form-control admin-form-control @error('minimum_stock') is-invalid @enderror" min="0" required>
-                @error('minimum_stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
@@ -144,7 +152,12 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="storage_location">Storage location</label>
-                <input type="text" id="storage_location" name="storage_location" value="{{ old('storage_location', $equipment->storage_location ?? '') }}" class="form-control admin-form-control @error('storage_location') is-invalid @enderror">
+                <select id="storage_location" name="storage_location" class="form-select admin-form-control @error('storage_location') is-invalid @enderror">
+                    <option value="">Select storage location</option>
+                    @foreach ($storageLocations as $location)
+                        <option value="{{ $location }}" @selected($selectedStorageLocation === $location)>{{ $location }}</option>
+                    @endforeach
+                </select>
                 @error('storage_location') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 

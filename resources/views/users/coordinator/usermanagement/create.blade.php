@@ -16,7 +16,7 @@
             <div class="col-lg-8">
                 <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white border mb-3">
                     <span class="badge rounded-pill text-bg-primary">New account</span>
-                    <span class="small text-secondary">Set up access for a coordinator, instructor, facilitator, or student</span>
+                    <span class="small text-secondary">Set up access for a coordinator, instructor, laboratory in-charge, or student</span>
                 </div>
 
                 <h2 class="display-6 fw-semibold text-dark mb-2">Create a clean, complete user profile.</h2>

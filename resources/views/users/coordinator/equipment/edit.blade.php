@@ -2,7 +2,7 @@
 
 @section('title', 'Edit Equipment')
 @section('page-title', 'Edit Equipment')
-@section('page-subtitle', 'Update the record, stock numbers, or image for the selected item')
+@section('page-subtitle', 'Update the record, quantity, or image for the selected item')
 
 @section('content')
     @if ($errors->any())
@@ -36,7 +36,7 @@
                     <ul class="mb-0 text-secondary ps-3">
                         <li>Leave the image blank to keep the current one.</li>
                         <li>The barcode is fixed once generated.</li>
-                        <li>Keep available quantity at or below total quantity.</li>
+                        <li>Update the quantity if the item count changes.</li>
                         <li>Check the status before saving changes.</li>
                     </ul>
                 </div>
@@ -55,6 +55,7 @@
                     'categories' => $categories,
                     'laboratories' => $laboratories,
                     'suppliers' => $suppliers,
+                    'storageLocations' => $storageLocations,
                     'formAction' => route('coordinator.equipment.update', $equipment),
                     'formMethod' => 'PUT',
                 ])

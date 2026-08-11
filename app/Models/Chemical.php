@@ -20,7 +20,6 @@ class Chemical extends Model
         'chemical_code',
         'barcode',
         'chemical_name',
-        'cas_number',
         'category_id',
         'laboratory_id',
         'supplier_id',
@@ -30,7 +29,6 @@ class Chemical extends Model
         'manufactured_date',
         'expiration_date',
         'received_date',
-        'unit_cost',
         'hazard_classification',
         'storage_location',
         'status',
@@ -49,7 +47,6 @@ class Chemical extends Model
         return [
             'quantity' => 'decimal:2',
             'minimum_stock' => 'decimal:2',
-            'unit_cost' => 'decimal:2',
             'manufactured_date' => 'date',
             'expiration_date' => 'date',
             'received_date' => 'date',

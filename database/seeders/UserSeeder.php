@@ -19,7 +19,7 @@ class UserSeeder extends Seeder
     {
         $roles = Role::whereIn('role_name', [
             'Coordinator',
-            'Facilitator',
+            'Laboratory In-charge',
             'Instructor',
             'Student',
         ])->pluck('id', 'role_name');
@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
                 'email' => 'facilitator@lccdo.edu.ph',
                 'contact_number' => '09990000002',
                 'password' => Hash::make('password'),
-                'role_id' => $roles['Facilitator'],
+                'role_id' => $roles['Laboratory In-charge'],
                 'department_id' => null,
                 'status' => 'Active',
                 'email_verified_at' => now(),

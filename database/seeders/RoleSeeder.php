@@ -17,7 +17,7 @@ class RoleSeeder extends Seeder
     {
         $roles = [
             ['role_name' => 'Coordinator', 'description' => 'Manages lab coordination and scheduling.'],
-            ['role_name' => 'Facilitator', 'description' => 'Assists with lab operations and student support.'],
+            ['role_name' => 'Laboratory In-charge', 'description' => 'Assists with lab operations and student support.'],
             ['role_name' => 'Instructor', 'description' => 'Teaches courses and supervises lab activities.'],
             ['role_name' => 'Student', 'description' => 'Learns in the lab environment and borrows equipment.'],
         ];

@@ -67,16 +67,20 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
             return view('users.coordinator.dashboard');
         })->name('dashboard');
 
-        Route::resource('users', UserManagementController::class);
+        Route::get('/users/archived', [UserManagementController::class, 'archived'])->name('users.archived');
+        Route::post('/users/{user}/restore', [UserManagementController::class, 'restore'])->withTrashed()->name('users.restore');
+        Route::resource('users', UserManagementController::class)->withTrashed(['show']);
 
         Route::prefix('equipment')
             ->name('equipment.')
             ->group(function () {
                 Route::get('/', [EquipmentController::class, 'index'])->name('index');
+                Route::get('/archived', [EquipmentController::class, 'archived'])->name('archived');
                 Route::get('/create', [EquipmentController::class, 'create'])->name('create');
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
-                Route::get('/{equipment}', [EquipmentController::class, 'show'])->name('show');
-                Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->name('barcode-print');
+                Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
+                Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
+                Route::post('/{equipment}/restore', [EquipmentController::class, 'restore'])->withTrashed()->name('restore');
                 Route::get('/{equipment}/edit', [EquipmentController::class, 'edit'])->name('edit');
                 Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
                 Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
@@ -110,10 +114,12 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
             ->name('chemicals.')
             ->group(function () {
                 Route::get('/', [ChemicalController::class, 'index'])->name('index');
+                Route::get('/archived', [ChemicalController::class, 'archived'])->name('archived');
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
-                Route::get('/{chemical}', [ChemicalController::class, 'show'])->name('show');
-                Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->name('barcode-print');
+                Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');
+                Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->withTrashed()->name('barcode-print');
+                Route::post('/{chemical}/restore', [ChemicalController::class, 'restore'])->withTrashed()->name('restore');
                 Route::get('/{chemical}/edit', [ChemicalController::class, 'edit'])->name('edit');
                 Route::put('/{chemical}', [ChemicalController::class, 'update'])->name('update');
                 Route::delete('/{chemical}', [ChemicalController::class, 'destroy'])->name('destroy');
@@ -218,7 +224,7 @@ Route::middleware(['auth', 'role:Student'])
         Route::put('/my-account', [StudentMyAccountController::class, 'update'])->name('myaccount.update');
     });
 
-Route::middleware(['auth', 'role:Facilitator'])
+Route::middleware(['auth', 'role:Laboratory In-charge'])
     ->prefix('facilitator')
     ->name('facilitator.')
     ->group(function () {

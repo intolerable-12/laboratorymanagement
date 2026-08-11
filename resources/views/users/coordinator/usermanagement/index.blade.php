@@ -70,8 +70,26 @@
     </div>
 
     <div class="section-card mb-4">
+        <div class="card-body p-3 p-xl-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div class="nav nav-pills gap-2">
+                    <a href="{{ route('coordinator.users.index', $filters) }}" class="nav-link rounded-3 {{ $archived ? '' : 'active' }}">Active users</a>
+                    <a href="{{ route('coordinator.users.archived', $filters) }}" class="nav-link rounded-3 {{ $archived ? 'active' : '' }}">
+                        Archived users
+                        <span class="badge text-bg-light border text-dark ms-2">{{ $stats['archived'] }}</span>
+                    </a>
+                </div>
+
+                <div class="small text-secondary">
+                    {{ $archived ? 'Archived accounts are hidden from the active roster and can be restored here.' : 'Archived accounts are excluded from this list.' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route('coordinator.users.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($archived ? 'coordinator.users.archived' : 'coordinator.users.index', $filters) }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-4">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input
@@ -116,7 +134,7 @@
 
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
-                    <a href="{{ route('coordinator.users.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                    <a href="{{ route($archived ? 'coordinator.users.archived' : 'coordinator.users.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
             </form>
         </div>
@@ -126,10 +144,12 @@
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h3 class="h5 fw-semibold mb-1">Users</h3>
+                    <h3 class="h5 fw-semibold mb-1">{{ $archived ? 'Archived Users' : 'Users' }}</h3>
                 </div>
 
-                <a href="{{ route('coordinator.users.create') }}" class="btn btn-primary px-4">Add user</a>
+                @unless ($archived)
+                    <a href="{{ route('coordinator.users.create') }}" class="btn btn-primary px-4">Add user</a>
+                @endunless
             </div>
         </div>
 
@@ -174,12 +194,20 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group" aria-label="User actions">
                                         <a href="{{ route('coordinator.users.show', $user) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                        <a href="{{ route('coordinator.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        <form action="{{ route('coordinator.users.destroy', $user) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this user?');">Delete</button>
-                                        </form>
+
+                                        @if (! $archived)
+                                            <a href="{{ route('coordinator.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                            <form action="{{ route('coordinator.users.destroy', $user) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this user?');">Archive</button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('coordinator.users.restore', $user) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Restore this user?');">Restore</button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

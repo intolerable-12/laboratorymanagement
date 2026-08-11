@@ -11,33 +11,13 @@
                 : 'Coordinator account';
         @endphp
 
-        <button
-            class="btn btn-outline-primary sidebar-toggle-btn d-inline-flex align-items-center gap-2 me-3"
-            type="button"
-            data-admin-sidebar-toggle
-            aria-controls="adminSidebar"
-            aria-label="Toggle sidebar"
-            aria-pressed="true"
-        >
-            <span class="sidebar-toggle-icon" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <span></span>
-            </span>
-            <span class="fw-semibold d-none d-sm-inline">Menu</span>
-        </button>
-
-        <div>
+        <div class="d-flex align-items-center gap-3">
             <h1 class="h5 mb-0 fw-semibold text-dark">@yield('page-title', 'Dashboard')</h1>
-            <p class="mb-0 small text-secondary">@yield('page-subtitle', 'Manage the laboratory system from one place')</p>
+            <p class="mb-0 small text-secondary d-none d-md-block">@yield('page-subtitle', 'Manage the laboratory system from one place')</p>
         </div>
 
         <div class="ms-auto d-flex align-items-center gap-3">
             @include('partials.notification-bell')
-
-            <button class="btn btn-light border rounded-circle d-none d-sm-inline-flex align-items-center justify-content-center" type="button" style="width: 40px; height: 40px;">
-                <span class="fw-semibold text-secondary">?</span>
-            </button>
 
             <div class="dropdown">
                 <button class="btn btn-light border dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">

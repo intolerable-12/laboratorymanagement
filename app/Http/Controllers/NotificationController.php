@@ -22,7 +22,7 @@ class NotificationController extends Controller
 
         $navLinksView = match ($roleName) {
             'Student' => 'users.student.partials.nav-links',
-            'Facilitator' => 'users.facilitator.partials.nav-links',
+            'Laboratory In-charge' => 'users.facilitator.partials.nav-links',
             'Instructor' => 'users.instructor.partials.nav-links',
             default => null,
         };

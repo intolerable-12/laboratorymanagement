@@ -42,11 +42,12 @@
         .barcode-print-item {
             break-inside: avoid;
             page-break-inside: avoid;
-            border: 1px dashed rgba(148, 163, 184, 0.45);
-            border-radius: 0.9rem;
-            padding: 0.65in 0.3in 0.45in;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 1rem;
+            padding: 0.6in 0.45in 0.48in;
             background: #fff;
             width: min(100%, 520px);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
         }
 
         .barcode-print-label {
@@ -54,8 +55,35 @@
             margin: 0 auto;
         }
 
+        .barcode-print-label__name {
+            font-size: 1.05rem;
+            line-height: 1.2;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: #111827;
+            text-transform: uppercase;
+        }
+
+        .barcode-print-label__barcode {
+            margin-top: 0.55rem;
+        }
+
         .barcode-print-label__code {
-            margin-top: 0.35rem;
+            margin-top: 0.45rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #111827;
+            text-transform: uppercase;
+        }
+
+        .barcode-print-label__meta {
+            margin-top: 0.45rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.86rem;
+            color: #475569;
         }
 
         .barcode-print-count {
@@ -135,11 +163,18 @@
             <div class="barcode-print-grid">
                 @for ($i = 0; $i < $printCount; $i++)
                     <div class="barcode-label barcode-print-label barcode-print-item">
-                        <div class="barcode-svg barcode-svg--label">
+                        <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
+
+                        <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
                             {!! $barcodeSvg !!}
                         </div>
 
-                        <div class="barcode-code barcode-print-label__code">{{ $chemical->barcode }}</div>
+                        <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
+
+                        <div class="barcode-print-label__meta">
+                            <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                            <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                        </div>
                     </div>
                 @endfor
             </div>

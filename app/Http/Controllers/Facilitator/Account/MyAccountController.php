@@ -81,7 +81,7 @@ class MyAccountController extends Controller
 			'user' => $user,
 			'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
 			'displayName' => $this->displayName($user),
-			'roleName' => $user->role?->role_name ?? 'Facilitator',
+			'roleName' => $user->role?->role_name ?? 'Laboratory In-charge',
 			'email' => $user->email,
 			'userIdValue' => $user->userID,
 			'birthDateInput' => $user->getRawOriginal('birth_date') ? Carbon::parse($user->getRawOriginal('birth_date'))->format('Y-m-d') : '',
@@ -104,7 +104,7 @@ class MyAccountController extends Controller
 			$user->suffix,
 		])->filter()->implode(' '));
 
-		return $name !== '' ? $name : ($user->userID ?? 'Facilitator');
+		return $name !== '' ? $name : ($user->userID ?? 'Laboratory In-charge');
 	}
 
 	private function avatarUrl(User $user): ?string

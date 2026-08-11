@@ -44,18 +44,32 @@
             page-break-inside: avoid;
             border: 1px dashed rgba(148, 163, 184, 0.45);
             border-radius: 0.9rem;
-            padding: 0.65in 0.3in 0.45in;
+            padding: 0.55in 0.32in 0.42in;
             background: #fff;
             width: min(100%, 520px);
         }
 
-        .barcode-print-label {
-            width: 100%;
-            margin: 0 auto;
+        .barcode-print-label__name {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 0.35rem;
         }
 
         .barcode-print-label__code {
             margin-top: 0.35rem;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+        }
+
+        .barcode-print-label__meta {
+            margin-top: 0.25rem;
+            text-align: center;
+            font-size: 0.82rem;
+            color: #475569;
         }
 
         .barcode-print-count {
@@ -135,11 +149,16 @@
             <div class="barcode-print-grid">
                 @for ($i = 0; $i < $printCount; $i++)
                     <div class="barcode-label barcode-print-label barcode-print-item">
+                        <div class="barcode-print-label__name">{{ $equipment->equipment_name }}</div>
+
                         <div class="barcode-svg barcode-svg--label">
                             {!! $barcodeSvg !!}
                         </div>
 
-                        <div class="barcode-code barcode-print-label__code">{{ $equipment->barcode }}</div>
+                        <div class="barcode-print-label__code">{{ $equipment->barcode }}</div>
+                        <div class="barcode-print-label__meta">
+                            Condition: {{ $equipment->condition }} | Location: {{ $equipment->storage_location ?? 'N/A' }}
+                        </div>
                     </div>
                 @endfor
             </div>

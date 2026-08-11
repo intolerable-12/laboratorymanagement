@@ -105,7 +105,7 @@ class RequestNotificationService
         if ($reference instanceof Reservation) {
             return match ($user->role?->role_name) {
                 'Coordinator' => route('coordinator.reservations.show', $reference),
-                'Facilitator' => route('facilitator.reservations.show', $reference),
+                'Laboratory In-charge' => route('facilitator.reservations.show', $reference),
                 'Instructor' => route('instructor.reservations.show', $reference),
                 'Student' => route('student.reservations.show', $reference),
                 default => route('notifications.index'),
@@ -115,7 +115,7 @@ class RequestNotificationService
         if ($reference instanceof BorrowTransaction) {
             return match ($user->role?->role_name) {
                 'Coordinator' => route('coordinator.borrow.show', $reference),
-                'Facilitator' => route('facilitator.borrow.show', $reference),
+                'Laboratory In-charge' => route('facilitator.borrow.show', $reference),
                 'Instructor' => route('instructor.borrow.show', $reference),
                 'Student' => route('student.borrow.show', $reference),
                 default => route('notifications.index'),

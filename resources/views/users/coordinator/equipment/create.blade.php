@@ -2,7 +2,7 @@
 
 @section('title', 'Add Equipment')
 @section('page-title', 'Add Equipment')
-@section('page-subtitle', 'Create a new equipment record with image and stock details')
+@section('page-subtitle', 'Create a new equipment record with image and inventory details')
 
 @section('content')
     @if ($errors->any())
@@ -36,7 +36,7 @@
                     <ul class="mb-0 text-secondary ps-3">
                         <li>Use a unique equipment code.</li>
                         <li>The barcode is generated automatically after saving.</li>
-                        <li>Pick the correct category and laboratory.</li>
+                        <li>Pick the correct category, laboratory, and storage location.</li>
                         <li>Upload an image if one is available.</li>
                     </ul>
                 </div>
@@ -54,6 +54,7 @@
                     'categories' => $categories,
                     'laboratories' => $laboratories,
                     'suppliers' => $suppliers,
+                    'storageLocations' => $storageLocations,
                     'formAction' => route('coordinator.equipment.store'),
                     'formMethod' => 'POST',
                 ])

@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Facilitator Dashboard')
+@section('title', 'Laboratory In-charge Dashboard')
 @section('user-name', 'John Doe')
-@section('user-role', 'Facilitator')
+@section('user-role', 'Laboratory In-charge')
 
 @section('nav-links')
     @include('users.facilitator.partials.nav-links', ['active' => 'dashboard'])
@@ -13,7 +13,7 @@
         <section class="hero-banner card border-0 mb-4">
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
-                    <h2 class="h3 fw-semibold mb-2 text-dark">Laboratory Facilitator Dashboard</h2>
+                    <h2 class="h3 fw-semibold mb-2 text-dark">Laboratory In-charge Dashboard</h2>
                     <p class="mb-0 text-secondary">Welcome back, John Doe. Monitor equipment operations and manage transactions.</p>
                 </div>
                 <button class="btn btn-light border px-3 px-lg-4">View Permission</button>

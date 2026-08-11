@@ -16,7 +16,48 @@ use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class EquipmentController extends Controller
 {
+    private const STORAGE_LOCATIONS = [
+        'Cabinet 1',
+        'Cabinet 2',
+        'Flammable storage',
+        'Freezers',
+        'Racks',
+        'Shelf A',
+        'Shelf B',
+        'Cold room',
+        'Other',
+    ];
+
     public function index(Request $request)
+    {
+        return $this->renderIndex($request, false);
+    }
+
+    public function archived(Request $request)
+    {
+        return $this->renderIndex($request, true);
+    }
+
+    public function restore(Equipment $equipment)
+    {
+        abort_unless($equipment->trashed(), 404);
+
+        $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
+
+        if ($restoreDeadline && $restoreDeadline->isPast()) {
+            return redirect()
+                ->route('coordinator.equipment.archived')
+                ->with('error', 'This equipment can no longer be restored because the 5-year archive window has expired.');
+        }
+
+        $equipment->restore();
+
+        return redirect()
+            ->route('coordinator.equipment.archived')
+            ->with('status', 'Equipment restored successfully.');
+    }
+
+    private function renderIndex(Request $request, bool $archived)
     {
         $search = trim((string) $request->query('search', ''));
         $status = $request->query('status', '');
@@ -25,6 +66,7 @@ class EquipmentController extends Controller
         $condition = $request->query('condition', '');
 
         $equipmentQuery = Equipment::with(['category', 'laboratory', 'supplier'])
+            ->when($archived, fn ($query) => $query->onlyTrashed(), fn ($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('equipment_name', 'like', '%' . $search . '%')
@@ -41,7 +83,9 @@ class EquipmentController extends Controller
             ->when($laboratoryId !== '', fn ($query) => $query->where('laboratory_id', $laboratoryId))
             ->when($condition !== '', fn ($query) => $query->where('condition', $condition));
 
-        $equipmentItems = $equipmentQuery->latest()->paginate(10);
+        $equipmentItems = $equipmentQuery
+            ->when($archived, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->latest())
+            ->paginate(10);
 
         $categories = EquipmentCategory::orderBy('category_name')->get(['id', 'category_name']);
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
@@ -49,13 +93,35 @@ class EquipmentController extends Controller
         $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
 
         $stats = [
-            'total' => Equipment::count(),
-            'available' => Equipment::where('status', 'Available')->count(),
-            'maintenance' => Equipment::where('status', 'Maintenance')->count(),
-            'low_stock' => Equipment::whereColumn('available_quantity', '<=', 'minimum_stock')->count(),
+            'total' => Equipment::withoutTrashed()->count(),
+            'available' => Equipment::withoutTrashed()->where('status', 'Available')->count(),
+            'maintenance' => Equipment::withoutTrashed()->where('status', 'Maintenance')->count(),
+            'archived' => Equipment::onlyTrashed()->count(),
         ];
 
-        return view('users.coordinator.equipment.index', compact('equipmentItems', 'stats', 'categories', 'laboratories', 'statuses', 'conditions', 'search', 'status', 'categoryId', 'laboratoryId', 'condition'));
+        $filters = array_filter([
+            'search' => $search,
+            'status' => $status,
+            'category_id' => $categoryId,
+            'laboratory_id' => $laboratoryId,
+            'condition' => $condition,
+        ], static fn ($value) => $value !== '' && $value !== null);
+
+        return view('users.coordinator.equipment.index', compact(
+            'equipmentItems',
+            'stats',
+            'categories',
+            'laboratories',
+            'statuses',
+            'conditions',
+            'search',
+            'status',
+            'categoryId',
+            'laboratoryId',
+            'condition',
+            'archived',
+            'filters'
+        ));
     }
 
     public function create()
@@ -63,8 +129,9 @@ class EquipmentController extends Controller
         $categories = EquipmentCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
         $suppliers = Supplier::orderBy('supplier_name')->get();
+        $storageLocations = self::STORAGE_LOCATIONS;
 
-        return view('users.coordinator.equipment.create', compact('categories', 'laboratories', 'suppliers'));
+        return view('users.coordinator.equipment.create', compact('categories', 'laboratories', 'suppliers', 'storageLocations'));
     }
 
     public function store(Request $request)
@@ -72,6 +139,7 @@ class EquipmentController extends Controller
         $data = $this->validateEquipment($request);
         $data['equipment_code'] = $this->generateEquipmentCode();
         $data['barcode'] = $this->generateBarcodeValue();
+        $data['available_quantity'] = $data['quantity'];
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('equipment', 'public');
@@ -95,13 +163,15 @@ class EquipmentController extends Controller
         $categories = EquipmentCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
         $suppliers = Supplier::orderBy('supplier_name')->get();
+        $storageLocations = $this->storageLocations($equipment);
 
-        return view('users.coordinator.equipment.edit', compact('equipment', 'categories', 'laboratories', 'suppliers'));
+        return view('users.coordinator.equipment.edit', compact('equipment', 'categories', 'laboratories', 'suppliers', 'storageLocations'));
     }
 
     public function update(Request $request, Equipment $equipment)
     {
         $data = $this->validateEquipment($request, $equipment);
+        $data['available_quantity'] = $data['quantity'];
 
         if ($request->hasFile('image')) {
             if ($equipment->image) {
@@ -118,13 +188,9 @@ class EquipmentController extends Controller
 
     public function destroy(Equipment $equipment)
     {
-        if ($equipment->image) {
-            Storage::disk('public')->delete($equipment->image);
-        }
-
         $equipment->delete();
 
-        return redirect()->route('coordinator.equipment.index')->with('status', 'Equipment deleted successfully.');
+        return redirect()->route('coordinator.equipment.archived')->with('status', 'Equipment archived successfully.');
     }
 
     private function validateEquipment(Request $request, ?Equipment $equipment = null): array
@@ -138,14 +204,11 @@ class EquipmentController extends Controller
             'model' => ['nullable', 'string', 'max:150'],
             'serial_number' => ['nullable', 'string', 'max:150'],
             'purchase_date' => ['nullable', 'date'],
-            'unit_cost' => ['nullable', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer', 'min:0'],
-            'available_quantity' => ['required', 'integer', 'min:0', 'lte:quantity'],
-            'minimum_stock' => ['required', 'integer', 'min:0'],
             'condition' => ['required', Rule::in(['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'])],
             'status' => ['required', Rule::in(['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'])],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-            'storage_location' => ['nullable', 'string', 'max:255'],
+            'storage_location' => ['nullable', Rule::in($this->storageLocations($equipment))],
             'description' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
         ]);
@@ -163,7 +226,7 @@ class EquipmentController extends Controller
     private function generateBarcodeValue(): string
     {
         do {
-            $barcode = 'EQ-' . Str::upper((string) Str::ulid());
+            $barcode = 'EQ-' . Str::upper(Str::random(6));
         } while (Equipment::where('barcode', $barcode)->exists());
 
         return $barcode;
@@ -178,5 +241,17 @@ class EquipmentController extends Controller
             70,
             '#1f2937'
         );
+    }
+
+    private function storageLocations(?Equipment $equipment = null): array
+    {
+        $options = self::STORAGE_LOCATIONS;
+        $currentLocation = $equipment?->storage_location;
+
+        if ($currentLocation && ! in_array($currentLocation, $options, true)) {
+            $options[] = $currentLocation;
+        }
+
+        return $options;
     }
 }

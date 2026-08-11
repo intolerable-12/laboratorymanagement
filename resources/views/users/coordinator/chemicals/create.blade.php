@@ -21,7 +21,7 @@
 
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <div class="equipment-hero__accent">
-                        <span class="h4 mb-0 fw-semibold">+</span>
+                        <i class="fa-solid fa-circle-plus fa-xl" aria-hidden="true"></i>
                     </div>
                     <div>
                         <h2 class="display-6 fw-semibold text-dark mb-2">Create a complete chemical profile.</h2>
@@ -54,6 +54,8 @@
                     'categories' => $categories,
                     'laboratories' => $laboratories,
                     'suppliers' => $suppliers,
+                    'unitOptions' => $unitOptions,
+                    'storageLocations' => $storageLocations,
                 ])
             </form>
         </div>

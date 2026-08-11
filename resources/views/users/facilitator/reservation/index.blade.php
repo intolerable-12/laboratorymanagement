@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Reservation Requests')
-@section('user-name', 'Facilitator')
-@section('user-role', 'Facilitator')
+@section('user-name', 'Laboratory In-charge')
+@section('user-role', 'Laboratory In-charge')
 
 @section('nav-links')
     @include('users.facilitator.partials.nav-links', ['active' => 'reservation'])
@@ -13,7 +13,7 @@
         <section class="hero-banner card border-0 mb-4">
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
-                    <h2 class="h3 fw-semibold mb-2 text-dark">Facilitator Reservation Queue</h2>
+                    <h2 class="h3 fw-semibold mb-2 text-dark">Laboratory In-charge Reservation Queue</h2>
                     <p class="mb-0 text-secondary">Review instructor-approved requests and verify equipment availability before deciding.</p>
                 </div>
                 <a href="{{ route('facilitator.reservations.index', ['status' => 'Instructor Approved']) }}" class="btn btn-outline-secondary px-4">Instructor Approved</a>

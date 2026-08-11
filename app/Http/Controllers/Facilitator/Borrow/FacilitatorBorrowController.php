@@ -101,7 +101,7 @@ class FacilitatorBorrowController extends Controller
 				$borrowTransaction,
 				'Borrow',
 				'Borrow request approved',
-				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Facilitator and forwarded to the Coordinator.'
+				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
 			);
 
 			$notificationService->notifyRoleUsers(
@@ -142,7 +142,7 @@ class FacilitatorBorrowController extends Controller
 				$borrowTransaction,
 				'Borrow',
 				'Borrow request rejected',
-				'Your borrow request ' . $borrowTransaction->borrow_no . ' was rejected by the Facilitator. Remarks: ' . $data['remarks']
+				'Your borrow request ' . $borrowTransaction->borrow_no . ' was rejected by the Laboratory In-charge. Remarks: ' . $data['remarks']
 			);
 		});
 
@@ -157,13 +157,13 @@ class FacilitatorBorrowController extends Controller
 	{
 		if ($borrowTransaction->status !== 'Instructor Approved') {
 			throw ValidationException::withMessages([
-				'status' => 'Only instructor-approved borrow requests can be processed by the facilitator.',
+				'status' => 'Only instructor-approved borrow requests can be processed by the laboratory in-charge.',
 			]);
 		}
 	}
 
 	private function ensureFacilitator(Request $request): void
 	{
-		abort_unless(optional($request->user()->role)->role_name === 'Facilitator', 403);
+		abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
 	}
 }

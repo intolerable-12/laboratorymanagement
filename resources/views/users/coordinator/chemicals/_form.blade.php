@@ -1,6 +1,8 @@
 @php
     $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
     $statuses = ['Available', 'Low Stock', 'Expired', 'Disposed', 'Unavailable'];
+    $unitOptions = $unitOptions ?? ['ml', 'cc', 'liter', 'kg', 'g'];
+    $storageLocations = $storageLocations ?? ['Cabinet 1', 'Cabinet 2', 'Flammable storage', 'Freezers', 'Racks', 'Shelf A', 'Shelf B', 'Cold room', 'Other'];
     $imageUrl = !empty($chemical?->image) ? asset('storage/' . $chemical->image) : null;
 @endphp
 
@@ -11,7 +13,9 @@
                 <img src="{{ $imageUrl }}" alt="{{ $chemical->chemical_name ?? 'Chemical image' }}" class="equipment-preview rounded-4 mb-3">
             @else
                 <div class="equipment-image-placeholder rounded-4 d-flex flex-column align-items-center justify-content-center text-center px-4 py-5 mb-3">
-                    <div class="equipment-image-placeholder__icon">+</div>
+                    <div class="equipment-image-placeholder__icon">
+                        <i class="fa-solid fa-vial-circle-exclamation fa-lg" aria-hidden="true"></i>
+                    </div>
                     <div class="fw-semibold">No image uploaded</div>
                     <div class="small text-secondary">Add a photo to make the inventory easier to scan.</div>
                 </div>
@@ -42,12 +46,6 @@
                 <label class="form-label" for="chemical_name">Chemical name</label>
                 <input type="text" id="chemical_name" name="chemical_name" value="{{ old('chemical_name', $chemical->chemical_name ?? '') }}" class="form-control admin-form-control @error('chemical_name') is-invalid @enderror" required>
                 @error('chemical_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label" for="cas_number">CAS number</label>
-                <input type="text" id="cas_number" name="cas_number" value="{{ old('cas_number', $chemical->cas_number ?? '') }}" class="form-control admin-form-control @error('cas_number') is-invalid @enderror" maxlength="100">
-                @error('cas_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-6">
@@ -83,22 +81,25 @@
                 @error('supplier_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label" for="quantity">Quantity</label>
-                <input type="number" id="quantity" name="quantity" value="{{ old('quantity', $chemical->quantity ?? 0) }}" class="form-control admin-form-control @error('quantity') is-invalid @enderror" min="0" step="0.01" required>
-                @error('quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
+            <div class="col-12">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="quantity">Quantity</label>
+                        <input type="number" id="quantity" name="quantity" value="{{ old('quantity', $chemical->quantity ?? 0) }}" class="form-control admin-form-control @error('quantity') is-invalid @enderror" min="0" step="0.01" required>
+                        @error('quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
 
-            <div class="col-md-4">
-                <label class="form-label" for="unit">Unit</label>
-                <input type="text" id="unit" name="unit" value="{{ old('unit', $chemical->unit ?? '') }}" class="form-control admin-form-control @error('unit') is-invalid @enderror" maxlength="20" required>
-                @error('unit') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label" for="minimum_stock">Minimum stock</label>
-                <input type="number" id="minimum_stock" name="minimum_stock" value="{{ old('minimum_stock', $chemical->minimum_stock ?? 0) }}" class="form-control admin-form-control @error('minimum_stock') is-invalid @enderror" min="0" step="0.01" required>
-                @error('minimum_stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <div class="col-md-6">
+                        <label class="form-label" for="unit">Unit</label>
+                        <select id="unit" name="unit" class="form-select admin-form-control @error('unit') is-invalid @enderror" required>
+                            <option value="">Select unit</option>
+                            @foreach ($unitOptions as $unit)
+                                <option value="{{ $unit }}" @selected(old('unit', $chemical->unit ?? '') === $unit)>{{ $unit }}</option>
+                            @endforeach
+                        </select>
+                        @error('unit') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                </div>
             </div>
 
             <div class="col-md-4">
@@ -117,12 +118,6 @@
                 <label class="form-label" for="received_date">Received date</label>
                 <input type="date" id="received_date" name="received_date" value="{{ old('received_date', optional($chemical?->received_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('received_date') is-invalid @enderror">
                 @error('received_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label" for="unit_cost">Unit cost</label>
-                <input type="number" id="unit_cost" name="unit_cost" value="{{ old('unit_cost', $chemical->unit_cost ?? '') }}" class="form-control admin-form-control @error('unit_cost') is-invalid @enderror" min="0" step="0.01">
-                @error('unit_cost') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
@@ -147,9 +142,16 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="storage_location">Storage location</label>
-                <input type="text" id="storage_location" name="storage_location" value="{{ old('storage_location', $chemical->storage_location ?? '') }}" class="form-control admin-form-control @error('storage_location') is-invalid @enderror">
+                <select id="storage_location" name="storage_location" class="form-select admin-form-control @error('storage_location') is-invalid @enderror">
+                    <option value="">Select storage location</option>
+                    @foreach ($storageLocations as $storageLocation)
+                        <option value="{{ $storageLocation }}" @selected(old('storage_location', $chemical->storage_location ?? '') === $storageLocation)>{{ $storageLocation }}</option>
+                    @endforeach
+                </select>
                 @error('storage_location') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
+
+            <input type="hidden" name="minimum_stock" value="15">
 
             <div class="col-12">
                 <div class="alert alert-info border-0 rounded-4 mb-0">

@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Borrow Review')
-@section('user-name', 'Facilitator')
-@section('user-role', 'Facilitator')
+@section('user-name', 'Laboratory In-charge')
+@section('user-role', 'Laboratory In-charge')
 
 @section('nav-links')
     @include('users.facilitator.partials.nav-links', ['active' => 'borrow'])

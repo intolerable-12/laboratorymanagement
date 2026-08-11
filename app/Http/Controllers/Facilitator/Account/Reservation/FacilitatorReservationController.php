@@ -102,7 +102,7 @@ class FacilitatorReservationController extends Controller
 			ApprovalLog::create([
 				'reservation_id' => $reservation->id,
 				'approved_by' => $request->user()->userNo,
-				'role' => 'Facilitator',
+				'role' => 'Laboratory In-charge',
 				'action' => 'Approved',
 				'remarks' => $data['remarks'] ?? null,
 				'approved_at' => now(),
@@ -112,7 +112,7 @@ class FacilitatorReservationController extends Controller
 				$reservation,
 				'Reservation',
 				'Reservation approved',
-				'Your reservation ' . $reservation->reservation_no . ' was approved by the Facilitator and forwarded to the Coordinator.'
+				'Your reservation ' . $reservation->reservation_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
 			);
 
 			$notificationService->notifyRoleUsers(
@@ -152,7 +152,7 @@ class FacilitatorReservationController extends Controller
 			ApprovalLog::create([
 				'reservation_id' => $reservation->id,
 				'approved_by' => $request->user()->userNo,
-				'role' => 'Facilitator',
+				'role' => 'Laboratory In-charge',
 				'action' => 'Rejected',
 				'remarks' => $data['remarks'],
 				'approved_at' => now(),
@@ -162,7 +162,7 @@ class FacilitatorReservationController extends Controller
 				$reservation,
 				'Reservation',
 				'Reservation rejected',
-				'Your reservation ' . $reservation->reservation_no . ' was rejected by the Facilitator. Remarks: ' . $data['remarks']
+				'Your reservation ' . $reservation->reservation_no . ' was rejected by the Laboratory In-charge. Remarks: ' . $data['remarks']
 			);
 		});
 
@@ -177,13 +177,13 @@ class FacilitatorReservationController extends Controller
 	{
 		if ($reservation->status !== 'Instructor Approved') {
 			throw ValidationException::withMessages([
-				'status' => 'Only instructor-approved reservations can be processed by the facilitator.',
+				'status' => 'Only instructor-approved reservations can be processed by the laboratory in-charge.',
 			]);
 		}
 	}
 
 	private function ensureFacilitator(Request $request): void
 	{
-		abort_unless(optional($request->user()->role)->role_name === 'Facilitator', 403);
+		abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
 	}
 }

@@ -16,7 +16,50 @@ use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class ChemicalController extends Controller
 {
+    private const UNIT_OPTIONS = ['ml', 'cc', 'liter', 'kg', 'g'];
+
+    private const STORAGE_LOCATIONS = [
+        'Cabinet 1',
+        'Cabinet 2',
+        'Flammable storage',
+        'Freezers',
+        'Racks',
+        'Shelf A',
+        'Shelf B',
+        'Cold room',
+        'Other',
+    ];
+
     public function index(Request $request)
+    {
+        return $this->renderIndex($request, false);
+    }
+
+    public function archived(Request $request)
+    {
+        return $this->renderIndex($request, true);
+    }
+
+    public function restore(Chemical $chemical)
+    {
+        abort_unless($chemical->trashed(), 404);
+
+        $restoreDeadline = $chemical->deleted_at?->copy()->addYears(5);
+
+        if ($restoreDeadline && $restoreDeadline->isPast()) {
+            return redirect()
+                ->route('coordinator.chemicals.archived')
+                ->with('error', 'This chemical can no longer be restored because the 5-year archive window has expired.');
+        }
+
+        $chemical->restore();
+
+        return redirect()
+            ->route('coordinator.chemicals.archived')
+            ->with('status', 'Chemical restored successfully.');
+    }
+
+    private function renderIndex(Request $request, bool $archived)
     {
         $search = trim((string) $request->query('search', ''));
         $status = $request->query('status', '');
@@ -25,12 +68,12 @@ class ChemicalController extends Controller
         $hazard = $request->query('hazard_classification', '');
 
         $chemicalsQuery = Chemical::with(['category', 'laboratory', 'supplier'])
+            ->when($archived, fn ($query) => $query->onlyTrashed(), fn ($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('chemical_name', 'like', '%' . $search . '%')
                         ->orWhere('chemical_code', 'like', '%' . $search . '%')
                         ->orWhere('barcode', 'like', '%' . $search . '%')
-                        ->orWhere('cas_number', 'like', '%' . $search . '%')
                         ->orWhere('storage_location', 'like', '%' . $search . '%');
                 });
             })
@@ -39,7 +82,9 @@ class ChemicalController extends Controller
             ->when($laboratoryId !== '', fn ($query) => $query->where('laboratory_id', $laboratoryId))
             ->when($hazard !== '', fn ($query) => $query->where('hazard_classification', $hazard));
 
-        $chemicals = $chemicalsQuery->latest()->paginate(10);
+        $chemicals = $chemicalsQuery
+            ->when($archived, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->latest())
+            ->paginate(10);
 
         $categories = ChemicalCategory::orderBy('category_name')->get(['id', 'category_name']);
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
@@ -47,13 +92,36 @@ class ChemicalController extends Controller
         $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
 
         $stats = [
-            'total' => Chemical::count(),
-            'available' => Chemical::where('status', 'Available')->count(),
-            'low_stock' => Chemical::where('status', 'Low Stock')->count(),
-            'expired' => Chemical::whereNotNull('expiration_date')->whereDate('expiration_date', '<', now())->count(),
+            'total' => Chemical::withoutTrashed()->count(),
+            'available' => Chemical::withoutTrashed()->where('status', 'Available')->count(),
+            'low_stock' => Chemical::withoutTrashed()->where('status', 'Low Stock')->count(),
+            'expired' => Chemical::withoutTrashed()->whereNotNull('expiration_date')->whereDate('expiration_date', '<', now())->count(),
+            'archived' => Chemical::onlyTrashed()->count(),
         ];
 
-        return view('users.coordinator.chemicals.index', compact('chemicals', 'stats', 'categories', 'laboratories', 'statuses', 'hazards', 'search', 'status', 'categoryId', 'laboratoryId', 'hazard'));
+        $filters = array_filter([
+            'search' => $search,
+            'status' => $status,
+            'category_id' => $categoryId,
+            'laboratory_id' => $laboratoryId,
+            'hazard_classification' => $hazard,
+        ], static fn ($value) => $value !== '' && $value !== null);
+
+        return view('users.coordinator.chemicals.index', compact(
+            'chemicals',
+            'stats',
+            'categories',
+            'laboratories',
+            'statuses',
+            'hazards',
+            'search',
+            'status',
+            'categoryId',
+            'laboratoryId',
+            'hazard',
+            'archived',
+            'filters'
+        ));
     }
 
     public function create()
@@ -61,8 +129,10 @@ class ChemicalController extends Controller
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
         $suppliers = Supplier::orderBy('supplier_name')->get();
+        $unitOptions = self::UNIT_OPTIONS;
+        $storageLocations = self::STORAGE_LOCATIONS;
 
-        return view('users.coordinator.chemicals.create', compact('categories', 'laboratories', 'suppliers'));
+        return view('users.coordinator.chemicals.create', compact('categories', 'laboratories', 'suppliers', 'unitOptions', 'storageLocations'));
     }
 
     public function store(Request $request)
@@ -70,6 +140,7 @@ class ChemicalController extends Controller
         $data = $this->validateChemical($request);
         $data['chemical_code'] = $this->generateChemicalCode();
         $data['barcode'] = $this->generateBarcodeValue();
+        $data['minimum_stock'] = 15;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('chemicals', 'public');
@@ -93,13 +164,16 @@ class ChemicalController extends Controller
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
         $suppliers = Supplier::orderBy('supplier_name')->get();
+        $unitOptions = $this->unitOptions($chemical);
+        $storageLocations = $this->storageLocations($chemical);
 
-        return view('users.coordinator.chemicals.edit', compact('chemical', 'categories', 'laboratories', 'suppliers'));
+        return view('users.coordinator.chemicals.edit', compact('chemical', 'categories', 'laboratories', 'suppliers', 'unitOptions', 'storageLocations'));
     }
 
     public function update(Request $request, Chemical $chemical)
     {
         $data = $this->validateChemical($request, $chemical);
+        $data['minimum_stock'] = 15;
 
         if ($request->hasFile('image')) {
             if ($chemical->image) {
@@ -116,30 +190,23 @@ class ChemicalController extends Controller
 
     public function destroy(Chemical $chemical)
     {
-        if ($chemical->image) {
-            Storage::disk('public')->delete($chemical->image);
-        }
-
         $chemical->delete();
 
-        return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical deleted successfully.');
+        return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical archived successfully.');
     }
 
     private function validateChemical(Request $request, ?Chemical $chemical = null): array
     {
         return $request->validate([
             'chemical_name' => ['required', 'string', 'max:255'],
-            'cas_number' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:chemical_categories,id'],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
             'quantity' => ['required', 'numeric', 'min:0'],
-            'unit' => ['required', 'string', 'max:20'],
-            'minimum_stock' => ['required', 'numeric', 'min:0', 'lte:quantity'],
+            'unit' => ['required', Rule::in($this->unitOptions($chemical))],
             'manufactured_date' => ['nullable', 'date'],
             'expiration_date' => ['nullable', 'date'],
             'received_date' => ['nullable', 'date'],
-            'unit_cost' => ['nullable', 'numeric', 'min:0'],
             'hazard_classification' => ['required', Rule::in([
                 'Non-Hazardous',
                 'Flammable',
@@ -151,7 +218,7 @@ class ChemicalController extends Controller
                 'Irritant',
                 'Environmental Hazard',
             ])],
-            'storage_location' => ['nullable', 'string', 'max:255'],
+            'storage_location' => ['nullable', Rule::in($this->storageLocations($chemical))],
             'status' => ['required', Rule::in(['Available', 'Low Stock', 'Expired', 'Disposed', 'Unavailable'])],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'description' => ['nullable', 'string'],
@@ -171,7 +238,7 @@ class ChemicalController extends Controller
     private function generateBarcodeValue(): string
     {
         do {
-            $barcode = 'CH-' . Str::upper((string) Str::ulid());
+            $barcode = 'CH-' . Str::upper(Str::random(6));
         } while (Chemical::where('barcode', $barcode)->exists());
 
         return $barcode;
@@ -186,5 +253,29 @@ class ChemicalController extends Controller
             70,
             '#1f2937'
         );
+    }
+
+    private function unitOptions(?Chemical $chemical = null): array
+    {
+        $options = self::UNIT_OPTIONS;
+        $currentUnit = $chemical?->unit;
+
+        if ($currentUnit && ! in_array($currentUnit, $options, true)) {
+            $options[] = $currentUnit;
+        }
+
+        return $options;
+    }
+
+    private function storageLocations(?Chemical $chemical = null): array
+    {
+        $options = self::STORAGE_LOCATIONS;
+        $currentLocation = $chemical?->storage_location;
+
+        if ($currentLocation && ! in_array($currentLocation, $options, true)) {
+            $options[] = $currentLocation;
+        }
+
+        return $options;
     }
 }

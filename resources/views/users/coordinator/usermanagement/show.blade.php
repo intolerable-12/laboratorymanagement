@@ -18,8 +18,16 @@
             </div>
 
             <div class="col-lg-4 d-flex justify-content-lg-end gap-2 flex-wrap">
-                <a href="{{ route('coordinator.users.edit', $user) }}" class="btn btn-primary px-4">Edit user</a>
-                <a href="{{ route('coordinator.users.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
+                @if ($user->trashed())
+                    <form action="{{ route('coordinator.users.restore', $user) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-success px-4" onclick="return confirm('Restore this user?');">Restore user</button>
+                    </form>
+                    <a href="{{ route('coordinator.users.archived') }}" class="btn btn-outline-secondary px-4">Back to archive</a>
+                @else
+                    <a href="{{ route('coordinator.users.edit', $user) }}" class="btn btn-primary px-4">Edit user</a>
+                    <a href="{{ route('coordinator.users.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
+                @endif
             </div>
         </div>
     </div>
@@ -29,6 +37,9 @@
             <div class="section-card h-100">
                 <div class="card-body p-4 p-xl-5">
                     <div class="d-flex flex-wrap gap-2 mb-4">
+                        @if ($user->trashed())
+                            <span class="badge text-bg-dark">Archived</span>
+                        @endif
                         <span class="badge text-bg-{{ $user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary') }}">{{ $user->status }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $user->role->role_name ?? 'No role' }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $user->department->department_name ?? 'No department' }}</span>
@@ -61,8 +72,14 @@
                         </div>
                         <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Birth date</div>
-                            <div class="fw-semibold text-dark">{{ $user->birth_date?->format('F j, Y') ?? '—' }}</div>
+                            <div class="fw-semibold text-dark">{{ $user->birth_date ? $user->birth_date->format('F j, Y') : '—' }}</div>
                         </div>
+                        @if ($user->trashed())
+                            <div class="col-md-6">
+                                <div class="small text-uppercase text-secondary mb-1">Archived at</div>
+                                <div class="fw-semibold text-dark">{{ $user->deleted_at?->format('F j, Y, g:i A') ?? '—' }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -86,6 +103,12 @@
                             <div class="small text-uppercase text-secondary mb-1">Status</div>
                             <div class="fw-semibold text-dark">{{ $user->status }}</div>
                         </div>
+                        @if ($user->trashed())
+                            <div>
+                                <div class="small text-uppercase text-secondary mb-1">Archive state</div>
+                                <div class="fw-semibold text-dark">Archived</div>
+                            </div>
+                        @endif
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Account verified</div>
                             <div class="fw-semibold text-dark">{{ $user->email_verified_at ? $user->email_verified_at->format('F j, Y, g:i A') : 'No' }}</div>

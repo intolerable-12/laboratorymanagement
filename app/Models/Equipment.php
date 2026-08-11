@@ -34,10 +34,8 @@ class Equipment extends Model
         'model',
         'serial_number',
         'purchase_date',
-        'unit_cost',
         'quantity',
         'available_quantity',
-        'minimum_stock',
         'condition',
         'status',
         'image',
@@ -55,10 +53,8 @@ class Equipment extends Model
     {
         return [
             'purchase_date' => 'date',
-            'unit_cost' => 'decimal:2',
             'quantity' => 'integer',
             'available_quantity' => 'integer',
-            'minimum_stock' => 'integer',
         ];
     }
 

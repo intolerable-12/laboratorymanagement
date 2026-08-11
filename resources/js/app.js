@@ -1,5 +1,6 @@
 
 import * as bootstrap from 'bootstrap';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import Quill from 'quill';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -105,7 +106,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateToggleState = (isOpen) => {
             toggleButtons.forEach((button) => {
                 button.classList.toggle('is-collapsed', !isOpen);
-                button.setAttribute('aria-pressed', String(isOpen));
+                button.setAttribute('aria-expanded', String(isOpen));
+
+                const icon = button.querySelector('[data-sidebar-toggle-icon]');
+
+                if (icon) {
+                    icon.classList.toggle('fa-chevron-left', isOpen);
+                    icon.classList.toggle('fa-chevron-right', !isOpen);
+                }
+
+                button.setAttribute('aria-label', isOpen ? 'Collapse sidebar' : 'Expand sidebar');
+                button.title = isOpen ? 'Collapse sidebar' : 'Expand sidebar';
             });
         };
 

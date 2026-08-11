@@ -99,7 +99,7 @@ class GoogleAuthController extends Controller
 			'coordinator' => 'coordinator.dashboard',
 			'instructor' => 'instructor.dashboard',
 			'student' => 'student.dashboard',
-			'facilitator' => 'facilitator.dashboard',
+			'laboratory in-charge' => 'facilitator.dashboard',
 			default => null,
 		};
 	}

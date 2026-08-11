@@ -42,14 +42,10 @@ return new class extends Migration
 
             $table->date('purchase_date')->nullable();
 
-            $table->decimal('unit_cost',12,2)->nullable();
-
             // Inventory
             $table->unsignedInteger('quantity')->default(0);
 
             $table->unsignedInteger('available_quantity')->default(0);
-
-            $table->unsignedInteger('minimum_stock')->default(1);
 
             // Status
             $table->enum('condition',[
