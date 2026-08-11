@@ -56,6 +56,9 @@ class LaboratoryController extends Controller
     {
         $data = $this->validateLaboratory($request, $laboratory);
 
+        $data['laboratory_code'] = $laboratory->laboratory_code;
+        $data['laboratory_name'] = $laboratory->laboratory_name;
+
         if ($request->hasFile('image')) {
             if ($laboratory->image) {
                 Storage::disk('public')->delete($laboratory->image);

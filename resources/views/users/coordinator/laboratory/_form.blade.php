@@ -1,6 +1,7 @@
 @php
     $statuses = ['Available', 'Unavailable', 'Under Maintenance'];
     $imageUrl = !empty($laboratory?->image) ? asset('storage/' . $laboratory->image) : null;
+    $isEditing = filled($laboratory?->getKey());
 @endphp
 
 <div class="row g-4">
@@ -28,13 +29,19 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label" for="laboratory_code">Laboratory code</label>
-                <input type="text" id="laboratory_code" name="laboratory_code" value="{{ old('laboratory_code', $laboratory->laboratory_code ?? '') }}" class="form-control admin-form-control @error('laboratory_code') is-invalid @enderror" maxlength="20" required>
+                <input type="text" id="laboratory_code" name="laboratory_code" value="{{ old('laboratory_code', $laboratory->laboratory_code ?? '') }}" class="form-control admin-form-control @error('laboratory_code') is-invalid @enderror" maxlength="20" required @if($isEditing) readonly tabindex="-1" aria-readonly="true" @endif>
+                @if($isEditing)
+                    <div class="form-text">Laboratory code cannot be changed after creation.</div>
+                @endif
                 @error('laboratory_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-6">
                 <label class="form-label" for="laboratory_name">Laboratory name</label>
-                <input type="text" id="laboratory_name" name="laboratory_name" value="{{ old('laboratory_name', $laboratory->laboratory_name ?? '') }}" class="form-control admin-form-control @error('laboratory_name') is-invalid @enderror" required>
+                <input type="text" id="laboratory_name" name="laboratory_name" value="{{ old('laboratory_name', $laboratory->laboratory_name ?? '') }}" class="form-control admin-form-control @error('laboratory_name') is-invalid @enderror" required @if($isEditing) readonly tabindex="-1" aria-readonly="true" @endif>
+                @if($isEditing)
+                    <div class="form-text">Laboratory name cannot be changed after creation.</div>
+                @endif
                 @error('laboratory_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
