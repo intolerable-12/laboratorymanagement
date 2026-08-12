@@ -17,6 +17,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             UserSeeder::class,
+            SchoolYearSeeder::class,
+            SemesterSeeder::class,
+            EquipmentCategorySeeder::class,
+            LaboratorySeeder::class,
+            EquipmentSeeder::class,
+            ChemicalCategorySeeder::class,
+            ChemicalSeeder::class
+
         ]);
     }
 }
