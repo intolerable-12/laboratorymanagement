@@ -8,13 +8,14 @@
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
 
-    <div class="hero-banner social-hero rounded-4 p-4 p-lg-5 mb-4">
-        <div class="row g-4 align-items-center">
-            <div class="col-lg-8">
+    <div class="section-card mb-4">
+        <div class="card-body p-4 p-xl-5 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
                 <div class="social-eyebrow mb-3">Feedback management</div>
-                <h2 class="display-6 fw-semibold text-dark mb-3">Review feedback like a polished social stream</h2>
-                <p class="lead text-secondary mb-0">Search, filter, and open cards that surface the important context immediately.</p>
+                <h2 class="h3 fw-semibold text-dark mb-2">Review submitted feedback and manage surveys</h2>
+                <p class="text-secondary mb-0">Search, filter, and open cards that surface the important context immediately.</p>
             </div>
+            <a href="{{ route('coordinator.feedback.questionnaires.index') }}" class="btn btn-primary px-4 rounded-pill">Manage questionnaires</a>
         </div>
     </div>
 

@@ -1,6 +1,14 @@
 @php
     $children = $comment->getRelation('children') ?? collect();
     $level = $level ?? 0;
+    $roleName = $comment->user?->role?->role_name;
+    $roleBadge = match ($roleName) {
+        'Student' => ['label' => 'Student', 'class' => 'text-bg-info'],
+        'Instructor' => ['label' => 'Instructor', 'class' => 'text-bg-success'],
+        'Laboratory In-charge', 'Facilitator' => ['label' => 'Laboratory In-charge', 'class' => 'text-bg-warning text-dark'],
+        'Coordinator' => ['label' => 'Coordinator', 'class' => 'text-bg-primary'],
+        default => null,
+    };
 @endphp
 
 <div class="forum-comment-card" style="margin-left: {{ $level * 1.25 }}rem;">
@@ -9,6 +17,9 @@
             <div class="comment-avatar">{{ strtoupper(mb_substr(trim(($comment->user?->first_name ?? 'S') . ' ' . ($comment->user?->last_name ?? '')), 0, 1)) }}</div>
             <div>
                 <div class="fw-semibold text-dark">{{ $comment->user?->first_name }} {{ $comment->user?->last_name }}</div>
+                @if ($roleBadge)
+                    <span class="badge rounded-pill {{ $roleBadge['class'] }}">{{ $roleBadge['label'] }}</span>
+                @endif
                 <div class="small text-secondary">{{ $comment->created_at?->format('M d, Y h:i A') }}</div>
             </div>
         </div>

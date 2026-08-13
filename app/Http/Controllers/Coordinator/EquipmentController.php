@@ -64,8 +64,27 @@ class EquipmentController extends Controller
         $categoryId = $request->query('category_id', '');
         $laboratoryId = $request->query('laboratory_id', '');
         $condition = $request->query('condition', '');
+        $sort = $request->query('sort', 'item');
+        $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $sortableColumns = [
+            'item' => 'equipment_name',
+            'category' => 'category_name',
+            'laboratory' => 'laboratory_name',
+            'quantity' => 'quantity',
+            'status' => 'status',
+            'condition' => 'condition',
+            'archived_at' => 'deleted_at',
+        ];
+
+        if (! array_key_exists($sort, $sortableColumns)) {
+            $sort = 'item';
+        }
 
         $equipmentQuery = Equipment::with(['category', 'laboratory', 'supplier'])
+            ->leftJoin('equipment_categories', 'equipment.category_id', '=', 'equipment_categories.id')
+            ->leftJoin('laboratories', 'equipment.laboratory_id', '=', 'laboratories.id')
+            ->select('equipment.*')
             ->when($archived, fn ($query) => $query->onlyTrashed(), fn ($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -84,7 +103,14 @@ class EquipmentController extends Controller
             ->when($condition !== '', fn ($query) => $query->where('condition', $condition));
 
         $equipmentItems = $equipmentQuery
-            ->when($archived, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->latest())
+            ->when($sort === 'category', fn ($query) => $query->orderBy('equipment_categories.category_name', $direction))
+            ->when($sort === 'laboratory', fn ($query) => $query->orderBy('laboratories.laboratory_name', $direction))
+            ->when($sort === 'archived_at' && $archived, fn ($query) => $query->orderBy('equipment.deleted_at', $direction))
+            ->when($sort === 'item', fn ($query) => $query->orderBy('equipment.equipment_name', $direction))
+            ->when($sort === 'quantity', fn ($query) => $query->orderBy('equipment.quantity', $direction))
+            ->when($sort === 'status', fn ($query) => $query->orderBy('equipment.status', $direction))
+            ->when($sort === 'condition', fn ($query) => $query->orderBy('equipment.condition', $direction))
+            ->when($sort !== 'archived_at' || ! $archived, fn ($query) => $query->orderBy('equipment.created_at', 'desc'))
             ->paginate(10);
 
         $categories = EquipmentCategory::orderBy('category_name')->get(['id', 'category_name']);
@@ -119,6 +145,8 @@ class EquipmentController extends Controller
             'categoryId',
             'laboratoryId',
             'condition',
+            'sort',
+            'direction',
             'archived',
             'filters'
         ));

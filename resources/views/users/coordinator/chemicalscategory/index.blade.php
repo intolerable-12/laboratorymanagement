@@ -12,36 +12,6 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
-    <div class="hero-banner equipment-hero rounded-4 p-4 p-lg-5 mb-4">
-        <div class="row g-4 align-items-center">
-            <div class="col-lg-8">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white border mb-3">
-                    <span class="badge rounded-pill text-bg-primary">Category catalog</span>
-                    <span class="small text-secondary">Keep similar chemicals grouped and easier to search</span>
-                </div>
-
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="equipment-hero__accent">
-                        <span class="h4 mb-0 fw-semibold">C</span>
-                    </div>
-                    <div>
-                        <h2 class="display-6 fw-semibold text-dark mb-2">Chemical Categories</h2>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="section-card p-4 h-100">
-                    <div class="small text-uppercase text-secondary mb-2">Quick actions</div>
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('coordinator.chemical.categories.create') }}" class="btn btn-primary">Add category</a>
-                        <a href="{{ route('coordinator.chemicals.index') }}" class="btn btn-outline-secondary">View chemicals</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">
             <div class="card metric-card h-100">
@@ -136,12 +106,29 @@
                                 <td class="equipment-category-table-description text-secondary">{{ $category->description ?? '—' }}</td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group" aria-label="Category actions">
-                                        <a href="{{ route('coordinator.chemical.categories.show', $category) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                        <a href="{{ route('coordinator.chemical.categories.edit', $category) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <!-- View Icon -->
+                                        <a href="{{ route('coordinator.chemical.categories.show', $category) }}"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            title="View" aria-label="View">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+
+                                        <!-- Edit Icon -->
+                                        <a href="{{ route('coordinator.chemical.categories.edit', $category) }}"
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Edit" aria-label="Edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+
+                                        <!-- Delete Icon -->
                                         <form action="{{ route('coordinator.chemical.categories.destroy', $category) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this category?');">Delete</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Delete this category?');"
+                                                title="Delete" aria-label="Delete">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>

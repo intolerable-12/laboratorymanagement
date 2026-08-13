@@ -56,7 +56,7 @@ class ForumController extends Controller
 
         $forumPost->load(['user'])->loadCount('comments');
 
-        $comments = ForumComment::with('user')
+        $comments = ForumComment::with(['user.role'])
             ->where('post_id', $forumPost->id)
             ->orderBy('created_at')
             ->get();

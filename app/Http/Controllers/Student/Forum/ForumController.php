@@ -98,7 +98,7 @@ class ForumController extends Controller
         $forumPost->increment('views');
         $forumPost->refresh();
 
-        $comments = ForumComment::with('user')
+        $comments = ForumComment::with(['user.role'])
             ->where('post_id', $forumPost->id)
             ->where(function ($query) use ($request) {
                 $query->where('is_hidden', false)

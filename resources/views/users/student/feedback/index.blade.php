@@ -10,20 +10,85 @@
 
 @section('content')
     <div class="account-page">
-        <section class="hero-banner social-hero card border-0 mb-4">
+        <div class="section-card mb-4">
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Student feedback</div>
-                    <h2 class="display-6 fw-semibold mb-3 text-dark">A polished review feed for lab and system feedback</h2>
-                    <p class="lead text-secondary mb-0">Track your submitted feedback as cards instead of a flat table.</p>
+                    <h2 class="h3 fw-semibold mb-3 text-dark">A polished review feed for lab and system feedback</h2>
+                    <p class="text-secondary mb-0">Track your submitted feedback as cards and open questionnaires directly from the same page.</p>
                 </div>
-                <a href="{{ route('student.feedback.create') }}" class="btn btn-primary px-4 rounded-pill">New feedback</a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="#questionnaireList" class="btn btn-outline-secondary px-4 rounded-pill">
+                        <i class="fa-solid fa-clipboard-question me-2"></i>Questionnaires
+                    </a>
+                    <a href="{{ route('student.feedback.create') }}" class="btn btn-primary px-4 rounded-pill">New feedback</a>
+                </div>
             </div>
-        </section>
+        </div>
 
         @if (session('status'))
             <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
         @endif
+
+        <div class="section-card mb-4" id="questionnaireList">
+            <div class="card-body p-4 p-xl-5">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+                    <div>
+                        <div class="social-eyebrow mb-2">Questionnaires</div>
+                        <h3 class="h4 fw-semibold mb-1 text-dark">Active surveys</h3>
+                        <p class="text-secondary mb-0">Open a questionnaire here, answer it once, and come back anytime to review your response.</p>
+                    </div>
+                    <a href="{{ route('student.feedback.questionnaires.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-2"></i>View all
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="ps-3">Topic</th>
+                                <th scope="col">Questions</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($questionnaires as $questionnaire)
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="fw-semibold text-dark">{{ $questionnaire->topic }}</div>
+                                        <div class="small text-secondary">{{ \Illuminate\Support\Str::limit(strip_tags($questionnaire->description ?? ''), 90) ?: 'No description provided.' }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge text-bg-light border text-dark">{{ $questionnaire->questions_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge text-bg-{{ $questionnaire->user_response_count > 0 ? 'success' : 'secondary' }}">
+                                            {{ $questionnaire->user_response_count > 0 ? 'Answered' : 'Open' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="{{ route('student.feedback.questionnaires.show', $questionnaire) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fa-solid fa-clipboard-check me-1"></i>
+                                            {{ $questionnaire->user_response_count > 0 ? 'View response' : 'Answer' }}
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-secondary py-4">No questionnaires are available right now.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    {{ $questionnaires->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
+        </div>
 
         <div class="row g-4 align-items-start">
             <div class="col-xl-8">

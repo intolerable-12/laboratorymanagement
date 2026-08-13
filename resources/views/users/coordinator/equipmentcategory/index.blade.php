@@ -12,35 +12,7 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
-    <div class="hero-banner equipment-hero rounded-4 p-4 p-lg-5 mb-4">
-        <div class="row g-4 align-items-center">
-            <div class="col-lg-8">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white border mb-3">
-                    <span class="badge rounded-pill text-bg-primary">Category catalog</span>
-                    <span class="small text-secondary">Keep similar equipment grouped and easier to search</span>
-                </div>
-
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="equipment-hero__accent">
-                        <span class="h4 mb-0 fw-semibold">C</span>
-                    </div>
-                    <div>
-                        <h2 class="display-6 fw-semibold text-dark mb-2">Equipment Categories</h2>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="section-card p-4 h-100">
-                    <div class="small text-uppercase text-secondary mb-2">Quick actions</div>
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('coordinator.equipment.categories.create') }}" class="btn btn-primary">Add category</a>
-                        <a href="{{ route('coordinator.equipment.index') }}" class="btn btn-outline-secondary">View equipment</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    
 
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">

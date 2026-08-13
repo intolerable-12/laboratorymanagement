@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student\Feedback;
 
 use App\Http\Controllers\Controller;
 use App\Models\Feedback;
+use App\Models\FeedbackQuestionnaire;
 use App\Models\Laboratory;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
@@ -22,7 +23,18 @@ class FeedbackController extends Controller
             ->latest()
             ->paginate(10);
 
-        return view('users.student.feedback.index', compact('feedbacks'));
+        $studentNo = $request->user()->userNo;
+
+        $questionnaires = FeedbackQuestionnaire::query()
+            ->where('is_active', true)
+            ->withCount('questions')
+            ->withCount([
+                'responses as user_response_count' => fn ($query) => $query->where('user_no', $studentNo),
+            ])
+            ->latest()
+            ->paginate(6, ['*'], 'questionnaire_page');
+
+        return view('users.student.feedback.index', compact('feedbacks', 'questionnaires'));
     }
 
     public function create(Request $request)

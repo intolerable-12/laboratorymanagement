@@ -69,37 +69,48 @@ document.addEventListener('DOMContentLoaded', () => {
         ['blockquote', 'link', 'clean'],
     ];
 
-    document.querySelectorAll('[data-rich-text-editor]').forEach((editor) => {
-        const input = editor.querySelector('[data-rich-text-input]');
-        const surface = editor.querySelector('[data-rich-text-surface]');
+    const initializeRichTextEditors = (root = document) => {
+        root.querySelectorAll('[data-rich-text-editor]').forEach((editor) => {
+            if (editor.dataset.richTextInitialized === 'true') {
+                return;
+            }
 
-        if (!input || !surface) {
-            return;
-        }
+            const input = editor.querySelector('[data-rich-text-input]');
+            const surface = editor.querySelector('[data-rich-text-surface]');
 
-        const quill = new Quill(surface, {
-            theme: 'snow',
-            placeholder: surface.dataset.placeholder || 'Write something meaningful...',
-            modules: {
-                toolbar: richTextToolbarOptions,
-            },
+            if (!input || !surface) {
+                return;
+            }
+
+            editor.dataset.richTextInitialized = 'true';
+
+            const quill = new Quill(surface, {
+                theme: 'snow',
+                placeholder: surface.dataset.placeholder || 'Write something meaningful...',
+                modules: {
+                    toolbar: richTextToolbarOptions,
+                },
+            });
+
+            const syncInput = () => {
+                const html = quill.root.innerHTML;
+
+                input.value = html === '<p><br></p>' ? '' : html;
+            };
+
+            if (input.value.trim() !== '') {
+                quill.clipboard.dangerouslyPasteHTML(input.value);
+            }
+
+            syncInput();
+            quill.on('text-change', syncInput);
+
+            editor.closest('form')?.addEventListener('submit', syncInput);
         });
+    };
 
-        const syncInput = () => {
-            const html = quill.root.innerHTML;
-
-            input.value = html === '<p><br></p>' ? '' : html;
-        };
-
-        if (input.value.trim() !== '') {
-            quill.clipboard.dangerouslyPasteHTML(input.value);
-        }
-
-        syncInput();
-        quill.on('text-change', syncInput);
-
-        editor.closest('form')?.addEventListener('submit', syncInput);
-    });
+    window.initRichTextEditors = initializeRichTextEditors;
+    initializeRichTextEditors(document);
 
     if (sidebar) {
         const storageKey = 'labcentral.admin.sidebar.open.v2';

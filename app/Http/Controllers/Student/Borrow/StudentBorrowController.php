@@ -74,8 +74,8 @@ class StudentBorrowController extends Controller
 			]);
 		}
 
-		$borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
-			$borrowTransaction = BorrowTransaction::create([
+        $borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
+            $borrowTransaction = BorrowTransaction::create([
 				'borrow_no' => $this->generateBorrowNumber(),
 				'reservation_id' => null,
 				'borrower_id' => $request->user()->userNo,
@@ -111,10 +111,25 @@ class StudentBorrowController extends Controller
 				$borrowTransaction
 			);
 
-			return $borrowTransaction;
-		});
+            return $borrowTransaction;
+        });
 
-		app(StudentBorrowEmailController::class)->sendSubmittedToRequester($borrowTransaction, $request->user());
+        $notificationService->emailRoleUsers(
+            'Instructor',
+            'Borrow',
+            $borrowTransaction->borrow_no,
+            'New borrow request',
+            'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
+            route('instructor.borrow.show', $borrowTransaction),
+            'Review borrow request',
+            [
+                ['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
+                ['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+                ['label' => 'Status', 'value' => $borrowTransaction->status],
+            ]
+        );
+
+        app(StudentBorrowEmailController::class)->sendSubmittedToRequester($borrowTransaction, $request->user());
 
 		return redirect()
 			->route('student.borrow.show', $borrowTransaction)

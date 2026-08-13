@@ -44,8 +44,6 @@ class UserManagementController extends Controller
 
     public function show(User $user)
     {
-        $this->preventCoordinatorAccess($user);
-
         $user->load(['role', 'department']);
 
         return view('users.coordinator.usermanagement.show', compact('user'));
@@ -53,8 +51,6 @@ class UserManagementController extends Controller
 
     public function edit(User $user)
     {
-        $this->preventCoordinatorAccess($user);
-
         $roles = $this->manageableRoles();
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
 
@@ -63,8 +59,6 @@ class UserManagementController extends Controller
 
     public function update(Request $request, User $user)
     {
-        $this->preventCoordinatorAccess($user);
-
         $data = $this->validateUserData($request, $user);
 
         if (empty($data['password'])) {
@@ -80,7 +74,7 @@ class UserManagementController extends Controller
 
     public function destroy(User $user)
     {
-        $this->preventCoordinatorAccess($user);
+        $this->preventCoordinatorDeletion($user);
 
         $user->delete();
 
@@ -89,7 +83,7 @@ class UserManagementController extends Controller
 
     public function restore(User $user)
     {
-        $this->preventCoordinatorAccess($user);
+        $this->preventCoordinatorDeletion($user);
 
         abort_unless($user->trashed(), 404);
 
@@ -104,6 +98,21 @@ class UserManagementController extends Controller
         $status = $request->query('status', '');
         $roleId = $request->query('role_id', '');
         $departmentId = $request->query('department_id', '');
+        $sort = $request->query('sort', 'name');
+        $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $sortableColumns = [
+            'userID' => 'userID',
+            'name' => 'last_name',
+            'role' => 'role_name',
+            'department' => 'department_name',
+            'email' => 'email',
+            'status' => 'status',
+        ];
+
+        if (! array_key_exists($sort, $sortableColumns)) {
+            $sort = 'name';
+        }
 
         $users = $this->manageableUsersQuery($archived)
             ->with(['role', 'department'])
@@ -120,8 +129,16 @@ class UserManagementController extends Controller
             ->when($status !== '', fn (Builder $query) => $query->where('status', $status))
             ->when($roleId !== '', fn (Builder $query) => $query->where('role_id', $roleId))
             ->when($departmentId !== '', fn (Builder $query) => $query->where('department_id', $departmentId))
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->leftJoin('roles', 'users.role_id', '=', 'roles.id')
+            ->leftJoin('departments', 'users.department_id', '=', 'departments.id')
+            ->select('users.*')
+            ->when($sort === 'name', function ($query) use ($direction) {
+                $query->orderBy('last_name', $direction)
+                    ->orderBy('first_name', $direction);
+            }, function ($query) use ($sortableColumns, $sort, $direction) {
+                $query->orderBy($sortableColumns[$sort], $direction)
+                    ->orderBy('first_name');
+            })
             ->paginate(12);
 
         $roles = $this->manageableRoles();
@@ -153,6 +170,8 @@ class UserManagementController extends Controller
             'status',
             'roleId',
             'departmentId',
+            'sort',
+            'direction',
             'archived',
             'filters'
         ));
@@ -161,9 +180,6 @@ class UserManagementController extends Controller
     private function manageableUsersQuery(bool $archived = false): Builder
     {
         return User::query()
-            ->whereHas('role', function (Builder $query) {
-                $query->where('role_name', '!=', 'Coordinator');
-            })
             ->when($archived, fn (Builder $query) => $query->onlyTrashed(), fn (Builder $query) => $query->withoutTrashed());
     }
 
@@ -205,7 +221,7 @@ class UserManagementController extends Controller
         ]);
     }
 
-    private function preventCoordinatorAccess(User $user): void
+    private function preventCoordinatorDeletion(User $user): void
     {
         $user->loadMissing('role');
 

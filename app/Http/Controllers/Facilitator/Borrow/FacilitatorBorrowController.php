@@ -114,6 +114,22 @@ class FacilitatorBorrowController extends Controller
 			);
 		});
 
+		$notificationService->emailRoleUsers(
+			'Coordinator',
+			'Borrow',
+			$borrowTransaction->borrow_no,
+			'Borrow request ready for review',
+			'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for your review.',
+			route('coordinator.borrow.show', $borrowTransaction),
+			'Review borrow request',
+			[
+				['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
+				['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+				['label' => 'Status', 'value' => $borrowTransaction->status],
+			],
+			$request->user()->userNo
+		);
+
 		app(FacilitatorBorrowEmailController::class)->sendForwardedToCoordinator($borrowTransaction, $request->user());
 
 		return redirect()

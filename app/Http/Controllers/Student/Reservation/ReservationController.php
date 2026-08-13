@@ -129,6 +129,23 @@ class ReservationController extends Controller
             return $reservation;
         });
 
+        $reservation->loadMissing('laboratory');
+
+        $notificationService->emailRoleUsers(
+            'Instructor',
+            'Reservation',
+            $reservation->reservation_no,
+            'New reservation request',
+            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
+            route('instructor.reservations.show', $reservation),
+            'Review reservation',
+            [
+                ['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
+                ['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
+                ['label' => 'Status', 'value' => $reservation->status],
+            ]
+        );
+
         return redirect()
             ->route('student.reservations.show', $reservation)
             ->with('status', 'Reservation request submitted successfully.');

@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\BorrowTransaction;
 use App\Models\Notification as UserNotification;
+use App\Mail\RequestReviewMail;
 use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Mail;
 
 class RequestNotificationService
 {
@@ -49,6 +51,40 @@ class RequestNotificationService
             ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
             ->get()
             ->each(fn (User $user) => $this->notifyUser($user, $type, $title, $message, $reference));
+    }
+
+    public function emailRoleUsers(
+        string $roleName,
+        string $requestType,
+        string $requestNumber,
+        string $headline,
+        string $bodyMessage,
+        string $actionUrl,
+        string $actionLabel,
+        array $summaryRows = [],
+        ?int $exceptUserNo = null
+    ): void {
+        User::query()
+            ->where('status', 'Active')
+            ->whereHas('role', fn ($query) => $query->where('role_name', $roleName))
+            ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
+            ->get()
+            ->each(function (User $user) use ($requestType, $requestNumber, $headline, $bodyMessage, $actionUrl, $actionLabel, $summaryRows) {
+                if (! $user->email) {
+                    return;
+                }
+
+                Mail::to($user->email)->send(new RequestReviewMail(
+                    recipientName: $this->displayName($user),
+                    requestType: $requestType,
+                    requestNumber: $requestNumber,
+                    headline: $headline,
+                    bodyMessage: $bodyMessage,
+                    actionUrl: $actionUrl,
+                    actionLabel: $actionLabel,
+                    summaryRows: $summaryRows,
+                ));
+            });
     }
 
     public function notifyRequester(Model $reference, string $type, string $title, string $message): void

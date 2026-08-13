@@ -13,7 +13,7 @@
 
         <div class="d-flex align-items-center gap-3">
             <h1 class="h5 mb-0 fw-semibold text-dark">@yield('page-title', 'Dashboard')</h1>
-            <p class="mb-0 small text-secondary d-none d-md-block">@yield('page-subtitle', 'Manage the laboratory system from one place')</p>
+            
         </div>
 
         <div class="ms-auto d-flex align-items-center gap-3">

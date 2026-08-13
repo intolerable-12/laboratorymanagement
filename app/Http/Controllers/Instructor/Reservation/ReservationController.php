@@ -80,6 +80,23 @@ class ReservationController extends Controller
             );
         });
 
+        $reservation->loadMissing('laboratory');
+        $notificationService->emailRoleUsers(
+            'Laboratory In-charge',
+            'Reservation',
+            $reservation->reservation_no,
+            'Reservation ready for review',
+            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for your review.',
+            route('facilitator.reservations.show', $reservation),
+            'Review reservation',
+            [
+                ['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
+                ['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
+                ['label' => 'Status', 'value' => $reservation->status],
+            ],
+            $request->user()->userNo
+        );
+
         app(InstructorReservationEmailController::class)->sendForwardedToFacilitator($reservation, $request->user());
 
         return redirect()

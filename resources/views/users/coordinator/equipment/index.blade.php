@@ -5,6 +5,27 @@
 
 @php
     $tabQuery = request()->except('page');
+    $tableRoute = $archived ? 'coordinator.equipment.archived' : 'coordinator.equipment.index';
+    $currentSort = $sort ?? request()->query('sort', 'item');
+    $currentDirection = $direction ?? request()->query('direction', 'asc');
+    $sortQuery = request()->except('page', 'sort', 'direction');
+
+    $sortUrl = function (string $column) use ($tableRoute, $sortQuery, $currentSort, $currentDirection) {
+        $nextDirection = $currentSort === $column && $currentDirection === 'asc' ? 'desc' : 'asc';
+
+        return route($tableRoute, array_merge($sortQuery, [
+            'sort' => $column,
+            'direction' => $nextDirection,
+        ]));
+    };
+
+    $sortIcon = function (string $column) use ($currentSort, $currentDirection) {
+        if ($currentSort !== $column) {
+            return 'fa-sort text-secondary opacity-50';
+        }
+
+        return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
+    };
 @endphp
 
 @section('content')
@@ -16,52 +37,50 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
-    <div class="hero-banner equipment-hero rounded-4 p-4 p-lg-5 mb-4">
-        <div class="row g-4 align-items-center">
-            <div class="col-lg-8">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white border mb-3">
-                    <span class="badge rounded-pill text-bg-primary">Equipment inventory</span>
-                    <span class="small text-secondary">Organize assets by category, room, and condition</span>
-                </div>
-
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="equipment-hero__accent">
-                        <i class="fa-solid fa-screwdriver-wrench fa-xl" aria-hidden="true"></i>
-                    </div>
-                    <div>
-                        <h2 class="display-6 fw-semibold text-dark mb-1">Equipment Management</h2>
-                        <p class="lead text-secondary mb-0">Track active equipment and restore archived items within five years.</p>
-                    </div>
+        {{-- Metrics Cards --}}
+    <div class="row g-3 g-xl-4 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="card-body">
+                    <div class="small text-uppercase text-secondary mb-2">Total equipment</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['total'] }}</div>
+                    <div class="small text-secondary">All registered assets</div>
                 </div>
             </div>
-
-            <div class="col-lg-4">
-                <div class="section-card p-4 h-100">
-                    <div class="small text-uppercase text-secondary mb-2">Quick actions</div>
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('coordinator.equipment.create') }}" class="btn btn-primary">Add equipment</a>
-                        <a href="{{ $archived ? route('coordinator.equipment.index', $tabQuery) : route('coordinator.equipment.archived', $tabQuery) }}" class="btn btn-outline-secondary">
-                            {{ $archived ? 'Back to active equipment' : 'View archived equipment' }}
-                        </a>
-                        <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-outline-secondary">Manage categories</a>
-                    </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="card-body">
+                    <div class="small text-uppercase text-secondary mb-2">Available</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['available'] }}</div>
+                    <div class="small text-secondary">Ready for use</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="card-body">
+                    <div class="small text-uppercase text-secondary mb-2">Maintenance</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['maintenance'] }}</div>
+                    <div class="small text-secondary">Under repair or service</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card h-100">
+                <div class="card-body">
+                    <div class="small text-uppercase text-secondary mb-2">Archived</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['archived'] }}</div>
+                    <div class="small text-secondary">Restorable for five years</div>
                 </div>
             </div>
         </div>
     </div>
 
+    {{-- Search & Filter Section --}}
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <a href="{{ route('coordinator.equipment.index', $tabQuery) }}" class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4">
-                    Active equipment <span class="badge text-bg-light text-dark ms-2">{{ $stats['total'] }}</span>
-                </a>
-                <a href="{{ route('coordinator.equipment.archived', $tabQuery) }}" class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4">
-                    Archived equipment <span class="badge text-bg-light text-dark ms-2">{{ $stats['archived'] }}</span>
-                </a>
-            </div>
-
-            <form method="GET" action="{{ $archived ? route('coordinator.equipment.archived') : route('coordinator.equipment.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($tableRoute) }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-4">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input
@@ -115,6 +134,8 @@
                 </div>
 
                 <div class="col-12 col-lg-auto d-flex gap-2">
+                    <input type="hidden" name="sort" value="{{ $currentSort }}">
+                    <input type="hidden" name="direction" value="{{ $currentDirection }}">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
                     <a href="{{ $archived ? route('coordinator.equipment.archived') : route('coordinator.equipment.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
@@ -122,53 +143,28 @@
         </div>
     </div>
 
-    <div class="row g-3 g-xl-4 mb-4">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Total equipment</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['total'] }}</div>
-                    <div class="small text-secondary">All registered assets</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Available</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['available'] }}</div>
-                    <div class="small text-secondary">Ready for use</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Maintenance</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['maintenance'] }}</div>
-                    <div class="small text-secondary">Under repair or service</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Archived</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['archived'] }}</div>
-                    <div class="small text-secondary">Restorable for five years</div>
-                </div>
-            </div>
+
+
+    {{-- Equipment Switcher Bar (Placed directly on top of the table) --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="btn-group shadow-sm" role="group" aria-label="Equipment view switcher">
+            <a href="{{ route('coordinator.equipment.index', $tabQuery) }}" class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
+                <i class="fa-solid fa-boxes-stacked me-2"></i>Active equipment
+                <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2">{{ $stats['total'] }}</span>
+            </a>
+            <a href="{{ route('coordinator.equipment.archived', $tabQuery) }}" class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
+                <i class="fa-solid fa-box-archive me-2"></i>Archived equipment
+                <span class="badge {{ $archived ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-2">{{ $stats['archived'] }}</span>
+            </a>
         </div>
     </div>
 
+    {{-- Table Section --}}
     <div class="section-card" id="equipmentTable">
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <h3 class="h5 fw-semibold mb-1">{{ $archived ? 'Archived equipment' : 'Equipment list' }}</h3>
-                    <p class="small text-secondary mb-0">
-                        {{ $archived ? 'Restore archived equipment within five years of archiving.' : 'Archive equipment instead of deleting it permanently.' }}
-                    </p>
                 </div>
 
                 @if (! $archived)
@@ -182,14 +178,49 @@
                 <table class="table table-hover align-middle mb-0 equipment-table">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Item</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Laboratory</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Condition</th>
+                            <th scope="col" class="ps-4">
+                                <a href="{{ $sortUrl('item') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Item</span>
+                                    <i class="fa-solid {{ $sortIcon('item') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="{{ $sortUrl('category') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Category</span>
+                                    <i class="fa-solid {{ $sortIcon('category') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Laboratory</span>
+                                    <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="{{ $sortUrl('quantity') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Quantity</span>
+                                    <i class="fa-solid {{ $sortIcon('quantity') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Status</span>
+                                    <i class="fa-solid {{ $sortIcon('status') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="{{ $sortUrl('condition') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Condition</span>
+                                    <i class="fa-solid {{ $sortIcon('condition') }} small"></i>
+                                </a>
+                            </th>
                             @if ($archived)
-                                <th scope="col">Archived at</th>
+                                <th scope="col">
+                                    <a href="{{ $sortUrl('archived_at') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                        <span>Archived at</span>
+                                        <i class="fa-solid {{ $sortIcon('archived_at') }} small"></i>
+                                    </a>
+                                </th>
                             @endif
                             <th scope="col" class="text-end pe-4">Actions</th>
                         </tr>
@@ -214,7 +245,6 @@
                                             <div class="fw-semibold text-dark">{{ $equipment->equipment_name }}</div>
                                             <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                 <span>{{ $equipment->equipment_code }}</span>
-                                                <span class="equipment-barcode-pill equipment-barcode-pill--sm">{{ $equipment->barcode }}</span>
                                             </div>
                                         </div>
                                     </div>

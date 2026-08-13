@@ -88,9 +88,9 @@ class FacilitatorReservationController extends Controller
 
 		$notificationService = app(RequestNotificationService::class);
 
-		DB::transaction(function () use ($request, $reservation, $data, $notificationService) {
-			$reservation->update([
-				'status' => 'Facilitator Approved',
+        DB::transaction(function () use ($request, $reservation, $data, $notificationService) {
+            $reservation->update([
+                'status' => 'Facilitator Approved',
 			]);
 
 			foreach ($reservation->items as $item) {
@@ -115,17 +115,34 @@ class FacilitatorReservationController extends Controller
 				'Your reservation ' . $reservation->reservation_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
 			);
 
-			$notificationService->notifyRoleUsers(
-				'Coordinator',
-				'Reservation',
-				'Reservation ready for review',
-				'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for coordinator review.',
-				$reservation,
-				$request->user()->userNo
-			);
-		});
+            $notificationService->notifyRoleUsers(
+                'Coordinator',
+                'Reservation',
+                'Reservation ready for review',
+                'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for coordinator review.',
+                $reservation,
+                $request->user()->userNo
+            );
+        });
 
-		app(FacilitatorReservationEmailController::class)->sendForwardedToCoordinator($reservation, $request->user());
+        $reservation->loadMissing('laboratory');
+        $notificationService->emailRoleUsers(
+            'Coordinator',
+            'Reservation',
+            $reservation->reservation_no,
+            'Reservation ready for review',
+            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for your review.',
+            route('coordinator.reservations.show', $reservation),
+            'Review reservation',
+            [
+                ['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
+                ['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
+                ['label' => 'Status', 'value' => $reservation->status],
+            ],
+            $request->user()->userNo
+        );
+
+        app(FacilitatorReservationEmailController::class)->sendForwardedToCoordinator($reservation, $request->user());
 
 		return redirect()
 			->route('facilitator.reservations.show', $reservation)

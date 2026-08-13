@@ -48,9 +48,9 @@ class InstructorBorrowController extends Controller
 
 		$notificationService = app(RequestNotificationService::class);
 
-		DB::transaction(function () use ($borrowTransaction, $data, $notificationService, $request) {
-			$borrowTransaction->update([
-				'status' => 'Instructor Approved',
+        DB::transaction(function () use ($borrowTransaction, $data, $notificationService, $request) {
+            $borrowTransaction->update([
+                'status' => 'Instructor Approved',
 				'remarks' => $data['remarks'] ?? $borrowTransaction->remarks,
 			]);
 
@@ -61,17 +61,33 @@ class InstructorBorrowController extends Controller
 				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Instructor and forwarded to the Facilitator.'
 			);
 
-			$notificationService->notifyRoleUsers(
-				'Facilitator',
-				'Borrow',
-				'Borrow request ready for review',
-				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for facilitator review.',
-				$borrowTransaction,
-				$request->user()->userNo
-			);
-		});
+            $notificationService->notifyRoleUsers(
+                'Facilitator',
+                'Borrow',
+                'Borrow request ready for review',
+                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for facilitator review.',
+                $borrowTransaction,
+                $request->user()->userNo
+            );
+        });
 
-		app(InstructorBorrowEmailController::class)->sendForwardedToFacilitator($borrowTransaction, $request->user());
+        $notificationService->emailRoleUsers(
+            'Laboratory In-charge',
+            'Borrow',
+            $borrowTransaction->borrow_no,
+            'Borrow request ready for review',
+            'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for your review.',
+            route('facilitator.borrow.show', $borrowTransaction),
+            'Review borrow request',
+            [
+                ['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
+                ['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+                ['label' => 'Status', 'value' => $borrowTransaction->status],
+            ],
+            $request->user()->userNo
+        );
+
+        app(InstructorBorrowEmailController::class)->sendForwardedToFacilitator($borrowTransaction, $request->user());
 
 		return redirect()
 			->route('instructor.borrow.show', $borrowTransaction)

@@ -66,8 +66,27 @@ class ChemicalController extends Controller
         $categoryId = $request->query('category_id', '');
         $laboratoryId = $request->query('laboratory_id', '');
         $hazard = $request->query('hazard_classification', '');
+        $sort = $request->query('sort', 'item');
+        $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $sortableColumns = [
+            'item' => 'chemical_name',
+            'category' => 'category_name',
+            'laboratory' => 'laboratory_name',
+            'stock' => 'quantity',
+            'status' => 'status',
+            'hazard' => 'hazard_classification',
+            'archived_at' => 'deleted_at',
+        ];
+
+        if (! array_key_exists($sort, $sortableColumns)) {
+            $sort = 'item';
+        }
 
         $chemicalsQuery = Chemical::with(['category', 'laboratory', 'supplier'])
+            ->leftJoin('chemical_categories', 'chemicals.category_id', '=', 'chemical_categories.id')
+            ->leftJoin('laboratories', 'chemicals.laboratory_id', '=', 'laboratories.id')
+            ->select('chemicals.*')
             ->when($archived, fn ($query) => $query->onlyTrashed(), fn ($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -83,7 +102,14 @@ class ChemicalController extends Controller
             ->when($hazard !== '', fn ($query) => $query->where('hazard_classification', $hazard));
 
         $chemicals = $chemicalsQuery
-            ->when($archived, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->latest())
+            ->when($sort === 'category', fn ($query) => $query->orderBy('chemical_categories.category_name', $direction))
+            ->when($sort === 'laboratory', fn ($query) => $query->orderBy('laboratories.laboratory_name', $direction))
+            ->when($sort === 'archived_at' && $archived, fn ($query) => $query->orderBy('chemicals.deleted_at', $direction))
+            ->when($sort === 'item', fn ($query) => $query->orderBy('chemicals.chemical_name', $direction))
+            ->when($sort === 'stock', fn ($query) => $query->orderBy('chemicals.quantity', $direction))
+            ->when($sort === 'status', fn ($query) => $query->orderBy('chemicals.status', $direction))
+            ->when($sort === 'hazard', fn ($query) => $query->orderBy('chemicals.hazard_classification', $direction))
+            ->when($sort !== 'archived_at' || ! $archived, fn ($query) => $query->orderBy('chemicals.created_at', 'desc'))
             ->paginate(10);
 
         $categories = ChemicalCategory::orderBy('category_name')->get(['id', 'category_name']);
@@ -119,6 +145,8 @@ class ChemicalController extends Controller
             'categoryId',
             'laboratoryId',
             'hazard',
+            'sort',
+            'direction',
             'archived',
             'filters'
         ));
