@@ -74,7 +74,7 @@ class RequestNotificationService
                     return;
                 }
 
-                Mail::to($user->email)->send(new RequestReviewMail(
+                Mail::to($user->email)->queue(new RequestReviewMail(
                     recipientName: $this->displayName($user),
                     requestType: $requestType,
                     requestNumber: $requestNumber,

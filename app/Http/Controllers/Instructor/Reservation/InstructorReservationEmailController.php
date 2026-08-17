@@ -48,7 +48,7 @@ class InstructorReservationEmailController
 			return;
 		}
 
-		Mail::to($reservation->user->email)->send(new ReservationDecisionMail(
+		Mail::to($reservation->user->email)->queue(new ReservationDecisionMail(
 			reservation: $reservation,
 			recipientName: $this->buildUserName($reservation->user),
 			reviewerRole: $reviewerRole,

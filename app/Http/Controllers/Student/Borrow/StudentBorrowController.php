@@ -8,11 +8,12 @@ use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\SchoolYear;
 use App\Services\RequestNotificationService;
+use App\Services\SequentialCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class StudentBorrowController extends Controller
@@ -66,6 +67,7 @@ class StudentBorrowController extends Controller
 
 		$data = $this->validateBorrowRequest($request);
 		$items = $this->collectRequestedItems($request);
+		$laboratoryId = $this->resolveBorrowLaboratoryId($items);
 		$notificationService = app(RequestNotificationService::class);
 
 		if ($items === []) {
@@ -74,9 +76,14 @@ class StudentBorrowController extends Controller
 			]);
 		}
 
-        $borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
+        $borrowTransaction = DB::transaction(function () use ($request, $data, $items, $laboratoryId, $notificationService) {
+            $codeGenerator = app(SequentialCodeGenerator::class);
+            $schoolYear = SchoolYear::query()->where('is_current', true)->orderByDesc('start_date')->first()
+                ?? SchoolYear::query()->orderByDesc('start_date')->first();
+
             $borrowTransaction = BorrowTransaction::create([
-				'borrow_no' => $this->generateBorrowNumber(),
+				'borrow_no' => $codeGenerator->borrowNumber($schoolYear),
+				'laboratory_id' => $laboratoryId,
 				'reservation_id' => null,
 				'borrower_id' => $request->user()->userNo,
 				'released_by' => null,
@@ -222,6 +229,7 @@ class StudentBorrowController extends Controller
 			$items[] = [
 				'item_type' => 'Equipment',
 				'item_id' => $equipment->id,
+				'laboratory_id' => $equipment->laboratory_id,
 				'quantity' => $quantity,
 				'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
 			];
@@ -265,6 +273,7 @@ class StudentBorrowController extends Controller
 			$items[] = [
 				'item_type' => 'Chemical',
 				'item_id' => $chemical->id,
+				'laboratory_id' => $chemical->laboratory_id,
 				'quantity' => $quantity,
 				'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
 			];
@@ -277,13 +286,27 @@ class StudentBorrowController extends Controller
 		return $items;
 	}
 
-	private function generateBorrowNumber(): string
+	private function resolveBorrowLaboratoryId(array $items): int
 	{
-		do {
-			$borrowNo = 'BRW-' . Str::upper(Str::random(10));
-		} while (BorrowTransaction::where('borrow_no', $borrowNo)->exists());
+		$laboratoryIds = collect($items)
+			->pluck('laboratory_id')
+			->filter()
+			->unique()
+			->values();
 
-		return $borrowNo;
+		if ($laboratoryIds->isEmpty()) {
+			throw ValidationException::withMessages([
+				'items' => 'Unable to determine the laboratory for the selected borrow items.',
+			]);
+		}
+
+		if ($laboratoryIds->count() > 1) {
+			throw ValidationException::withMessages([
+				'items' => 'All borrow items must belong to the same laboratory.',
+			]);
+		}
+
+		return (int) $laboratoryIds->first();
 	}
 
 	private function ensureStudent(Request $request): void

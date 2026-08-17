@@ -10,11 +10,11 @@ use App\Models\Reservation;
 use App\Models\ReservationItem;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Services\SequentialCodeGenerator;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
@@ -91,8 +91,12 @@ class ReservationController extends Controller
         }
 
         $reservation = DB::transaction(function () use ($request, $data, $items, $notificationService) {
+            $schoolYear = SchoolYear::findOrFail($data['school_year_id']);
+            $laboratory = Laboratory::findOrFail($data['laboratory_id']);
+            $codeGenerator = app(SequentialCodeGenerator::class);
+
             $reservation = Reservation::create([
-                'reservation_no' => $this->generateReservationNumber(),
+                'reservation_no' => $codeGenerator->reservationNumber($schoolYear, $laboratory),
                 'user_no' => $request->user()->userNo,
                 'laboratory_id' => $data['laboratory_id'],
                 'experiment_title' => $data['experiment_title'],
@@ -315,15 +319,6 @@ class ReservationController extends Controller
         }
 
         return $items;
-    }
-
-    private function generateReservationNumber(): string
-    {
-        do {
-            $reservationNo = 'RSV-' . Str::upper(Str::random(10));
-        } while (Reservation::where('reservation_no', $reservationNo)->exists());
-
-        return $reservationNo;
     }
 
     private function ensureStudent(Request $request): void

@@ -48,7 +48,7 @@ class FacilitatorBorrowEmailController
 			return;
 		}
 
-		Mail::to($borrowTransaction->borrower->email)->send(new BorrowDecisionMail(
+		Mail::to($borrowTransaction->borrower->email)->queue(new BorrowDecisionMail(
 			borrowTransaction: $borrowTransaction,
 			recipientName: $this->buildUserName($borrowTransaction->borrower),
 			reviewerRole: $reviewerRole,
