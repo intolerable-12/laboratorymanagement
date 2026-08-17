@@ -65,27 +65,13 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorLaboratoriesMenu"
-                    aria-expanded="{{ $isLaboratoriesGroup ? 'true' : 'false' }}"
-                    aria-controls="coordinatorLaboratoriesMenu" title="Laboratory">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-flask-vial"></i></span>
-                        <span class="sidebar-item__label">Laboratory</span>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isLaboratoriesIndex ? 'active' : '' }}"
+                    href="{{ route('coordinator.laboratories.index') }}" title="Laboratory">
+                    <span class="sidebar-item__icon">
+                        <i class="fa-solid fa-flask-vial"></i>
                     </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
-                            class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isLaboratoriesGroup ? 'show' : '' }}" id="coordinatorLaboratoriesMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isLaboratoriesIndex ? 'active' : '' }}"
-                            href="{{ route('coordinator.laboratories.index') }}" title="Laboratories">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-vials"></i></span>
-                            <span class="sidebar-item__label">Laboratories</span>
-                        </a>
-                    </div>
-                </div>
+                    <span class="sidebar-item__label">Laboratory</span>
+                </a>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
@@ -195,27 +181,6 @@
                     </div>
                 </div>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorForumMenu"
-                    aria-expanded="{{ $isForumGroup ? 'true' : 'false' }}" aria-controls="coordinatorForumMenu"
-                    title="Forum">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
-                        <span class="sidebar-item__label">Forum</span>
-                    </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
-                            class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isForumGroup ? 'show' : '' }}" id="coordinatorForumMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
-                            href="{{ route('coordinator.forum.index') }}" title="Forum Posts">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
-                            <span class="sidebar-item__label">Forum Posts</span>
-                        </a>
-                    </div>
-                </div>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
@@ -244,18 +209,19 @@
                     </div>
                 </div>
 
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
+                    href="{{ route('coordinator.forum.index') }}" title="Forum">
+                    <span class="sidebar-item__icon">
+                        <i class="fa-solid fa-comments"></i>
+                    </span>
+                    <span class="sidebar-item__label">Forum</span>
+                </a>
+
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2" href="#" title="Reports">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-chart-column"></i></span>
                     <span class="sidebar-item__label">Reports</span>
                 </a>
             </nav>
-        </div>
-
-        <div class="coordinator-sidebar__footer mt-auto p-3 border-top">
-            <div class="rounded-4 bg-light p-3">
-                <div class="small text-secondary">Signed in as</div>
-                <div class="fw-semibold text-dark">Coordinator</div>
-            </div>
         </div>
     </div>
 </aside>
