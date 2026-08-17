@@ -11,6 +11,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Coordinator\Chemical\ChemicalBarcodePrintController;
 use App\Http\Controllers\Coordinator\Chemical\ChemicalCategoryController;
 use App\Http\Controllers\Coordinator\Chemical\ChemicalController;
+use App\Http\Controllers\Coordinator\Announcement\AnnouncementController as CoordinatorAnnouncementController;
+use App\Http\Controllers\Coordinator\DashboardController as CoordinatorDashboardController;
 use App\Http\Controllers\Coordinator\DepartmentManagementController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
@@ -18,17 +20,22 @@ use App\Http\Controllers\Coordinator\EquipmentCategoryController;
 use App\Http\Controllers\Coordinator\EquipmentController;
 use App\Http\Controllers\Coordinator\EquipmentBarcodePrintController;
 use App\Http\Controllers\Coordinator\LaboratoryController;
+use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationController;
 use App\Http\Controllers\Coordinator\UserManagementController;
+use App\Http\Controllers\Facilitator\DashboardController as FacilitatorDashboardController;
 use App\Http\Controllers\Facilitator\Account\Reservation\FacilitatorReservationController;
+use App\Http\Controllers\Facilitator\Account\Reservation\FacilitatorReservationCalendarController;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowController;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowEmailController;
 use App\Http\Controllers\Facilitator\Forum\LaboratoryInchargeForumController;
+use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardController;
 use App\Http\Controllers\Instructor\Reservation\ReservationController as InstructorReservationController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowEmailController;
 use App\Http\Controllers\Instructor\Forum\InstructorForumController;
 use App\Http\Controllers\Instructor\Account\MyAccountController as InstructorMyAccountController;
+use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
 use App\Http\Controllers\Student\Reservation\ReservationController as StudentReservationController;
 use App\Http\Controllers\Student\Borrow\StudentBorrowController;
 use App\Http\Controllers\Student\Borrow\StudentBorrowEmailController;
@@ -68,9 +75,7 @@ Route::middleware(['auth'])
 
 
 Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('coordinator.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('users.coordinator.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [CoordinatorDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/users/archived', [UserManagementController::class, 'archived'])->name('users.archived');
         Route::post('/users/{user}/restore', [UserManagementController::class, 'restore'])->withTrashed()->name('users.restore');
@@ -147,11 +152,14 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
         Route::prefix('reservations')
             ->name('reservations.')
             ->group(function () {
+                Route::get('/calendar', [CoordinatorReservationCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [CoordinatorReservationController::class, 'index'])->name('index');
                 Route::get('/{reservation}', [CoordinatorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [CoordinatorReservationController::class, 'approve'])->name('approve');
                 Route::post('/{reservation}/reject', [CoordinatorReservationController::class, 'reject'])->name('reject');
             });
+
+        Route::resource('announcements', CoordinatorAnnouncementController::class);
 
         Route::prefix('borrow')
             ->name('borrow.')
@@ -199,9 +207,7 @@ Route::middleware(['auth', 'role:Student'])
     ->prefix('student')
     ->name('student.')
     ->group(function () {
-        Route::get('/dashboard', function () {
-            return view('users.student.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
         Route::prefix('reservations')
             ->name('reservations.')
@@ -256,13 +262,12 @@ Route::middleware(['auth', 'role:Laboratory In-charge'])
     ->prefix('facilitator')
     ->name('facilitator.')
     ->group(function () {
-        Route::get('/dashboard', function () {
-            return view('users.facilitator.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [FacilitatorDashboardController::class, 'index'])->name('dashboard');
 
         Route::prefix('reservations')
             ->name('reservations.')
             ->group(function () {
+                Route::get('/calendar', [FacilitatorReservationCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [FacilitatorReservationController::class, 'index'])->name('index');
                 Route::get('/{reservation}', [FacilitatorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [FacilitatorReservationController::class, 'approve'])->name('approve');
@@ -296,9 +301,7 @@ Route::middleware(['auth', 'role:Instructor'])
     ->prefix('instructor')
     ->name('instructor.')
     ->group(function () {
-        Route::get('/dashboard', function () {
-            return view('users.instructor.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [InstructorDashboardController::class, 'index'])->name('dashboard');
 
         Route::prefix('reservations')
             ->name('reservations.')

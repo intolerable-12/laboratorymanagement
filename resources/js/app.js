@@ -1,6 +1,9 @@
 
 import * as bootstrap from 'bootstrap';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import { Calendar } from '@fullcalendar/core';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
 import Quill from 'quill';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -327,4 +330,337 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveTab(initialTab);
         restoreCachedValues(form);
     }
+
+    const reservationCalendarShells = document.querySelectorAll('[data-reservation-calendar-shell]');
+
+    const statusBadgeClass = (status) => {
+        switch (status) {
+            case 'Coordinator Approved':
+                return 'text-bg-success';
+            case 'Completed':
+                return 'text-bg-info';
+            default:
+                return 'text-bg-primary';
+        }
+    };
+
+    const setTextContent = (element, value, fallback = '-') => {
+        if (!element) {
+            return;
+        }
+
+        const resolved = value === null || value === undefined || value === '' ? fallback : value;
+        element.textContent = resolved;
+    };
+
+    const renderReservationItems = (body, items) => {
+        if (!body) {
+            return;
+        }
+
+        body.replaceChildren();
+
+        if (!items || items.length === 0) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+
+            cell.colSpan = 5;
+            cell.className = 'text-center text-secondary py-4';
+            cell.textContent = 'No items were attached to this reservation.';
+            row.appendChild(cell);
+            body.appendChild(row);
+            return;
+        }
+
+        items.forEach((item) => {
+            const row = document.createElement('tr');
+
+            const typeCell = document.createElement('td');
+            typeCell.textContent = item.type ?? '—';
+
+            const nameCell = document.createElement('td');
+            const itemName = document.createElement('div');
+            itemName.className = 'fw-semibold text-dark';
+            itemName.textContent = item.name ?? '—';
+            const itemCode = document.createElement('div');
+            itemCode.className = 'small text-secondary';
+            itemCode.textContent = item.code ?? '—';
+            nameCell.append(itemName, itemCode);
+
+            const quantityCell = document.createElement('td');
+            quantityCell.textContent = item.quantity ?? '—';
+
+            const unitCell = document.createElement('td');
+            unitCell.textContent = item.unit ?? '—';
+
+            const remarksCell = document.createElement('td');
+            remarksCell.textContent = item.remarks ?? '—';
+
+            row.append(typeCell, nameCell, quantityCell, unitCell, remarksCell);
+            body.appendChild(row);
+        });
+    };
+
+    reservationCalendarShells.forEach((shell) => {
+        const calendarElement = shell.querySelector('[data-reservation-calendar]');
+        const eventsElement = shell.querySelector('[data-reservation-calendar-events]');
+        const modalElement = shell.querySelector('[data-reservation-calendar-modal]');
+
+        if (!calendarElement || !eventsElement || calendarElement.dataset.reservationCalendarInitialized === 'true') {
+            return;
+        }
+
+        let events = [];
+
+        try {
+            events = JSON.parse(eventsElement.textContent || '[]');
+        } catch (error) {
+            events = [];
+        }
+
+        const modal = modalElement ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+        const modalSelectors = modalElement
+            ? {
+                title: modalElement.querySelector('[data-reservation-calendar-title]'),
+                badge: modalElement.querySelector('[data-reservation-calendar-status]'),
+                reservationNo: modalElement.querySelector('[data-reservation-reservation-no]'),
+                studentName: modalElement.querySelector('[data-reservation-student-name]'),
+                studentId: modalElement.querySelector('[data-reservation-student-id]'),
+                studentEmail: modalElement.querySelector('[data-reservation-student-email]'),
+                laboratoryName: modalElement.querySelector('[data-reservation-laboratory-name]'),
+                laboratoryCode: modalElement.querySelector('[data-reservation-laboratory-code]'),
+                experimentTitle: modalElement.querySelector('[data-reservation-experiment-title]'),
+                reservationDate: modalElement.querySelector('[data-reservation-date]'),
+                reservationTime: modalElement.querySelector('[data-reservation-time]'),
+                expectedParticipants: modalElement.querySelector('[data-reservation-participants]'),
+                schoolYear: modalElement.querySelector('[data-reservation-school-year]'),
+                semester: modalElement.querySelector('[data-reservation-semester]'),
+                purpose: modalElement.querySelector('[data-reservation-purpose]'),
+                remarks: modalElement.querySelector('[data-reservation-remarks]'),
+                itemsBody: modalElement.querySelector('[data-reservation-items-body]'),
+            }
+            : {};
+
+        const calendar = new Calendar(calendarElement, {
+            plugins: [dayGridPlugin, timeGridPlugin],
+            initialView: 'dayGridMonth',
+            timeZone: 'UTC',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay',
+            },
+            views: {
+                dayGridMonth: {
+                    dayMaxEventRows: 3,
+                },
+                timeGridWeek: {
+                    slotMinTime: '06:00:00',
+                    slotMaxTime: '22:00:00',
+                },
+                timeGridDay: {
+                    slotMinTime: '06:00:00',
+                    slotMaxTime: '22:00:00',
+                },
+            },
+            height: 'auto',
+            expandRows: true,
+            nowIndicator: true,
+            navLinks: true,
+            selectable: false,
+            editable: false,
+            dayMaxEventRows: true,
+            events,
+            eventDisplay: 'block',
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short',
+            },
+            eventContent(info) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'reservation-calendar-event';
+
+                if (info.timeText) {
+                    const time = document.createElement('div');
+                    time.className = 'reservation-calendar-event__time';
+                    time.textContent = info.timeText;
+                    wrapper.appendChild(time);
+                }
+
+                const marquee = document.createElement('div');
+                marquee.className = 'reservation-calendar-event__marquee';
+
+                const track = document.createElement('div');
+                track.className = 'reservation-calendar-event__track';
+
+                const title = info.event.title || '';
+                const first = document.createElement('span');
+                first.textContent = title;
+                const second = document.createElement('span');
+                second.setAttribute('aria-hidden', 'true');
+                second.textContent = title;
+
+                track.append(first, second);
+                marquee.appendChild(track);
+                wrapper.appendChild(marquee);
+
+                return { domNodes: [wrapper] };
+            },
+            eventClick(info) {
+                info.jsEvent.preventDefault();
+
+                if (!modal || !modalSelectors.title) {
+                    return;
+                }
+
+                const props = info.event.extendedProps ?? {};
+                const title = `${props.reservation_no ?? 'Reservation'} - ${props.laboratory_name ?? 'Laboratory'}`;
+
+                setTextContent(modalSelectors.title, title, 'Reservation details');
+                setTextContent(modalSelectors.reservationNo, props.reservation_no);
+                setTextContent(modalSelectors.studentName, props.student_name);
+                setTextContent(modalSelectors.studentId, props.student_id);
+                setTextContent(modalSelectors.studentEmail, props.student_email);
+                setTextContent(modalSelectors.laboratoryName, props.laboratory_name);
+                setTextContent(modalSelectors.laboratoryCode, props.laboratory_code);
+                setTextContent(modalSelectors.experimentTitle, props.experiment_title);
+                setTextContent(modalSelectors.reservationDate, props.reservation_date);
+                setTextContent(modalSelectors.reservationTime, `${props.start_time ?? '-'} - ${props.end_time ?? '-'}`);
+                setTextContent(modalSelectors.expectedParticipants, props.expected_participants);
+                setTextContent(modalSelectors.schoolYear, props.school_year);
+                setTextContent(modalSelectors.semester, props.semester);
+                setTextContent(modalSelectors.purpose, props.purpose);
+                setTextContent(modalSelectors.remarks, props.remarks || 'No remarks provided.');
+
+                if (modalSelectors.badge) {
+                    modalSelectors.badge.className = `badge ${statusBadgeClass(props.status)}`;
+                    modalSelectors.badge.textContent = props.status ?? 'Scheduled';
+                }
+
+                renderReservationItems(modalSelectors.itemsBody, props.items ?? []);
+                modal.show();
+            },
+            eventDidMount(info) {
+                info.el.classList.add('reservation-calendar__event');
+            },
+        });
+
+        calendar.render();
+        calendarElement.dataset.reservationCalendarInitialized = 'true';
+    });
+
+    const announcementFeedShells = document.querySelectorAll('[data-announcement-feed-shell]');
+
+    const renderAnnouncementBadges = (container, values) => {
+        if (!container) {
+            return;
+        }
+
+        container.replaceChildren();
+
+        (values || []).forEach((value) => {
+            const badge = document.createElement('span');
+            badge.className = 'badge text-bg-primary-subtle text-primary-emphasis border';
+            badge.textContent = value;
+            container.appendChild(badge);
+        });
+    };
+
+    const renderAnnouncementImages = (container, images) => {
+        if (!container) {
+            return;
+        }
+
+        container.replaceChildren();
+
+        if (!images || images.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'col-12 text-secondary';
+            empty.textContent = 'No images attached to this announcement.';
+            container.appendChild(empty);
+            return;
+        }
+
+        images.forEach((imageUrl) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'col-12 col-md-6';
+
+            const image = document.createElement('img');
+            image.src = imageUrl;
+            image.alt = 'Announcement image';
+            image.className = 'img-fluid rounded-4 border w-100';
+
+            wrapper.appendChild(image);
+            container.appendChild(wrapper);
+        });
+    };
+
+    announcementFeedShells.forEach((shell) => {
+        const dataElement = shell.querySelector('[data-announcement-feed-data]');
+        const modalElement = shell.querySelector('[data-announcement-feed-modal]');
+
+        if (!dataElement || !modalElement || shell.dataset.announcementFeedInitialized === 'true') {
+            return;
+        }
+
+        let announcements = [];
+
+        try {
+            announcements = JSON.parse(dataElement.textContent || '[]');
+        } catch (error) {
+            announcements = [];
+        }
+
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modalSelectors = {
+            title: modalElement.querySelector('[data-announcement-title]'),
+            status: modalElement.querySelector('[data-announcement-status]'),
+            author: modalElement.querySelector('[data-announcement-author]'),
+            schedule: modalElement.querySelector('[data-announcement-schedule]'),
+            audiences: modalElement.querySelector('[data-announcement-audiences]'),
+            content: modalElement.querySelector('[data-announcement-content]'),
+            images: modalElement.querySelector('[data-announcement-images]'),
+        };
+
+        const openAnnouncement = (announcement) => {
+            setTextContent(modalSelectors.title, announcement.title, 'Announcement details');
+
+            if (modalSelectors.status) {
+                modalSelectors.status.className = `badge ${announcement.is_published ? 'text-bg-success' : 'text-bg-secondary'}`;
+                modalSelectors.status.textContent = announcement.is_published ? 'Published' : 'Draft';
+            }
+
+            setTextContent(modalSelectors.author, `${announcement.posted_by ?? 'System'}${announcement.posted_by_role ? ` - ${announcement.posted_by_role}` : ''}`);
+            setTextContent(modalSelectors.schedule, announcement.start_date || announcement.end_date ? `${announcement.start_date || 'Anytime'} - ${announcement.end_date || 'Open ended'}` : `Updated ${announcement.updated_at || announcement.created_at || '-'}`);
+            renderAnnouncementBadges(modalSelectors.audiences, announcement.audiences || []);
+
+            if (modalSelectors.content) {
+                modalSelectors.content.innerHTML = announcement.content || '';
+            }
+
+            renderAnnouncementImages(modalSelectors.images, announcement.images || []);
+            modal.show();
+        };
+
+        shell.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-announcement-trigger]');
+
+            if (!trigger) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const index = Number(trigger.dataset.announcementIndex);
+
+            if (Number.isNaN(index) || !announcements[index]) {
+                return;
+            }
+
+            openAnnouncement(announcements[index]);
+        });
+
+        shell.dataset.announcementFeedInitialized = 'true';
+    });
 });

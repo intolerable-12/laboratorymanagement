@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -213,7 +214,7 @@ class UserManagementController extends Controller
             'contact_number' => ['nullable', 'string', 'max:20'],
             'role_id' => [
                 'required',
-                Rule::exists('roles', 'id')->where(fn (Builder $query) => $query->where('role_name', '!=', 'Coordinator')),
+                Rule::exists('roles', 'id')->where(fn (QueryBuilder $query) => $query->where('role_name', '!=', 'Coordinator')),
             ],
             'department_id' => ['nullable', 'exists:departments,id'],
             'status' => ['required', Rule::in(['Active', 'Inactive', 'Suspended'])],

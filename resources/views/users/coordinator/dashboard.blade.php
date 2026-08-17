@@ -12,8 +12,8 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-secondary">Export report</button>
-            <button class="btn btn-primary">Create announcement</button>
+            <a href="{{ route('coordinator.announcements.index') }}" class="btn btn-outline-secondary">Manage announcements</a>
+            <a href="{{ route('coordinator.announcements.create') }}" class="btn btn-primary">Create announcement</a>
         </div>
     </div>
 
@@ -48,6 +48,16 @@
             </div>
         @endforeach
     </div>
+
+    @include('partials.announcement-feed', [
+        'announcements' => $announcements,
+        'feedTitle' => 'Announcement Management',
+        'feedSubtitle' => 'Latest announcements with full control links for editing and publishing.',
+        'createUrl' => route('coordinator.announcements.create'),
+        'manageUrl' => route('coordinator.announcements.index'),
+        'createLabel' => 'Create announcement',
+        'manageLabel' => 'Manage all',
+    ])
 
     <div class="row g-4 mb-4">
         <div class="col-xl-8">

@@ -43,7 +43,10 @@
         $isDepartmentsGroup = request()->routeIs('coordinator.departments.*');
         $isUsersGroup = request()->routeIs('coordinator.users.*') || $isDepartmentsGroup;
 
+        $isAnnouncementsIndex = request()->routeIs('coordinator.announcements.index');
+
         $isReservationsIndex = request()->routeIs('coordinator.reservations.index');
+        $isReservationsCalendar = request()->routeIs('coordinator.reservations.calendar');
         $isBorrowIndex = request()->routeIs('coordinator.borrow.index');
         $isReservationsGroup = request()->routeIs('coordinator.reservations.*');
         $isBorrowGroup = request()->routeIs('coordinator.borrow.*');
@@ -168,6 +171,12 @@
                     </div>
                 </div>
 
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAnnouncementsIndex ? 'active' : '' }}"
+                    href="{{ route('coordinator.announcements.index') }}" title="Announcements">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
+                    <span class="sidebar-item__label">Announcements</span>
+                </a>
+
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorRequestMenu"
@@ -182,6 +191,11 @@
                 </button>
                 <div class="collapse {{ $isRequestGroup ? 'show' : '' }}" id="coordinatorRequestMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsCalendar ? 'active' : '' }}"
+                            href="{{ route('coordinator.reservations.calendar') }}" title="Reservation Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                            <span class="sidebar-item__label">Reservation Calendar</span>
+                        </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
                             href="{{ route('coordinator.reservations.index') }}" title="Reservation Requests">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>

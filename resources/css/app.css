@@ -180,9 +180,9 @@ body.coordinator-page {
 }
 
 .coordinator-sidebar .nav-link.active {
-    background: #fff1f7;
-    color: var(--role-accent-deep);
-    box-shadow: none;
+    background: linear-gradient(135deg, #d91c77 0%, #b81565 100%);
+    color: #fff;
+    box-shadow: 0 14px 28px rgba(217, 28, 119, 0.24);
 }
 
 .coordinator-sidebar .collapse > .nav .nav-link.active {
@@ -541,6 +541,149 @@ body.coordinator-page {
 
 .admin-card .table form {
     display: inline-flex;
+}
+
+.reservation-calendar-page .display-6 {
+    font-size: clamp(2rem, 3vw, 2.7rem);
+}
+
+.reservation-calendar-frame {
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--role-border-color);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.98)),
+        linear-gradient(135deg, rgba(95, 124, 255, 0.05), rgba(255, 79, 154, 0.05));
+}
+
+.reservation-calendar-frame .fc {
+    --fc-border-color: var(--role-border-color);
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: #f8fafc;
+    --fc-today-bg-color: rgba(255, 79, 154, 0.08);
+    --fc-list-event-hover-bg-color: rgba(255, 79, 154, 0.08);
+    color: var(--role-text);
+    font-family: inherit;
+}
+
+.reservation-calendar-frame .fc .fc-toolbar {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.reservation-calendar-frame .fc .fc-toolbar-title {
+    font-size: clamp(1.2rem, 2vw, 1.8rem);
+    font-weight: 700;
+    color: var(--role-text);
+}
+
+.reservation-calendar-frame .fc .fc-button {
+    border-radius: 0.85rem;
+    border-color: var(--role-border-color);
+    background: #fff;
+    color: var(--role-text);
+    box-shadow: none;
+    text-transform: capitalize;
+}
+
+.reservation-calendar-frame .fc .fc-button:hover,
+.reservation-calendar-frame .fc .fc-button:focus {
+    border-color: rgba(255, 79, 154, 0.25);
+    background: var(--role-accent-soft);
+    color: var(--role-accent-deep);
+}
+
+.reservation-calendar-frame .fc .fc-button-primary:not(:disabled).fc-button-active,
+.reservation-calendar-frame .fc .fc-button-primary:not(:disabled):active {
+    background: linear-gradient(135deg, var(--role-accent) 0%, var(--role-accent-deep) 100%);
+    border-color: var(--role-accent-deep);
+    color: #fff;
+}
+
+.reservation-calendar-frame .fc .fc-daygrid-day-number,
+.reservation-calendar-frame .fc .fc-col-header-cell-cushion {
+    color: var(--role-text);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.reservation-calendar-frame .fc .fc-timegrid-slot,
+.reservation-calendar-frame .fc .fc-timegrid-axis,
+.reservation-calendar-frame .fc .fc-timegrid-axis-cushion {
+    color: var(--role-muted);
+}
+
+.reservation-calendar-frame .fc .fc-event {
+    border: 0;
+    border-radius: 0.75rem;
+    padding: 0.15rem 0.35rem;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+}
+
+.reservation-calendar-event {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    line-height: 1.15;
+}
+
+.reservation-calendar-event__time {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    opacity: 0.95;
+}
+
+.reservation-calendar-event__marquee {
+    overflow: hidden;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.reservation-calendar-event__track {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.25rem;
+    width: max-content;
+    min-width: max-content;
+    animation: reservation-calendar-marquee 12s linear infinite;
+    will-change: transform;
+}
+
+.reservation-calendar-event__track span {
+    white-space: nowrap;
+}
+
+.reservation-calendar-event__marquee:hover .reservation-calendar-event__track {
+    animation-play-state: paused;
+}
+
+@keyframes reservation-calendar-marquee {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.reservation-calendar-legend .badge {
+    border-radius: 999px;
+}
+
+.reservation-calendar-page .modal-content {
+    border-radius: 1.1rem;
+}
+
+.reservation-calendar-page .account-summary-card {
+    min-height: 100%;
+}
+
+.reservation-calendar-page .reservation-calendar__event {
+    cursor: pointer;
 }
 
 @media (max-width: 991.98px) {
@@ -1024,9 +1167,131 @@ body.coordinator-page {
     background: var(--role-surface-soft);
 }
 
+.role-page .announcement-feed-shell {
+    overflow: hidden;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.role-page .announcement-feed-card {
+    display: block;
+    height: 100%;
+    border-radius: 1.25rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.role-page .announcement-feed-card:hover,
+.role-page .announcement-feed-card:focus-visible {
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.role-page .announcement-feed-card__inner {
+    display: flex;
+    min-height: 100%;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 1px solid var(--role-border-color);
+    background: var(--role-surface);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.role-page .announcement-feed-card__media {
+    flex: 0 0 180px;
+    min-height: 100%;
+    background: linear-gradient(135deg, rgba(79, 112, 255, 0.12), rgba(255, 79, 154, 0.14));
+}
+
+.role-page .announcement-feed-card__media img {
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+    object-fit: cover;
+}
+
+.role-page .announcement-feed-card__placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 220px;
+    color: var(--role-accent-deep);
+    font-size: 2rem;
+}
+
+.role-page .announcement-feed-card__body {
+    flex: 1 1 auto;
+    padding: 1.1rem 1.15rem;
+}
+
+.role-page .announcement-feed-card__body p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.role-page .announcement-feed-empty {
+    border: 1px dashed var(--role-border-color);
+    background: var(--role-surface-soft);
+}
+
+.role-page .announcement-modal {
+    background: var(--role-surface);
+}
+
+.role-page .announcement-modal__content {
+    color: var(--role-text);
+    line-height: 1.75;
+}
+
+.role-page .announcement-modal__content p:last-child {
+    margin-bottom: 0;
+}
+
+.role-page .announcement-modal__images {
+    margin-top: 0.25rem;
+}
+
+.role-page .announcement-modal__images img {
+    width: 100%;
+    height: 100%;
+    max-height: 320px;
+    object-fit: cover;
+}
+
+.announcement-list-thumb {
+    width: 120px;
+    height: 84px;
+    flex: 0 0 120px;
+    max-width: 120px;
+    object-fit: cover;
+    object-position: center;
+}
+
 @media (max-width: 767.98px) {
     .role-page .social-stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .role-page .announcement-feed-card__inner {
+        flex-direction: column;
+    }
+
+    .role-page .announcement-feed-card__media {
+        flex-basis: auto;
+    }
+
+    .role-page .announcement-feed-card__media img,
+    .role-page .announcement-feed-card__placeholder {
+        min-height: 180px;
+    }
+
+    .announcement-list-thumb {
+        width: 88px;
+        height: 64px;
+        flex-basis: 88px;
+        max-width: 88px;
     }
 }
 

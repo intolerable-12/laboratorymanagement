@@ -20,6 +20,12 @@
             </div>
         </section>
 
+        @include('partials.announcement-feed', [
+            'announcements' => $announcements,
+            'feedTitle' => 'Announcements',
+            'feedSubtitle' => 'Important notices from the coordinator that affect your laboratory work.',
+        ])
+
         <section class="row g-3 g-xl-4 mb-4">
             @foreach ([
                 ['label' => 'Currently Borrowed', 'value' => '1', 'note' => 'Active items'],
