@@ -123,7 +123,8 @@
                                                                     <div class="small text-secondary">Requested: {{ $item->quantity_borrowed }}</div>
                                                                 </td>
                                                                 <td style="max-width: 150px;">
-                                                                    <input type="number" step="{{ $quantityStep }}" min="{{ $quantityMin }}" name="items[{{ $item->id }}][quantity]" value="{{ old('items.' . $item->id . '.quantity', $item->quantity_borrowed) }}" class="form-control text-end @error('items.' . $item->id . '.quantity') is-invalid @enderror">
+                                                                    <input type="number" step="{{ $quantityStep }}" min="{{ $quantityMin }}" name="items[{{ $item->id }}][quantity]" value="{{ old('items.' . $item->id . '.quantity', $item->item_type === 'Chemical' ? number_format((float) $item->quantity_borrowed, 2, '.', '') : (int) $item->quantity_borrowed) }}"
+                                                                        class="form-control text-end @error('items.' . $item->id . '.quantity') is-invalid @enderror">
                                                                     @error('items.' . $item->id . '.quantity')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                                                 </td>
                                                             </tr>

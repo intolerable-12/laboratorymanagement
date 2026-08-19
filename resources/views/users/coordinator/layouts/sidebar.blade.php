@@ -68,7 +68,7 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isLaboratoriesIndex ? 'active' : '' }}"
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.laboratories.*') ? 'active' : '' }}"
                     href="{{ route('coordinator.laboratories.index') }}" title="Laboratory">
                     <span class="sidebar-item__icon">
                         <i class="fa-solid fa-flask-vial"></i>
@@ -157,7 +157,7 @@
                     </div>
                 </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAnnouncementsIndex ? 'active' : '' }}"
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.announcements.*') ? 'active' : '' }}"
                     href="{{ route('coordinator.announcements.index') }}" title="Announcements">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
                     <span class="sidebar-item__label">Announcements</span>
