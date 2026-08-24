@@ -152,14 +152,15 @@ body.coordinator-page {
 
 .admin-sidebar .nav-link:hover,
 .admin-sidebar .nav-link:focus-visible {
-    background: linear-gradient(135deg, #7a63ff 0%, #5b46ff 100%);
+    background: linear-gradient(135deg, #ff67ab 0%, #ff2e7b 100%);
     color: #fff;
-    box-shadow: 0 14px 28px rgba(91, 70, 255, 0.22);
+    box-shadow: 0 14px 28px rgba(255, 46, 123, 0.22);
 }
 
 .admin-sidebar .nav-link.active {
     background: #fff1f7;
     color: var(--role-accent-deep);
+    box-shadow: none;
 }
 
 .coordinator-sidebar .nav-link[data-bs-toggle="collapse"] {
@@ -175,9 +176,9 @@ body.coordinator-page {
 .coordinator-sidebar .nav-link[data-bs-toggle="collapse"]:focus-visible,
 .coordinator-sidebar .collapse > .nav .nav-link:hover,
 .coordinator-sidebar .collapse > .nav .nav-link:focus-visible {
-    background: linear-gradient(135deg, #6a52ff 0%, #4936f5 100%);
+    background: linear-gradient(135deg, #ff67ab 0%, #ff2e7b 100%);
     color: #fff;
-    box-shadow: 0 14px 28px rgba(91, 70, 255, 0.22);
+    box-shadow: 0 14px 28px rgba(255, 46, 123, 0.22);
 }
 
 .coordinator-sidebar .nav-link.active {

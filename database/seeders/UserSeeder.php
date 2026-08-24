@@ -43,9 +43,9 @@ class UserSeeder extends Seeder
             ],
             [
                 'userID' => '1235',
-                'first_name' => 'Tristan',
-                'middle_name' => 'A',
-                'last_name' => 'Maverick',
+                'first_name' => 'Roberto',
+                'middle_name' => 'L',
+                'last_name' => 'Almoranas',
                 'suffix' => null,
                 'birth_date' => '1988-02-17',
                 'gender' => 'Male',
