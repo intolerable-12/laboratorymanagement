@@ -77,7 +77,7 @@ class EquipmentController extends Controller
             'archived_at' => 'deleted_at',
         ];
 
-        if (! array_key_exists($sort, $sortableColumns)) {
+        if (!array_key_exists($sort, $sortableColumns)) {
             $sort = 'item';
         }
 
@@ -85,7 +85,7 @@ class EquipmentController extends Controller
             ->leftJoin('equipment_categories', 'equipment.category_id', '=', 'equipment_categories.id')
             ->leftJoin('laboratories', 'equipment.laboratory_id', '=', 'laboratories.id')
             ->select('equipment.*')
-            ->when($archived, fn ($query) => $query->onlyTrashed(), fn ($query) => $query->withoutTrashed())
+            ->when($archived, fn($query) => $query->onlyTrashed(), fn($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('equipment_name', 'like', '%' . $search . '%')
@@ -97,20 +97,20 @@ class EquipmentController extends Controller
                         ->orWhere('storage_location', 'like', '%' . $search . '%');
                 });
             })
-            ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->when($categoryId !== '', fn ($query) => $query->where('category_id', $categoryId))
-            ->when($laboratoryId !== '', fn ($query) => $query->where('laboratory_id', $laboratoryId))
-            ->when($condition !== '', fn ($query) => $query->where('condition', $condition));
+            ->when($status !== '', fn($query) => $query->where('status', $status))
+            ->when($categoryId !== '', fn($query) => $query->where('category_id', $categoryId))
+            ->when($laboratoryId !== '', fn($query) => $query->where('laboratory_id', $laboratoryId))
+            ->when($condition !== '', fn($query) => $query->where('condition', $condition));
 
         $equipmentItems = $equipmentQuery
-            ->when($sort === 'category', fn ($query) => $query->orderBy('equipment_categories.category_name', $direction))
-            ->when($sort === 'laboratory', fn ($query) => $query->orderBy('laboratories.laboratory_name', $direction))
-            ->when($sort === 'archived_at' && $archived, fn ($query) => $query->orderBy('equipment.deleted_at', $direction))
-            ->when($sort === 'item', fn ($query) => $query->orderBy('equipment.equipment_name', $direction))
-            ->when($sort === 'quantity', fn ($query) => $query->orderBy('equipment.quantity', $direction))
-            ->when($sort === 'status', fn ($query) => $query->orderBy('equipment.status', $direction))
-            ->when($sort === 'condition', fn ($query) => $query->orderBy('equipment.condition', $direction))
-            ->when($sort !== 'archived_at' || ! $archived, fn ($query) => $query->orderBy('equipment.created_at', 'desc'))
+            ->when($sort === 'category', fn($query) => $query->orderBy('equipment_categories.category_name', $direction))
+            ->when($sort === 'laboratory', fn($query) => $query->orderBy('laboratories.laboratory_name', $direction))
+            ->when($sort === 'archived_at' && $archived, fn($query) => $query->orderBy('equipment.deleted_at', $direction))
+            ->when($sort === 'item', fn($query) => $query->orderBy('equipment.equipment_name', $direction))
+            ->when($sort === 'quantity', fn($query) => $query->orderBy('equipment.quantity', $direction))
+            ->when($sort === 'status', fn($query) => $query->orderBy('equipment.status', $direction))
+            ->when($sort === 'condition', fn($query) => $query->orderBy('equipment.condition', $direction))
+            ->when($sort !== 'archived_at' || !$archived, fn($query) => $query->orderBy('equipment.created_at', 'desc'))
             ->paginate(10);
 
         $categories = EquipmentCategory::orderBy('category_name')->get(['id', 'category_name']);
@@ -131,7 +131,7 @@ class EquipmentController extends Controller
             'category_id' => $categoryId,
             'laboratory_id' => $laboratoryId,
             'condition' => $condition,
-        ], static fn ($value) => $value !== '' && $value !== null);
+        ], static fn($value) => $value !== '' && $value !== null);
 
         return view('users.coordinator.equipment.index', compact(
             'equipmentItems',
@@ -211,7 +211,7 @@ class EquipmentController extends Controller
 
         $equipment->update($data);
 
-        return redirect()->route('coordinator.equipment.index')->with('status', 'Equipment updated successfully.');
+        return redirect()->route('coordinator.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
     }
 
     public function destroy(Equipment $equipment)
@@ -244,11 +244,16 @@ class EquipmentController extends Controller
 
     private function generateEquipmentCode(): string
     {
-        do {
-            $equipmentCode = 'EQC-' . Str::upper(Str::random(10));
-        } while (Equipment::where('equipment_code', $equipmentCode)->exists());
+        $year = now()->format('y'); // Returns 2-digit year (e.g., '26')
+        $prefix = "EQP-{$year}";
 
-        return $equipmentCode;
+        // Count existing equipment records created in the current year (including archived ones)
+        $count = Equipment::withTrashed()
+            ->where('equipment_code', 'LIKE', "{$prefix}-%")
+            ->count() + 1;
+
+        // Formats counter with 5 leading zeros (e.g., EQP-26-00001)
+        return sprintf('%s-%05d', $prefix, $count);
     }
 
     private function generateBarcodeValue(): string
@@ -276,7 +281,7 @@ class EquipmentController extends Controller
         $options = self::STORAGE_LOCATIONS;
         $currentLocation = $equipment?->storage_location;
 
-        if ($currentLocation && ! in_array($currentLocation, $options, true)) {
+        if ($currentLocation && !in_array($currentLocation, $options, true)) {
             $options[] = $currentLocation;
         }
 

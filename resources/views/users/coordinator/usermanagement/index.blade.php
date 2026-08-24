@@ -5,6 +5,7 @@
 
 @php
     $tableRoute = $archived ? 'coordinator.users.archived' : 'coordinator.users.index';
+    $listQuery = request()->query();
     $currentSort = $sort ?? request()->query('sort', 'name');
     $currentDirection = $direction ?? request()->query('direction', 'asc');
     $sortQuery = request()->except('page', 'sort', 'direction');
@@ -77,7 +78,7 @@
 
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route($tableRoute) }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($tableRoute) }}" class="row g-3 align-items-end" data-live-search-form="users">
                 <div class="col-12 col-lg-4">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input type="search" id="search" name="search" value="{{ $search }}"
@@ -129,25 +130,25 @@
         </div>
     </div>
 
-    <div class="section-card mb-4">
-        <div class="card-body p-3 p-xl-4">
-            <div
-                class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-                <div class="nav nav-pills gap-2">
-                    <a href="{{ route('coordinator.users.index', $filters) }}"
-                        class="nav-link rounded-3 {{ $archived ? '' : 'active' }}">Active users</a>
-                    <a href="{{ route('coordinator.users.archived', $filters) }}"
-                        class="nav-link rounded-3 {{ $archived ? 'active' : '' }}">
-                        Archived users
-                        <span class="badge text-bg-light border text-dark ms-2">{{ $stats['archived'] }}</span>
-                    </a>
+    <div data-live-search-results="users">
+        <div class="section-card mb-4">
+            <div class="card-body p-3 p-xl-4">
+                <div
+                    class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div class="nav nav-pills gap-2">
+                        <a href="{{ route('coordinator.users.index', $filters) }}"
+                            class="nav-link rounded-3 {{ $archived ? '' : 'active' }}">Active users</a>
+                        <a href="{{ route('coordinator.users.archived', $filters) }}"
+                            class="nav-link rounded-3 {{ $archived ? 'active' : '' }}">
+                            Archived users
+                            <span class="badge text-bg-light border text-dark ms-2">{{ $stats['archived'] }}</span>
+                        </a>
+                    </div>
                 </div>
-
             </div>
         </div>
-    </div>
 
-    <div class="section-card" id="usersTable">
+        <div class="section-card" id="usersTable">
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div
                 class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
@@ -236,14 +237,14 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group" aria-label="User actions">
                                         <!-- View Icon -->
-                                        <a href="{{ route('coordinator.users.show', $user) }}"
+                                        <a href="{{ route('coordinator.users.show', array_merge(['user' => $user], $listQuery)) }}"
                                             class="btn btn-sm btn-outline-secondary" title="View" aria-label="View">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
 
                                         @if (!$archived)
                                             <!-- Edit Icon -->
-                                            <a href="{{ route('coordinator.users.edit', $user) }}"
+                                            <a href="{{ route('coordinator.users.edit', array_merge(['user' => $user], $listQuery)) }}"
                                                 class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </a>
@@ -289,7 +290,10 @@
         </div>
     </div>
 
-    <div class="mt-4">
-        {{ $users->withQueryString()->links('pagination::bootstrap-5') }}
+        </div>
+
+        <div class="mt-4" data-live-search-pagination>
+            {{ $users->withQueryString()->links('pagination::bootstrap-5') }}
+        </div>
     </div>
 @endsection

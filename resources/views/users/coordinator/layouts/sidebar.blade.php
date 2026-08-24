@@ -22,22 +22,8 @@
         $isLaboratoriesIndex = request()->routeIs('coordinator.laboratories.index');
         $isLaboratoriesGroup = request()->routeIs('coordinator.laboratories.*');
 
-        $isEquipmentIndex = request()->routeIs('coordinator.equipment.index');
-        $isEquipmentCategories = request()->routeIs('coordinator.equipment.categories.*');
-        $isEquipmentGroup = request()->routeIs(
-            'coordinator.equipment.index',
-            'coordinator.equipment.create',
-            'coordinator.equipment.store',
-            'coordinator.equipment.show',
-            'coordinator.equipment.edit',
-            'coordinator.equipment.update',
-            'coordinator.equipment.destroy',
-            'coordinator.equipment.barcode-print'
-        ) || $isEquipmentCategories;
-
-        $isChemicalsIndex = request()->routeIs('coordinator.chemicals.index');
-        $isChemicalCategories = request()->routeIs('coordinator.chemical.categories.*');
-        $isChemicalGroup = request()->routeIs('coordinator.chemicals.*') || $isChemicalCategories;
+        $isEquipmentGroup = request()->routeIs('coordinator.equipment.*', 'coordinator.equipment.categories.*');
+        $isChemicalGroup = request()->routeIs('coordinator.chemicals.*', 'coordinator.chemical.categories.*');
 
         $isUsersIndex = request()->routeIs('coordinator.users.index') || request()->routeIs('coordinator.users.archived');
         $isDepartmentsGroup = request()->routeIs('coordinator.departments.*');
@@ -90,59 +76,17 @@
                     </div>
                 </div>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorEquipmentMenu"
-                    aria-expanded="{{ $isEquipmentGroup ? 'true' : 'false' }}" aria-controls="coordinatorEquipmentMenu"
-                    title="Equipment">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
-                        <span class="sidebar-item__label">Equipment</span>
-                    </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
-                            class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isEquipmentGroup ? 'show' : '' }}" id="coordinatorEquipmentMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentIndex ? 'active' : '' }}"
-                            href="{{ route('coordinator.equipment.index') }}" title="Equipment">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
-                            <span class="sidebar-item__label">Equipment</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentCategories ? 'active' : '' }}"
-                            href="{{ route('coordinator.equipment.categories.index') }}" title="Equipment Categories">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-layer-group"></i></span>
-                            <span class="sidebar-item__label">Equipment Categories</span>
-                        </a>
-                    </div>
-                </div>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentGroup ? 'active' : '' }}"
+                    href="{{ route('coordinator.equipment.index') }}" title="Equipment">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                    <span class="sidebar-item__label">Equipment</span>
+                </a>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorChemicalMenu"
-                    aria-expanded="{{ $isChemicalGroup ? 'true' : 'false' }}" aria-controls="coordinatorChemicalMenu"
-                    title="Chemical">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
-                        <span class="sidebar-item__label">Chemical</span>
-                    </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
-                            class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isChemicalGroup ? 'show' : '' }}" id="coordinatorChemicalMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalsIndex ? 'active' : '' }}"
-                            href="{{ route('coordinator.chemicals.index') }}" title="Chemicals">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-vial-circle-check"></i></span>
-                            <span class="sidebar-item__label">Chemicals</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalCategories ? 'active' : '' }}"
-                            href="{{ route('coordinator.chemical.categories.index') }}" title="Chemical Categories">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-tags"></i></span>
-                            <span class="sidebar-item__label">Chemical Categories</span>
-                        </a>
-                    </div>
-                </div>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalGroup ? 'active' : '' }}"
+                    href="{{ route('coordinator.chemicals.index') }}" title="Chemical">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
+                    <span class="sidebar-item__label">Chemical</span>
+                </a>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"

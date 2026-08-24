@@ -58,14 +58,14 @@ class InstructorBorrowController extends Controller
 				$borrowTransaction,
 				'Borrow',
 				'Borrow request approved',
-				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Instructor and forwarded to the Facilitator.'
+				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Instructor and forwarded to the Laboratory In-charge.'
 			);
 
             $notificationService->notifyRoleUsers(
-                'Facilitator',
+                'Laboratory In-charge',
                 'Borrow',
                 'Borrow request ready for review',
-                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for facilitator review.',
+                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for Laboratory In-charge review.',
                 $borrowTransaction,
                 $request->user()->userNo
             );

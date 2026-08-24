@@ -1,12 +1,10 @@
-@extends('layouts.app')
+@extends('users.student.layouts.app')
 
 @section('title', 'My Account')
 @section('user-name', $displayName)
 @section('user-role', $roleName)
 
-@section('nav-links')
-    @include('users.student.partials.nav-links', ['active' => 'myaccount'])
-@endsection
+
 
 @section('content')
     <div class="account-page">
@@ -28,7 +26,7 @@
                             @csrf
                             @method('PUT')
 
-                            <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="account-profile-header d-flex align-items-center gap-3 mb-4">
                                 <div class="account-avatar">
                                     @if ($avatarUrl)
                                         <img src="{{ $avatarUrl }}" alt="Profile photo">
@@ -45,7 +43,8 @@
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">User ID</label>
-                                    <input type="text" name="userID" class="form-control account-input" value="{{ old('userID', $userIdValue) }}" required>
+                                    <input type="text" name="userID" class="form-control account-input" value="{{ $userIdValue }}" readonly aria-describedby="student-user-id-help">
+                                    <div id="student-user-id-help" class="form-text">Your User ID is managed by the administrator.</div>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">Profile Photo</label>

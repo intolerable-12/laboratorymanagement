@@ -1,6 +1,7 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'quill/dist/quill.snow.css';
 @import './equipment.css';
+@import './student-inventory.css';
 
 :root {
     --admin-sidebar-width: 280px;
@@ -697,6 +698,10 @@ body.coordinator-page {
         min-height: calc(100vh - 1rem);
     }
 
+    .coordinator-page.sidebar-collapsed .admin-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .coordinator-sidebar {
         position: fixed;
         z-index: 1040;
@@ -704,10 +709,16 @@ body.coordinator-page {
         left: 0.5rem;
         width: min(var(--admin-sidebar-width), calc(100vw - 1rem));
         height: calc(100vh - 1rem);
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .coordinator-page.sidebar-collapsed .coordinator-sidebar {
-        width: var(--admin-sidebar-collapsed-width);
+        width: min(var(--admin-sidebar-width), calc(100vw - 1rem));
+        transform: translateX(calc(-100% - 0.75rem));
+        opacity: 0;
+        pointer-events: none;
     }
 
     .coordinator-page .admin-content {
@@ -782,6 +793,11 @@ body.coordinator-page {
 .role-page .section-card,
 .role-page .footer-banner {
     border-radius: 1rem;
+}
+
+.role-page .account-page .section-card {
+    overflow: hidden;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.07);
 }
 
 .role-page .hero-banner {
@@ -928,6 +944,47 @@ body.coordinator-page {
     min-height: 74px;
 }
 
+.role-page .account-profile-header {
+    padding: 1rem;
+    border: 1px solid var(--role-border-color);
+    border-radius: 1rem;
+    background: linear-gradient(135deg, var(--role-accent-soft) 0%, #ffffff 72%);
+}
+
+.role-page .account-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 68px;
+    width: 68px;
+    height: 68px;
+    overflow: hidden;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--role-accent) 0%, var(--role-accent-deep) 100%);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.role-page .account-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.role-page .account-page .form-label {
+    margin-bottom: 0.45rem;
+    font-size: 0.9rem;
+}
+
+.role-page .account-page .form-text {
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+}
+
 .role-page .account-input {
     min-height: 44px;
     border-radius: 0.9rem;
@@ -938,6 +995,27 @@ body.coordinator-page {
 .role-page .account-input:focus {
     border-color: rgba(95, 124, 255, 0.45);
     box-shadow: 0 0 0 0.15rem rgba(95, 124, 255, 0.08);
+}
+
+.role-page .account-input[readonly] {
+    background: #ffffff;
+    color: var(--role-muted);
+    cursor: not-allowed;
+    font-weight: 600;
+}
+
+.role-page .account-page .btn-primary {
+    border: 0;
+    border-radius: 0.85rem;
+    background: linear-gradient(135deg, var(--role-accent) 0%, var(--role-accent-deep) 100%);
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.role-page .account-page .btn-primary:hover,
+.role-page .account-page .btn-primary:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 22px rgba(15, 23, 42, 0.16);
 }
 
 .role-page .social-hero {
@@ -1002,7 +1080,7 @@ body.coordinator-page {
 .role-page .account-input {
     min-height: 46px;
     border-radius: 0.95rem;
-    background: #fbfcfe;
+    background: #ffffff;
 }
 
 .role-page .social-input:focus {

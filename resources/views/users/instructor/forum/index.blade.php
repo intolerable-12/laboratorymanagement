@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('users.instructor.layouts.app')
 
 @section('title', 'Forum')
 @section('user-name', 'Instructor')

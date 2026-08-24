@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('users.instructor.layouts.app')
 
 @section('title', 'My Account')
 @section('user-name', $displayName)
@@ -28,7 +28,7 @@
                             @csrf
                             @method('PUT')
 
-                            <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="account-profile-header d-flex align-items-center gap-3 mb-4">
                                 <div class="account-avatar">
                                     @if ($avatarUrl)
                                         <img src="{{ $avatarUrl }}" alt="Profile photo">
@@ -45,7 +45,8 @@
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">User ID</label>
-                                    <input type="text" name="userID" class="form-control account-input" value="{{ old('userID', $userIdValue) }}" required>
+                                    <input type="text" name="userID" class="form-control account-input" value="{{ $userIdValue }}" readonly aria-describedby="instructor-user-id-help">
+                                    <div id="instructor-user-id-help" class="form-text">Your User ID is managed by the administrator.</div>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">Profile Photo</label>

@@ -33,9 +33,13 @@ use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardCo
 use App\Http\Controllers\Instructor\Reservation\ReservationController as InstructorReservationController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowEmailController;
+use App\Http\Controllers\Instructor\Inventory\ChemicalController as InstructorChemicalInventoryController;
+use App\Http\Controllers\Instructor\Inventory\EquipmentController as InstructorEquipmentInventoryController;
 use App\Http\Controllers\Instructor\Forum\InstructorForumController;
 use App\Http\Controllers\Instructor\Account\MyAccountController as InstructorMyAccountController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
+use App\Http\Controllers\Student\Inventory\ChemicalController as StudentChemicalInventoryController;
+use App\Http\Controllers\Student\Inventory\LabEquipmentController as StudentLabEquipmentController;
 use App\Http\Controllers\Student\Reservation\ReservationController as StudentReservationController;
 use App\Http\Controllers\Student\Borrow\StudentBorrowController;
 use App\Http\Controllers\Student\Borrow\StudentBorrowEmailController;
@@ -48,6 +52,10 @@ use App\Http\Controllers\Coordinator\Forum\ForumController as CoordinatorForumCo
 use App\Http\Controllers\Coordinator\Forum\ForumCommentController as CoordinatorForumCommentController;
 use App\Http\Controllers\Coordinator\Feedback\FeedbackController as CoordinatorFeedbackController;
 use App\Http\Controllers\Coordinator\Feedback\FeedbackQuestionnaireController as CoordinatorFeedbackQuestionnaireController;
+use App\Models\Chemical;
+use App\Models\ChemicalCategory;
+use App\Models\Equipment;
+use App\Models\EquipmentCategory;
 
 Route::get('/', [LoginController::class, 'create'])->name('login');
 
@@ -209,6 +217,37 @@ Route::middleware(['auth', 'role:Student'])
     ->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
+        Route::get('/inventory', function () {
+            return view('users.student.inventory.index', [
+                'stats' => [
+                    'equipment_available' => Equipment::withoutTrashed()->where('status', 'Available')->count(),
+                    'chemicals_available' => Chemical::withoutTrashed()->where('status', 'Available')->count(),
+                    'equipment_categories' => EquipmentCategory::count(),
+                    'chemical_categories' => ChemicalCategory::count(),
+                ],
+            ]);
+        })->name('inventory.index');
+
+        Route::prefix('inventory')
+            ->name('inventory.')
+            ->group(function () {
+                Route::prefix('equipment')
+                    ->name('equipment.')
+                    ->group(function () {
+                        Route::get('/', [StudentLabEquipmentController::class, 'index'])->name('index');
+                        Route::get('/categories/{equipmentCategory}', [StudentLabEquipmentController::class, 'category'])->name('categories.show');
+                        Route::get('/items/{equipment}', [StudentLabEquipmentController::class, 'show'])->name('show');
+                    });
+
+                Route::prefix('chemicals')
+                    ->name('chemicals.')
+                    ->group(function () {
+                        Route::get('/', [StudentChemicalInventoryController::class, 'index'])->name('index');
+                        Route::get('/categories/{chemicalCategory}', [StudentChemicalInventoryController::class, 'category'])->name('categories.show');
+                        Route::get('/items/{chemical}', [StudentChemicalInventoryController::class, 'show'])->name('show');
+                    });
+            });
+
         Route::prefix('reservations')
             ->name('reservations.')
             ->group(function () {
@@ -283,7 +322,7 @@ Route::middleware(['auth', 'role:Laboratory In-charge'])
                 Route::post('/{borrowTransaction}/reject', [FacilitatorBorrowController::class, 'reject'])->name('reject');
             });
 
-        Route::prefix('forum')
+    Route::prefix('forum')
             ->name('forum.')
             ->group(function () {
                 Route::get('/', [LaboratoryInchargeForumController::class, 'index'])->name('index');
@@ -302,6 +341,30 @@ Route::middleware(['auth', 'role:Instructor'])
     ->name('instructor.')
     ->group(function () {
         Route::get('/dashboard', [InstructorDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/inventory', function () {
+            return view('users.instructor.inventory.index');
+        })->name('inventory.index');
+
+        Route::prefix('inventory')
+            ->name('inventory.')
+            ->group(function () {
+                Route::prefix('equipment')
+                    ->name('equipment.')
+                    ->group(function () {
+                        Route::get('/', [InstructorEquipmentInventoryController::class, 'index'])->name('index');
+                        Route::get('/categories/{equipmentCategory}', [InstructorEquipmentInventoryController::class, 'category'])->name('categories.show');
+                        Route::get('/items/{equipment}', [InstructorEquipmentInventoryController::class, 'show'])->name('show');
+                    });
+
+                Route::prefix('chemicals')
+                    ->name('chemicals.')
+                    ->group(function () {
+                        Route::get('/', [InstructorChemicalInventoryController::class, 'index'])->name('index');
+                        Route::get('/categories/{chemicalCategory}', [InstructorChemicalInventoryController::class, 'category'])->name('categories.show');
+                        Route::get('/items/{chemical}', [InstructorChemicalInventoryController::class, 'show'])->name('show');
+                    });
+            });
 
         Route::prefix('reservations')
             ->name('reservations.')

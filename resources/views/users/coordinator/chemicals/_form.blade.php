@@ -4,25 +4,29 @@
     $unitOptions = $unitOptions ?? ['ml', 'cc', 'liter', 'kg', 'g'];
     $storageLocations = $storageLocations ?? ['Cabinet 1', 'Cabinet 2', 'Flammable storage', 'Freezers', 'Racks', 'Shelf A', 'Shelf B', 'Cold room', 'Other'];
     $imageUrl = !empty($chemical?->image) ? asset('storage/' . $chemical->image) : null;
+    $manufacturedDate = old('manufactured_date', optional($chemical?->manufactured_date)->format('Y-m-d'));
+    $receivedDate = old('received_date', optional($chemical?->received_date)->format('Y-m-d'));
+    $expirationDate = old('expiration_date', optional($chemical?->expiration_date)->format('Y-m-d'));
 @endphp
 
 <div class="row g-4 mb-4">
     <div class="col-lg-4">
         <div class="equipment-preview-card h-100">
             @if ($imageUrl)
-                <img src="{{ $imageUrl }}" alt="{{ $chemical->chemical_name ?? 'Chemical image' }}" class="equipment-preview rounded-4 mb-3">
+                <img src="{{ $imageUrl }}" alt="{{ $chemical->chemical_name ?? 'Chemical image' }}" class="equipment-preview rounded-4 mb-3" data-image-preview data-image-preview-initial-src="{{ $imageUrl }}">
             @else
-                <div class="equipment-image-placeholder rounded-4 d-flex flex-column align-items-center justify-content-center text-center px-4 py-5 mb-3">
+                <div class="equipment-image-placeholder rounded-4 d-flex flex-column align-items-center justify-content-center text-center px-4 py-5 mb-3" data-image-preview-placeholder>
                     <div class="equipment-image-placeholder__icon">
                         <i class="fa-solid fa-vial-circle-exclamation fa-lg" aria-hidden="true"></i>
                     </div>
                     <div class="fw-semibold">No image uploaded</div>
                     <div class="small text-secondary">Add a photo to make the inventory easier to scan.</div>
                 </div>
+                <img src="" alt="Chemical image preview" class="equipment-preview rounded-4 mb-3 d-none" data-image-preview data-image-preview-initial-src="">
             @endif
 
             <label class="form-label" for="image">Chemical image</label>
-            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*">
+            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*" data-image-preview-input>
             <div class="form-text">JPEG, PNG, or WEBP up to 4 MB.</div>
             @error('image') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
         </div>
@@ -104,20 +108,20 @@
 
             <div class="col-md-4">
                 <label class="form-label" for="manufactured_date">Manufactured date</label>
-                <input type="date" id="manufactured_date" name="manufactured_date" value="{{ old('manufactured_date', optional($chemical?->manufactured_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('manufactured_date') is-invalid @enderror">
+                <input type="date" id="manufactured_date" name="manufactured_date" value="{{ $manufacturedDate }}" class="form-control admin-form-control @error('manufactured_date') is-invalid @enderror">
                 @error('manufactured_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label" for="expiration_date">Expiration date</label>
-                <input type="date" id="expiration_date" name="expiration_date" value="{{ old('expiration_date', optional($chemical?->expiration_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('expiration_date') is-invalid @enderror">
-                @error('expiration_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label" for="received_date">Received date</label>
+                <input type="date" id="received_date" name="received_date" value="{{ $receivedDate }}" @if ($manufacturedDate) min="{{ $manufacturedDate }}" @endif class="form-control admin-form-control @error('received_date') is-invalid @enderror">
+                @error('received_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label" for="received_date">Received date</label>
-                <input type="date" id="received_date" name="received_date" value="{{ old('received_date', optional($chemical?->received_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('received_date') is-invalid @enderror">
-                @error('received_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label" for="expiration_date">Expiration date</label>
+                <input type="date" id="expiration_date" name="expiration_date" value="{{ $expirationDate }}" @if ($receivedDate) min="{{ $receivedDate }}" @elseif ($manufacturedDate) min="{{ $manufacturedDate }}" @endif class="form-control admin-form-control @error('expiration_date') is-invalid @enderror">
+                @error('expiration_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
@@ -175,7 +179,7 @@
             </div>
 
             <div class="col-12 text-end mt-2">
-                <a href="{{ route('coordinator.chemicals.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <a href="{{ route('coordinator.chemicals.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">{{ isset($chemical) ? 'Save changes' : 'Create chemical' }}</button>
             </div>
         </div>

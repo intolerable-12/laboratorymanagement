@@ -1,6 +1,7 @@
-@extends('layouts.app')
+@extends('users.facilitator.layouts.app')
 
 @section('title', 'Laboratory In-charge Dashboard')
+@section('page-title', 'Laboratory In-charge Dashboard')
 @section('user-name', 'John Doe')
 @section('user-role', 'Laboratory In-charge')
 

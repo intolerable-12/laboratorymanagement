@@ -11,8 +11,7 @@ return new class extends Migration
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
 
-            $table->string('role_name', 50)->unique(); #coordinator, facilitator, student, instructor
-
+            $table->string('role_name', 50)->unique(); 
             $table->text('description')->nullable();
 
             $table->timestamps();

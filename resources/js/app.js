@@ -115,6 +115,119 @@ document.addEventListener('DOMContentLoaded', () => {
     window.initRichTextEditors = initializeRichTextEditors;
     initializeRichTextEditors(document);
 
+    const initializeImagePreviews = (root = document) => {
+        root.querySelectorAll('[data-image-preview-input]').forEach((input) => {
+            if (input.dataset.imagePreviewInitialized === 'true') {
+                return;
+            }
+
+            const previewContainer = input.closest('[data-image-preview-container], .equipment-preview-card');
+            const previewImage = previewContainer?.querySelector('[data-image-preview]');
+            const placeholder = previewContainer?.querySelector('[data-image-preview-placeholder]');
+
+            if (!previewImage) {
+                return;
+            }
+
+            input.dataset.imagePreviewInitialized = 'true';
+
+            const initialSrc = previewImage.dataset.imagePreviewInitialSrc || '';
+            let objectUrl = null;
+
+            const showPreview = (src) => {
+                previewImage.src = src;
+                previewImage.classList.remove('d-none');
+                placeholder?.classList.add('d-none');
+            };
+
+            const resetPreview = () => {
+                if (objectUrl) {
+                    URL.revokeObjectURL(objectUrl);
+                    objectUrl = null;
+                }
+
+                if (initialSrc) {
+                    showPreview(initialSrc);
+                    return;
+                }
+
+                previewImage.removeAttribute('src');
+                previewImage.classList.add('d-none');
+                placeholder?.classList.remove('d-none');
+            };
+
+            input.addEventListener('change', () => {
+                const file = input.files?.[0];
+
+                if (!file) {
+                    resetPreview();
+                    return;
+                }
+
+                if (file.type && !file.type.startsWith('image/')) {
+                    input.value = '';
+                    resetPreview();
+                    return;
+                }
+
+                if (objectUrl) {
+                    URL.revokeObjectURL(objectUrl);
+                }
+
+                objectUrl = URL.createObjectURL(file);
+                showPreview(objectUrl);
+            });
+        });
+    };
+
+    window.initImagePreviews = initializeImagePreviews;
+    initializeImagePreviews(document);
+
+    const inventoryRailShells = document.querySelectorAll('[data-inventory-rail-shell]');
+
+    inventoryRailShells.forEach((shell) => {
+        const rail = shell.querySelector('[data-inventory-rail]');
+        const prevButton = shell.querySelector('[data-inventory-rail-prev]');
+        const nextButton = shell.querySelector('[data-inventory-rail-next]');
+
+        if (!rail || shell.dataset.inventoryRailInitialized === 'true') {
+            return;
+        }
+
+        shell.dataset.inventoryRailInitialized = 'true';
+
+        const scrollStep = () => Math.max(Math.round(rail.clientWidth * 0.82), 320);
+
+        const updateState = () => {
+            const maxScrollLeft = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+            const isAtStart = rail.scrollLeft <= 4;
+            const isAtEnd = rail.scrollLeft >= maxScrollLeft - 4;
+
+            if (prevButton) {
+                prevButton.disabled = isAtStart;
+            }
+
+            if (nextButton) {
+                nextButton.disabled = isAtEnd;
+            }
+        };
+
+        prevButton?.addEventListener('click', () => {
+            rail.scrollBy({ left: -scrollStep(), behavior: 'smooth' });
+        });
+
+        nextButton?.addEventListener('click', () => {
+            rail.scrollBy({ left: scrollStep(), behavior: 'smooth' });
+        });
+
+        rail.addEventListener('scroll', () => {
+            window.requestAnimationFrame(updateState);
+        }, { passive: true });
+
+        window.addEventListener('resize', updateState);
+        updateState();
+    });
+
     if (sidebar) {
         const storageKey = 'labcentral.admin.sidebar.open.v2';
         const updateToggleState = (isOpen) => {
@@ -662,5 +775,118 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         shell.dataset.announcementFeedInitialized = 'true';
+    });
+
+    const liveSearchForms = document.querySelectorAll('[data-live-search-form]');
+
+    liveSearchForms.forEach((form) => {
+        const resultKey = form.dataset.liveSearchForm;
+        const resultSelector = `[data-live-search-results="${resultKey}"]`;
+        const searchInput = form.querySelector('input[name="search"]');
+        let results = document.querySelector(resultSelector);
+        let debounceTimer;
+        let requestSequence = 0;
+
+        if (!resultKey || !searchInput || !results) {
+            return;
+        }
+
+        const buildFormUrl = () => {
+            const url = new URL(form.action, window.location.href);
+            const params = new URLSearchParams();
+
+            new FormData(form).forEach((value, name) => {
+                if (typeof value === 'string' && value !== '') {
+                    params.append(name, value);
+                }
+            });
+
+            params.delete('page');
+            url.search = params.toString();
+
+            return url;
+        };
+
+        const updateResults = async (targetUrl, historyMode = 'replace') => {
+            const sequence = ++requestSequence;
+
+            results.setAttribute('aria-busy', 'true');
+            results.classList.add('opacity-50');
+
+            try {
+                const response = await fetch(targetUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'text/html',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Unable to load search results.');
+                }
+
+                const html = await response.text();
+                const documentFragment = new DOMParser().parseFromString(html, 'text/html');
+                const nextResults = documentFragment.querySelector(resultSelector);
+
+                if (!nextResults) {
+                    throw new Error('Search results container was not found.');
+                }
+
+                if (sequence !== requestSequence) {
+                    return;
+                }
+
+                results.replaceWith(nextResults);
+                results = nextResults;
+
+                if (historyMode === 'push') {
+                    window.history.pushState({}, '', targetUrl.pathname + targetUrl.search);
+                } else if (historyMode === 'replace') {
+                    window.history.replaceState({}, '', targetUrl.pathname + targetUrl.search);
+                }
+            } catch (error) {
+                if (sequence === requestSequence) {
+                    window.location.href = targetUrl.toString();
+                }
+            } finally {
+                if (sequence === requestSequence) {
+                    results.removeAttribute('aria-busy');
+                    results.classList.remove('opacity-50');
+                }
+            }
+        };
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            window.clearTimeout(debounceTimer);
+            updateResults(buildFormUrl(), 'push');
+        });
+
+        searchInput.addEventListener('input', () => {
+            window.clearTimeout(debounceTimer);
+            debounceTimer = window.setTimeout(() => {
+                updateResults(buildFormUrl(), 'replace');
+            }, 300);
+        });
+
+        document.addEventListener('click', (event) => {
+            const paginationLink = event.target.closest(`${resultSelector} [data-live-search-pagination] a`);
+
+            if (!paginationLink || !results.contains(paginationLink)) {
+                return;
+            }
+
+            event.preventDefault();
+            updateResults(new URL(paginationLink.href, window.location.href), 'push');
+        });
+
+        window.addEventListener('popstate', () => {
+            const formPath = new URL(form.action, window.location.href).pathname;
+
+            if (window.location.pathname === formPath) {
+                updateResults(new URL(window.location.href), 'none');
+            }
+        });
     });
 });

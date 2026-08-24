@@ -23,10 +23,10 @@
                         @csrf
                         <button type="submit" class="btn btn-success px-4" onclick="return confirm('Restore this user?');">Restore user</button>
                     </form>
-                    <a href="{{ route('coordinator.users.archived') }}" class="btn btn-outline-secondary px-4">Back to archive</a>
+                    <a href="{{ route('coordinator.users.archived', request()->query()) }}" class="btn btn-outline-secondary px-4">Back to archive</a>
                 @else
-                    <a href="{{ route('coordinator.users.edit', $user) }}" class="btn btn-primary px-4">Edit user</a>
-                    <a href="{{ route('coordinator.users.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
+                    <a href="{{ route('coordinator.users.edit', array_merge(['user' => $user], request()->query())) }}" class="btn btn-primary px-4">Edit user</a>
+                    <a href="{{ route('coordinator.users.index', request()->query()) }}" class="btn btn-outline-secondary px-4">Back to list</a>
                 @endif
             </div>
         </div>

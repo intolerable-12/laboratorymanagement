@@ -1,6 +1,7 @@
-@extends('layouts.app')
+@extends('users.instructor.layouts.app')
 
 @section('title', 'Instructor Dashboard')
+@section('page-title', 'Instructor Dashboard')
 @section('user-name', 'John Doe')
 @section('user-role', 'Instructor')
 
@@ -14,9 +15,9 @@
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
                     <h2 class="h3 fw-semibold mb-2 text-dark">Instructor Dashboard</h2>
-                    <p class="mb-0 text-secondary">Manage your classes and laboratory equipment requests</p>
+                    <p class="mb-0 text-secondary">Manage your classes, inventory viewing, and laboratory equipment requests.</p>
                 </div>
-                <button class="btn btn-light border px-3 px-lg-4">College Campus</button>
+                <a href="{{ route('instructor.inventory.index') }}" class="btn btn-light border px-3 px-lg-4">Browse Inventory</a>
             </div>
         </section>
 
@@ -99,6 +100,10 @@
                                 <span class="legend-swatch legend-swatch--inuse"></span>
                                 <span class="text-secondary small">In Use</span>
                             </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <a href="{{ route('instructor.inventory.index') }}" class="btn btn-outline-secondary w-100">Open Inventory View</a>
                         </div>
                     </div>
                 </div>

@@ -12,7 +12,20 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
-    
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <div class="small text-uppercase text-secondary">Equipment management</div>
+            <div class="text-secondary">Manage equipment records and categories.</div>
+        </div>
+        <div class="btn-group shadow-sm" role="group" aria-label="Equipment management navigation">
+            <a href="{{ route('coordinator.equipment.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
+            </a>
+            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-primary">
+                <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
+            </a>
+        </div>
+    </div>
 
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">

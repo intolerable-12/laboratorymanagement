@@ -1,12 +1,10 @@
-@extends('layouts.app')
+@extends('users.student.layouts.app')
 
 @section('title', 'New Feedback')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
-@section('nav-links')
-    @include('users.student.partials.nav-links', ['active' => 'feedback'])
-@endsection
+
 
 @section('content')
     <div class="account-page">

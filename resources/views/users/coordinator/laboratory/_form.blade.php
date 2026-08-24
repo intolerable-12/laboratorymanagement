@@ -7,19 +7,20 @@
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="equipment-preview-card h-100">
-            <div class="laboratory-frame laboratory-frame--detail mb-3">
+            <div class="laboratory-frame laboratory-frame--detail mb-3" data-image-preview-container>
                 @if ($imageUrl)
-                    <img src="{{ $imageUrl }}" alt="{{ $laboratory->laboratory_name ?? 'Laboratory image' }}">
+                    <img src="{{ $imageUrl }}" alt="{{ $laboratory->laboratory_name ?? 'Laboratory image' }}" data-image-preview data-image-preview-initial-src="{{ $imageUrl }}">
                 @else
-                    <div class="laboratory-frame__placeholder">
+                    <div class="laboratory-frame__placeholder" data-image-preview-placeholder>
                         <div class="laboratory-grid-card__placeholder-mark">L</div>
                         <div class="small text-secondary">No image available</div>
                     </div>
+                    <img src="" alt="Laboratory image preview" class="d-none" data-image-preview data-image-preview-initial-src="">
                 @endif
             </div>
 
             <label class="form-label" for="image">Laboratory image</label>
-            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*">
+            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*" data-image-preview-input>
             <div class="form-text">JPEG, PNG, or WEBP up to 4 MB.</div>
             @error('image') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
         </div>

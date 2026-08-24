@@ -32,10 +32,7 @@ class AppServiceProvider extends ServiceProvider
             'Chemical' => Chemical::class,
         ]);
 
-        View::composer([
-            'layouts.navbar',
-            'users.coordinator.layouts.navbar',
-        ], function ($view) {
+        View::composer('partials.notification-bell', function ($view) {
             $user = auth()->user();
 
             $view->with('notificationSummary', $user

@@ -1,12 +1,7 @@
-@extends('layouts.app')
+@extends('users.student.layouts.app')
 
 @section('title', 'Student Dashboard')
-@section('user-name', 'Jane Doe Cruz')
-@section('user-role', 'Student')
-
-@section('nav-links')
-    @include('users.student.partials.nav-links', ['active' => 'dashboard'])
-@endsection
+@section('page-title', 'Student Dashboard')
 
 @section('content')
     <div class="student-dashboard">
@@ -14,9 +9,9 @@
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
                     <h2 class="h3 fw-semibold mb-2 text-dark">Welcome Back, Student!</h2>
-                    <p class="mb-0 text-secondary">Here’s your laboratory reservation and borrowing overview</p>
+                    <p class="mb-0 text-secondary">Here's your laboratory reservation, borrowing, and inventory overview.</p>
                 </div>
-                <button class="btn btn-light border px-3 px-lg-4">College Campus</button>
+                <a href="{{ route('student.inventory.index') }}" class="btn btn-light border px-3 px-lg-4">Browse Inventory</a>
             </div>
         </section>
 
@@ -80,7 +75,7 @@
                         </div>
 
                         <div class="mt-3">
-                            <button class="btn btn-outline-secondary w-100">View All Borrowed Items</button>
+                            <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary w-100">View All Borrowed Items</a>
                         </div>
                     </div>
                 </div>
@@ -117,9 +112,9 @@
                     <div class="card-body p-4 p-xl-5">
                         <h3 class="h4 fw-semibold mb-4 text-dark">Quick Actions</h3>
                         <div class="d-grid gap-2">
-                            <button class="btn btn-primary">Borrow Equipment</button>
-                            <button class="btn btn-outline-secondary">Report Damage</button>
-                            <button class="btn btn-outline-secondary">View History</button>
+                            <a href="{{ route('student.inventory.index') }}" class="btn btn-primary">Browse Inventory</a>
+                            <a href="{{ route('student.reservations.create') }}" class="btn btn-outline-secondary">New Reservation</a>
+                            <a href="{{ route('student.borrow.create') }}" class="btn btn-outline-secondary">Borrow Equipment</a>
                         </div>
                     </div>
                 </div>

@@ -1,12 +1,10 @@
-@extends('layouts.app')
+@extends('users.student.layouts.app')
 
 @section('title', 'Borrow Details')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
-@section('nav-links')
-    @include('users.student.partials.nav-links', ['active' => 'borrow'])
-@endsection
+
 
 @section('content')
     <div class="account-page">

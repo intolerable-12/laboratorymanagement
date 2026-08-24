@@ -12,6 +12,4 @@
     <a class="nav-link {{ $activeLink === 'barcode' ? 'active' : '' }}" href="#">Barcode Scanner</a>
     <a class="nav-link {{ $activeLink === 'activity' ? 'active' : '' }}" href="#">Activity Log</a>
     <a class="nav-link {{ $activeLink === 'report' ? 'active' : '' }}" href="#">Report Logs</a>
-    <a class="nav-link {{ $activeLink === 'notification' ? 'active' : '' }}" href="{{ route('notifications.index') }}">Notifications</a>
-    <a class="nav-link {{ $activeLink === 'myaccount' ? 'active' : '' }}" href="{{ route('facilitator.myaccount') }}">My Account</a>
 </div>

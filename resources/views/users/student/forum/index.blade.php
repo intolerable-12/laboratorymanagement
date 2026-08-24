@@ -1,12 +1,9 @@
-@extends('layouts.app')
+@extends('users.student.layouts.app')
 
 @section('title', 'Forum')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
-@section('nav-links')
-    @include('users.student.partials.nav-links', ['active' => 'forum'])
-@endsection
 
 @section('content')
     <div class="account-page">

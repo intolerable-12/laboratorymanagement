@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('users.instructor.layouts.app')
 
 @section('title', 'Reservation Review')
 @section('user-name', 'Instructor')

@@ -12,6 +12,21 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <div class="small text-uppercase text-secondary">Chemical management</div>
+            <div class="text-secondary">Manage chemical records and categories.</div>
+        </div>
+        <div class="btn-group shadow-sm" role="group" aria-label="Chemical management navigation">
+            <a href="{{ route('coordinator.chemicals.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-flask me-2"></i>Chemical
+            </a>
+            <a href="{{ route('coordinator.chemical.categories.index') }}" class="btn btn-primary">
+                <i class="fa-solid fa-tags me-2"></i>Chemical Category
+            </a>
+        </div>
+    </div>
+
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">
             <div class="card metric-card h-100">

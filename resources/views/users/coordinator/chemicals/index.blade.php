@@ -5,6 +5,7 @@
 
 @php
     $tabQuery = request()->except('page');
+    $listQuery = request()->query();
     $tableRoute = $archived ? 'coordinator.chemicals.archived' : 'coordinator.chemicals.index';
     $currentSort = $sort ?? request()->query('sort', 'item');
     $currentDirection = $direction ?? request()->query('direction', 'asc');
@@ -37,7 +38,22 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
-     {{-- Metrics Section --}}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <div class="small text-uppercase text-secondary">Chemical management</div>
+            <div class="text-secondary">Manage chemical records and categories.</div>
+        </div>
+        <div class="btn-group shadow-sm" role="group" aria-label="Chemical management navigation">
+            <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}" class="btn btn-primary">
+                <i class="fa-solid fa-flask me-2"></i>Chemical
+            </a>
+            <a href="{{ route('coordinator.chemical.categories.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-tags me-2"></i>Chemical Category
+            </a>
+        </div>
+    </div>
+
+    {{-- Metrics Section --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card metric-card h-100">
@@ -80,7 +96,7 @@
     {{-- Filter & Search Form Card --}}
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route($tableRoute) }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($tableRoute) }}" class="row g-3 align-items-end" data-live-search-form="chemicals">
                 <div class="col-12 col-lg-4">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input
@@ -145,24 +161,25 @@
 
    
 
-    {{-- SEPARATE SWITCHER BAR (Active vs. Archived) --}}
-    <div class="card border-0 shadow-sm rounded-4 mb-3">
-        <div class="card-body p-2 p-md-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="btn-group" role="group" aria-label="Chemical View Switcher">
-                <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}" class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2 fw-medium">
-                    <i class="fa-solid fa-flask me-2"></i>Active chemicals 
-                    <span class="badge {{ $archived ? 'text-bg-secondary' : 'text-bg-light text-primary' }} ms-2">{{ $stats['total'] }}</span>
-                </a>
-                <a href="{{ route('coordinator.chemicals.archived', $tabQuery) }}" class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2 fw-medium">
-                    <i class="fa-solid fa-box-archive me-2"></i>Archived chemicals 
-                    <span class="badge {{ $archived ? 'text-bg-light text-primary' : 'text-bg-secondary' }} ms-2">{{ $stats['archived'] }}</span>
-                </a>
+    <div data-live-search-results="chemicals">
+        {{-- SEPARATE SWITCHER BAR (Active vs. Archived) --}}
+        <div class="card border-0 shadow-sm rounded-4 mb-3">
+            <div class="card-body p-2 p-md-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="btn-group" role="group" aria-label="Chemical View Switcher">
+                    <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}" class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2 fw-medium">
+                        <i class="fa-solid fa-flask me-2"></i>Active chemicals
+                        <span class="badge {{ $archived ? 'text-bg-secondary' : 'text-bg-light text-primary' }} ms-2">{{ $stats['total'] }}</span>
+                    </a>
+                    <a href="{{ route('coordinator.chemicals.archived', $tabQuery) }}" class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2 fw-medium">
+                        <i class="fa-solid fa-box-archive me-2"></i>Archived chemicals
+                        <span class="badge {{ $archived ? 'text-bg-light text-primary' : 'text-bg-secondary' }} ms-2">{{ $stats['archived'] }}</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
 
-    {{-- Table Section --}}
-    <div class="section-card" id="chemicalsTable">
+        {{-- Table Section --}}
+        <div class="section-card" id="chemicalsTable">
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
@@ -279,7 +296,7 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group" aria-label="Chemical actions">
                                         <!-- View Icon -->
-                                        <a href="{{ route('coordinator.chemicals.show', $chemical) }}"
+                                        <a href="{{ route('coordinator.chemicals.show', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                             class="btn btn-sm btn-outline-secondary"
                                             title="View" aria-label="View">
                                             <i class="fa-solid fa-eye"></i>
@@ -305,7 +322,7 @@
                                             @endif
                                         @else
                                             <!-- Edit Icon -->
-                                            <a href="{{ route('coordinator.chemicals.edit', $chemical) }}"
+                                            <a href="{{ route('coordinator.chemicals.edit', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                                 class="btn btn-sm btn-outline-primary"
                                                 title="Edit" aria-label="Edit">
                                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -336,7 +353,10 @@
         </div>
     </div>
 
-    <div class="mt-4">
-        {{ $chemicals->withQueryString()->links('pagination::bootstrap-5') }}
+        </div>
+
+        <div class="mt-4" data-live-search-pagination>
+            {{ $chemicals->withQueryString()->links('pagination::bootstrap-5') }}
+        </div>
     </div>
 @endsection

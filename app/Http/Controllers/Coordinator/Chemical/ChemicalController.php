@@ -79,7 +79,7 @@ class ChemicalController extends Controller
             'archived_at' => 'deleted_at',
         ];
 
-        if (! array_key_exists($sort, $sortableColumns)) {
+        if (!array_key_exists($sort, $sortableColumns)) {
             $sort = 'item';
         }
 
@@ -87,29 +87,29 @@ class ChemicalController extends Controller
             ->leftJoin('chemical_categories', 'chemicals.category_id', '=', 'chemical_categories.id')
             ->leftJoin('laboratories', 'chemicals.laboratory_id', '=', 'laboratories.id')
             ->select('chemicals.*')
-            ->when($archived, fn ($query) => $query->onlyTrashed(), fn ($query) => $query->withoutTrashed())
+            ->when($archived, fn($query) => $query->onlyTrashed(), fn($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('chemical_name', 'like', '%' . $search . '%')
-                        ->orWhere('chemical_code', 'like', '%' . $search . '%')
-                        ->orWhere('barcode', 'like', '%' . $search . '%')
-                        ->orWhere('storage_location', 'like', '%' . $search . '%');
+                    $subQuery->where('chemicals.chemical_name', 'like', '%' . $search . '%')
+                        ->orWhere('chemicals.chemical_code', 'like', '%' . $search . '%')
+                        ->orWhere('chemicals.barcode', 'like', '%' . $search . '%')
+                        ->orWhere('chemicals.storage_location', 'like', '%' . $search . '%');
                 });
             })
-            ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->when($categoryId !== '', fn ($query) => $query->where('category_id', $categoryId))
-            ->when($laboratoryId !== '', fn ($query) => $query->where('laboratory_id', $laboratoryId))
-            ->when($hazard !== '', fn ($query) => $query->where('hazard_classification', $hazard));
+            ->when($status !== '', fn($query) => $query->where('chemicals.status', $status))
+            ->when($categoryId !== '', fn($query) => $query->where('chemicals.category_id', $categoryId))
+            ->when($laboratoryId !== '', fn($query) => $query->where('chemicals.laboratory_id', $laboratoryId))
+            ->when($hazard !== '', fn($query) => $query->where('chemicals.hazard_classification', $hazard));
 
         $chemicals = $chemicalsQuery
-            ->when($sort === 'category', fn ($query) => $query->orderBy('chemical_categories.category_name', $direction))
-            ->when($sort === 'laboratory', fn ($query) => $query->orderBy('laboratories.laboratory_name', $direction))
-            ->when($sort === 'archived_at' && $archived, fn ($query) => $query->orderBy('chemicals.deleted_at', $direction))
-            ->when($sort === 'item', fn ($query) => $query->orderBy('chemicals.chemical_name', $direction))
-            ->when($sort === 'stock', fn ($query) => $query->orderBy('chemicals.quantity', $direction))
-            ->when($sort === 'status', fn ($query) => $query->orderBy('chemicals.status', $direction))
-            ->when($sort === 'hazard', fn ($query) => $query->orderBy('chemicals.hazard_classification', $direction))
-            ->when($sort !== 'archived_at' || ! $archived, fn ($query) => $query->orderBy('chemicals.created_at', 'desc'))
+            ->when($sort === 'category', fn($query) => $query->orderBy('chemical_categories.category_name', $direction))
+            ->when($sort === 'laboratory', fn($query) => $query->orderBy('laboratories.laboratory_name', $direction))
+            ->when($sort === 'archived_at' && $archived, fn($query) => $query->orderBy('chemicals.deleted_at', $direction))
+            ->when($sort === 'item', fn($query) => $query->orderBy('chemicals.chemical_name', $direction))
+            ->when($sort === 'stock', fn($query) => $query->orderBy('chemicals.quantity', $direction))
+            ->when($sort === 'status', fn($query) => $query->orderBy('chemicals.status', $direction))
+            ->when($sort === 'hazard', fn($query) => $query->orderBy('chemicals.hazard_classification', $direction))
+            ->when($sort !== 'archived_at' || !$archived, fn($query) => $query->orderBy('chemicals.created_at', 'desc'))
             ->paginate(10);
 
         $categories = ChemicalCategory::orderBy('category_name')->get(['id', 'category_name']);
@@ -131,7 +131,7 @@ class ChemicalController extends Controller
             'category_id' => $categoryId,
             'laboratory_id' => $laboratoryId,
             'hazard_classification' => $hazard,
-        ], static fn ($value) => $value !== '' && $value !== null);
+        ], static fn($value) => $value !== '' && $value !== null);
 
         return view('users.coordinator.chemicals.index', compact(
             'chemicals',
@@ -213,7 +213,7 @@ class ChemicalController extends Controller
 
         $chemical->update($data);
 
-        return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical updated successfully.');
+        return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', 'Chemical updated successfully.');
     }
 
     public function destroy(Chemical $chemical)
@@ -225,7 +225,7 @@ class ChemicalController extends Controller
 
     private function validateChemical(Request $request, ?Chemical $chemical = null): array
     {
-        return $request->validate([
+        $rules = [
             'chemical_name' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'exists:chemical_categories,id'],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
@@ -235,32 +235,82 @@ class ChemicalController extends Controller
             'manufactured_date' => ['nullable', 'date'],
             'expiration_date' => ['nullable', 'date'],
             'received_date' => ['nullable', 'date'],
-            'hazard_classification' => ['required', Rule::in([
-                'Non-Hazardous',
-                'Flammable',
-                'Corrosive',
-                'Oxidizer',
-                'Toxic',
-                'Explosive',
-                'Compressed Gas',
-                'Irritant',
-                'Environmental Hazard',
-            ])],
+            'hazard_classification' => [
+                'required',
+                Rule::in([
+                    'Non-Hazardous',
+                    'Flammable',
+                    'Corrosive',
+                    'Oxidizer',
+                    'Toxic',
+                    'Explosive',
+                    'Compressed Gas',
+                    'Irritant',
+                    'Environmental Hazard',
+                ])
+            ],
             'storage_location' => ['nullable', Rule::in($this->storageLocations($chemical))],
             'status' => ['required', Rule::in(['Available', 'Low Stock', 'Expired', 'Disposed', 'Unavailable'])],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'description' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
-        ]);
+        ];
+
+        $messages = [
+            'chemical_name.required' => 'Please enter the chemical name.',
+            'chemical_name.max' => 'Chemical name cannot exceed 255 characters.',
+            'category_id.required' => 'Please select a chemical category.',
+            'category_id.exists' => 'The selected chemical category is invalid.',
+            'laboratory_id.required' => 'Please select a laboratory.',
+            'laboratory_id.exists' => 'The selected laboratory is invalid.',
+            'supplier_id.exists' => 'The selected supplier is invalid.',
+            'quantity.required' => 'Please enter the quantity.',
+            'quantity.numeric' => 'Quantity must be a valid number.',
+            'quantity.min' => 'Quantity cannot be less than 0.',
+            'unit.required' => 'Please select a unit of measurement.',
+            'unit.in' => 'The selected unit is invalid.',
+            'manufactured_date.date' => 'Manufactured date must be a valid date.',
+            'received_date.date' => 'Received date must be a valid date.',
+            'expiration_date.date' => 'Expiration date must be a valid date.',
+            'hazard_classification.required' => 'Please select a hazard classification.',
+            'hazard_classification.in' => 'The selected hazard classification is invalid.',
+            'storage_location.in' => 'The selected storage location is invalid.',
+            'status.required' => 'Please select the chemical status.',
+            'status.in' => 'The selected status is invalid.',
+            'image.image' => 'The uploaded file must be an image.',
+            'image.mimes' => 'Image must be a file of type: JPG, JPEG, PNG, or WEBP.',
+            'image.max' => 'Image size must not exceed 4MB.',
+        ];
+
+        // Conditional date rule checks with specific messages
+        if ($request->filled('manufactured_date')) {
+            $rules['received_date'][] = 'after_or_equal:manufactured_date';
+            $messages['received_date.after_or_equal'] = 'Received date must not be before manufacturing date.';
+
+            $rules['expiration_date'][] = 'after_or_equal:manufactured_date';
+            $messages['expiration_date.after_or_equal'] = 'Expiration date must not be before manufacturing date.';
+        }
+
+        if ($request->filled('received_date')) {
+            $rules['expiration_date'][] = 'after_or_equal:received_date';
+            $messages['expiration_date.after_or_equal'] = 'Expiration date must not be before received date.';
+        }
+
+        return $request->validate($rules, $messages);
     }
 
     private function generateChemicalCode(): string
     {
-        do {
-            $chemicalCode = 'CHM-' . Str::upper(Str::random(10));
-        } while (Chemical::where('chemical_code', $chemicalCode)->exists());
+        $year = now()->format('y'); // Returns 2-digit year (e.g., '26')
+        $prefix = "CHEM-{$year}";
 
-        return $chemicalCode;
+        // Count existing records created in the current year
+        $count = Chemical::withTrashed()
+            ->where('chemical_code', 'LIKE', "{$prefix}-%")
+            ->count() + 1;
+
+        // Formats counter with 5 leading zeros (e.g., CHEM-26-00001)
+        return sprintf('%s-%05d', $prefix, $count);
     }
 
     private function generateBarcodeValue(): string
@@ -288,7 +338,7 @@ class ChemicalController extends Controller
         $options = self::UNIT_OPTIONS;
         $currentUnit = $chemical?->unit;
 
-        if ($currentUnit && ! in_array($currentUnit, $options, true)) {
+        if ($currentUnit && !in_array($currentUnit, $options, true)) {
             $options[] = $currentUnit;
         }
 
@@ -300,7 +350,7 @@ class ChemicalController extends Controller
         $options = self::STORAGE_LOCATIONS;
         $currentLocation = $chemical?->storage_location;
 
-        if ($currentLocation && ! in_array($currentLocation, $options, true)) {
+        if ($currentLocation && !in_array($currentLocation, $options, true)) {
             $options[] = $currentLocation;
         }
 

@@ -46,7 +46,7 @@
 
     <div class="section-card">
         <div class="card-body p-4 p-xl-5">
-            <form method="POST" action="{{ route('coordinator.equipment.update', $equipment) }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('coordinator.equipment.update', array_merge(['equipment' => $equipment], request()->query())) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 

@@ -38,7 +38,7 @@
 
     <div class="section-card">
         <div class="card-body p-4 p-xl-5">
-            <form method="POST" action="{{ route('coordinator.users.update', $user) }}">
+            <form method="POST" action="{{ route('coordinator.users.update', array_merge(['user' => $user], request()->query())) }}">
                 @csrf
                 @method('PUT')
 

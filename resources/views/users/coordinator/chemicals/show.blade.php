@@ -48,9 +48,9 @@
                         <button type="button" class="btn btn-success px-4" disabled>Restore expired</button>
                     @endif
                 @else
-                    <a href="{{ route('coordinator.chemicals.edit', $chemical) }}" class="btn btn-primary px-4">Edit chemical</a>
+                    <a href="{{ route('coordinator.chemicals.edit', array_merge(['chemical' => $chemical], request()->query())) }}" class="btn btn-primary px-4">Edit chemical</a>
                 @endif
-                <a href="{{ $isArchived ? route('coordinator.chemicals.archived') : route('coordinator.chemicals.index') }}" class="btn btn-outline-secondary px-4">
+                <a href="{{ $isArchived ? route('coordinator.chemicals.archived', request()->query()) : route('coordinator.chemicals.index', request()->query()) }}" class="btn btn-outline-secondary px-4">
                     {{ $isArchived ? 'Back to archived' : 'Back to list' }}
                 </a>
             </div>

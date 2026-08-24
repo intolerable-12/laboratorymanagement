@@ -12,6 +12,11 @@
         @endphp
 
         <div class="d-flex align-items-center gap-3">
+            <button type="button" class="btn btn-light border d-lg-none p-2" data-admin-sidebar-toggle
+                aria-controls="adminSidebar" aria-label="Open sidebar" title="Open sidebar">
+                <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                <span class="visually-hidden">Toggle sidebar</span>
+            </button>
             <h1 class="h5 mb-0 fw-semibold text-dark">@yield('page-title', 'Dashboard')</h1>
             
         </div>

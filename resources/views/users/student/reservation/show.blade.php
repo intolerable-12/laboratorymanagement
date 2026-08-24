@@ -1,12 +1,10 @@
-@extends('layouts.app')
+@extends('users.student.layouts.app')
 
 @section('title', 'Reservation Details')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
-@section('nav-links')
-    @include('users.student.partials.nav-links', ['active' => 'reservation'])
-@endsection
+
 
 @section('content')
     <div class="account-page">

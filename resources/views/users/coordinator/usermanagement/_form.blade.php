@@ -12,7 +12,7 @@
 
     <div class="col-md-6">
         <label class="form-label" for="email">Email</label>
-        <input type="email" id="email" name="email" value="{{ old('email', $user->email ?? '') }}" class="form-control admin-form-control @error('email') is-invalid @enderror" required>
+        <input type="email" id="email" name="email" value="{{ old('email', $user->email ?? '') }}" class="form-control admin-form-control @error('email') is-invalid @enderror" placeholder="name@lccdo.edu.ph" required>
         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -105,7 +105,7 @@
     </div>
 
     <div class="col-12 text-end mt-3">
-        <a href="{{ route('coordinator.users.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+        <a href="{{ route('coordinator.users.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
         <button type="submit" class="btn btn-primary">{{ isset($user) ? 'Save changes' : 'Create user' }}</button>
     </div>
 </div>

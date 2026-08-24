@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('users.facilitator.layouts.app')
 
 @section('title', 'Borrow Review')
 @section('user-name', 'Laboratory In-charge')

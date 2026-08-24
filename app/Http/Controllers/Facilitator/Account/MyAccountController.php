@@ -26,7 +26,6 @@ class MyAccountController extends Controller
 		$user = $this->authenticatedUser();
 
 		$validated = $request->validate([
-			'userID' => ['required', 'string', 'max:30', 'unique:users,userID,' . $user->getKey() . ',userNo'],
 			'first_name' => ['required', 'string', 'max:100'],
 			'middle_name' => ['nullable', 'string', 'max:100'],
 			'last_name' => ['required', 'string', 'max:100'],

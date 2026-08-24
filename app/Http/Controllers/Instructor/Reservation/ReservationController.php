@@ -67,14 +67,14 @@ class ReservationController extends Controller
                 $reservation,
                 'Reservation',
                 'Reservation approved',
-                'Your reservation ' . $reservation->reservation_no . ' was approved by the Instructor and forwarded to the Facilitator.'
+                'Your reservation ' . $reservation->reservation_no . ' was approved by the Instructor and forwarded to the Laboratory In-charge.'
             );
 
             $notificationService->notifyRoleUsers(
-                'Facilitator',
+                'Laboratory In-charge',
                 'Reservation',
                 'Reservation ready for review',
-                'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for facilitator review.',
+                'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for Laboratory In-charge review.',
                 $reservation,
                 $request->user()->userNo
             );

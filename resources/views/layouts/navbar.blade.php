@@ -19,6 +19,14 @@
             $displayRole = $user
                 ? ($user->role?->role_name ?? trim($__env->yieldContent('user-role', 'Coordinator')))
                 : trim($__env->yieldContent('user-role', 'Coordinator'));
+
+            $roleKey = strtolower($displayRole);
+            $accountRoute = match($roleKey) {
+                'instructor'  => route('instructor.myaccount'),
+                'facilitator' => route('facilitator.myaccount'),
+                'student'     => route('student.myaccount'),
+                default       => '#',
+            };
         @endphp
 
         <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
@@ -30,17 +38,55 @@
                 </div>
             </div>
 
+            <!-- Top Right Action Items -->
             <div class="d-flex align-items-center gap-3 ms-xl-auto">
+                <!-- Restored Notification Bell Icon -->
                 @include('partials.notification-bell')
 
-                <div class="text-end">
-                    <div class="fw-semibold text-dark lh-1">{{ $displayName }}</div>
-                    <small class="text-secondary">{{ $displayRole }}</small>
+                <!-- Clickable User Profile Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-light border rounded-pill px-3 py-1-5 d-flex align-items-center gap-2 shadow-sm dropdown-toggle text-start" 
+                            type="button" 
+                            id="userNavbarDropdown" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                            style="background-color: #f8f9fa; border-color: #e2e8f0 !important;">
+                        
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 34px; height: 34px; font-size: 0.85rem;">
+                            {{ strtoupper(substr($displayName, 0, 1)) }}
+                        </div>
+                        
+                        <div class="lh-sm pe-1">
+                            <div class="fw-semibold text-dark" style="font-size: 0.9rem;">{{ $displayName }}</div>
+                            <small class="text-secondary d-block" style="font-size: 0.75rem;">{{ $displayRole }}</small>
+                        </div>
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2 rounded-3" aria-labelledby="userNavbarDropdown" style="min-width: 14rem;">
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="{{ route('notifications.index') }}">
+                                <i class="fa-solid fa-bell text-secondary" style="width: 1.25rem;"></i>
+                                <span>Notifications</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="{{ $accountRoute }}">
+                                <i class="fa-solid fa-user text-secondary" style="width: 1.25rem;"></i>
+                                <span>My Account</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}" class="m-0">
+                                @csrf
+                                <button type="submit" class="dropdown-item rounded-2 text-danger py-2 d-flex align-items-center gap-2 w-100">
+                                    <i class="fa-solid fa-right-from-bracket text-danger" style="width: 1.25rem;"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
                 </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-secondary btn-sm px-4">Logout</button>
-                </form>
             </div>
         </div>
 
@@ -54,7 +100,6 @@
                     <a class="nav-link" href="#">Barcode Scanner</a>
                     <a class="nav-link" href="#">Activity Log</a>
                     <a class="nav-link" href="#">Report Logs</a>
-                    <a class="nav-link" href="#">My Account</a>
                     <a class="nav-link" href="#">Feedback view</a>
                     <a class="nav-link" href="#">Approvals</a>
                 </div>

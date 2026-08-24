@@ -70,7 +70,7 @@ class UserManagementController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('coordinator.users.index')->with('status', 'User updated successfully.');
+        return redirect()->route('coordinator.users.index', $request->query())->with('status', 'User updated successfully.');
     }
 
     public function destroy(User $user)
@@ -202,24 +202,59 @@ class UserManagementController extends Controller
             $emailRule->ignore($user->userNo, 'userNo');
         }
 
-        return $request->validate([
-            'userID' => ['required', 'string', 'max:30', $userIdRule],
-            'first_name' => ['required', 'string', 'max:100'],
-            'middle_name' => ['nullable', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
-            'suffix' => ['nullable', 'string', 'max:20'],
-            'birth_date' => ['nullable', 'date'],
+        $validated = $request->validate([
+            'userID' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $userIdRule],
+            'first_name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\' .\- ]*$/u'],
+            'middle_name' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\' .\- ]*$/u'],
+            'last_name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\' .\- ]*$/u'],
+            'suffix' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z.\-]+$/u'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'gender' => ['nullable', Rule::in(['Male', 'Female'])],
-            'email' => ['required', 'email', 'max:255', $emailRule],
-            'contact_number' => ['nullable', 'string', 'max:20'],
+            'email' => ['required', 'email', 'max:255', 'regex:/^[A-Za-z0-9._%+\-]+@lccdo\.edu\.ph$/i', $emailRule],
+            'contact_number' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
             'role_id' => [
                 'required',
+                'integer',
                 Rule::exists('roles', 'id')->where(fn (QueryBuilder $query) => $query->where('role_name', '!=', 'Coordinator')),
             ],
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'status' => ['required', Rule::in(['Active', 'Inactive', 'Suspended'])],
-            'password' => $user ? ['nullable', 'string', 'min:8'] : ['required', 'string', 'min:8'],
+            'password' => $user
+                ? ['nullable', 'string', 'min:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/']
+                : ['required', 'string', 'min:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
+        ], [
+            'userID.regex' => 'User ID may only contain letters, numbers, dots, underscores, and hyphens.',
+            'first_name.regex' => 'First name may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'middle_name.regex' => 'Middle name may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'last_name.regex' => 'Last name may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'suffix.regex' => 'Suffix may only contain letters, periods, and hyphens.',
+            'birth_date.before_or_equal' => 'Birth date cannot be in the future.',
+            'email.regex' => 'The email must end with @lccdo.edu.ph.',
+            'contact_number.regex' => 'Contact number must be a valid phone number using digits and common separators only.',
+            'password.regex' => 'Password must be at least 8 characters long and include both letters and numbers.',
         ]);
+
+        foreach (['userID', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'contact_number'] as $field) {
+            if (! array_key_exists($field, $validated)) {
+                continue;
+            }
+
+            $value = $validated[$field];
+
+            if (is_string($value)) {
+                $validated[$field] = trim($value);
+            }
+        }
+
+        if (isset($validated['middle_name']) && $validated['middle_name'] === '') {
+            $validated['middle_name'] = null;
+        }
+
+        if (isset($validated['suffix']) && $validated['suffix'] === '') {
+            $validated['suffix'] = null;
+        }
+
+        return $validated;
     }
 
     private function preventCoordinatorDeletion(User $user): void

@@ -28,19 +28,20 @@
     <div class="col-lg-4">
         <div class="equipment-preview-card h-100">
             @if ($imageUrl)
-                <img src="{{ $imageUrl }}" alt="{{ $equipment->equipment_name ?? 'Equipment image' }}" class="equipment-preview rounded-4 mb-3">
+                <img src="{{ $imageUrl }}" alt="{{ $equipment->equipment_name ?? 'Equipment image' }}" class="equipment-preview rounded-4 mb-3" data-image-preview data-image-preview-initial-src="{{ $imageUrl }}">
             @else
-                <div class="equipment-image-placeholder rounded-4 d-flex flex-column align-items-center justify-content-center text-center px-4 py-5 mb-3">
+                <div class="equipment-image-placeholder rounded-4 d-flex flex-column align-items-center justify-content-center text-center px-4 py-5 mb-3" data-image-preview-placeholder>
                     <div class="equipment-image-placeholder__icon">
                         <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
                     </div>
                     <div class="fw-semibold">No image uploaded</div>
                     <div class="small text-secondary">Add a photo to make the inventory easier to scan.</div>
                 </div>
+                <img src="" alt="Equipment image preview" class="equipment-preview rounded-4 mb-3 d-none" data-image-preview data-image-preview-initial-src="">
             @endif
 
             <label class="form-label" for="image">Equipment image</label>
-            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*">
+            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*" data-image-preview-input>
             <div class="form-text">JPEG, PNG, or WEBP up to 4 MB.</div>
             @error('image') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
         </div>
@@ -183,7 +184,7 @@
             </div>
 
             <div class="col-12 text-end mt-2">
-                <a href="{{ route('coordinator.equipment.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <a href="{{ route('coordinator.equipment.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">{{ isset($equipment) ? 'Save changes' : 'Create equipment' }}</button>
             </div>
         </div>
