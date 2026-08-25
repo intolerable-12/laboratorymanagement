@@ -96,7 +96,7 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-4">
-                        <span class="badge text-bg-{{ $equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary')) }}">{{ $equipment->status }}</span>
+                        <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : $equipment->status }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $equipment->condition }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $equipment->equipment_code }}</span>
                     </div>

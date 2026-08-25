@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BorrowTransaction;
+use App\Models\Announcement;
 use App\Models\Notification as UserNotification;
 use App\Mail\RequestReviewMail;
 use App\Models\Reservation;
@@ -154,6 +155,15 @@ class RequestNotificationService
                 'Laboratory In-charge' => route('facilitator.borrow.show', $reference),
                 'Instructor' => route('instructor.borrow.show', $reference),
                 'Student' => route('student.borrow.show', $reference),
+                default => route('notifications.index'),
+            };
+        }
+
+        if ($reference instanceof Announcement) {
+            return match ($user->role?->role_name) {
+                'Student' => route('student.dashboard'),
+                'Instructor' => route('instructor.dashboard'),
+                'Laboratory In-charge' => route('facilitator.dashboard'),
                 default => route('notifications.index'),
             };
         }

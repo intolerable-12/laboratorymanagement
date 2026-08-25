@@ -271,8 +271,8 @@
                                         <div class="small text-secondary">Available / total quantity</div>
                                     </td>
                                     <td>
-                                        <span class="badge text-bg-{{ $equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary')) }}">
-                                            {{ $equipment->status }}
+                                        <span class="badge text-bg-{{ $archived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">
+                                            {{ $archived ? 'Archived' : $equipment->status }}
                                         </span>
                                     </td>
                                     <td>

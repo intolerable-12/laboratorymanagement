@@ -4,12 +4,6 @@
 @section('page-title', 'Notifications')
 @section('page-subtitle', 'Track request alerts and approval updates')
 
-@if ($navLinksView ?? false)
-    @section('nav-links')
-        @include($navLinksView, ['active' => 'notification'])
-    @endsection
-@endif
-
 @section('content')
     <div class="notifications-page">
         @if (session('status'))

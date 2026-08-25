@@ -16,15 +16,12 @@ class NotificationController extends Controller
 
         $roleName = $user->role?->role_name ?? 'User';
 
-        $layout = optional($user->role)->role_name === 'Coordinator'
-            ? 'users.coordinator.layouts.app'
-            : 'layouts.app';
-
-        $navLinksView = match ($roleName) {
-            'Student' => 'users.student.partials.nav-links',
-            'Laboratory In-charge' => 'users.facilitator.partials.nav-links',
-            'Instructor' => 'users.instructor.partials.nav-links',
-            default => null,
+        $layout = match ($roleName) {
+            'Coordinator' => 'users.coordinator.layouts.app',
+            'Student' => 'users.student.layouts.app',
+            'Instructor' => 'users.instructor.layouts.app',
+            'Laboratory In-charge' => 'users.facilitator.layouts.app',
+            default => 'layouts.app',
         };
 
         $notifications = UserNotification::query()
@@ -39,7 +36,7 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->count();
 
-        return view('notifications.index', compact('layout', 'navLinksView', 'notifications', 'unreadCount', 'roleName'));
+        return view('notifications.index', compact('layout', 'notifications', 'unreadCount', 'roleName'));
     }
 
     public function show(Request $request, UserNotification $notification)

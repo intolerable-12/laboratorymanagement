@@ -278,8 +278,8 @@
                                     <div class="small text-secondary">Minimum {{ number_format((float) $chemical->minimum_stock, 2) }} {{ $chemical->unit }}</div>
                                 </td>
                                 <td>
-                                    <span class="badge text-bg-{{ $chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary')) }}">
-                                        {{ $chemical->status }}
+                                    <span class="badge text-bg-{{ $archived ? 'secondary' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary'))) }}">
+                                        {{ $archived ? 'Archived' : $chemical->status }}
                                     </span>
                                 </td>
                                 <td>

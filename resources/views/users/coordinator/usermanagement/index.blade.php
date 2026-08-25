@@ -4,6 +4,7 @@
 @section('page-title', 'User Management')
 
 @php
+    $tabQuery = request()->except('page');
     $tableRoute = $archived ? 'coordinator.users.archived' : 'coordinator.users.index';
     $listQuery = request()->query();
     $currentSort = $sort ?? request()->query('sort', 'name');
@@ -33,6 +34,20 @@
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
 
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <div class="small text-uppercase text-secondary">User management</div>
+            <div class="text-secondary">Manage users and departments.</div>
+        </div>
+        <div class="btn-group shadow-sm" role="group" aria-label="User management navigation">
+            <a href="{{ route('coordinator.users.index', $tabQuery) }}" class="btn btn-primary">
+                <i class="fa-solid fa-users me-2"></i>Users
+            </a>
+            <a href="{{ route('coordinator.departments.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-building-columns me-2"></i>Department
+            </a>
+        </div>
+    </div>
 
 
     <div class="row g-3 g-xl-4 mb-4">
@@ -230,8 +245,8 @@
                                 <td>{{ $user->email }}</td>
                                 <td>
                                     <span
-                                        class="badge text-bg-{{ $user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary') }}">
-                                        {{ $user->status }}
+                                        class="badge text-bg-{{ $archived ? 'secondary' : ($user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary')) }}">
+                                        {{ $archived ? 'Archived' : $user->status }}
                                     </span>
                                 </td>
                                 <td class="text-end pe-4">

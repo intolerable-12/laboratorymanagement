@@ -88,19 +88,19 @@ class EquipmentController extends Controller
             ->when($archived, fn($query) => $query->onlyTrashed(), fn($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('equipment_name', 'like', '%' . $search . '%')
-                        ->orWhere('equipment_code', 'like', '%' . $search . '%')
-                        ->orWhere('barcode', 'like', '%' . $search . '%')
-                        ->orWhere('brand', 'like', '%' . $search . '%')
-                        ->orWhere('model', 'like', '%' . $search . '%')
-                        ->orWhere('serial_number', 'like', '%' . $search . '%')
-                        ->orWhere('storage_location', 'like', '%' . $search . '%');
+                    $subQuery->where('equipment.equipment_name', 'like', '%' . $search . '%')
+                        ->orWhere('equipment.equipment_code', 'like', '%' . $search . '%')
+                        ->orWhere('equipment.barcode', 'like', '%' . $search . '%')
+                        ->orWhere('equipment.brand', 'like', '%' . $search . '%')
+                        ->orWhere('equipment.model', 'like', '%' . $search . '%')
+                        ->orWhere('equipment.serial_number', 'like', '%' . $search . '%')
+                        ->orWhere('equipment.storage_location', 'like', '%' . $search . '%');
                 });
             })
-            ->when($status !== '', fn($query) => $query->where('status', $status))
-            ->when($categoryId !== '', fn($query) => $query->where('category_id', $categoryId))
-            ->when($laboratoryId !== '', fn($query) => $query->where('laboratory_id', $laboratoryId))
-            ->when($condition !== '', fn($query) => $query->where('condition', $condition));
+            ->when($status !== '', fn($query) => $query->where('equipment.status', $status))
+            ->when($categoryId !== '', fn($query) => $query->where('equipment.category_id', $categoryId))
+            ->when($laboratoryId !== '', fn($query) => $query->where('equipment.laboratory_id', $laboratoryId))
+            ->when($condition !== '', fn($query) => $query->where('equipment.condition', $condition));
 
         $equipmentItems = $equipmentQuery
             ->when($sort === 'category', fn($query) => $query->orderBy('equipment_categories.category_name', $direction))

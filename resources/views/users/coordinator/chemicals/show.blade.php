@@ -96,7 +96,7 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-4">
-                        <span class="badge text-bg-{{ $chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary')) }}">{{ $chemical->status }}</span>
+                        <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : $chemical->status }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $chemical->chemical_code }}</span>
                     </div>

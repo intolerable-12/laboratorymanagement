@@ -28,9 +28,26 @@
                 @endif
 
                 <label class="form-label fw-semibold text-dark" for="images">Attach images</label>
-                <input type="file" id="images" name="images[]" class="form-control admin-form-control @error('images') is-invalid @enderror" accept="image/*" multiple>
+                <input type="file" id="images" name="images[]" class="form-control admin-form-control @error('images') is-invalid @enderror" accept="image/*" multiple data-announcement-image-input>
                 <div class="form-text">JPEG, PNG, and WEBP files up to 4 MB each. Uploading new files adds them to the gallery.</div>
                 @error('images') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+
+                <div class="announcement-image-preview mt-3" data-announcement-image-preview aria-live="polite" hidden>
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                        <div class="small fw-semibold text-dark">Selected images</div>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Selected image navigation">
+                            <button type="button" class="btn btn-outline-secondary" data-announcement-image-previous aria-label="Previous selected image">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-announcement-image-next aria-label="Next selected image">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="announcement-image-preview__viewport" data-announcement-image-preview-viewport>
+                        <div class="announcement-image-preview__track" data-announcement-image-preview-track></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -114,3 +131,104 @@
         </div>
     </div>
 </div>
+
+<script>
+    (() => {
+        const input = document.querySelector('[data-announcement-image-input]');
+        const preview = document.querySelector('[data-announcement-image-preview]');
+        const previewViewport = document.querySelector('[data-announcement-image-preview-viewport]');
+        const previewTrack = document.querySelector('[data-announcement-image-preview-track]');
+        const previousButton = document.querySelector('[data-announcement-image-previous]');
+        const nextButton = document.querySelector('[data-announcement-image-next]');
+
+        if (!input || !preview || !previewViewport || !previewTrack || !previousButton || !nextButton) {
+            return;
+        }
+
+        let selectedFiles = [];
+        let previewUrls = [];
+
+        const syncInputFiles = () => {
+            const dataTransfer = new DataTransfer();
+
+            selectedFiles.forEach((file) => dataTransfer.items.add(file));
+            input.files = dataTransfer.files;
+        };
+
+        const updateNavigation = () => {
+            const maxScroll = previewViewport.scrollWidth - previewViewport.clientWidth;
+
+            previousButton.disabled = previewViewport.scrollLeft <= 1;
+            nextButton.disabled = maxScroll <= 1 || previewViewport.scrollLeft >= maxScroll - 1;
+        };
+
+        const renderPreviews = () => {
+            previewUrls.forEach((url) => URL.revokeObjectURL(url));
+            previewUrls = [];
+            previewTrack.replaceChildren();
+
+            selectedFiles.forEach((file, index) => {
+                const imageUrl = URL.createObjectURL(file);
+                previewUrls.push(imageUrl);
+
+                const item = document.createElement('div');
+                item.className = 'announcement-image-grid__item announcement-image-preview__item';
+
+                const image = document.createElement('img');
+                image.src = imageUrl;
+                image.alt = file.name;
+                image.className = 'img-fluid rounded-4 border';
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-sm btn-danger announcement-image-preview__remove';
+                removeButton.setAttribute('aria-label', `Remove ${file.name}`);
+                removeButton.title = 'Remove image';
+                removeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                removeButton.addEventListener('click', () => {
+                    selectedFiles.splice(index, 1);
+                    syncInputFiles();
+                    renderPreviews();
+                });
+
+                item.append(image, removeButton);
+                previewTrack.appendChild(item);
+            });
+
+            preview.hidden = selectedFiles.length === 0;
+            updateNavigation();
+        };
+
+        input.addEventListener('change', () => {
+            const newFiles = Array.from(input.files).filter((file) => file.type.startsWith('image/'));
+            const existingFileKeys = new Set(selectedFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+
+            newFiles.forEach((file) => {
+                const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+
+                if (!existingFileKeys.has(fileKey)) {
+                    selectedFiles.push(file);
+                    existingFileKeys.add(fileKey);
+                }
+            });
+
+            syncInputFiles();
+            renderPreviews();
+        });
+
+        previousButton.addEventListener('click', () => {
+            previewViewport.scrollBy({ left: -Math.max(previewViewport.clientWidth * 0.8, 160), behavior: 'smooth' });
+        });
+
+        nextButton.addEventListener('click', () => {
+            previewViewport.scrollBy({ left: Math.max(previewViewport.clientWidth * 0.8, 160), behavior: 'smooth' });
+        });
+
+        previewViewport.addEventListener('scroll', updateNavigation, { passive: true });
+        window.addEventListener('resize', updateNavigation);
+
+        window.addEventListener('beforeunload', () => {
+            previewUrls.forEach((url) => URL.revokeObjectURL(url));
+        });
+    })();
+</script>

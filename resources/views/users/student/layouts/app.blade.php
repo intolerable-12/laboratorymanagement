@@ -14,12 +14,6 @@
         <div class="admin-content d-flex flex-column">
             @include('users.student.layouts.navbar')
 
-            @hasSection('nav-links')
-                <div class="px-3 px-lg-4 pt-3">
-                    @yield('nav-links')
-                </div>
-            @endif
-
             <main class="flex-grow-1 p-3 p-lg-4">
                 <div class="container-fluid px-0">
                     @yield('content')

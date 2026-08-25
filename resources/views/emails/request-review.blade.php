@@ -36,6 +36,8 @@
 
                 <p style="margin:0; font-size:14px; line-height:1.7; color:#4b5563;">You can also review the request by logging in to the system.</p>
             </div>
+
+            @include('emails.partials.privacy-footer')
         </div>
     </div>
 </body>

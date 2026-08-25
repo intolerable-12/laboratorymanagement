@@ -68,8 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const richTextToolbarOptions = [
         [{ header: [1, 2, 3, false] }],
         ['bold', 'italic', 'underline', 'strike'],
+        [{ script: 'sub' }, { script: 'super' }],
         [{ list: 'ordered' }, { list: 'bullet' }],
-        ['blockquote', 'link', 'clean'],
+        ['blockquote', 'code-block', 'link', 'clean'],
+        [{ table: 'insert-table' }],
     ];
 
     const initializeRichTextEditors = (root = document) => {
@@ -91,7 +93,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 theme: 'snow',
                 placeholder: surface.dataset.placeholder || 'Write something meaningful...',
                 modules: {
-                    toolbar: richTextToolbarOptions,
+                    toolbar: {
+                        container: richTextToolbarOptions,
+                        handlers: {
+                            table() {
+                                const rows = Number.parseInt(window.prompt('How many rows should the table have?', '3'), 10);
+                                const columns = Number.parseInt(window.prompt('How many columns should the table have?', '3'), 10);
+
+                                if (!Number.isInteger(rows) || !Number.isInteger(columns) || rows < 1 || columns < 1 || rows > 20 || columns > 20) {
+                                    return;
+                                }
+
+                                this.quill.getModule('table')?.insertTable(rows, columns);
+                            },
+                        },
+                    },
+                    table: true,
                 },
             });
 
@@ -680,8 +697,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const renderAnnouncementImages = (container, images) => {
-        if (!container) {
+    const updateAnnouncementImageNavigation = (viewport, previousButton, nextButton) => {
+        if (!viewport || !previousButton || !nextButton) {
+            return;
+        }
+
+        const maxScroll = viewport.scrollWidth - viewport.clientWidth;
+
+        previousButton.disabled = viewport.scrollLeft <= 1;
+        nextButton.disabled = maxScroll <= 1 || viewport.scrollLeft >= maxScroll - 1;
+    };
+
+    const renderAnnouncementImages = (container, viewport, previousButton, nextButton, images) => {
+        if (!container || !viewport || !previousButton || !nextButton) {
             return;
         }
 
@@ -689,15 +717,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!images || images.length === 0) {
             const empty = document.createElement('div');
-            empty.className = 'col-12 text-secondary';
+            empty.className = 'announcement-modal__images-empty text-secondary';
             empty.textContent = 'No images attached to this announcement.';
             container.appendChild(empty);
+            viewport.scrollLeft = 0;
+            previousButton.hidden = true;
+            nextButton.hidden = true;
             return;
         }
 
         images.forEach((imageUrl) => {
             const wrapper = document.createElement('div');
-            wrapper.className = 'col-12 col-md-6';
+            wrapper.className = 'announcement-modal__image-item';
 
             const image = document.createElement('img');
             image.src = imageUrl;
@@ -707,6 +738,14 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapper.appendChild(image);
             container.appendChild(wrapper);
         });
+
+        viewport.scrollLeft = 0;
+        const hasOverflow = viewport.clientWidth === 0
+            ? images.length > 2
+            : viewport.scrollWidth > viewport.clientWidth + 1;
+        previousButton.hidden = !hasOverflow;
+        nextButton.hidden = !hasOverflow;
+        updateAnnouncementImageNavigation(viewport, previousButton, nextButton);
     };
 
     announcementFeedShells.forEach((shell) => {
@@ -734,6 +773,9 @@ document.addEventListener('DOMContentLoaded', () => {
             audiences: modalElement.querySelector('[data-announcement-audiences]'),
             content: modalElement.querySelector('[data-announcement-content]'),
             images: modalElement.querySelector('[data-announcement-images]'),
+            imagesViewport: modalElement.querySelector('[data-announcement-images-viewport]'),
+            imagesPrevious: modalElement.querySelector('[data-announcement-images-previous]'),
+            imagesNext: modalElement.querySelector('[data-announcement-images-next]'),
         };
 
         const openAnnouncement = (announcement) => {
@@ -752,9 +794,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalSelectors.content.innerHTML = announcement.content || '';
             }
 
-            renderAnnouncementImages(modalSelectors.images, announcement.images || []);
+            renderAnnouncementImages(
+                modalSelectors.images,
+                modalSelectors.imagesViewport,
+                modalSelectors.imagesPrevious,
+                modalSelectors.imagesNext,
+                announcement.images || [],
+            );
             modal.show();
+
+            window.requestAnimationFrame(() => {
+                const hasOverflow = modalSelectors.imagesViewport.scrollWidth > modalSelectors.imagesViewport.clientWidth + 1;
+
+                modalSelectors.imagesPrevious.hidden = !hasOverflow;
+                modalSelectors.imagesNext.hidden = !hasOverflow;
+                updateAnnouncementImageNavigation(
+                    modalSelectors.imagesViewport,
+                    modalSelectors.imagesPrevious,
+                    modalSelectors.imagesNext,
+                );
+            });
         };
+
+        modalSelectors.imagesPrevious?.addEventListener('click', () => {
+            modalSelectors.imagesViewport?.scrollBy({
+                left: -Math.max(modalSelectors.imagesViewport.clientWidth, 240),
+                behavior: 'smooth',
+            });
+        });
+
+        modalSelectors.imagesNext?.addEventListener('click', () => {
+            modalSelectors.imagesViewport?.scrollBy({
+                left: Math.max(modalSelectors.imagesViewport.clientWidth, 240),
+                behavior: 'smooth',
+            });
+        });
+
+        modalSelectors.imagesViewport?.addEventListener('scroll', () => {
+            updateAnnouncementImageNavigation(
+                modalSelectors.imagesViewport,
+                modalSelectors.imagesPrevious,
+                modalSelectors.imagesNext,
+            );
+        }, { passive: true });
 
         shell.addEventListener('click', (event) => {
             const trigger = event.target.closest('[data-announcement-trigger]');

@@ -40,7 +40,7 @@
                         @if ($user->trashed())
                             <span class="badge text-bg-dark">Archived</span>
                         @endif
-                        <span class="badge text-bg-{{ $user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary') }}">{{ $user->status }}</span>
+                        <span class="badge text-bg-{{ $user->trashed() ? 'secondary' : ($user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary')) }}">{{ $user->trashed() ? 'Archived' : $user->status }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $user->role->role_name ?? 'No role' }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $user->department->department_name ?? 'No department' }}</span>
                     </div>
@@ -101,7 +101,7 @@
                         </div>
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Status</div>
-                            <div class="fw-semibold text-dark">{{ $user->status }}</div>
+                            <div class="fw-semibold text-dark">{{ $user->trashed() ? 'Archived' : $user->status }}</div>
                         </div>
                         @if ($user->trashed())
                             <div>

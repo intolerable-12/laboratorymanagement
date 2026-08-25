@@ -3,6 +3,10 @@
 @section('title', 'Departments')
 @section('page-title', 'Departments')
 
+@php
+    $tabQuery = request()->except('page');
+@endphp
+
 @section('content')
     @if (session('status'))
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
@@ -11,6 +15,21 @@
     @if (session('error'))
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <div class="small text-uppercase text-secondary">User management</div>
+            <div class="text-secondary">Manage users and departments.</div>
+        </div>
+        <div class="btn-group shadow-sm" role="group" aria-label="User management navigation">
+            <a href="{{ route('coordinator.users.index', $tabQuery) }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-users me-2"></i>Users
+            </a>
+            <a href="{{ route('coordinator.departments.index', $tabQuery) }}" class="btn btn-primary">
+                <i class="fa-solid fa-building-columns me-2"></i>Department
+            </a>
+        </div>
+    </div>
 
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">

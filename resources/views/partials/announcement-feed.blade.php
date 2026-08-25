@@ -107,7 +107,17 @@
 
                         <div>
                             <h6 class="fw-semibold text-dark mb-3">Attached images</h6>
-                            <div class="announcement-modal__images row g-3" data-announcement-images></div>
+                            <div class="announcement-modal__gallery" data-announcement-gallery>
+                                <button type="button" class="announcement-modal__gallery-nav announcement-modal__gallery-nav--previous" data-announcement-images-previous aria-label="Previous attached image">
+                                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                                </button>
+                                <div class="announcement-modal__images-viewport" data-announcement-images-viewport>
+                                    <div class="announcement-modal__images" data-announcement-images></div>
+                                </div>
+                                <button type="button" class="announcement-modal__gallery-nav announcement-modal__gallery-nav--next" data-announcement-images-next aria-label="Next attached image">
+                                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

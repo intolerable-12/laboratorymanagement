@@ -4,17 +4,26 @@ namespace App\Http\Controllers\Coordinator\Announcement;
 
 use App\Http\Controllers\Concerns\LoadsAnnouncements;
 use App\Http\Controllers\Controller;
+use App\Mail\AnnouncementPublishedMail;
 use App\Models\Announcement;
+use App\Models\User;
+use App\Services\RequestNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AnnouncementController extends Controller
 {
     use LoadsAnnouncements;
+
+    public function __construct(private RequestNotificationService $notificationService)
+    {
+    }
 
     public function index(Request $request): View
     {
@@ -84,7 +93,8 @@ class AnnouncementController extends Controller
         $data['audiences'] = $data['audiences'] ?? [];
         $data['images'] = $this->storeUploadedImages($request);
 
-        Announcement::create($data);
+        $announcement = Announcement::create($data);
+        $this->notifyAudienceUsers($announcement, sendEmail: $announcement->send_email);
 
         return redirect()
             ->route('coordinator.announcements.index')
@@ -117,6 +127,7 @@ class AnnouncementController extends Controller
     {
         $this->ensureCoordinator($request);
 
+        $wasPublished = (bool) $announcement->is_published;
         $data = $this->validatedData($request);
         $data['audiences'] = $data['audiences'] ?? [];
         $existingImages = collect($announcement->images ?? [])->filter()->values()->all();
@@ -124,6 +135,10 @@ class AnnouncementController extends Controller
         $data['images'] = array_values(array_merge($existingImages, $newImages));
 
         $announcement->update($data);
+
+        if (! $wasPublished && $announcement->is_published) {
+            $this->notifyAudienceUsers($announcement, sendEmail: $announcement->send_email);
+        }
 
         return redirect()
             ->route('coordinator.announcements.edit', $announcement)
@@ -190,6 +205,57 @@ class AnnouncementController extends Controller
                 Storage::disk('public')->delete($path);
             }
         }
+    }
+
+    private function notifyAudienceUsers(Announcement $announcement, bool $sendEmail): void
+    {
+        if (! $announcement->is_published) {
+            return;
+        }
+
+        $roleNames = collect($announcement->audiences ?? [])
+            ->map(fn (string $audience) => Announcement::audienceOptions()[$audience] ?? null)
+            ->filter()
+            ->values();
+
+        if ($roleNames->isEmpty()) {
+            return;
+        }
+
+        $message = Str::limit(trim(strip_tags((string) $announcement->content)), 180);
+
+        User::query()
+            ->where('status', 'Active')
+            ->whereHas('role', fn ($query) => $query->whereIn('role_name', $roleNames->all()))
+            ->with('role')
+            ->get()
+            ->each(function (User $user) use ($announcement, $message, $sendEmail): void {
+                $this->notificationService->notifyUser(
+                    user: $user,
+                    type: 'Announcement',
+                    title: 'New announcement: ' . $announcement->title,
+                    message: $message ?: 'A new announcement is available on LabCentral.',
+                    reference: $announcement,
+                );
+
+                if ($sendEmail && filled($user->email)) {
+                    Mail::to($user->email)->queue(new AnnouncementPublishedMail(
+                        announcement: $announcement,
+                        recipientName: $this->notificationService->displayName($user),
+                        actionUrl: $this->dashboardUrlFor($user),
+                    ));
+                }
+            });
+    }
+
+    private function dashboardUrlFor(User $user): string
+    {
+        return match ($user->role?->role_name) {
+            'Student' => route('student.dashboard'),
+            'Instructor' => route('instructor.dashboard'),
+            'Laboratory In-charge' => route('facilitator.dashboard'),
+            default => route('notifications.index'),
+        };
     }
 
     private function ensureCoordinator(Request $request): void

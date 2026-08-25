@@ -1,0 +1,4 @@
+<div style="padding:24px 32px 28px; border-top:1px solid #f3d5e4; background:#fff8fc; color:#6b7280; font-size:11px; line-height:1.65;">
+    <p style="margin:0 0 8px; color:#9d174d; font-weight:bold; letter-spacing:.03em;">LOURDES COLLEGE PRIVACY AND CONFIDENTIALITY NOTICE</p>
+    <p style="margin:0;">This email and any attachments may contain confidential or privileged information intended solely for the named recipient. If you are not the intended recipient, please notify the sender immediately, delete this email, and refrain from disclosing, copying, or using its contents. Unauthorized use or distribution is prohibited and may result in legal action. The views expressed herein may not reflect the official position of Lourdes College unless explicitly stated. While this email is checked for viruses, recipients are advised to ensure their own system security.</p>
+</div>

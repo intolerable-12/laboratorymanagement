@@ -25,9 +25,7 @@
         $isEquipmentGroup = request()->routeIs('coordinator.equipment.*', 'coordinator.equipment.categories.*');
         $isChemicalGroup = request()->routeIs('coordinator.chemicals.*', 'coordinator.chemical.categories.*');
 
-        $isUsersIndex = request()->routeIs('coordinator.users.index') || request()->routeIs('coordinator.users.archived');
-        $isDepartmentsGroup = request()->routeIs('coordinator.departments.*');
-        $isUsersGroup = request()->routeIs('coordinator.users.*') || $isDepartmentsGroup;
+        $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
 
         $isAnnouncementsIndex = request()->routeIs('coordinator.announcements.index');
 
@@ -74,32 +72,11 @@
                     <span class="sidebar-item__label">Chemical</span>
                 </a>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorUsersMenu"
-                    aria-expanded="{{ $isUsersGroup ? 'true' : 'false' }}" aria-controls="coordinatorUsersMenu"
-                    title="User Management">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-users"></i></span>
-                        <span class="sidebar-item__label">User Management</span>
-                    </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
-                            class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isUsersGroup ? 'show' : '' }}" id="coordinatorUsersMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isUsersIndex ? 'active' : '' }}"
-                            href="{{ route('coordinator.users.index') }}" title="Users">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-id-card"></i></span>
-                            <span class="sidebar-item__label">Users</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isDepartmentsGroup ? 'active' : '' }}"
-                            href="{{ route('coordinator.departments.index') }}" title="Departments">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-building-columns"></i></span>
-                            <span class="sidebar-item__label">Departments</span>
-                        </a>
-                    </div>
-                </div>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isUserManagementGroup ? 'active' : '' }}"
+                    href="{{ route('coordinator.users.index') }}" title="User Management">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-users"></i></span>
+                    <span class="sidebar-item__label">User Management</span>
+                </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.announcements.*') ? 'active' : '' }}"
                     href="{{ route('coordinator.announcements.index') }}" title="Announcements">

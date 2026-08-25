@@ -86,7 +86,7 @@ body {
     border: 1px solid var(--input-border);
     box-shadow: none;
     color: var(--text-dark);
-    background: #fbfcfd;
+    background: #ffffff;
 }
 
 .auth-input:focus {
