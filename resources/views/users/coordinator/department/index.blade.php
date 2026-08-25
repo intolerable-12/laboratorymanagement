@@ -100,15 +100,44 @@
                                 <td class="text-secondary">{{ $department->description ?? '-' }}</td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group" aria-label="Department actions">
-                                        <a href="{{ route('coordinator.departments.show', $department) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                        <a href="{{ route('coordinator.departments.edit', $department) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <!-- View -->
+                                        <a href="{{ route('coordinator.departments.show', $department) }}"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            title="View"
+                                            aria-label="View">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <!-- Edit -->
+                                        <a href="{{ route('coordinator.departments.edit', $department) }}"
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Edit"
+                                            aria-label="Edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
                                         @if ($hasUsers)
-                                            <button type="button" class="btn btn-sm btn-outline-danger" disabled title="Users are assigned to this department">Delete</button>
+                                            <!-- Delete Disabled -->
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                disabled
+                                                title="Users are assigned to this department"
+                                                aria-label="Delete">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
                                         @else
-                                            <form action="{{ route('coordinator.departments.destroy', $department) }}" method="POST" class="d-inline">
+                                            <!-- Delete -->
+                                            <form action="{{ route('coordinator.departments.destroy', $department) }}"
+                                                method="POST"
+                                                class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this department?');">Delete</button>
+
+                                                <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Delete this department?');"
+                                                    title="Delete"
+                                                    aria-label="Delete">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
                                             </form>
                                         @endif
                                     </div>
