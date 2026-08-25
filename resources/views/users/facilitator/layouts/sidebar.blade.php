@@ -68,12 +68,5 @@
                 </a>
             </nav>
         </div>
-
-        <div class="coordinator-sidebar__footer mt-auto p-3 border-top">
-            <div class="rounded-4 bg-light p-3">
-                <div class="small text-secondary">Signed in as</div>
-                <div class="fw-semibold text-dark">{{ $sidebarRole }}</div>
-            </div>
-        </div>
     </div>
 </aside>
