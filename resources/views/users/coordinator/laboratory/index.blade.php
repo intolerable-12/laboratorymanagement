@@ -106,7 +106,7 @@
                                         <span class="badge text-bg-{{ $laboratory->status === 'Available' ? 'success' : ($laboratory->status === 'Under Maintenance' ? 'warning' : 'secondary') }}">{{ $laboratory->status }}</span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <div class="btn-group" role="group" aria-label="Laboratory row actions">
+                                        <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
                                             <!-- View Icon -->
                                             <a href="{{ route('coordinator.laboratories.show', $laboratory) }}"
                                                 class="btn btn-sm btn-outline-secondary"
@@ -122,7 +122,7 @@
                                             </a>
 
                                             <!-- Delete Icon -->
-                                            <form action="{{ route('coordinator.laboratories.destroy', $laboratory) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('coordinator.laboratories.destroy', $laboratory) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger"

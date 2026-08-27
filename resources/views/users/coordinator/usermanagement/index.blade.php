@@ -250,7 +250,7 @@
                                     </span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="btn-group" role="group" aria-label="User actions">
+                                    <div class="btn-group action-buttons" role="group" aria-label="User actions">
                                         <!-- View Icon -->
                                         <a href="{{ route('coordinator.users.show', array_merge(['user' => $user], $listQuery)) }}"
                                             class="btn btn-sm btn-outline-secondary" title="View" aria-label="View">
