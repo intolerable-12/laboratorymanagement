@@ -129,19 +129,19 @@
                                     <div class="fw-semibold text-dark">{{ $announcement->updated_at?->format('M d, Y') ?? '—' }}</div>
                                     <div class="small text-secondary">{{ $announcement->updated_at?->format('h:i A') ?? '' }}</div>
                                 </td>
-                                <td class="text-end">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Announcement actions">
-                                        <a href="{{ route('coordinator.announcements.show', $announcement) }}" class="btn btn-outline-secondary" title="View">
+                                <td class="text-end pe-4">
+                                    <div class="btn-group action-buttons" role="group" aria-label="Announcement actions">
+                                        <a href="{{ route('coordinator.announcements.show', $announcement) }}" class="btn btn-sm btn-outline-secondary" title="View">
                                             <i class="fa-solid fa-eye me-1"></i>
                                         </a>
-                                        <a href="{{ route('coordinator.announcements.edit', $announcement) }}" class="btn btn-outline-primary" title="Edit">
+                                        <a href="{{ route('coordinator.announcements.edit', $announcement) }}" class="btn btn-sm btn-outline-primary" title="Edit">
                                             <i class="fa-solid fa-pen-to-square me-1"></i>
                                         </a>
                                     </div>
                                     <form action="{{ route('coordinator.announcements.destroy', $announcement) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Delete" onclick="return confirm('Delete this announcement?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" onclick="return confirm('Delete this announcement?');">
                                             <i class="fa-solid fa-trash-can me-1"></i>
                                         </button>
                                     </form>

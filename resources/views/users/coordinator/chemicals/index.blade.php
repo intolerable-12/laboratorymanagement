@@ -162,19 +162,37 @@
    
 
     <div data-live-search-results="chemicals">
-        {{-- SEPARATE SWITCHER BAR (Active vs. Archived) --}}
-        <div class="card border-0 shadow-sm rounded-4 mb-3">
-            <div class="card-body p-2 p-md-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="btn-group" role="group" aria-label="Chemical View Switcher">
-                    <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}" class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2 fw-medium">
-                        <i class="fa-solid fa-flask me-2"></i>Active chemicals
-                        <span class="badge {{ $archived ? 'text-bg-secondary' : 'text-bg-light text-primary' }} ms-2">{{ $stats['total'] }}</span>
+        {{-- Chemical Switcher Bar (Placed directly on top of the table) --}}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            {{-- Left side: Active / Archived switcher --}}
+            <div class="btn-group shadow-sm"
+                role="group"
+                aria-label="Chemical view switcher">
+
+                <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}"
+                class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
+                    <i class="fa-solid fa-boxes-stacked me-2"></i>
+                    Active chemical
+                    <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2"></span>
+                </a>
+
+                <a href="{{ route('coordinator.chemicals.archived', $tabQuery) }}"
+                class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
+                    <i class="fa-solid fa-box-archive me-2"></i>
+                    Archived chemical
+                    <span class="badge {{ $archived ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-2"></span>
+                </a>
+
+            </div>
+            {{-- Right side: Add chemical --}}
+            <div>
+                @if (! $archived)
+                    <a href="{{ route('coordinator.chemicals.create') }}"
+                    class="btn btn-primary px-4">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Add chemical
                     </a>
-                    <a href="{{ route('coordinator.chemicals.archived', $tabQuery) }}" class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2 fw-medium">
-                        <i class="fa-solid fa-box-archive me-2"></i>Archived chemicals
-                        <span class="badge {{ $archived ? 'text-bg-light text-primary' : 'text-bg-secondary' }} ms-2">{{ $stats['archived'] }}</span>
-                    </a>
-                </div>
+                @endif
             </div>
         </div>
 
@@ -188,10 +206,6 @@
                         {{ $archived ? 'Restorable chemicals stay archived for up to five years.' : 'Archive chemicals instead of deleting them permanently.' }}
                     </p>
                 </div>
-
-                @if (! $archived)
-                    <a href="{{ route('coordinator.chemicals.create') }}" class="btn btn-primary px-4">Add chemical</a>
-                @endif
             </div>
         </div>
 
@@ -294,7 +308,7 @@
                                     </td>
                                 @endif
                                 <td class="text-end pe-4">
-                                    <div class="btn-group" role="group" aria-label="Chemical actions">
+                                    <div class="btn-group action-buttons" role="group" aria-label="Chemical actions">
                                         <!-- View Icon -->
                                         <a href="{{ route('coordinator.chemicals.show', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                             class="btn btn-sm btn-outline-secondary"

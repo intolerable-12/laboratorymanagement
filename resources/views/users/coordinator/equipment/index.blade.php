@@ -47,7 +47,7 @@
             <a href="{{ route('coordinator.equipment.index', $tabQuery) }}" class="btn btn-primary">
                 <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
             </a>
-            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
             </a>
         </div>
@@ -162,16 +162,38 @@
     <div data-live-search-results="equipment">
         {{-- Equipment Switcher Bar (Placed directly on top of the table) --}}
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="btn-group shadow-sm" role="group" aria-label="Equipment view switcher">
-                <a href="{{ route('coordinator.equipment.index', $tabQuery) }}" class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
-                    <i class="fa-solid fa-boxes-stacked me-2"></i>Active equipment
-                    <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2">{{ $stats['total'] }}</span>
+
+            {{-- Left side: Active / Archived switcher --}}
+            <div class="btn-group shadow-sm"
+                role="group"
+                aria-label="Chemical view switcher">
+
+                <a href="{{ route('coordinator.equipment.index', $tabQuery) }}"
+                class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
+                    <i class="fa-solid fa-boxes-stacked me-2"></i>
+                    Active equipment
+                    <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2"></span>
                 </a>
-                <a href="{{ route('coordinator.equipment.archived', $tabQuery) }}" class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
-                    <i class="fa-solid fa-box-archive me-2"></i>Archived equipment
-                    <span class="badge {{ $archived ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-2">{{ $stats['archived'] }}</span>
+
+                <a href="{{ route('coordinator.equipment.archived', $tabQuery) }}"
+                class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
+                    <i class="fa-solid fa-box-archive me-2"></i>
+                    Archived equipement
+                    <span class="badge {{ $archived ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-2"></span>
                 </a>
+
             </div>
+            {{-- Right side: Add chemical --}}
+            <div>
+                @if (! $archived)
+                    <a href="{{ route('coordinator.equipment.create') }}"
+                    class="btn btn-primary px-4">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Add equipment
+                    </a>
+                @endif
+            </div>
+
         </div>
 
         {{-- Table Section --}}
@@ -181,10 +203,6 @@
                     <div>
                         <h3 class="h5 fw-semibold mb-1">{{ $archived ? 'Archived equipment' : 'Equipment list' }}</h3>
                     </div>
-
-                    @if (! $archived)
-                        <a href="{{ route('coordinator.equipment.create') }}" class="btn btn-primary px-4">Add equipment</a>
-                    @endif
                 </div>
             </div>
 
@@ -287,31 +305,31 @@
                                         </td>
                                     @endif
                                     <td class="text-end pe-4">
-                                        <div class="btn-group btn-group-sm" role="group" aria-label="Equipment actions">
-                                            <a href="{{ route('coordinator.equipment.show', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-outline-secondary" title="View" aria-label="View">
+                                        <div class="btn-group action-buttons" role="group" aria-label="Equipment actions">
+                                            <a href="{{ route('coordinator.equipment.show', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-secondary" title="View" aria-label="View">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
                                             @if ($archived)
                                                 @if ($canRestore)
                                                     <form action="{{ route('coordinator.equipment.restore', $equipment) }}" method="POST" class="d-inline">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-sm btn-outline-success ms-1" title="Restore" aria-label="Restore" onclick="return confirm('Restore this equipment?');">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Restore" aria-label="Restore" onclick="return confirm('Restore this equipment?');">
                                                             <i class="fa-solid fa-rotate-left"></i>
                                                         </button>
                                                     </form>
                                                 @else
-                                                    <button type="button" class="btn btn-sm btn-outline-success ms-1" title="Restore expired" aria-label="Restore expired" disabled>
+                                                    <button type="button" class="btn btn-sm btn-outline-success" title="Restore expired" aria-label="Restore expired" disabled>
                                                         <i class="fa-solid fa-rotate-left"></i>
                                                     </button>
                                                 @endif
                                             @else
-                                                <a href="{{ route('coordinator.equipment.edit', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-outline-primary" title="Edit" aria-label="Edit">
+                                                <a href="{{ route('coordinator.equipment.edit', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit">
                                                     <i class="fa-solid fa-pen-to-square"></i>
                                                 </a>
                                                 <form action="{{ route('coordinator.equipment.destroy', $equipment) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Archive" aria-label="Archive" onclick="return confirm('Archive this equipment?');">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Archive" aria-label="Archive" onclick="return confirm('Archive this equipment?');">
                                                         <i class="fa-solid fa-box-archive"></i>
                                                     </button>
                                                 </form>

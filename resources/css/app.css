@@ -587,6 +587,22 @@ body.coordinator-page {
     border-radius: 999px;
 }
 
+.action-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.action-buttons .btn {
+    border-radius: 6px !important;
+}
+
+.action-buttons form{
+    display: flex;
+    margin: 0;
+}
+
+
 .admin-card .table form {
     display: inline-flex;
 }
