@@ -23,7 +23,8 @@ class DatabaseSeeder extends Seeder
             LaboratorySeeder::class,
             EquipmentSeeder::class,
             ChemicalCategorySeeder::class,
-            ChemicalSeeder::class
+            ChemicalSeeder::class,
+            DepartmentSeeder::class
 
         ]);
     }
