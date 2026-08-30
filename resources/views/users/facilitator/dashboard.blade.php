@@ -14,8 +14,8 @@
         <section class="hero-banner card border-0 mb-4">
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
-                    <h2 class="h3 fw-semibold mb-2 text-dark">Laboratory In-charge Dashboard</h2>
-                    <p class="mb-0 text-secondary">Welcome back, John Doe. Monitor equipment operations and manage transactions.</p>
+                    <h2 class="h3 fw-semibold mb-2 text-dark">Welcome back, In-charge Dashboard</h2>
+                    <p class="mb-0 text-secondary">Here's a quick overview of the equipment operations and manage transactions.</p>
                 </div>
                 <button class="btn btn-light border px-3 px-lg-4">View Permission</button>
             </div>

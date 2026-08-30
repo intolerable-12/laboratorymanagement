@@ -36,7 +36,6 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <div class="small text-uppercase text-secondary">User management</div>
             <div class="text-secondary">Manage users and departments.</div>
         </div>
         <div class="btn-group shadow-sm" role="group" aria-label="User management navigation">
@@ -146,21 +145,39 @@
     </div>
 
     <div data-live-search-results="users">
-        <div class="section-card mb-4">
-            <div class="card-body p-3 p-xl-4">
-                <div
-                    class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-                    <div class="nav nav-pills gap-2">
-                        <a href="{{ route('coordinator.users.index', $filters) }}"
-                            class="nav-link rounded-3 {{ $archived ? '' : 'active' }}">Active users</a>
-                        <a href="{{ route('coordinator.users.archived', $filters) }}"
-                            class="nav-link rounded-3 {{ $archived ? 'active' : '' }}">
-                            Archived users
-                            <span class="badge text-bg-light border text-dark ms-2">{{ $stats['archived'] }}</span>
-                        </a>
-                    </div>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            {{-- Left side: Active / Archived switcher --}}
+            <div class="btn-group shadow-sm"
+                role="group"
+                aria-label="Chemical view switcher">
+
+                <a href="{{ route('coordinator.users.index', $tabQuery) }}"
+                class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
+                    <i class="fa-solid fa-boxes-stacked me-2"></i>
+                    Active users
+                    <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2"></span>
+                </a>
+
+                <a href="{{ route('coordinator.users.archived', $tabQuery) }}"
+                class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
+                    <i class="fa-solid fa-box-archive me-2"></i>
+                    Archived users
+                    <span class="badge {{ $archived ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-2"></span>
+                </a>
+
             </div>
+            {{-- Right side: Add chemical --}}
+            <div>
+                @if (! $archived)
+                    <a href="{{ route('coordinator.users.create') }}"
+                    class="btn btn-primary px-4">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Add user
+                    </a>
+                @endif
+            </div>
+
         </div>
 
         <div class="section-card" id="usersTable">
@@ -168,12 +185,8 @@
             <div
                 class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h3 class="h5 fw-semibold mb-1">{{ $archived ? 'Archived Users' : 'Users' }}</h3>
+                    <h3 class="h5 fw-semibold mb-3">{{ $archived ? 'Archived Users' : 'Users' }}</h3>
                 </div>
-
-                @unless ($archived)
-                    <a href="{{ route('coordinator.users.create') }}" class="btn btn-primary px-4">Add user</a>
-                @endunless
             </div>
         </div>
 
@@ -182,7 +195,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">
+                            <th scope="col">
                                 <a href="{{ $sortUrl('userID') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>User ID</span>
                                     <i class="fa-solid {{ $sortIcon('userID') }} small"></i>
@@ -218,7 +231,7 @@
                                     <i class="fa-solid {{ $sortIcon('status') }} small"></i>
                                 </a>
                             </th>
-                            <th scope="col" class="text-end pe-4">Actions</th>
+                            <th scope="col" class="text-center text-dark pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

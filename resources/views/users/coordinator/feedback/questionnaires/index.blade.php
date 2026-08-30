@@ -63,7 +63,7 @@
     </div>
 
     <div class="section-card">
-        <div class="card-header bg-white border-0 pt-3 px-3 px-lg-4">
+        <div class="card-header bg-white border-0 pt-3 px-3 mb-3 px-lg-4">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <h3 class="h5 fw-semibold mb-0">
                     <i class="fa-solid fa-clipboard-question me-2"></i>Questionnaires
@@ -79,11 +79,11 @@
                 <table class="table table-hover align-middle mb-0 table-sm">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-3">Topic</th>
-                            <th scope="col">Questions</th>
-                            <th scope="col">Responses</th>
-                            <th scope="col">Status</th>
-                            <th scope="col" class="text-end pe-3">Actions</th>
+                            <th scope="col" class="text-dark p-3">Topic</th>
+                            <th scope="col" class="text-dark">Questions</th>
+                            <th scope="col" class="text-dark">Responses</th>
+                            <th scope="col" class="text-dark">Status</th>
+                            <th scope="col" class="text-center text-dark pe-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,19 +100,36 @@
                                         {{ $questionnaire->is_active ? 'Active' : 'Inactive' }}
                                     </span>
                                 </td>
-                                <td class="text-end pe-3">
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('coordinator.feedback.questionnaires.show', $questionnaire) }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fa-solid fa-eye me-1"></i>View
+                                <td class="text-center pe-4">
+                                    <div class="btn-group action-buttons" role="group" aria-label="Questionnaire actions">
+                                        <!-- View Icon -->
+                                        <a href="{{ route('coordinator.feedback.questionnaires.show', $questionnaire) }}"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            title="View"
+                                            aria-label="View">
+                                            <i class="fa-solid fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('coordinator.feedback.questionnaires.edit', $questionnaire) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+
+                                        <!-- Edit Icon -->
+                                        <a href="{{ route('coordinator.feedback.questionnaires.edit', $questionnaire) }}"
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Edit"
+                                            aria-label="Edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
                                         </a>
-                                        <form action="{{ route('coordinator.feedback.questionnaires.destroy', $questionnaire) }}" method="POST" class="d-inline">
+
+                                        <!-- Delete Icon -->
+                                        <form action="{{ route('coordinator.feedback.questionnaires.destroy', $questionnaire) }}"
+                                            method="POST"
+                                            class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this questionnaire?');">
-                                                <i class="fa-solid fa-trash-can me-1"></i>Delete
+                                            <button type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Delete this questionnaire?');"
+                                                title="Delete"
+                                                aria-label="Delete">
+                                                <i class="fa-solid fa-trash-can"></i>
                                             </button>
                                         </form>
                                     </div>

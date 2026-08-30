@@ -1629,13 +1629,15 @@ body.coordinator-page {
 }
 
 .role-page .table thead th {
-    color: var(--role-muted);
+    background: linear-gradient(135deg, #ff67ab 0%, #ff2e7b 100%);
+    color: #fff;
     font-weight: 600;
+    border-color: transparent;
 }
 
 .role-page .table-light {
-    --bs-table-bg: var(--role-surface-soft);
-    --bs-table-color: var(--role-text);
+    --bs-table-bg: transparent;
+    --bs-table-color: #fff;
 }
 
 .role-page .questionnaire-likert-wrap {

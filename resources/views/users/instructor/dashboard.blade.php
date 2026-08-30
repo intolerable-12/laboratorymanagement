@@ -14,8 +14,8 @@
         <section class="hero-banner card border-0 mb-4">
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
-                    <h2 class="h3 fw-semibold mb-2 text-dark">Instructor Dashboard</h2>
-                    <p class="mb-0 text-secondary">Manage your classes, inventory viewing, and laboratory equipment requests.</p>
+                    <h2 class="h3 fw-semibold mb-2 text-dark">Welcome back, Instructor</h2>
+                    <p class="mb-0 text-secondary">Here's your classes, inventory viewing, and laboratory equipment requests.</p>
                 </div>
                 <a href="{{ route('instructor.inventory.index') }}" class="btn btn-light border px-3 px-lg-4">Browse Inventory</a>
             </div>
