@@ -1,0 +1,123 @@
+<div class="account-page reservation-calendar-page">
+    <section class="row g-3 g-xl-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card {{ $cardClass }} border-0 h-100">
+                <div class="card-body p-4">
+                    <div class="small text-uppercase fw-semibold text-secondary mb-2">Upcoming Borrow Requests for {{ now()->format('F') }}</div>
+                    <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['upcomingMonth'] }}</div>
+                    <div class="small text-secondary">Approved borrow requests starting or ending after today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card {{ $cardClass }} border-0 h-100">
+                <div class="card-body p-4">
+                    <div class="small text-uppercase fw-semibold text-secondary mb-2">Borrow Requests Today</div>
+                    <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['today'] }}</div>
+                    <div class="small text-secondary">Borrow starts or deadlines on {{ now()->format('F j, Y') }}</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card {{ $cardClass }} border-0 reservation-calendar-shell" data-reservation-calendar-shell>
+        <div class="card-body p-4 p-xl-5">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center mb-4">
+                <div>
+                    <h3 class="h5 fw-semibold mb-1 text-dark">Approved Borrow Schedule</h3>
+                    <p class="mb-0 text-secondary">Each request appears on its borrow start date and deadline only.</p>
+                </div>
+                <div class="reservation-calendar-legend d-flex flex-wrap gap-2">
+                    <span class="badge text-bg-primary px-3 py-2">Coordinator Approved</span>
+                    <span class="badge text-bg-info px-3 py-2">Borrowed / Returned</span>
+                </div>
+            </div>
+
+            <div class="reservation-calendar-frame">
+                <div data-reservation-calendar></div>
+            </div>
+
+            <script type="application/json" data-reservation-calendar-events>
+                @json($calendarEvents)
+            </script>
+
+            <div class="modal fade" tabindex="-1" aria-hidden="true" data-reservation-calendar-modal>
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header border-0 pb-0">
+                            <div>
+                                <div class="small text-uppercase fw-semibold text-secondary mb-2">Borrow request details</div>
+                                <h5 class="modal-title fw-semibold text-dark" data-reservation-calendar-title>Borrow request</h5>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body vstack gap-4">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="badge text-bg-primary" data-reservation-calendar-status>Scheduled</span>
+                                <span class="small text-secondary">The selected entry is an endpoint of the borrow schedule.</span>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="account-summary-card h-100">
+                                        <div class="small text-secondary">Borrow No.</div>
+                                        <div class="fw-semibold text-dark" data-reservation-reservation-no>-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="account-summary-card h-100">
+                                        <div class="small text-secondary">Student</div>
+                                        <div class="fw-semibold text-dark" data-reservation-student-name>-</div>
+                                        <div class="small text-secondary" data-reservation-student-id>-</div>
+                                        <div class="small text-secondary" data-reservation-student-email>-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="account-summary-card h-100">
+                                        <div class="small text-secondary">Laboratory</div>
+                                        <div class="fw-semibold text-dark" data-reservation-laboratory-name>-</div>
+                                        <div class="small text-secondary" data-reservation-laboratory-code>-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="account-summary-card h-100">
+                                        <div class="small text-secondary">Schedule</div>
+                                        <div class="fw-semibold text-dark" data-reservation-date>-</div>
+                                        <div class="small text-secondary" data-reservation-time>-</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="small text-uppercase text-secondary mb-2">Remarks</div>
+                                <div class="text-dark" data-reservation-remarks>-</div>
+                            </div>
+
+                            <div>
+                                <h6 class="fw-semibold text-dark mb-3">Requested Items</h6>
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr class="text-secondary small text-uppercase">
+                                                <th>Type</th>
+                                                <th>Item</th>
+                                                <th>Quantity</th>
+                                                <th>Unit</th>
+                                                <th>Remarks</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody data-reservation-items-body>
+                                            <tr>
+                                                <td colspan="5" class="text-center text-secondary py-4">Select a borrow request on the calendar.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

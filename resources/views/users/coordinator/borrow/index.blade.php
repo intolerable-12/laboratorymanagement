@@ -52,6 +52,7 @@
                                     'Instructor Approved' => 'info',
                                     'Facilitator Approved' => 'primary',
                                     'Coordinator Approved' => 'success',
+                                    'Partially Borrowed' => 'warning',
                                     'Borrowed' => 'success',
                                     'Partially Returned' => 'primary',
                                     'Returned' => 'success',

@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserAccountRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -38,8 +41,13 @@ class RegistrationController extends Controller
 			]);
 		}
 
+		$departments = Department::query()
+			->orderBy('department_name')
+			->get();
+
 		return view('registration', [
 			'googleUser' => $googleUser,
+			'departments' => $departments,
 		]);
 	}
 
@@ -58,6 +66,7 @@ class RegistrationController extends Controller
 			'email' => ['required', 'email', 'max:255'],
 			'user_id' => ['required', 'string', 'max:30'],
 			'contact_number' => ['required', 'string', 'max:20'],
+			'department_id' => ['required', 'exists:departments,id'],
 			'password' => ['required', 'string', 'min:8', 'confirmed'],
 		]);
 
@@ -79,101 +88,69 @@ class RegistrationController extends Controller
 			])->withInput();
 		}
 
-		if ($existingUser && ! $existingUser->trashed()) {
+		if ($existingUser?->trashed()) {
+			return redirect()->route('login')->withErrors([
+				'email' => 'Your account has been archived and is currently unavailable for login. Please contact the laboratory coordinator or system administrator for assistance with reactivation.',
+			]);
+		}
+
+		if ($existingUser) {
 			Auth::login($existingUser, true);
 			$request->session()->forget('google_registration');
 			$request->session()->regenerate();
+
 			return redirect()->route('student.dashboard');
 		}
+
+		$pendingAccountRequest = UserAccountRequest::pending()
+			->whereRaw('LOWER(email) = ?', [$email])
+			->latest()
+			->first();
+
+		if ($pendingAccountRequest) {
+			return redirect()->route('login')->with('status', 'Your registration request is already under review. Please wait for the laboratory coordinator to complete the approval process.');
+		}
+
+		$department = Department::query()->findOrFail($validated['department_id']);
+		$studentPrefix = $department->studentUserIdPrefix();
+		$studentUserIdPattern = $studentPrefix
+			? '/^' . $studentPrefix . '\\d{2}-\\d{4}$/'
+			: '/^(?!)$/';
+		$studentUserIdMessage = $studentPrefix
+			? "Student ID for {$department->department_name} must follow the {$studentPrefix}99-9999 format."
+			: 'The selected department does not have a valid student ID format.';
 
 		$studentRole = Role::query()
 			->whereRaw('LOWER(role_name) = ?', ['student'])
 			->firstOrFail();
 
-		[$firstName, $middleName, $lastName] = $this->splitName($validated['name']);
 		$userIdRule = Rule::unique('users', 'userID');
+		$pendingUserIdRule = Rule::unique('user_account_requests', 'user_id')
+			->where(fn ($query) => $query->where('status', 'Pending'));
 		$emailRule = Rule::unique('users', 'email');
 
-		if ($existingUser) {
-			$userIdRule = $userIdRule->ignore($existingUser->getKey(), $existingUser->getKeyName());
-			$emailRule = $emailRule->ignore($existingUser->getKey(), $existingUser->getKeyName());
-		}
-
 		$request->validate([
-			'user_id' => ['required', 'string', 'max:30', $userIdRule],
+			'user_id' => ['required', 'string', 'max:30', 'regex:' . $studentUserIdPattern, $userIdRule, $pendingUserIdRule],
 			'email' => ['required', 'email', 'max:255', $emailRule],
+		], [
+			'user_id.regex' => $studentUserIdMessage,
 		]);
 
-		if ($existingUser) {
-			if ($existingUser->trashed()) {
-				$existingUser->restore();
-			}
+		UserAccountRequest::create([
+			'full_name' => $validated['name'],
+			'email' => $email,
+			'user_id' => $validated['user_id'],
+			'contact_number' => $validated['contact_number'],
+			'password' => Hash::make($validated['password']),
+			'profile_photo' => $googleUser['avatar'] ?? null,
+			'role_id' => $studentRole->getKey(),
+			'department_id' => $validated['department_id'],
+			'status' => 'Pending',
+		]);
 
-			$existingUser->fill([
-				'userID' => $validated['user_id'],
-				'first_name' => $firstName,
-				'middle_name' => $middleName,
-				'last_name' => $lastName,
-				'suffix' => null,
-				'birth_date' => null,
-				'gender' => null,
-				'email' => $email,
-				'contact_number' => $validated['contact_number'],
-				'password' => $validated['password'],
-				'profile_photo' => $googleUser['avatar'] ?? null,
-				'role_id' => $studentRole->getKey(),
-				'department_id' => null,
-				'status' => 'Active',
-				'email_verified_at' => now(),
-			]);
-
-			$existingUser->save();
-			$user = $existingUser->fresh(['role']);
-		} else {
-			$user = User::create([
-				'userID' => $validated['user_id'],
-				'first_name' => $firstName,
-				'middle_name' => $middleName,
-				'last_name' => $lastName,
-				'suffix' => null,
-				'birth_date' => null,
-				'gender' => null,
-				'email' => $email,
-				'contact_number' => $validated['contact_number'],
-				'password' => $validated['password'],
-				'profile_photo' => $googleUser['avatar'] ?? null,
-				'role_id' => $studentRole->getKey(),
-				'department_id' => null,
-				'status' => 'Active',
-				'email_verified_at' => now(),
-			]);
-		}
-
-		Auth::login($user, true);
 		$request->session()->forget('google_registration');
-		$request->session()->regenerate();
 
-		return redirect()->route('student.dashboard');
-	}
-
-	private function splitName(string $fullName): array
-	{
-		$parts = preg_split('/\s+/', trim($fullName)) ?: [];
-		$parts = array_values(array_filter($parts, static fn ($part) => $part !== ''));
-
-		if ($parts === []) {
-			return ['', null, ''];
-		}
-
-		if (count($parts) === 1) {
-			return [$parts[0], null, $parts[0]];
-		}
-
-		$firstName = array_shift($parts);
-		$lastName = array_pop($parts);
-		$middleName = $parts === [] ? null : implode(' ', $parts);
-
-		return [$firstName, $middleName, $lastName];
+		return redirect()->route('login')->with('status', 'Your registration request has been submitted successfully. Please wait for the laboratory coordinator to review and approve your account.');
 	}
 
 	private function dashboardRouteName(?User $user): ?string

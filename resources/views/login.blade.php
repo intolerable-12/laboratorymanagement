@@ -42,15 +42,16 @@
 
                     <form method="POST" action="{{ route('login.store') }}" class="vstack gap-3">
                         @csrf
+                        <p class="text-secondary small mb-0"><span class="text-danger fw-bold" aria-hidden="true">*</span> Required fields</p>
 
                         <div>
-                            <label for="login-email" class="form-label auth-label">Email Address</label>
-                            <input type="email" class="form-control auth-input" id="login-email" name="email" value="{{ old('email') }}" autocomplete="email" required>
+                            <label for="login-email" class="form-label auth-label">Email Address <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                            <input type="email" class="form-control auth-input" id="login-email" name="email" value="{{ old('email') }}" autocomplete="email" required aria-required="true">
                         </div>
 
                         <div>
-                            <label for="login-password" class="form-label auth-label">Password</label>
-                            <input type="password" class="form-control auth-input" id="login-password" name="password" autocomplete="current-password" required>
+                            <label for="login-password" class="form-label auth-label">Password <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                            <input type="password" class="form-control auth-input" id="login-password" name="password" autocomplete="current-password" required aria-required="true">
                         </div>
 
                         <div class="d-flex justify-content-end">

@@ -18,9 +18,15 @@ class BarcodeLog extends Model
      */
     protected $fillable = [
         'user_no',
+        'borrow_transaction_id',
         'item_type',
         'item_id',
         'barcode',
+        'quantity',
+        'is_voided',
+        'condition_in',
+        'voided_by',
+        'voided_at',
         'action',
         'scanned_at',
         'device_name',
@@ -36,6 +42,9 @@ class BarcodeLog extends Model
     protected function casts(): array
     {
         return [
+            'quantity' => 'decimal:2',
+            'is_voided' => 'boolean',
+            'voided_at' => 'datetime',
             'scanned_at' => 'datetime',
         ];
     }

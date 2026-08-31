@@ -98,6 +98,7 @@
                                 'placeholder' => 'Write the question prompt here.',
                                 'hint' => 'Use rich text for emphasis or short lists.',
                                 'compact' => true,
+                                'required' => true,
                             ])
                         </div>
                     </div>
@@ -143,12 +144,12 @@
             </div>
 
             <div class="col-12">
-                <div class="rich-text-editor rich-text-editor--compact" data-rich-text-editor>
+                <div class="rich-text-editor rich-text-editor--compact" data-rich-text-editor data-required-field="true">
                     <div class="d-flex justify-content-between align-items-end gap-3 mb-2">
-                        <label class="form-label fw-semibold text-dark mb-0">Question text</label>
+                    <label class="form-label fw-semibold text-dark mb-0">Question text<span class="required-indicator text-danger" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
                         <div class="small text-secondary">Rich text enabled</div>
                     </div>
-                    <textarea name="questions[__INDEX__][question_text]" class="d-none" data-rich-text-input></textarea>
+                    <textarea name="questions[__INDEX__][question_text]" class="d-none" data-rich-text-input aria-required="true"></textarea>
                     <div class="rich-text-editor__frame">
                         <div class="rich-text-editor__surface" data-rich-text-surface data-placeholder="Write the question prompt here."></div>
                     </div>

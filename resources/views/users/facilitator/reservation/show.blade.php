@@ -107,7 +107,7 @@
                                                     <thead>
                                                         <tr class="text-secondary small text-uppercase">
                                                             <th>Item</th>
-                                                            <th class="text-end">Quantity</th>
+                                                            <th class="text-end">Quantity<span class="required-indicator text-danger" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -128,7 +128,7 @@
                                                                         min="0.01"
                                                                         name="items[{{ $item->id }}][quantity]"
                                                                         value="{{ old('items.' . $item->id . '.quantity', number_format((float) $item->quantity, 2, '.', '')) }}"
-                                                                        class="form-control text-end @error('items.' . $item->id . '.quantity') is-invalid @enderror"
+                                                                        class="form-control text-end @error('items.' . $item->id . '.quantity') is-invalid @enderror" aria-label="Quantity for {{ $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'item' }}" required
                                                                     >
                                                                     @error('items.' . $item->id . '.quantity')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                                                 </td>
@@ -158,7 +158,7 @@
                                             <p class="small text-secondary mb-3">Write a reason so the requester knows what to correct.</p>
                                             <div class="mb-3">
                                                 <label class="form-label fw-semibold text-dark">Remarks</label>
-                                                <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected">{{ old('remarks') }}</textarea>
+                                                <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected" required>{{ old('remarks') }}</textarea>
                                                 @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                             <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this reservation request?');">Reject</button>

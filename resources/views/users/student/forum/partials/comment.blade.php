@@ -33,7 +33,8 @@
             <input type="hidden" name="parent_comment_id" value="{{ $comment->id }}">
 
             <div>
-                <textarea name="comment" rows="2" class="form-control form-control-sm social-input @error('comment') is-invalid @enderror" placeholder="Reply to this comment"></textarea>
+                <label class="form-label small mb-0">Reply<span class="required-indicator text-danger" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                <textarea name="comment" rows="2" class="form-control form-control-sm social-input @error('comment') is-invalid @enderror" placeholder="Reply to this comment" required></textarea>
             </div>
 
             <div class="d-flex justify-content-end">

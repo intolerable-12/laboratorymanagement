@@ -21,13 +21,18 @@ use App\Http\Controllers\Coordinator\EquipmentController;
 use App\Http\Controllers\Coordinator\EquipmentBarcodePrintController;
 use App\Http\Controllers\Coordinator\LaboratoryController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarController;
+use App\Http\Controllers\Coordinator\Reservation\CoordinatorBorrowCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationController;
 use App\Http\Controllers\Coordinator\UserManagementController;
+use App\Http\Controllers\Coordinator\UserAccountRequestController;
 use App\Http\Controllers\Facilitator\DashboardController as FacilitatorDashboardController;
 use App\Http\Controllers\Facilitator\Account\Reservation\FacilitatorReservationController;
 use App\Http\Controllers\Facilitator\Account\Reservation\FacilitatorReservationCalendarController;
+use App\Http\Controllers\Facilitator\Account\Reservation\FacilitatorBorrowCalendarController;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowController;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowEmailController;
+use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckoutController;
+use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckinController;
 use App\Http\Controllers\Facilitator\Forum\LaboratoryInchargeForumController;
 use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardController;
 use App\Http\Controllers\Instructor\Reservation\ReservationController as InstructorReservationController;
@@ -86,6 +91,10 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
         Route::get('/dashboard', [CoordinatorDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/users/archived', [UserManagementController::class, 'archived'])->name('users.archived');
+        Route::get('/users/requests', [UserAccountRequestController::class, 'index'])->name('users.requests.index');
+        Route::get('/users/requests/{accountRequest}', [UserAccountRequestController::class, 'show'])->name('users.requests.show');
+        Route::post('/users/requests/{accountRequest}/approve', [UserAccountRequestController::class, 'approve'])->name('users.requests.approve');
+        Route::post('/users/requests/{accountRequest}/reject', [UserAccountRequestController::class, 'reject'])->name('users.requests.reject');
         Route::post('/users/{user}/restore', [UserManagementController::class, 'restore'])->withTrashed()->name('users.restore');
         Route::resource('users', UserManagementController::class)->withTrashed(['show']);
 
@@ -172,6 +181,7 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
         Route::prefix('borrow')
             ->name('borrow.')
             ->group(function () {
+                Route::get('/calendar', [CoordinatorBorrowCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'index'])->name('index');
                 Route::get('/{borrowTransaction}', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'approve'])->name('approve');
@@ -316,10 +326,29 @@ Route::middleware(['auth', 'role:Laboratory In-charge'])
         Route::prefix('borrow')
             ->name('borrow.')
             ->group(function () {
+                Route::get('/calendar', [FacilitatorBorrowCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [FacilitatorBorrowController::class, 'index'])->name('index');
                 Route::get('/{borrowTransaction}', [FacilitatorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [FacilitatorBorrowController::class, 'approve'])->name('approve');
                 Route::post('/{borrowTransaction}/reject', [FacilitatorBorrowController::class, 'reject'])->name('reject');
+            });
+
+        Route::prefix('checkout')
+            ->name('checkout.')
+            ->group(function () {
+                Route::get('/', [FacilitatorCheckoutController::class, 'index'])->name('index');
+                Route::get('/{borrowTransaction}', [FacilitatorCheckoutController::class, 'show'])->name('show');
+                Route::post('/{borrowTransaction}/scan', [FacilitatorCheckoutController::class, 'scan'])->name('scan');
+                Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckoutController::class, 'remove'])->name('remove');
+            });
+
+        Route::prefix('checkin')
+            ->name('checkin.')
+            ->group(function () {
+                Route::get('/', [FacilitatorCheckinController::class, 'index'])->name('index');
+                Route::get('/{borrowTransaction}', [FacilitatorCheckinController::class, 'show'])->name('show');
+                Route::post('/{borrowTransaction}/scan', [FacilitatorCheckinController::class, 'scan'])->name('scan');
+                Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckinController::class, 'remove'])->name('remove');
             });
 
     Route::prefix('forum')

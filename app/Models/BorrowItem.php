@@ -21,7 +21,9 @@ class BorrowItem extends Model
         'item_type',
         'item_id',
         'quantity_borrowed',
+        'quantity_checked_out',
         'quantity_returned',
+        'quantity_used',
         'quantity_lost',
         'quantity_damaged',
         'condition_out',
@@ -38,7 +40,9 @@ class BorrowItem extends Model
     {
         return [
             'quantity_borrowed' => 'decimal:2',
+            'quantity_checked_out' => 'decimal:2',
             'quantity_returned' => 'decimal:2',
+            'quantity_used' => 'decimal:2',
             'quantity_lost' => 'decimal:2',
             'quantity_damaged' => 'decimal:2',
         ];

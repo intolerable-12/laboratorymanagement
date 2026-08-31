@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserAccountRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -60,12 +61,18 @@ class GoogleAuthController extends Controller
 			]);
 		}
 
-		$user = User::query()
+		$user = User::withTrashed()
 			->with('role')
 			->whereRaw('LOWER(email) = ?', [$email])
 			->first();
 
 		if ($user) {
+			if ($user->trashed()) {
+				return redirect()->route('login')->withErrors([
+					'email' => 'Your account has been archived and is currently unavailable for login. Please contact the laboratory coordinator or system administrator for assistance with reactivation.',
+				]);
+			}
+
 			Auth::login($user, true);
 			$request->session()->regenerate();
 
@@ -80,6 +87,10 @@ class GoogleAuthController extends Controller
 			return redirect()->route('login')->withErrors([
 				'email' => 'No role assigned to this account.',
 			]);
+		}
+
+		if (UserAccountRequest::pending()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
+			return redirect()->route('login')->with('status', 'Your registration request is currently under review. Please wait for the laboratory coordinator to approve your account.');
 		}
 
 		$request->session()->put('google_registration', [

@@ -143,7 +143,7 @@
                                             <p class="small text-secondary mb-3">A rejection reason is required so the student knows what to fix.</p>
                                             <div class="mb-3">
                                                 <label class="form-label fw-semibold text-dark">Remarks</label>
-                                                <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected">{{ old('remarks') }}</textarea>
+                                                <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected" required>{{ old('remarks') }}</textarea>
                                                 @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                             <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this reservation request?');">Reject</button>

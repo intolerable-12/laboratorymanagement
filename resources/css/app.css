@@ -37,6 +37,16 @@ body.role-page {
         radial-gradient(circle at top, #ffffff 0%, var(--role-page-bg) 58%, #edf1f6 100%);
 }
 
+.required-indicator {
+    display: inline-block;
+    margin-inline-start: 0.2rem;
+    font-weight: 700;
+}
+
+.required-fields-note {
+    margin-block-end: 0.75rem;
+}
+
 body.coordinator-page {
     padding: 0.85rem;
 }
@@ -1633,6 +1643,13 @@ body.coordinator-page {
     font-weight: 600;
 }
 
+.student-page .borrow-item-remarks {
+    min-width: 190px;
+    max-width: 260px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .role-page .table-light {
     --bs-table-bg: var(--role-surface-soft);
     --bs-table-color: var(--role-text);
@@ -1851,6 +1868,16 @@ body.coordinator-page {
 
 .role-page .text-dark {
     color: var(--role-text) !important;
+}
+
+.facilitator-page .scanned-cart-scroll {
+    max-height: 24rem;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.facilitator-page .scanned-cart-scroll > [data-scan-row]:last-child {
+    border-bottom: 0 !important;
 }
 
 @media (min-width: 768px) {

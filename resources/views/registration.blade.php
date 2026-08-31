@@ -59,40 +59,56 @@
 
                     <form method="POST" action="{{ route('register.store') }}" class="vstack gap-3">
                         @csrf
+                        <p class="text-secondary small mb-0"><span class="text-danger fw-bold" aria-hidden="true">*</span> Required fields</p>
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="name" class="form-label auth-label">Full Name *</label>
-                                <input type="text" class="form-control auth-input readonly-input" id="name" name="name" value="{{ $registrationName }}" readonly required>
+                                <label for="name" class="form-label auth-label">Full Name <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                                <input type="text" class="form-control auth-input readonly-input" id="name" name="name" value="{{ $registrationName }}" readonly required aria-required="true">
                             </div>
 
                             <div class="col-md-6">
-                                <label for="email" class="form-label auth-label">Email Address *</label>
-                                <input type="email" class="form-control auth-input readonly-input" id="email" name="email" value="{{ $registrationEmail }}" readonly required>
+                                <label for="email" class="form-label auth-label">Email Address <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                                <input type="email" class="form-control auth-input readonly-input" id="email" name="email" value="{{ $registrationEmail }}" readonly required aria-required="true">
                             </div>
                         </div>
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="user-id" class="form-label auth-label">Student ID *</label>
-                                <input type="text" class="form-control auth-input" id="user-id" name="user_id" value="{{ old('user_id') }}" placeholder="e.g. C-23014" autocomplete="off" required>
+                                <label for="user-id" class="form-label auth-label">Student ID <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                                <input type="text" class="form-control auth-input" id="user-id" name="user_id" value="{{ old('user_id') }}" placeholder="C99-9999 or S99-9999" autocomplete="off" required aria-required="true">
                             </div>
 
                             <div class="col-md-6">
-                                <label for="contact-number" class="form-label auth-label">Contact Number *</label>
-                                <input type="tel" class="form-control auth-input" id="contact-number" name="contact_number" value="{{ old('contact_number') }}" autocomplete="tel" required>
+                                <label for="contact-number" class="form-label auth-label">Contact Number <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                                <input type="tel" class="form-control auth-input" id="contact-number" name="contact_number" value="{{ old('contact_number') }}" autocomplete="tel" required aria-required="true">
                             </div>
+                        </div>
+
+                        <div>
+                            <label for="department-id" class="form-label auth-label">Department <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                            <select id="department-id" name="department_id" class="form-select auth-input @error('department_id') is-invalid @enderror" required aria-required="true">
+                                <option value="">Select your department</option>
+                                @foreach ($departments as $department)
+                                    <option value="{{ $department->id }}" @selected((string) old('department_id') === (string) $department->id)>
+                                        {{ $department->department_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('department_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="password" class="form-label auth-label">Password *</label>
-                                <input type="password" class="form-control auth-input" id="password" name="password" autocomplete="new-password" required>
+                                <label for="password" class="form-label auth-label">Password <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                                <input type="password" class="form-control auth-input" id="password" name="password" autocomplete="new-password" required aria-required="true">
                             </div>
 
                             <div class="col-md-6">
-                                <label for="password-confirmation" class="form-label auth-label">Confirm Password *</label>
-                                <input type="password" class="form-control auth-input" id="password-confirmation" name="password_confirmation" autocomplete="new-password" required>
+                                <label for="password-confirmation" class="form-label auth-label">Confirm Password <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                                <input type="password" class="form-control auth-input" id="password-confirmation" name="password_confirmation" autocomplete="new-password" required aria-required="true">
                             </div>
                         </div>
 

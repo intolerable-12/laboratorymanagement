@@ -43,10 +43,15 @@
             break-inside: avoid;
             page-break-inside: avoid;
             border: 1px dashed rgba(148, 163, 184, 0.45);
-            border-radius: 0.9rem;
-            padding: 0.55in 0.32in 0.42in;
+            border-radius: 0;
+            padding: 0.12in 0.2in 0.1in;
             background: #fff;
             width: min(100%, 520px);
+        }
+
+        .barcode-print-item .barcode-svg--label {
+            width: min(100%, 360px);
+            margin-inline: auto;
         }
 
         .barcode-print-label__name {

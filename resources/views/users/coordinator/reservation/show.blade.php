@@ -86,17 +86,17 @@
                                         <div class="row g-3 mb-3">
                                             <div class="col-12">
                                                 <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                                                <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" class="form-control @error('reservation_date') is-invalid @enderror">
+                                                <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
                                                 @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label fw-semibold text-dark">Start Time</label>
-                                                <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" class="form-control @error('start_time') is-invalid @enderror">
+                                                <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" class="form-control @error('start_time') is-invalid @enderror" required>
                                                 @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label fw-semibold text-dark">End Time</label>
-                                                <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" class="form-control @error('end_time') is-invalid @enderror">
+                                                <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" class="form-control @error('end_time') is-invalid @enderror" required>
                                                 @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                         </div>
@@ -117,7 +117,7 @@
                                         <p class="small text-secondary mb-3">A reason is required and will be emailed to the requester.</p>
                                         <div class="mb-3">
                                             <label class="form-label fw-semibold text-dark">Remarks</label>
-                                            <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected">{{ old('remarks') }}</textarea>
+                                            <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected" required>{{ old('remarks') }}</textarea>
                                             @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
                                         <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this reservation request?');">Reject</button>
