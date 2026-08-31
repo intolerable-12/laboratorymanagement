@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Coordinator;
 
 use App\Http\Controllers\Controller;
+use App\Mail\UserAccountNotificationMail;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserAccountRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -38,7 +41,16 @@ class UserManagementController extends Controller
 
         $data['password'] = Hash::make($data['password']);
 
-        User::create($data);
+        $user = User::create($data);
+
+        $roleName = strtolower((string) $user->load('role')->role?->role_name);
+
+        if (in_array($roleName, ['student', 'instructor'], true) && filled($user->email)) {
+            Mail::to($user->email)->queue(new UserAccountNotificationMail(
+                user: $user,
+                event: 'created',
+            ));
+        }
 
         return redirect()->route('coordinator.users.index')->with('status', 'User created successfully.');
     }
@@ -144,6 +156,7 @@ class UserManagementController extends Controller
 
         $roles = $this->manageableRoles();
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
+        $pendingAccountRequests = UserAccountRequest::pending()->count();
         $statuses = ['Active', 'Inactive', 'Suspended'];
 
         $stats = [
@@ -174,7 +187,8 @@ class UserManagementController extends Controller
             'sort',
             'direction',
             'archived',
-            'filters'
+            'filters',
+            'pendingAccountRequests'
         ));
     }
 
@@ -233,6 +247,37 @@ class UserManagementController extends Controller
             'contact_number.regex' => 'Contact number must be a valid phone number using digits and common separators only.',
             'password.regex' => 'Password must be at least 8 characters long and include both letters and numbers.',
         ]);
+
+        $roleName = strtolower((string) Role::query()->whereKey($validated['role_id'])->value('role_name'));
+
+        if ($roleName === 'student') {
+            $request->validate([
+                'department_id' => ['required', 'integer', 'exists:departments,id'],
+            ], [
+                'department_id.required' => 'A department is required for student accounts.',
+            ]);
+
+            $department = Department::query()->findOrFail($validated['department_id']);
+            $studentPrefix = $department->studentUserIdPrefix();
+            $studentUserIdPattern = $studentPrefix
+                ? '/^' . $studentPrefix . '\\d{2}-\\d{4}$/'
+                : '/^(?!)$/';
+            $studentUserIdMessage = $studentPrefix
+                ? "Student ID for the selected department must follow the {$studentPrefix}99-9999 format."
+                : 'The selected department does not have a valid student ID format.';
+
+            $request->validate([
+                'userID' => ['regex:' . $studentUserIdPattern],
+            ], [
+                'userID.regex' => $studentUserIdMessage,
+            ]);
+        } elseif ($roleName === 'instructor') {
+            $request->validate([
+                'userID' => ['regex:/^[1-9][0-9]{0,3}$/'],
+            ], [
+                'userID.regex' => 'Instructor User ID must be a number from 1 to 9999.',
+            ]);
+        }
 
         foreach (['userID', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'contact_number'] as $field) {
             if (! array_key_exists($field, $validated)) {

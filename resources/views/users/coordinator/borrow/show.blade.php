@@ -32,6 +32,7 @@
                                 'Instructor Approved' => 'info',
                                 'Facilitator Approved' => 'primary',
                                 'Coordinator Approved' => 'success',
+                                'Partially Borrowed' => 'warning',
                                 'Borrowed' => 'success',
                                 'Partially Returned' => 'primary',
                                 'Returned' => 'success',
@@ -92,12 +93,12 @@
                                         <div class="row g-3 mb-3">
                                             <div class="col-12">
                                                 <label class="form-label fw-semibold text-dark">Borrowed At</label>
-                                                <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror">
+                                                <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
                                                 @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                             <div class="col-12">
                                                 <label class="form-label fw-semibold text-dark">Due At</label>
-                                                <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror">
+                                                <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
                                                 @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                         </div>
@@ -118,7 +119,7 @@
                                         <p class="small text-secondary mb-3">A reason is required and will be emailed to the requester.</p>
                                         <div class="mb-3">
                                             <label class="form-label fw-semibold text-dark">Remarks</label>
-                                            <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected">{{ old('remarks') }}</textarea>
+                                            <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected" required>{{ old('remarks') }}</textarea>
                                             @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
                                         <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>

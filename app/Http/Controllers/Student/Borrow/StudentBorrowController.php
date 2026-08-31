@@ -11,9 +11,11 @@ use App\Models\Equipment;
 use App\Models\SchoolYear;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class StudentBorrowController extends Controller
@@ -22,12 +24,134 @@ class StudentBorrowController extends Controller
 	{
 		$this->ensureStudent($request);
 
-		$borrows = BorrowTransaction::with(['borrower', 'items.item'])
+		$transactions = BorrowTransaction::with(['borrower', 'laboratory', 'items.item'])
 			->where('borrower_id', $request->user()->userNo)
-			->latest()
-			->paginate(10);
+			->latest('borrowed_at')
+			->get();
 
-		return view('users.student.borrow.index', compact('borrows'));
+		$groupKeys = ['current', 'pending', 'returned'];
+		$groupFilters = [
+			'current' => ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'],
+			'pending' => ['Pending', 'Instructor Approved', 'Facilitator Approved'],
+			'returned' => ['Returned'],
+		];
+
+		$groupEntries = [];
+		foreach ($groupKeys as $key) {
+			$entries = collect();
+
+			foreach ($transactions as $transaction) {
+				if (! in_array($transaction->status, $groupFilters[$key], true)) {
+					continue;
+				}
+
+				foreach ($transaction->items as $item) {
+					$borrowedItem = $item->item;
+					$entries->push([
+						'transaction' => $transaction,
+						'item' => $item,
+						'name' => $borrowedItem?->equipment_name ?? $borrowedItem?->chemical_name ?? 'Borrowed item',
+						'item_type' => $borrowedItem instanceof Equipment ? 'Equipment' : 'Chemical',
+						'image' => $borrowedItem?->image ? asset('storage/' . $borrowedItem->image) : null,
+						'lab_name' => $transaction->laboratory?->laboratory_name ?? $borrowedItem?->laboratory?->laboratory_name ?? 'Unassigned',
+						'quantity' => (int) ($item->quantity_borrowed ?? 0),
+						'status' => $transaction->status,
+						'status_tone' => match ($transaction->status) {
+							'Pending' => 'warning',
+							'Instructor Approved' => 'info',
+							'Facilitator Approved' => 'primary',
+							'Coordinator Approved' => 'success',
+							'Partially Borrowed' => 'warning',
+							'Borrowed' => 'success',
+							'Partially Returned' => 'primary',
+							'Returned' => 'success',
+							'Overdue' => 'danger',
+							default => 'secondary',
+						},
+						'borrowed_at' => $transaction->borrowed_at?->format('M d, Y') ?? '—',
+						'due_at' => $transaction->due_at?->format('M d, Y') ?? '—',
+						'returned_at' => $transaction->returned_at?->format('M d, Y') ?? '—',
+						'borrow_no' => $transaction->borrow_no,
+						'remarks' => $transaction->remarks,
+					]);
+				}
+			}
+
+			$groupEntries[$key] = $entries;
+		}
+
+		$viewMode = in_array($request->query('view'), ['card', 'list'], true) ? $request->query('view') : 'card';
+		$section = $request->query('section');
+
+		if ($request->ajax() && $section && in_array($section, $groupKeys, true)) {
+			return $this->renderSection($request, $section, $groupEntries, $viewMode);
+		}
+
+        $sectionData = [];
+        foreach ($groupKeys as $key) {
+            $currentPage = $viewMode === 'list' ? $this->requestedPage($request, $key) : 1;
+            $perPage = $viewMode === 'list' ? 3 : max(1, $groupEntries[$key]->count());
+            $paginator = $this->paginateEntries($groupEntries[$key], $currentPage, $perPage, $key, $viewMode);
+            $sectionData[$key] = $paginator;
+        }
+
+		return view('users.student.borrow.index', [
+			'groups' => $groupEntries,
+			'sectionData' => $sectionData,
+			'viewMode' => $viewMode,
+			'sectionKeys' => $groupKeys,
+		]);
+	}
+
+	private function paginateEntries(Collection $entries, int $page, int $perPage, string $sectionKey, string $viewMode): LengthAwarePaginator
+	{
+		$items = $entries->slice(($page - 1) * $perPage, $perPage)->values();
+		$paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+			$items,
+			$entries->count(),
+			$perPage,
+			$page,
+			[
+				'path' => url()->current(),
+				'query' => ['view' => $viewMode, 'page' => [$sectionKey => $page]],
+			]
+		);
+
+		$paginator->appends(['view' => $viewMode]);
+		$paginator->appends(['page' => [$sectionKey => $page]]);
+
+		return $paginator;
+	}
+
+	private function renderSection(Request $request, string $sectionKey, array $groupEntries, string $viewMode)
+	{
+        $entries = $groupEntries[$sectionKey] ?? collect();
+        $currentPage = $viewMode === 'list' ? $this->requestedPage($request, $sectionKey) : 1;
+        $perPage = $viewMode === 'list' ? 3 : max(1, $entries->count());
+        $paginator = $this->paginateEntries($entries, $currentPage, $perPage, $sectionKey, $viewMode);
+
+		return view('users.student.borrow.partials.borrow-section', [
+			'sectionKey' => $sectionKey,
+			'entries' => $paginator->items(),
+			'paginator' => $paginator,
+			'viewMode' => $viewMode,
+			'sectionMeta' => [
+				'current' => ['label' => 'Current Borrowing', 'tone' => 'primary'],
+				'pending' => ['label' => 'Pending', 'tone' => 'warning'],
+				'returned' => ['label' => 'Returned', 'tone' => 'success'],
+			][$sectionKey],
+		]);
+	}
+
+	private function requestedPage(Request $request, string $sectionKey): int
+	{
+		$pages = $request->query('page', []);
+
+		if (is_array($pages)) {
+			return max(1, (int) ($pages[$sectionKey] ?? 1));
+		}
+
+		return max(1, (int) $request->query('page_' . $sectionKey, 1));
 	}
 
 	public function create(Request $request)

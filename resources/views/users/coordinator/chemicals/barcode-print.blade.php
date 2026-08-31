@@ -43,8 +43,8 @@
             break-inside: avoid;
             page-break-inside: avoid;
             border: 1px solid rgba(148, 163, 184, 0.35);
-            border-radius: 1rem;
-            padding: 0.6in 0.45in 0.48in;
+            border-radius: 0;
+            padding: 0.12in 0.2in 0.1in;
             background: #fff;
             width: min(100%, 520px);
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
@@ -66,6 +66,11 @@
 
         .barcode-print-label__barcode {
             margin-top: 0.55rem;
+        }
+
+        .barcode-print-item .barcode-svg--label {
+            width: min(100%, 360px);
+            margin-inline: auto;
         }
 
         .barcode-print-label__code {

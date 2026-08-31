@@ -169,6 +169,7 @@
                                                                     name="answers[{{ $question->id }}]"
                                                                     id="{{ $inputId }}"
                                                                     value="{{ $value }}"
+                                                                    @if ($question->is_required && $loop->first) required @endif
                                                                     @checked((string) old('answers.' . $question->id) === (string) $value)
                                                                 >
                                                                 <label for="{{ $inputId }}" title="{{ $label }}">
@@ -210,7 +211,7 @@
                                                 <div class="mt-3">
                                                     @include('partials.rich-text-editor', [
                                                         'name' => 'raw_answer_' . $question->id,
-                                                        'label' => '',
+                                                        'label' => 'Your answer',
                                                         'id' => 'raw_answer_' . $question->id,
                                                         'fieldName' => 'answers[' . $question->id . ']',
                                                         'oldKey' => 'answers.' . $question->id,
@@ -218,6 +219,7 @@
                                                         'value' => old('answers.' . $question->id),
                                                         'placeholder' => 'Write your answer here...',
                                                         'compact' => true,
+                                                        'required' => $question->is_required,
                                                     ])
                                                 </div>
                                             </div>

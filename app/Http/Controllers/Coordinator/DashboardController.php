@@ -125,12 +125,12 @@ class DashboardController extends Controller
     {
         return (int) BorrowItem::query()
             ->where('item_type', 'Equipment')
-            ->whereHas('borrowTransaction', fn ($query) => $query->whereIn('status', ['Borrowed', 'Partially Returned', 'Overdue']))
-            ->get(['quantity_borrowed', 'quantity_returned', 'quantity_lost', 'quantity_damaged'])
+            ->whereHas('borrowTransaction', fn ($query) => $query->whereIn('status', ['Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue']))
+            ->get(['quantity_checked_out', 'quantity_returned', 'quantity_lost', 'quantity_damaged'])
             ->sum(function (BorrowItem $item): float {
                 return max(
                     0,
-                    (float) $item->quantity_borrowed
+                    (float) ($item->quantity_checked_out ?? 0)
                     - (float) $item->quantity_returned
                     - (float) $item->quantity_lost
                     - (float) $item->quantity_damaged

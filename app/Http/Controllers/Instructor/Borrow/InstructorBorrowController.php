@@ -23,7 +23,7 @@ class InstructorBorrowController extends Controller
 			->latest()
 			->paginate(10);
 
-		$statuses = ['All', 'Pending', 'Instructor Approved', 'Facilitator Approved', 'Coordinator Approved', 'Borrowed', 'Partially Returned', 'Returned', 'Overdue', 'Rejected', 'Cancelled'];
+		$statuses = ['All', 'Pending', 'Instructor Approved', 'Facilitator Approved', 'Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Partially Returned', 'Returned', 'Overdue', 'Rejected', 'Cancelled'];
 
 		return view('users.instructor.borrow.index', compact('borrows', 'status', 'statuses'));
 	}

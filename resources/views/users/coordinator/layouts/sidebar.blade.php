@@ -32,6 +32,7 @@
         $isReservationsIndex = request()->routeIs('coordinator.reservations.index');
         $isReservationsCalendar = request()->routeIs('coordinator.reservations.calendar');
         $isBorrowIndex = request()->routeIs('coordinator.borrow.index');
+        $isBorrowCalendar = request()->routeIs('coordinator.borrow.calendar');
         $isReservationsGroup = request()->routeIs('coordinator.reservations.*');
         $isBorrowGroup = request()->routeIs('coordinator.borrow.*');
         $isRequestGroup = $isReservationsGroup || $isBorrowGroup;
@@ -41,6 +42,10 @@
         $isFeedbackIndex = request()->routeIs('coordinator.feedback.index');
         $isFeedbackQuestionnaires = request()->routeIs('coordinator.feedback.questionnaires.*');
         $isFeedbackGroup = request()->routeIs('coordinator.feedback.*');
+
+        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Facilitator Approved')->count();
+        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Facilitator Approved')->count();
+        $pendingUserAccountRequests = \App\Models\UserAccountRequest::pending()->count();
     @endphp
 
     <div class="coordinator-sidebar__body p-0 d-flex flex-column">
@@ -74,8 +79,15 @@
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isUserManagementGroup ? 'active' : '' }}"
                     href="{{ route('coordinator.users.index') }}" title="User Management">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-users"></i></span>
-                    <span class="sidebar-item__label">User Management</span>
+                    <span class="d-flex align-items-center gap-2 flex-grow-1">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-users"></i></span>
+                        <span class="sidebar-item__label">User Management</span>
+                    </span>
+                    @if ($pendingUserAccountRequests > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">
+                            {{ $pendingUserAccountRequests > 99 ? '99+' : $pendingUserAccountRequests }}
+                        </span>
+                    @endif
                 </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.announcements.*') ? 'active' : '' }}"
@@ -103,15 +115,34 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
                         </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                            href="{{ route('coordinator.borrow.calendar') }}" title="Borrow Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
+                            <span class="sidebar-item__label">Borrow Calendar</span>
+                        </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
                             href="{{ route('coordinator.reservations.index') }}" title="Reservation Requests">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
-                            <span class="sidebar-item__label">Reservation Requests</span>
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                <span class="sidebar-item__label">Reservation Requests</span>
+                            </span>
+                            @if ($pendingReservationRequests > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">
+                                    {{ $pendingReservationRequests > 99 ? '99+' : $pendingReservationRequests }}
+                                </span>
+                            @endif
                         </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowIndex ? 'active' : '' }}"
                             href="{{ route('coordinator.borrow.index') }}" title="Borrowing Requests">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
-                            <span class="sidebar-item__label">Borrowing Requests</span>
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
+                                <span class="sidebar-item__label">Borrowing Requests</span>
+                            </span>
+                            @if ($pendingBorrowRequests > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">
+                                    {{ $pendingBorrowRequests > 99 ? '99+' : $pendingBorrowRequests }}
+                                </span>
+                            @endif
                         </a>
                     </div>
                 </div>

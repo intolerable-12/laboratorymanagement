@@ -42,6 +42,12 @@
             <a href="{{ route('coordinator.users.index', $tabQuery) }}" class="btn btn-primary">
                 <i class="fa-solid fa-users me-2"></i>Users
             </a>
+            <a href="{{ route('coordinator.users.requests.index') }}" class="btn btn-outline-warning">
+                <i class="fa-solid fa-user-clock me-2"></i>Account requests
+                @if (($pendingAccountRequests ?? 0) > 0)
+                    <span class="badge text-bg-warning ms-1">{{ $pendingAccountRequests }}</span>
+                @endif
+            </a>
             <a href="{{ route('coordinator.departments.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-building-columns me-2"></i>Department
             </a>

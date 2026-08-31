@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Coordinator;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\UserAccountRequest;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -31,7 +32,9 @@ class DepartmentManagementController extends Controller
             'empty' => Department::doesntHave('users')->count(),
         ];
 
-        return view('users.coordinator.department.index', compact('departments', 'stats', 'search'));
+        $pendingAccountRequests = UserAccountRequest::pending()->count();
+
+        return view('users.coordinator.department.index', compact('departments', 'stats', 'search', 'pendingAccountRequests'));
     }
 
     public function create()
