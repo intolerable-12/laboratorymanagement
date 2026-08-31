@@ -1,6 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'My Account')
+@section('page-title', 'My Account')
 @section('user-name', $displayName)
 @section('user-role', $roleName)
 

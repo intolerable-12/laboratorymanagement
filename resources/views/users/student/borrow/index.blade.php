@@ -1,6 +1,8 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'My Borrowing Equipment')
+@section('page-title', 'My Borrow')
+@section('page-title', 'Check In Items')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 

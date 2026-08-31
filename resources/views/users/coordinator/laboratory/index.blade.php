@@ -75,11 +75,11 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col" class="ps-4">Laboratory</th>
-                                <th scope="col">Room</th>
-                                <th scope="col">Capacity</th>
-                                <th scope="col">Status</th>
-                                <th scope="col" class="text-end pe-4">Actions</th>
+                                <th scope="col" class="text-dark ps-4">Laboratory</th>
+                                <th scope="col" class="text-dark">Room</th>
+                                <th scope="col" class="text-dark">Capacity</th>
+                                <th scope="col" class="text-dark">Status</th>
+                                <th scope="col" class="text-center text-dark pe-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,7 +105,7 @@
                                     <td>
                                         <span class="badge text-bg-{{ $laboratory->status === 'Available' ? 'success' : ($laboratory->status === 'Under Maintenance' ? 'warning' : 'secondary') }}">{{ $laboratory->status }}</span>
                                     </td>
-                                    <td class="text-end pe-4">
+                                    <td class="text-center pe-4">
                                         <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
                                             <!-- View Icon -->
                                             <a href="{{ route('coordinator.laboratories.show', $laboratory) }}"

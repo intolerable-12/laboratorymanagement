@@ -108,11 +108,11 @@
                     <table class="table align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Borrower</th>
-                                <th>Items</th>
-                                <th>Borrow Date</th>
-                                <th>Release Status</th>
-                                <th>Action</th>
+                                <th class="text-dark">Borrower</th>
+                                <th class="text-dark">Items</th>
+                                <th class="text-dark">Borrow Date</th>
+                                <th class="text-dark">Release Status</th>
+                                <th class="text-center text-dark">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -139,7 +139,7 @@
                                         <div class="small text-secondary">Return {{ $borrow->due_at?->format('M d, Y') ?? '—' }}</div>
                                     </td>
                                     <td><span class="badge text-bg-{{ $borrow->status === 'Partially Borrowed' ? 'warning' : 'success' }}">{{ $borrow->status === 'Partially Borrowed' ? 'In progress' : 'Ready' }}</span></td>
-                                    <td class="text-end"><a href="{{ route('facilitator.checkout.show', $borrow) }}" class="btn btn-sm btn-primary">Checkout</a></td>
+                                    <td class="text-center"><a href="{{ route('facilitator.checkout.show', $borrow) }}" class="btn btn-sm btn-primary">Checkout</a></td>
                                 </tr>
                             @empty
                                 <tr><td colspan="5" class="text-center text-secondary py-5">No approved borrow requests are ready for checkout.</td></tr>
@@ -147,8 +147,6 @@
                         </tbody>
                     </table>
                 </div>
-
-                <a href="{{ route('facilitator.checkout.index') }}" class="mt-4 d-inline-block fw-semibold text-decoration-none">View all checkout requests <i class="fa-solid fa-arrow-right ms-1"></i></a>
             </div>
         </section>
     </div>

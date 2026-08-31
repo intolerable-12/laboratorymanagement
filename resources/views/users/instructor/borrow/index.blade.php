@@ -44,11 +44,11 @@
 					<table class="table align-middle">
 						<thead>
 							<tr class="text-secondary small text-uppercase">
-								<th>Borrow</th>
-								<th>Student</th>
-								<th>Borrow Period</th>
-								<th>Status</th>
-								<th class="text-end">Actions</th>
+								<th class="text-dark">Borrow</th>
+								<th class="text-dark">Student</th>
+								<th class="text-dark">Borrow Period</th>
+								<th class="text-dark">Status</th>
+								<th class="text-center text-dark">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -84,7 +84,7 @@
 									<td>
 										<span class="badge text-bg-{{ $statusTone }}">{{ $borrow->status }}</span>
 									</td>
-									<td class="text-end">
+									<td class="text-center">
 										<a href="{{ route('instructor.borrow.show', $borrow) }}" class="btn btn-sm btn-outline-primary">Review</a>
 									</td>
 								</tr>
