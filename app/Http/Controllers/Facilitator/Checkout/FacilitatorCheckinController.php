@@ -428,16 +428,24 @@ class FacilitatorCheckinController extends Controller
     private function findScannedItem(BorrowTransaction $transaction, string $barcode): array
     {
         $equipment = Equipment::query()->where('barcode', $barcode)->first();
-        if ($equipment && $transaction->items()->where('item_type', 'Equipment')->where('item_id', $equipment->id)->exists()) {
-            return ['Equipment', $equipment];
+        if ($equipment) {
+            if ($transaction->items()->where('item_type', 'Equipment')->where('item_id', $equipment->id)->exists()) {
+                return ['Equipment', $equipment];
+            }
+
+            $this->checkinError('barcode', 'Equipment "'.$equipment->equipment_name.'" is not part of this student’s borrowed request.');
         }
 
         $chemical = Chemical::query()->where('barcode', $barcode)->first();
-        if ($chemical && $transaction->items()->where('item_type', 'Chemical')->where('item_id', $chemical->id)->exists()) {
-            return ['Chemical', $chemical];
+        if ($chemical) {
+            if ($transaction->items()->where('item_type', 'Chemical')->where('item_id', $chemical->id)->exists()) {
+                return ['Chemical', $chemical];
+            }
+
+            $this->checkinError('barcode', 'Chemical "'.$chemical->chemical_name.'" is not part of this student’s borrowed request.');
         }
 
-        $this->checkinError('barcode', 'Barcode "'.$barcode.'" is not part of this student\'s borrowed request.');
+        $this->checkinError('barcode', 'The scanned item could not be found in inventory.');
     }
 
     private function checkinQuantity(string $itemType, mixed $rawQuantity, float $outstanding, ?string $unit = null): float|int

@@ -27,9 +27,62 @@
             'feedSubtitle' => 'Coordinator notices that the laboratory in-charge should review first.',
         ])
 
+        <section class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="fa-solid fa-microscope text-primary"></i>
+                <h3 class="h4 fw-semibold mb-0 text-dark">Equipment overview</h3>
+            </div>
+            <div class="row g-3 g-xl-4">
+                @foreach ($equipmentStats as $metric)
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card metric-card border-0 h-100">
+                            <div class="card-body p-4">
+                                <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
+                                <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
+                                <div class="small text-secondary">{{ $metric['note'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="fa-solid fa-flask text-success"></i>
+                <h3 class="h4 fw-semibold mb-0 text-dark">Chemical overview</h3>
+            </div>
+            <div class="row g-3 g-xl-4">
+                @foreach ($chemicalStats as $metric)
+                    <div class="col-12 col-sm-6 col-xl-4">
+                        <div class="card metric-card border-0 h-100">
+                            <div class="card-body p-4">
+                                <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
+                                @if (isset($metric['breakdown']))
+                                    <div class="mb-2">
+                                        @forelse ($metric['breakdown'] as $quantity)
+                                            <div class="d-flex justify-content-between align-items-center gap-3 py-1">
+                                                <span class="badge rounded-pill text-bg-light border text-secondary">{{ $quantity['unit'] }}</span>
+                                                <span class="fw-semibold text-dark text-end">{{ $quantity['value'] }} {{ $quantity['unit'] }}</span>
+                                            </div>
+                                        @empty
+                                            <div class="display-6 fw-semibold text-dark">0</div>
+                                        @endforelse
+                                    </div>
+                                @else
+                                    <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
+                                @endif
+                                <div class="small text-secondary">{{ $metric['note'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
         <section class="row g-3 g-xl-4 mb-4">
-            @foreach ($stats as $metric)
-                <div class="col-12 col-sm-6 col-xl-3">
+            @foreach ($operationalStats as $metric)
+                <div class="col-12 col-sm-6 col-xl-4">
                     <div class="card metric-card border-0 h-100">
                         <div class="card-body p-4">
                             <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
@@ -56,7 +109,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Borrower</th>
-                                <th>Equipment</th>
+                                <th>Items</th>
                                 <th>Borrow Date</th>
                                 <th>Release Status</th>
                                 <th>Action</th>
@@ -65,7 +118,12 @@
                         <tbody>
                             @forelse ($checkoutBorrows as $borrow)
                                 @php
-                                    $itemSummary = $borrow->items->map(fn ($item) => ($item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Unknown item').' × '.number_format((float) $item->quantity_borrowed, $item->item_type === 'Chemical' ? 2 : 0))->implode(', ');
+                                    $itemSummary = $borrow->items->map(function ($item) {
+                                        $name = $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Unknown item';
+                                        $unit = $item->item_type === 'Chemical' ? ' '.($item->item?->unit ?? 'unit') : ' unit(s)';
+
+                                        return $name.' × '.number_format((float) $item->quantity_borrowed, $item->item_type === 'Chemical' ? 2 : 0).$unit;
+                                    })->implode(', ');
                                 @endphp
                                 <tr>
                                     <td>

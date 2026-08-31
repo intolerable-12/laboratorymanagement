@@ -1,3 +1,5 @@
+import { attachScannerInputRouter } from './scanner-input';
+
 (() => {
     const initializeBarcodeCheckout = (root) => {
         if (!root || root.dataset.barcodeCheckoutInitialized === 'true') {
@@ -58,6 +60,13 @@
             if (event.target !== input && !shouldKeepManualFocus(event.target)) {
                 focusScanner();
             }
+        });
+
+        attachScannerInputRouter({
+            root,
+            barcodeInput: input,
+            form,
+            manualFieldSelector: '#quantity, #condition_out, [data-barcode-manual-field]',
         });
 
         const escapeHtml = (value) => {
