@@ -88,12 +88,12 @@
                 <table class="table align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">Announcement</th>
-                            <th scope="col">Audience</th>
-                            <th scope="col">Schedule</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Updated</th>
-                            <th scope="col" class="text-end">Actions</th>
+                            <th scope="col" class="text-dark">Announcement</th>
+                            <th scope="col" class="text-dark">Audience</th>
+                            <th scope="col" class="text-dark">Schedule</th>
+                            <th scope="col" class="text-dark">Status</th>
+                            <th scope="col" class="text-dark">Updated</th>
+                            <th scope="col" class="text-center text-dark">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

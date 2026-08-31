@@ -40,7 +40,6 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <div class="small text-uppercase text-secondary">Chemical management</div>
             <div class="text-secondary">Manage chemical records and categories.</div>
         </div>
         <div class="btn-group shadow-sm" role="group" aria-label="Chemical management navigation">
@@ -201,10 +200,7 @@
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h3 class="h5 fw-semibold mb-1">{{ $archived ? 'Archived chemicals' : 'Chemical list' }}</h3>
-                    <p class="small text-secondary mb-0">
-                        {{ $archived ? 'Restorable chemicals stay archived for up to five years.' : 'Archive chemicals instead of deleting them permanently.' }}
-                    </p>
+                    <h3 class="h5 fw-semibold mb-3">{{ $archived ? 'Archived chemicals' : 'Chemical list' }}</h3>
                 </div>
             </div>
         </div>
@@ -258,7 +254,7 @@
                                     </a>
                                 </th>
                             @endif
-                            <th scope="col" class="text-end pe-4">Actions</th>
+                            <th scope="col" class="text-center text-dark pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -48,7 +48,7 @@
 
         <div class="section-card">
             <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
-                <h3 class="h5 fw-semibold mb-1">Questionnaires</h3>
+                <h3 class="h5 fw-semibold mb-3">Questionnaires</h3>
             </div>
 
             <div class="card-body p-0">
@@ -56,10 +56,10 @@
                     <table class="table table-hover align-middle mb-0 table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col" class="ps-4">Topic</th>
-                                <th scope="col">Questions</th>
-                                <th scope="col">Status</th>
-                                <th scope="col" class="text-end pe-4">Action</th>
+                                <th scope="col" class="text-dark ps-4">Topic</th>
+                                <th scope="col" class="text-dark">Questions</th>
+                                <th scope="col" class="text-dark">Status</th>
+                                <th scope="col" class="text-center text-dark pe-4">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -75,7 +75,7 @@
                                             {{ $questionnaire->user_response_count > 0 ? 'Answered' : 'Open' }}
                                         </span>
                                     </td>
-                                    <td class="text-end pe-4">
+                                    <td class="text-center pe-4">
                                         <a href="{{ route('student.feedback.questionnaires.show', $questionnaire) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fa-solid fa-clipboard-check me-1"></i>
                                             {{ $questionnaire->user_response_count > 0 ? 'View response' : 'Answer' }}

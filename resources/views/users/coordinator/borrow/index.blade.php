@@ -37,11 +37,11 @@
                 <table class="table align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Borrow</th>
-                            <th>Student</th>
-                            <th>Borrow Period</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
+                            <th class="text-dark">Borrow</th>
+                            <th class="text-dark">Student</th>
+                            <th class="text-dark">Borrow Period</th>
+                            <th class="text-dark">Status</th>
+                            <th class="text-center text-dark">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

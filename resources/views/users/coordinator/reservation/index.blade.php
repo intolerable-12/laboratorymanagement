@@ -37,12 +37,12 @@
                 <table class="table align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Reservation</th>
-                            <th>Student</th>
-                            <th>Laboratory</th>
-                            <th>Schedule</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
+                            <th class="text-dark">Reservation</th>
+                            <th class="text-dark">Student</th>
+                            <th class="text-dark">Laboratory</th>
+                            <th class="text-dark">Schedule</th>
+                            <th class="text-dark">Status</th>
+                            <th class="text-center text-dark">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
