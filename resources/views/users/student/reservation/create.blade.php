@@ -34,7 +34,7 @@
                     <div class="row g-3">
                         <div class="col-lg-4">
                             <label class="form-label fw-semibold text-dark">Laboratory</label>
-                            <select name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror">
+                            <select name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
                                 @foreach ($laboratories as $laboratory)
                                     <option value="{{ $laboratory->id }}" @selected(old('laboratory_id') == $laboratory->id)>
@@ -47,44 +47,44 @@
 
                         <div class="col-lg-8">
                             <label class="form-label fw-semibold text-dark">Experiment / Activity Title</label>
-                            <input type="text" name="experiment_title" value="{{ old('experiment_title') }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity">
+                            <input type="text" name="experiment_title" value="{{ old('experiment_title') }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity" required>
                             @error('experiment_title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">Purpose</label>
-                            <textarea name="purpose" rows="3" class="form-control @error('purpose') is-invalid @enderror" placeholder="Describe the purpose of the reservation">{{ old('purpose') }}</textarea>
+                            <textarea name="purpose" rows="3" class="form-control @error('purpose') is-invalid @enderror" placeholder="Describe the purpose of the reservation" required>{{ old('purpose') }}</textarea>
                             @error('purpose')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                            <input type="date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-weekday-only="true" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror">
+                            <input type="date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-weekday-only="true" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-text">Reservations must be made at least 3 business days in advance.</div>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Start Time</label>
-                            <input type="time" name="start_time" value="{{ old('start_time') }}" class="form-control @error('start_time') is-invalid @enderror">
+                            <input type="time" name="start_time" value="{{ old('start_time') }}" class="form-control @error('start_time') is-invalid @enderror" required>
                             @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">End Time</label>
-                            <input type="time" name="end_time" value="{{ old('end_time') }}" class="form-control @error('end_time') is-invalid @enderror">
+                            <input type="time" name="end_time" value="{{ old('end_time') }}" class="form-control @error('end_time') is-invalid @enderror" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Expected Participants</label>
-                            <input type="number" min="1" name="expected_participants" value="{{ old('expected_participants', 1) }}" class="form-control @error('expected_participants') is-invalid @enderror">
+                            <input type="number" min="1" name="expected_participants" value="{{ old('expected_participants', 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
                             @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">School Year</label>
-                            <select name="school_year_id" class="form-select @error('school_year_id') is-invalid @enderror">
+                            <select name="school_year_id" class="form-select @error('school_year_id') is-invalid @enderror" required>
                                 <option value="">Select school year</option>
                                 @foreach ($schoolYears as $schoolYear)
                                     <option value="{{ $schoolYear->id }}" @selected(old('school_year_id', $schoolYears->firstWhere('is_current', true)?->id) == $schoolYear->id)>
@@ -97,7 +97,7 @@
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Semester</label>
-                            <select name="semester_id" class="form-select @error('semester_id') is-invalid @enderror">
+                            <select name="semester_id" class="form-select @error('semester_id') is-invalid @enderror" required>
                                 <option value="">Select semester</option>
                                 @foreach ($semesters as $semester)
                                     <option value="{{ $semester->id }}" @selected(old('semester_id') == $semester->id)>

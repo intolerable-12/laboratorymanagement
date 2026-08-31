@@ -62,7 +62,7 @@
 
                                 <div>
                                     <label for="comment" class="form-label fw-semibold text-dark">Comment</label>
-                                    <textarea id="comment" name="comment" rows="4" class="form-control social-input @error('comment') is-invalid @enderror" placeholder="Write a reply...">{{ old('comment') }}</textarea>
+                                    <textarea id="comment" name="comment" rows="4" class="form-control social-input @error('comment') is-invalid @enderror" placeholder="Write a reply..." required>{{ old('comment') }}</textarea>
                                     @error('comment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
 

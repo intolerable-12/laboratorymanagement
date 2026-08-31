@@ -25,6 +25,7 @@ class BorrowTransaction extends Model
         'released_by',
         'received_by',
         'borrowed_at',
+        'checked_out_at',
         'due_at',
         'returned_at',
         'status',
@@ -40,6 +41,7 @@ class BorrowTransaction extends Model
     {
         return [
             'borrowed_at' => 'datetime',
+            'checked_out_at' => 'datetime',
             'due_at' => 'datetime',
             'returned_at' => 'datetime',
         ];
@@ -91,5 +93,13 @@ class BorrowTransaction extends Model
     public function items(): HasMany
     {
         return $this->hasMany(BorrowItem::class);
+    }
+
+    /**
+     * Get the barcode scans associated with this checkout.
+     */
+    public function barcodeLogs(): HasMany
+    {
+        return $this->hasMany(BarcodeLog::class);
     }
 }

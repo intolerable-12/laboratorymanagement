@@ -24,6 +24,9 @@
         $isReservationsGroup = request()->routeIs('facilitator.reservations.*');
         $isReservationsCalendar = request()->routeIs('facilitator.reservations.calendar');
         $isBorrowGroup = request()->routeIs('facilitator.borrow.*');
+        $isBorrowCalendar = request()->routeIs('facilitator.borrow.calendar');
+        $isCheckoutGroup = request()->routeIs('facilitator.checkout.*');
+        $isCheckinGroup = request()->routeIs('facilitator.checkin.*');
         $isForumGroup = request()->routeIs('facilitator.forum.*');
         $isMyAccount = request()->routeIs('facilitator.myaccount');
     @endphp
@@ -49,10 +52,28 @@
                     <span class="sidebar-item__label">Reservation Calendar</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup ? 'active' : '' }}"
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup && !$isBorrowCalendar ? 'active' : '' }}"
                     href="{{ route('facilitator.borrow.index') }}" title="Borrowing">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-box-open"></i></span>
                     <span class="sidebar-item__label">Borrowing</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                    href="{{ route('facilitator.borrow.calendar') }}" title="Borrow Calendar">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
+                    <span class="sidebar-item__label">Borrow Calendar</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckoutGroup ? 'active' : '' }}"
+                    href="{{ route('facilitator.checkout.index') }}" title="Checkout Items">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-barcode"></i></span>
+                    <span class="sidebar-item__label">Checkout Items</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckinGroup ? 'active' : '' }}"
+                    href="{{ route('facilitator.checkin.index') }}" title="Check In Items">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-rotate-left"></i></span>
+                    <span class="sidebar-item__label">Check In Items</span>
                 </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"

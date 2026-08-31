@@ -28,14 +28,14 @@
 
                             <div>
                                 <label for="title" class="form-label fw-semibold text-dark">Title</label>
-                                <input type="text" id="title" name="title" value="{{ old('title') }}" class="form-control social-input @error('title') is-invalid @enderror" placeholder="What do you want to discuss?">
+                                <input type="text" id="title" name="title" value="{{ old('title') }}" class="form-control social-input @error('title') is-invalid @enderror" placeholder="What do you want to discuss?" required>
                                 @error('title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="category" class="form-label fw-semibold text-dark">Category</label>
-                                    <select id="category" name="category" class="form-select social-input @error('category') is-invalid @enderror">
+                                    <select id="category" name="category" class="form-select social-input @error('category') is-invalid @enderror" required>
                                         <option value="">Select category</option>
                                         @foreach ($categories as $option)
                                             <option value="{{ $option }}" @selected(old('category', 'General') === $option)>{{ $option }}</option>
@@ -57,6 +57,7 @@
                             @include('partials.rich-text-editor', [
                                 'name' => 'content',
                                 'label' => 'Content',
+                                'required' => true,
                                 'id' => 'content',
                                 'placeholder' => 'Share your question, explanation, or update. You can format text, add lists, and link resources.',
                                 'hint' => 'Rich text is supported.',

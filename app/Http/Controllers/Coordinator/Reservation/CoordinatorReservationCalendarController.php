@@ -21,6 +21,10 @@ class CoordinatorReservationCalendarController extends Controller
             ->orderBy('start_time')
             ->get();
 
+        $calendarEvents = $reservations
+            ->map(fn (Reservation $reservation) => $this->toCalendarEvent($reservation))
+            ->values();
+
         $today = Carbon::today();
         $monthEnd = $today->copy()->endOfMonth();
 
@@ -35,7 +39,7 @@ class CoordinatorReservationCalendarController extends Controller
                     return $reservation->reservation_date?->isSameDay($today) ?? false;
                 })->count(),
             ],
-            'calendarEvents' => $reservations->map(fn (Reservation $reservation) => $this->toCalendarEvent($reservation))->values(),
+            'calendarEvents' => $calendarEvents,
         ]);
     }
 

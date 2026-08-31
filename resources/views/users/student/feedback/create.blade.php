@@ -29,7 +29,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="feedback_type" class="form-label fw-semibold text-dark">Feedback Type</label>
-                                    <select id="feedback_type" name="feedback_type" class="form-select social-input @error('feedback_type') is-invalid @enderror">
+                                    <select id="feedback_type" name="feedback_type" class="form-select social-input @error('feedback_type') is-invalid @enderror" required>
                                         <option value="">Select type</option>
                                         <option value="Lab Service" @selected(old('feedback_type') === 'Lab Service')>Lab Service</option>
                                         <option value="System" @selected(old('feedback_type', 'System') === 'System')>System</option>
@@ -39,7 +39,7 @@
 
                                 <div class="col-md-6">
                                     <label for="laboratory_id" class="form-label fw-semibold text-dark">Laboratory</label>
-                                    <select id="laboratory_id" name="laboratory_id" class="form-select social-input @error('laboratory_id') is-invalid @enderror">
+                                    <select id="laboratory_id" name="laboratory_id" class="form-select social-input @error('laboratory_id') is-invalid @enderror" data-required-when="feedback_type=Lab Service">
                                         <option value="">Select laboratory</option>
                                         @foreach ($laboratories as $laboratory)
                                             <option value="{{ $laboratory->id }}" @selected(old('laboratory_id') == $laboratory->id)>
@@ -52,7 +52,7 @@
 
                                 <div class="col-md-4">
                                     <label for="rating" class="form-label fw-semibold text-dark">Rating</label>
-                                    <select id="rating" name="rating" class="form-select social-input @error('rating') is-invalid @enderror">
+                                    <select id="rating" name="rating" class="form-select social-input @error('rating') is-invalid @enderror" required>
                                         <option value="">Select rating</option>
                                         @for ($rating = 1; $rating <= 5; $rating++)
                                             <option value="{{ $rating }}" @selected((string) old('rating') === (string) $rating)>{{ $rating }}</option>
@@ -63,7 +63,7 @@
 
                                 <div class="col-md-4">
                                     <label for="visibility" class="form-label fw-semibold text-dark">Visibility</label>
-                                    <select id="visibility" name="visibility" class="form-select social-input @error('visibility') is-invalid @enderror">
+                                    <select id="visibility" name="visibility" class="form-select social-input @error('visibility') is-invalid @enderror" required>
                                         <option value="Private" @selected(old('visibility', 'Private') === 'Private')>Private</option>
                                         <option value="Public" @selected(old('visibility') === 'Public')>Public</option>
                                     </select>

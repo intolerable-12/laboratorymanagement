@@ -34,14 +34,14 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark">Borrowed At</label>
-                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" class="form-control @error('borrowed_at') is-invalid @enderror">
+                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" class="form-control @error('borrowed_at') is-invalid @enderror" required>
                             @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-text">Weekends are not available for borrow requests.</div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark">Due At</label>
-                            <input type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" class="form-control @error('due_at') is-invalid @enderror">
+                            <input type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" class="form-control @error('due_at') is-invalid @enderror" required>
                             @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-text">Due dates must also fall on weekdays.</div>
                         </div>

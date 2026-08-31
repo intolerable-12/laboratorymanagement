@@ -1,15 +1,149 @@
 
 import * as bootstrap from 'bootstrap';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import { Calendar } from '@fullcalendar/core';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
 import Quill from 'quill';
+import './barcode';
+import './checkin';
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const sidebar = document.getElementById('adminSidebar');
     const toggleButtons = document.querySelectorAll('[data-admin-sidebar-toggle]');
+
+    if (document.querySelector('[data-reservation-calendar-shell]')) {
+        import('./calendar')
+            .then(({ initializeCalendars }) => initializeCalendars())
+            .catch((error) => console.error('Unable to initialize calendars.', error));
+    }
+
+    const requiredFieldSelector = 'input[required], select[required], textarea[required], [data-required-field="true"], [data-required-when]';
+
+    const isConditionallyRequired = (field) => {
+        if (field.matches(':disabled')) {
+            return false;
+        }
+
+        if (!field.dataset.requiredWhen) {
+            return field.matches('[required], [data-required-field="true"]');
+        }
+
+        const [dependencyName, ...expectedParts] = field.dataset.requiredWhen.split('=');
+        const dependency = field.form?.elements.namedItem(dependencyName);
+
+        return Boolean(dependency) && dependency.value === expectedParts.join('=');
+    };
+
+    const findRequiredFieldLabel = (field) => {
+        if (field.id) {
+            const labelScope = field.closest('form') ?? document;
+            const matchingLabel = Array.from(labelScope.querySelectorAll('label[for]'))
+                .find((label) => label.htmlFor === field.id);
+
+            if (matchingLabel) {
+                return matchingLabel;
+            }
+        }
+
+        const fieldWrapper = field.closest('[data-rich-text-editor], .form-check, .mb-3, .col-md-6, .col-md-4, .col-12, .form-group');
+
+        return fieldWrapper?.querySelector('label') ?? null;
+    };
+
+    const markRequiredLabel = (label) => {
+        if (!label || label.querySelector('.required-indicator')) {
+            return;
+        }
+
+        const indicator = document.createElement('span');
+        indicator.className = 'required-indicator text-danger';
+        indicator.dataset.generatedRequiredIndicator = 'true';
+        indicator.setAttribute('aria-hidden', 'true');
+        indicator.textContent = '*';
+
+        const accessibleText = document.createElement('span');
+        accessibleText.className = 'visually-hidden';
+        accessibleText.textContent = ' (required)';
+
+        label.append(indicator, accessibleText);
+    };
+
+    const unmarkRequiredLabel = (label) => {
+        const indicator = label?.querySelector('.required-indicator[data-generated-required-indicator="true"]');
+
+        if (!indicator) {
+            return;
+        }
+
+        const accessibleText = indicator.nextElementSibling;
+        indicator.remove();
+        if (accessibleText?.classList.contains('visually-hidden')) {
+            accessibleText.remove();
+        }
+    };
+
+    const decorateRequiredFields = (root = document) => {
+        const fields = root.matches?.(requiredFieldSelector)
+            ? [root]
+            : Array.from(root.querySelectorAll(requiredFieldSelector));
+        const forms = new Set();
+
+        fields.forEach((field) => {
+            const isRequired = isConditionallyRequired(field);
+
+            if (field.dataset.requiredWhen) {
+                field.toggleAttribute('required', isRequired);
+            }
+
+            field.setAttribute('aria-required', isRequired ? 'true' : 'false');
+
+            const label = findRequiredFieldLabel(field);
+            if (isRequired) {
+                markRequiredLabel(label);
+            } else {
+                unmarkRequiredLabel(label);
+            }
+
+            if (field.dataset.requiredWhen && !field.dataset.requiredWhenListener) {
+                const dependencyName = field.dataset.requiredWhen.split('=')[0];
+                const dependency = field.form?.elements.namedItem(dependencyName);
+
+                dependency?.addEventListener('change', () => decorateRequiredFields(field.form));
+                field.dataset.requiredWhenListener = 'true';
+            }
+
+            const form = field.closest('form');
+            if (form && isRequired) {
+                forms.add(form);
+            }
+        });
+
+        forms.forEach((form) => {
+            if (form.querySelector('[data-required-fields-note]')) {
+                return;
+            }
+
+            const note = document.createElement('p');
+            note.className = 'required-fields-note text-secondary small mb-3';
+            note.setAttribute('data-required-fields-note', 'true');
+            note.innerHTML = '<span class="required-indicator text-danger" aria-hidden="true">*</span> Required fields';
+            const noteContainer = form.querySelector('.card-body') ?? form;
+            noteContainer.prepend(note);
+        });
+    };
+
+    decorateRequiredFields();
+
+    const requiredFieldObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    decorateRequiredFields(node);
+                }
+            });
+        });
+    });
+
+    requiredFieldObserver.observe(document.body, { childList: true, subtree: true });
 
     const parseLocalDateTime = (value, isDateOnly) => {
         if (!value) {
@@ -461,19 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
         restoreCachedValues(form);
     }
 
-    const reservationCalendarShells = document.querySelectorAll('[data-reservation-calendar-shell]');
-
-    const statusBadgeClass = (status) => {
-        switch (status) {
-            case 'Coordinator Approved':
-                return 'text-bg-success';
-            case 'Completed':
-                return 'text-bg-info';
-            default:
-                return 'text-bg-primary';
-        }
-    };
-
     const setTextContent = (element, value, fallback = '-') => {
         if (!element) {
             return;
@@ -482,203 +603,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const resolved = value === null || value === undefined || value === '' ? fallback : value;
         element.textContent = resolved;
     };
-
-    const renderReservationItems = (body, items) => {
-        if (!body) {
-            return;
-        }
-
-        body.replaceChildren();
-
-        if (!items || items.length === 0) {
-            const row = document.createElement('tr');
-            const cell = document.createElement('td');
-
-            cell.colSpan = 5;
-            cell.className = 'text-center text-secondary py-4';
-            cell.textContent = 'No items were attached to this reservation.';
-            row.appendChild(cell);
-            body.appendChild(row);
-            return;
-        }
-
-        items.forEach((item) => {
-            const row = document.createElement('tr');
-
-            const typeCell = document.createElement('td');
-            typeCell.textContent = item.type ?? '—';
-
-            const nameCell = document.createElement('td');
-            const itemName = document.createElement('div');
-            itemName.className = 'fw-semibold text-dark';
-            itemName.textContent = item.name ?? '—';
-            const itemCode = document.createElement('div');
-            itemCode.className = 'small text-secondary';
-            itemCode.textContent = item.code ?? '—';
-            nameCell.append(itemName, itemCode);
-
-            const quantityCell = document.createElement('td');
-            quantityCell.textContent = item.quantity ?? '—';
-
-            const unitCell = document.createElement('td');
-            unitCell.textContent = item.unit ?? '—';
-
-            const remarksCell = document.createElement('td');
-            remarksCell.textContent = item.remarks ?? '—';
-
-            row.append(typeCell, nameCell, quantityCell, unitCell, remarksCell);
-            body.appendChild(row);
-        });
-    };
-
-    reservationCalendarShells.forEach((shell) => {
-        const calendarElement = shell.querySelector('[data-reservation-calendar]');
-        const eventsElement = shell.querySelector('[data-reservation-calendar-events]');
-        const modalElement = shell.querySelector('[data-reservation-calendar-modal]');
-
-        if (!calendarElement || !eventsElement || calendarElement.dataset.reservationCalendarInitialized === 'true') {
-            return;
-        }
-
-        let events = [];
-
-        try {
-            events = JSON.parse(eventsElement.textContent || '[]');
-        } catch (error) {
-            events = [];
-        }
-
-        const modal = modalElement ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
-        const modalSelectors = modalElement
-            ? {
-                title: modalElement.querySelector('[data-reservation-calendar-title]'),
-                badge: modalElement.querySelector('[data-reservation-calendar-status]'),
-                reservationNo: modalElement.querySelector('[data-reservation-reservation-no]'),
-                studentName: modalElement.querySelector('[data-reservation-student-name]'),
-                studentId: modalElement.querySelector('[data-reservation-student-id]'),
-                studentEmail: modalElement.querySelector('[data-reservation-student-email]'),
-                laboratoryName: modalElement.querySelector('[data-reservation-laboratory-name]'),
-                laboratoryCode: modalElement.querySelector('[data-reservation-laboratory-code]'),
-                experimentTitle: modalElement.querySelector('[data-reservation-experiment-title]'),
-                reservationDate: modalElement.querySelector('[data-reservation-date]'),
-                reservationTime: modalElement.querySelector('[data-reservation-time]'),
-                expectedParticipants: modalElement.querySelector('[data-reservation-participants]'),
-                schoolYear: modalElement.querySelector('[data-reservation-school-year]'),
-                semester: modalElement.querySelector('[data-reservation-semester]'),
-                purpose: modalElement.querySelector('[data-reservation-purpose]'),
-                remarks: modalElement.querySelector('[data-reservation-remarks]'),
-                itemsBody: modalElement.querySelector('[data-reservation-items-body]'),
-            }
-            : {};
-
-        const calendar = new Calendar(calendarElement, {
-            plugins: [dayGridPlugin, timeGridPlugin],
-            initialView: 'dayGridMonth',
-            timeZone: 'UTC',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay',
-            },
-            views: {
-                dayGridMonth: {
-                    dayMaxEventRows: 3,
-                },
-                timeGridWeek: {
-                    slotMinTime: '06:00:00',
-                    slotMaxTime: '22:00:00',
-                },
-                timeGridDay: {
-                    slotMinTime: '06:00:00',
-                    slotMaxTime: '22:00:00',
-                },
-            },
-            height: 'auto',
-            expandRows: true,
-            nowIndicator: true,
-            navLinks: true,
-            selectable: false,
-            editable: false,
-            dayMaxEventRows: true,
-            events,
-            eventDisplay: 'block',
-            eventTimeFormat: {
-                hour: 'numeric',
-                minute: '2-digit',
-                meridiem: 'short',
-            },
-            eventContent(info) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'reservation-calendar-event';
-
-                if (info.timeText) {
-                    const time = document.createElement('div');
-                    time.className = 'reservation-calendar-event__time';
-                    time.textContent = info.timeText;
-                    wrapper.appendChild(time);
-                }
-
-                const marquee = document.createElement('div');
-                marquee.className = 'reservation-calendar-event__marquee';
-
-                const track = document.createElement('div');
-                track.className = 'reservation-calendar-event__track';
-
-                const title = info.event.title || '';
-                const first = document.createElement('span');
-                first.textContent = title;
-                const second = document.createElement('span');
-                second.setAttribute('aria-hidden', 'true');
-                second.textContent = title;
-
-                track.append(first, second);
-                marquee.appendChild(track);
-                wrapper.appendChild(marquee);
-
-                return { domNodes: [wrapper] };
-            },
-            eventClick(info) {
-                info.jsEvent.preventDefault();
-
-                if (!modal || !modalSelectors.title) {
-                    return;
-                }
-
-                const props = info.event.extendedProps ?? {};
-                const title = `${props.reservation_no ?? 'Reservation'} - ${props.laboratory_name ?? 'Laboratory'}`;
-
-                setTextContent(modalSelectors.title, title, 'Reservation details');
-                setTextContent(modalSelectors.reservationNo, props.reservation_no);
-                setTextContent(modalSelectors.studentName, props.student_name);
-                setTextContent(modalSelectors.studentId, props.student_id);
-                setTextContent(modalSelectors.studentEmail, props.student_email);
-                setTextContent(modalSelectors.laboratoryName, props.laboratory_name);
-                setTextContent(modalSelectors.laboratoryCode, props.laboratory_code);
-                setTextContent(modalSelectors.experimentTitle, props.experiment_title);
-                setTextContent(modalSelectors.reservationDate, props.reservation_date);
-                setTextContent(modalSelectors.reservationTime, `${props.start_time ?? '-'} - ${props.end_time ?? '-'}`);
-                setTextContent(modalSelectors.expectedParticipants, props.expected_participants);
-                setTextContent(modalSelectors.schoolYear, props.school_year);
-                setTextContent(modalSelectors.semester, props.semester);
-                setTextContent(modalSelectors.purpose, props.purpose);
-                setTextContent(modalSelectors.remarks, props.remarks || 'No remarks provided.');
-
-                if (modalSelectors.badge) {
-                    modalSelectors.badge.className = `badge ${statusBadgeClass(props.status)}`;
-                    modalSelectors.badge.textContent = props.status ?? 'Scheduled';
-                }
-
-                renderReservationItems(modalSelectors.itemsBody, props.items ?? []);
-                modal.show();
-            },
-            eventDidMount(info) {
-                info.el.classList.add('reservation-calendar__event');
-            },
-        });
-
-        calendar.render();
-        calendarElement.dataset.reservationCalendarInitialized = 'true';
-    });
 
     const announcementFeedShells = document.querySelectorAll('[data-announcement-feed-shell]');
 

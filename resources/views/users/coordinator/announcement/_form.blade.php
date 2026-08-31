@@ -63,7 +63,7 @@
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label fw-semibold text-dark mb-2">Display on</label>
+                        <label class="form-label fw-semibold text-dark mb-2">Display on<span class="required-indicator text-danger" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
                         <div class="row g-2">
                             @foreach ($audienceOptions as $value => $label)
                                 <div class="col-12 col-md-4">
@@ -81,13 +81,13 @@
 
                     <div class="col-md-6">
                         <label class="form-label fw-semibold text-dark" for="start_date">Start date</label>
-                        <input type="date" id="start_date" name="start_date" value="{{ old('start_date', optional($announcement->start_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('start_date') is-invalid @enderror">
+                        <input type="date" id="start_date" name="start_date" value="{{ old('start_date', optional($announcement->start_date)->format('Y-m-d')) }}" min="{{ now()->toDateString() }}" class="form-control admin-form-control @error('start_date') is-invalid @enderror">
                         @error('start_date') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label fw-semibold text-dark" for="end_date">End date</label>
-                        <input type="date" id="end_date" name="end_date" value="{{ old('end_date', optional($announcement->end_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('end_date') is-invalid @enderror">
+                        <input type="date" id="end_date" name="end_date" value="{{ old('end_date', optional($announcement->end_date)->format('Y-m-d')) }}" min="{{ now()->toDateString() }}" class="form-control admin-form-control @error('end_date') is-invalid @enderror">
                         @error('end_date') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                     </div>
 
@@ -98,6 +98,7 @@
                             'value' => $announcement->content ?? '',
                             'placeholder' => 'Write the announcement details here...',
                             'hint' => 'Use the editor to format important notices and links.',
+                            'required' => true,
                         ])
                     </div>
 
@@ -140,6 +141,17 @@
         const previewTrack = document.querySelector('[data-announcement-image-preview-track]');
         const previousButton = document.querySelector('[data-announcement-image-previous]');
         const nextButton = document.querySelector('[data-announcement-image-next]');
+        const today = new Date().toISOString().split('T')[0];
+        const startDateInput = document.querySelector('#start_date');
+        const endDateInput = document.querySelector('#end_date');
+
+        if (startDateInput) {
+            startDateInput.min = today;
+        }
+
+        if (endDateInput) {
+            endDateInput.min = today;
+        }
 
         if (!input || !preview || !previewViewport || !previewTrack || !previousButton || !nextButton) {
             return;

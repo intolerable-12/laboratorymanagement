@@ -28,4 +28,23 @@ class Department extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    /**
+     * Get the student User ID prefix for this department.
+     */
+    public function studentUserIdPrefix(): ?string
+    {
+        $code = strtoupper(trim((string) $this->department_code));
+        $name = strtoupper(trim((string) $this->department_name));
+
+        return match (true) {
+            $code === 'COL' || str_contains($code, 'COLLEGE') || str_contains($name, 'COLLEGE') => 'C',
+            in_array($code, ['JHS', 'SHS'], true)
+                || str_contains($code, 'JUNIOR HIGH')
+                || str_contains($code, 'SENIOR HIGH')
+                || str_contains($name, 'JUNIOR HIGH')
+                || str_contains($name, 'SENIOR HIGH') => 'S',
+            default => null,
+        };
+    }
 }

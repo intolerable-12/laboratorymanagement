@@ -22,13 +22,18 @@
         ])
 
         <section class="row g-3 g-xl-4 mb-4">
-            @foreach ([
-                ['label' => 'Currently Borrowed', 'value' => '1', 'note' => 'Active items'],
-                ['label' => 'Pending Returns', 'value' => '2', 'note' => 'Due this week'],
-                ['label' => 'Total Borrowed', 'value' => '3', 'note' => 'Active items'],
-                ['label' => 'On-time Returns', 'value' => '100%', 'note' => 'Active items'],
-            ] as $metric)
-                <div class="col-12 col-sm-6 col-xl-3">
+            @php
+                $metricCards = [
+                    ['label' => 'Active Borrow Requests', 'value' => $metrics['active_requests'], 'note' => 'Approved or in progress'],
+                    ['label' => 'Equipment Units', 'value' => $metrics['equipment_units'], 'note' => 'Whole units in active requests'],
+                    ['label' => 'Chemical Quantity', 'value' => $metrics['chemical_quantity'], 'note' => 'Grouped by unit: ml, g, and more'],
+                    ['label' => 'Overdue Returns', 'value' => $metrics['overdue_returns'], 'note' => 'Active requests past due'],
+                    ['label' => 'On-time Returns', 'value' => $metrics['on_time_returns'], 'note' => 'Return completion rate'],
+                ];
+            @endphp
+
+            @foreach ($metricCards as $metric)
+                <div class="col-12 col-sm-6 col-xl">
                     <div class="card metric-card border-0 h-100 text-center">
                         <div class="card-body p-4">
                             <div class="h4 fw-semibold mb-1 text-dark">{{ $metric['label'] }}</div>
@@ -45,10 +50,33 @@
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h3 class="h4 fw-semibold mb-0 text-dark">Borrowing History</h3>
-                            <span class="text-secondary small">Last 7 Months</span>
+                            <h3 class="h4 fw-semibold mb-0 text-dark">Borrowing Summary</h3>
+                            <span class="text-secondary small">Live overview</span>
                         </div>
-                        <div class="chart-placeholder chart-tall rounded-3"></div>
+
+                        <div class="d-flex flex-column gap-3">
+                            @php
+                                $summaryTotal = max(1, $borrowSummary['active'] + $borrowSummary['pending'] + $borrowSummary['returned']);
+                                $summaryBars = [
+                                    ['label' => 'Active', 'value' => $borrowSummary['active'], 'max' => $summaryTotal, 'tone' => 'primary'],
+                                    ['label' => 'Pending', 'value' => $borrowSummary['pending'], 'max' => $summaryTotal, 'tone' => 'warning'],
+                                    ['label' => 'Returned', 'value' => $borrowSummary['returned'], 'max' => $summaryTotal, 'tone' => 'success'],
+                                    ['label' => 'Overdue', 'value' => $borrowSummary['overdue'], 'max' => $summaryTotal, 'tone' => 'danger'],
+                                ];
+                            @endphp
+
+                            @foreach ($summaryBars as $summary)
+                                <div>
+                                    <div class="d-flex justify-content-between small text-secondary mb-1">
+                                        <span>{{ $summary['label'] }}</span>
+                                        <span>{{ $summary['value'] }}</span>
+                                    </div>
+                                    <div class="progress rounded-pill" style="height: 0.7rem;">
+                                        <div class="progress-bar bg-{{ $summary['tone'] }}" role="progressbar" aria-valuenow="{{ $summary['value'] }}" aria-valuemin="0" aria-valuemax="{{ $summary['max'] }}" style="width: {{ $summary['value'] > 0 ? ($summary['value'] / $summary['max']) * 100 : 0 }}%"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
@@ -57,21 +85,19 @@
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h3 class="h4 fw-semibold mb-0 text-dark">My Borrowing Equipment</h3>
-                            <span class="text-secondary small">Last 7 Months</span>
+                            <h3 class="h4 fw-semibold mb-0 text-dark">My Active Borrowed Items</h3>
+                            <span class="text-secondary small">Current requests</span>
                         </div>
 
                         <div class="vstack gap-2">
-                            @foreach ([
-                                ['item' => 'Microscope (Compound)', 'return' => '2026-02-15'],
-                                ['item' => 'Digital pH Meter', 'return' => '2026-02-20'],
-                                ['item' => 'Safety Goggles', 'return' => '2026-02-16'],
-                            ] as $equipment)
+                            @forelse ($recentBorrowedItems as $equipment)
                                 <div class="activity-item d-flex flex-column gap-1">
-                                    <div class="fw-semibold text-dark">{{ $equipment['item'] }}</div>
-                                    <div class="small text-secondary">Return: {{ $equipment['return'] }}</div>
+                                    <div class="fw-semibold text-dark">{{ $equipment['name'] }}</div>
+                                    <div class="small text-secondary">{{ $equipment['type'] }} · {{ $equipment['laboratory'] }} · Due: {{ $equipment['return'] }}</div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="text-secondary small">No active borrowed items yet.</div>
+                            @endforelse
                         </div>
 
                         <div class="mt-3">

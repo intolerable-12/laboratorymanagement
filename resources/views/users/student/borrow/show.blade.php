@@ -37,6 +37,7 @@
                                     'Instructor Approved' => 'info',
                                     'Facilitator Approved' => 'primary',
                                     'Coordinator Approved' => 'success',
+                                    'Partially Borrowed' => 'warning',
                                     'Borrowed' => 'success',
                                     'Partially Returned' => 'primary',
                                     'Returned' => 'success',
@@ -102,7 +103,38 @@
                                                 </td>
                                                 <td>{{ $item->quantity_borrowed }}</td>
                                                 <td>{{ $item->condition_out }}</td>
-                                                <td>{{ $item->remarks ?? '—' }}</td>
+                                                @php
+                                                    $returnedQuantity = (float) $item->quantity_returned;
+                                                    $usedQuantity = (float) ($item->quantity_used ?? 0);
+                                                    $damagedQuantity = (float) $item->quantity_damaged;
+                                                    $lostQuantity = (float) $item->quantity_lost;
+                                                    $hasReturnSummary = $returnedQuantity > 0 || $usedQuantity > 0 || $damagedQuantity > 0 || $lostQuantity > 0;
+                                                    $returnUnit = $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)';
+                                                    $returnPrecision = $item->item_type === 'Chemical' ? 2 : 0;
+                                                @endphp
+                                                <td class="borrow-item-remarks">
+                                                    @if ($hasReturnSummary)
+                                                        <div class="small">
+                                                            @if ($returnedQuantity > 0)
+                                                                <div><span class="text-success fw-semibold">Returned:</span> {{ number_format($returnedQuantity, $returnPrecision) }} {{ $returnUnit }}</div>
+                                                            @endif
+                                                            @if ($usedQuantity > 0)
+                                                                <div><span class="text-warning-emphasis fw-semibold">Used:</span> {{ number_format($usedQuantity, $returnPrecision) }} {{ $returnUnit }}</div>
+                                                            @endif
+                                                            @if ($damagedQuantity > 0)
+                                                                <div><span class="text-danger fw-semibold">Damaged:</span> {{ number_format($damagedQuantity, $returnPrecision) }} {{ $returnUnit }}</div>
+                                                            @endif
+                                                            @if ($lostQuantity > 0)
+                                                                <div><span class="text-danger fw-semibold">Lost:</span> {{ number_format($lostQuantity, $returnPrecision) }} {{ $returnUnit }}</div>
+                                                            @endif
+                                                            @if ($item->condition_in)
+                                                                <div class="text-secondary mt-1">Condition in: {{ $item->condition_in }}</div>
+                                                            @endif
+                                                        </div>
+                                                    @else
+                                                        {{ $item->remarks ?? '—' }}
+                                                    @endif
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>

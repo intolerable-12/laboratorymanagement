@@ -49,6 +49,20 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
+        $archivedUserExists = User::withTrashed()
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim($credentials['email']))])
+            ->whereNotNull('deleted_at')
+            ->exists();
+
+        if ($archivedUserExists) {
+            return back()
+                ->withErrors([
+                    'email' => 'Your account has been archived and is currently unavailable for login. Please contact the laboratory coordinator or system administrator for assistance with reactivation.',
+                ])
+                ->withInput()
+                ->with('activeTab', 'login');
+        }
+
         if (! Auth::attempt($credentials)) {
             return back()
                 ->withErrors([
