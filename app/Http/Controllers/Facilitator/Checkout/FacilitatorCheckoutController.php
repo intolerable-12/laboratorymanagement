@@ -410,16 +410,24 @@ class FacilitatorCheckoutController extends Controller
     private function findScannedItem(BorrowTransaction $transaction, string $barcode): array
     {
         $equipment = Equipment::query()->where('barcode', $barcode)->first();
-        if ($equipment && $transaction->items()->where('item_type', 'Equipment')->where('item_id', $equipment->id)->exists()) {
-            return ['Equipment', $equipment];
+        if ($equipment) {
+            if ($transaction->items()->where('item_type', 'Equipment')->where('item_id', $equipment->id)->exists()) {
+                return ['Equipment', $equipment];
+            }
+
+            $this->checkoutError('barcode', 'Equipment "'.$equipment->equipment_name.'" is not part of this student’s approved borrow request.');
         }
 
         $chemical = Chemical::query()->where('barcode', $barcode)->first();
-        if ($chemical && $transaction->items()->where('item_type', 'Chemical')->where('item_id', $chemical->id)->exists()) {
-            return ['Chemical', $chemical];
+        if ($chemical) {
+            if ($transaction->items()->where('item_type', 'Chemical')->where('item_id', $chemical->id)->exists()) {
+                return ['Chemical', $chemical];
+            }
+
+            $this->checkoutError('barcode', 'Chemical "'.$chemical->chemical_name.'" is not part of this student’s approved borrow request.');
         }
 
-        $this->checkoutError('barcode', 'Barcode "'.$barcode.'" is not part of this student’s approved borrow request.');
+        $this->checkoutError('barcode', 'The scanned item could not be found in inventory.');
     }
 
     private function progressItems(BorrowTransaction $borrowTransaction): array
