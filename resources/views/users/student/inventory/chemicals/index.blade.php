@@ -4,6 +4,28 @@
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
+@php
+    $currentSort = $sort ?? request()->query('sort', 'category');
+    $currentDirection = $direction ?? request()->query('direction', 'asc');
+    $sortQuery = request()->except('page', 'sort', 'direction');
+
+    $sortUrl = function (string $column) use ($sortQuery, $currentSort, $currentDirection) {
+        $nextDirection = $currentSort === $column && $currentDirection === 'asc' ? 'desc' : 'asc';
+
+        return route('student.inventory.chemicals.index', array_merge($sortQuery, [
+            'sort' => $column,
+            'direction' => $nextDirection,
+        ]));
+    };
+
+    $sortIcon = function (string $column) use ($currentSort, $currentDirection) {
+        if ($currentSort !== $column) {
+            return 'fa-sort text-secondary opacity-50';
+        }
+
+        return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
+    };
+@endphp
 
 
 @section('content')
@@ -17,7 +39,7 @@
                     </a>
                     <span class="inventory-eyebrow mb-3">Chemical categories</span>
                     <h2 class="h3 fw-semibold text-dark mb-2">Choose a category to see available chemicals.</h2>
-                    <p class="mb-0 text-secondary">Each category card opens a grid of available chemicals with concise safety-aware details.</p>
+                    <p class="mb-0 text-secondary">Browse available chemical categories in a clear list with concise safety-aware details.</p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
@@ -27,39 +49,97 @@
             </div>
         </section>
 
-        <section class="inventory-rail-shell inventory-rail-shell--with-nav" data-inventory-rail-shell>
-            <button type="button" class="inventory-rail-nav inventory-rail-nav--prev" data-inventory-rail-prev aria-label="Scroll chemical categories left">
-                <i class="fa-solid fa-chevron-left"></i>
-            </button>
-            <button type="button" class="inventory-rail-nav inventory-rail-nav--next" data-inventory-rail-next aria-label="Scroll chemical categories right">
-                <i class="fa-solid fa-chevron-right"></i>
-            </button>
-            <div class="inventory-rail inventory-rail--category inventory-rail--chemical" data-inventory-rail>
-                @forelse ($categories as $category)
-                    <a href="{{ route('student.inventory.chemicals.categories.show', $category) }}" class="inventory-rail-card inventory-rail-card--category inventory-rail-card--chemical">
-                        <div class="inventory-rail-card__shine"></div>
-                        <div class="inventory-rail-card__media">
-                            @if (! empty($featuredImages[$category->id]))
-                                <img src="{{ asset('storage/' . $featuredImages[$category->id]) }}" alt="{{ $category->category_name }}">
-                            @else
-                                <div class="inventory-rail-card__placeholder inventory-rail-card__placeholder--category">
-                                    <span class="inventory-rail-card__placeholder-mark">
-                                        <i class="fa-solid fa-vial"></i>
-                                    </span>
-                                    
-                                </div>
-                            @endif
+        <section class="inventory-filter-card card border-0 mb-4">
+            <div class="card-body p-4">
+                <form method="GET" action="{{ route('student.inventory.chemicals.index') }}" class="row g-3 align-items-end" data-live-search-form="student-chemical-categories">
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <label for="chemical-category-search" class="form-label fw-semibold text-dark">Search categories</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-primary" aria-hidden="true"></i></span>
+                            <input type="search" id="chemical-category-search" name="search" value="{{ $search }}" class="form-control" placeholder="Search by category name, code, or description">
                         </div>
-                        <div class="inventory-rail-card__overlay inventory-rail-card__overlay--center">
-                            <div class="inventory-rail-card__title">{{ $category->category_name }}</div>
-                        </div>
-                    </a>
-                @empty
-                    <div class="inventory-rail-empty">
-                        No chemical categories are available right now.
                     </div>
-                @endforelse
+                    <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">Search</button>
+                        <a href="{{ route('student.inventory.chemicals.index') }}" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                    <input type="hidden" name="sort" value="{{ $currentSort }}">
+                    <input type="hidden" name="direction" value="{{ $currentDirection }}">
+                </form>
             </div>
         </section>
+
+        <div data-live-search-results="student-chemical-categories">
+            <section class="inventory-table-shell">
+                <div class="table-responsive">
+                    <table class="table inventory-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <a href="{{ $sortUrl('category') }}" class="inventory-table__sort-link">
+                                        Category <i class="fa-solid {{ $sortIcon('category') }}" aria-hidden="true"></i>
+                                    </a>
+                                </th>
+                                <th>Description</th>
+                                <th>
+                                    <a href="{{ $sortUrl('available') }}" class="inventory-table__sort-link">
+                                        Available items <i class="fa-solid {{ $sortIcon('available') }}" aria-hidden="true"></i>
+                                    </a>
+                                </th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($categories as $category)
+                                <tr>
+                                    <td>
+                                        <div class="inventory-table__identity">
+                                            <span class="inventory-table__media">
+                                                @if (! empty($featuredImages[$category->id]))
+                                                    <img src="{{ asset('storage/' . $featuredImages[$category->id]) }}" alt="{{ $category->category_name }}">
+                                                @else
+                                                    <i class="fa-solid fa-vial" aria-hidden="true"></i>
+                                                @endif
+                                            </span>
+                                            <div>
+                                                <div class="inventory-table__name">
+                                                    <a href="{{ route('student.inventory.chemicals.categories.show', $category) }}">{{ $category->category_name }}</a>
+                                                </div>
+                                                <div class="inventory-table__meta">{{ $category->category_code ?: 'Chemical category' }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="inventory-table__description">{{ $category->description ?: 'Available chemicals in this category.' }}</div></td>
+                                    <td>
+                                        <span class="inventory-table__badge {{ $category->available_chemical_count === 0 ? 'inventory-table__badge--muted' : '' }}">
+                                            <i class="fa-solid {{ $category->available_chemical_count === 0 ? 'fa-minus' : 'fa-circle-check' }}" aria-hidden="true"></i>
+                                            {{ $category->available_chemical_count }} item{{ $category->available_chemical_count === 1 ? '' : 's' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end inventory-table__action">
+                                        <a href="{{ route('student.inventory.chemicals.categories.show', $category) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                            View category <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-secondary py-5">
+                                        <i class="fa-solid fa-folder-open d-block fs-3 mb-2 text-primary"></i>
+                                        No chemical categories are available right now.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            @if ($categories->hasPages())
+                <div class="mt-4" data-live-search-pagination>
+                    {{ $categories->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
+            @endif
+        </div>
     </div>
 @endsection

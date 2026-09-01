@@ -2,15 +2,35 @@
 
 @section('title', 'Borrow Requests')
 @section('page-title', 'Borrow Requests')
-@section('page-subtitle', 'Review facilitator-approved borrow requests and take final action')
+@section('page-subtitle', 'Review all borrow requests and take final action when ready')
+
+@php
+    $currentSort = $sort ?? request()->query('sort', 'borrowed_at');
+    $currentDirection = $direction ?? request()->query('direction', 'desc');
+    $sortQuery = request()->except('page', 'sort', 'direction', 'status');
+    $sortUrl = function (string $column) use ($sortQuery, $currentSort, $currentDirection) {
+        $nextDirection = $currentSort === $column && $currentDirection === 'asc' ? 'desc' : 'asc';
+
+        return route('coordinator.borrow.index', array_merge($sortQuery, [
+            'sort' => $column,
+            'direction' => $nextDirection,
+        ]));
+    };
+    $sortIcon = function (string $column) use ($currentSort, $currentDirection) {
+        if ($currentSort !== $column) {
+            return 'fa-sort text-secondary opacity-50';
+        }
+
+        return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
+    };
+@endphp
 
 @section('content')
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">Coordinator Borrow Queue</h2>
-            <p class="mb-0 text-secondary">These requests were already approved by the facilitator.</p>
+            <p class="mb-0 text-secondary">All borrow requests are listed here, regardless of their current status.</p>
         </div>
-        <a href="{{ route('coordinator.borrow.index', ['status' => 'Facilitator Approved']) }}" class="btn btn-outline-secondary">Facilitator Approved</a>
     </div>
 
     @if (session('status'))
@@ -19,28 +39,14 @@
 
     <div class="card admin-card h-100">
         <div class="card-body p-4">
-            <form method="GET" action="{{ route('coordinator.borrow.index') }}" class="row g-3 align-items-end mb-4">
-                <div class="col-md-4 col-lg-3">
-                    <label class="form-label fw-semibold text-dark">Status filter</label>
-                    <select name="status" class="form-select">
-                        @foreach ($statuses as $option)
-                            <option value="{{ $option }}" @selected($status === $option)>{{ $option }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary px-4">Apply</button>
-                </div>
-            </form>
-
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-dark">Borrow</th>
-                            <th class="text-dark">Student</th>
-                            <th class="text-dark">Borrow Period</th>
-                            <th class="text-dark">Status</th>
+                            <th class="text-dark"><a href="{{ $sortUrl('borrow_no') }}" class="text-decoration-none text-dark">Borrow <i class="fa-solid {{ $sortIcon('borrow_no') }} small"></i></a></th>
+                            <th class="text-dark"><a href="{{ $sortUrl('student') }}" class="text-decoration-none text-dark">Student <i class="fa-solid {{ $sortIcon('student') }} small"></i></a></th>
+                            <th class="text-dark"><a href="{{ $sortUrl('borrowed_at') }}" class="text-decoration-none text-dark">Borrow Period <i class="fa-solid {{ $sortIcon('borrowed_at') }} small"></i></a></th>
+                            <th class="text-dark"><a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark">Status <i class="fa-solid {{ $sortIcon('status') }} small"></i></a></th>
                             <th class="text-center text-dark">Actions</th>
                         </tr>
                     </thead>
@@ -91,7 +97,7 @@
             </div>
 
             <div class="mt-4">
-                {{ $borrows->links('pagination::bootstrap-5') }}
+                {{ $borrows->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
         </div>
     </div>

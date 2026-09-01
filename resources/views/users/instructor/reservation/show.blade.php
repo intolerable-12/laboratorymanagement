@@ -118,38 +118,40 @@
                         </div>
 
                         @if ($reservation->status === 'Pending')
+                            <div data-shared-remarks>
                             <div class="row g-3">
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <form method="POST" action="{{ route('instructor.reservations.approve', $reservation) }}" class="card border-0 bg-light h-100">
                                         @csrf
+                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
                                         <div class="card-body p-3 p-xl-4">
                                             <h4 class="h5 fw-semibold text-dark mb-2">Approve Request</h4>
                                             <p class="small text-secondary mb-3">Add an optional note before forwarding the request to the facilitator.</p>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold text-dark">Remarks</label>
-                                                <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Optional approval note">{{ old('remarks') }}</textarea>
-                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
-                                            <button type="submit" class="btn btn-success w-100">Approve and Forward</button>
+                                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('Approve this reservation request and forward it?');">Approve and Forward</button>
                                         </div>
                                     </form>
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <form method="POST" action="{{ route('instructor.reservations.reject', $reservation) }}" class="card border-0 bg-light h-100">
                                         @csrf
+                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
                                         <div class="card-body p-3 p-xl-4">
                                             <h4 class="h5 fw-semibold text-dark mb-2">Reject Request</h4>
                                             <p class="small text-secondary mb-3">A rejection reason is required so the student knows what to fix.</p>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold text-dark">Remarks</label>
-                                                <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Explain why the request was rejected" required>{{ old('remarks') }}</textarea>
-                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
                                             <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this reservation request?');">Reject</button>
                                         </div>
                                     </form>
                                 </div>
+                            </div>
+                            <div class="card border-0 bg-light mt-3">
+                                <div class="card-body p-3 p-xl-4">
+                                    <label for="reservation-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                    <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                    <textarea id="reservation-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                    @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
                             </div>
                         @endif
                     </div>

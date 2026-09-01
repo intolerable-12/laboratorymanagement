@@ -4,6 +4,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import Quill from 'quill';
 import './barcode';
 import './checkin';
+import './request-items';
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
@@ -781,6 +782,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         shell.dataset.announcementFeedInitialized = 'true';
+    });
+
+    document.querySelectorAll('[data-shared-remarks]').forEach((remarksContainer) => {
+        const remarksInput = remarksContainer.querySelector('[data-shared-remarks-input]');
+        const remarksFields = remarksContainer.querySelectorAll('[data-shared-remarks-field]');
+
+        if (!remarksInput || remarksFields.length === 0) {
+            return;
+        }
+
+        const syncRemarks = () => {
+            remarksFields.forEach((field) => {
+                field.value = remarksInput.value;
+            });
+        };
+
+        remarksInput.addEventListener('input', syncRemarks);
+        remarksContainer.querySelectorAll('form').forEach((form) => {
+            form.addEventListener('submit', syncRemarks);
+        });
+        syncRemarks();
     });
 
     const liveSearchForms = document.querySelectorAll('[data-live-search-form]');

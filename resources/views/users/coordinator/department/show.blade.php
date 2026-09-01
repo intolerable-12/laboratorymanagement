@@ -67,7 +67,7 @@
                                         <td>{{ $user->userID }}</td>
                                         <td>{{ $user->role->role_name ?? '-' }}</td>
                                         <td>
-                                            <span class="badge text-bg-{{ $user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary') }}">
+                                            <span class="badge text-bg-{{ $user->status === 'Active' ? 'success' : 'secondary' }}">
                                                 {{ $user->status }}
                                             </span>
                                         </td>

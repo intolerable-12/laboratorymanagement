@@ -16,16 +16,28 @@ class InstructorBorrowController extends Controller
 	{
 		$this->ensureInstructor($request);
 
-		$status = $request->query('status', 'Pending');
+		$sort = $request->query('sort', 'borrowed_at');
+		$direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+		$sortableColumns = [
+			'borrow_no' => 'borrow_transactions.borrow_no',
+			'student' => 'borrowers.last_name',
+			'borrowed_at' => 'borrow_transactions.borrowed_at',
+			'status' => 'borrow_transactions.status',
+		];
+
+		if (! array_key_exists($sort, $sortableColumns)) {
+			$sort = 'borrowed_at';
+		}
 
 		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
-			->when($status !== 'All', fn ($query) => $query->where('status', $status))
-			->latest()
+			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
+			->select('borrow_transactions.*')
+			->orderBy($sortableColumns[$sort], $direction)
+			->when($sort === 'student', fn ($query) => $query->orderBy('borrowers.first_name', $direction))
+			->orderByDesc('borrow_transactions.id')
 			->paginate(10);
 
-		$statuses = ['All', 'Pending', 'Instructor Approved', 'Facilitator Approved', 'Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Partially Returned', 'Returned', 'Overdue', 'Rejected', 'Cancelled'];
-
-		return view('users.instructor.borrow.index', compact('borrows', 'status', 'statuses'));
+		return view('users.instructor.borrow.index', compact('borrows', 'sort', 'direction'));
 	}
 
 	public function show(Request $request, BorrowTransaction $borrowTransaction)

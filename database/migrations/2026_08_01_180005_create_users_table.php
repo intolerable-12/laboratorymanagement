@@ -51,8 +51,7 @@ return new class extends Migration
             // Account Status
             $table->enum('status', [
                 'Active',
-                'Inactive',
-                'Suspended'
+                'Archived'
             ])->default('Active');
 
             $table->timestamp('email_verified_at')->nullable();

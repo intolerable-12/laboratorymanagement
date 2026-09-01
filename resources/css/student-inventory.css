@@ -145,6 +145,162 @@
     font-weight: 600;
 }
 
+.inventory-filter-card {
+    border: 1px solid var(--role-border-color);
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.inventory-table-shell {
+    overflow: hidden;
+    border: 1px solid var(--role-border-color);
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.inventory-table {
+    min-width: 720px;
+    margin-bottom: 0;
+}
+
+.inventory-table thead th {
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--role-border-color);
+    background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
+    color: var(--role-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.inventory-table tbody td {
+    padding: 1rem 1.15rem;
+    border-color: rgba(217, 225, 234, 0.72);
+    color: var(--role-text);
+    vertical-align: middle;
+}
+
+.inventory-table tbody tr {
+    transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.inventory-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(255, 241, 247, 0.6), rgba(238, 244, 255, 0.52));
+}
+
+.inventory-table__identity {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 15rem;
+}
+
+.inventory-table__media {
+    width: 3.25rem;
+    height: 3.25rem;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid var(--role-border-color);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+    color: var(--role-accent-deep);
+    font-size: 1.15rem;
+}
+
+.inventory-table__media img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.inventory-table__name {
+    color: var(--role-text);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.inventory-table__name a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.inventory-table__name a:hover,
+.inventory-table__name a:focus-visible {
+    color: var(--role-accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+}
+
+.inventory-table__sort-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.inventory-table__sort-link:hover,
+.inventory-table__sort-link:focus-visible {
+    color: var(--role-accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+}
+
+.inventory-table__meta {
+    margin-top: 0.2rem;
+    color: var(--role-muted);
+    font-size: 0.78rem;
+}
+
+.inventory-table__description {
+    max-width: 28rem;
+    color: var(--role-muted);
+    line-height: 1.5;
+}
+
+.inventory-table__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.65rem;
+    border: 1px solid rgba(15, 118, 110, 0.16);
+    border-radius: 999px;
+    background: #e8fff6;
+    color: #0f766e;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.inventory-table__badge--muted {
+    border-color: var(--role-border-color);
+    background: var(--role-surface-soft);
+    color: var(--role-muted);
+}
+
+.inventory-table__action {
+    white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+    .inventory-table-shell {
+        border-radius: 1rem;
+    }
+
+    .inventory-table thead th,
+    .inventory-table tbody td {
+        padding-inline: 0.85rem;
+    }
+}
+
 .inventory-stat {
     display: flex;
     align-items: center;
