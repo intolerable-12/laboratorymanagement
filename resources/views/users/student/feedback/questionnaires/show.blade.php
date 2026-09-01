@@ -1,6 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'Questionnaire')
+@section('page-title', 'Questionnaire')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
@@ -29,40 +30,53 @@
             </div>
         @endif
 
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <div>
-                <h2 class="h4 fw-bold mb-0 text-dark">
-                    <i class="fa-solid fa-clipboard-question me-2 text-danger"></i>{{ $feedbackQuestionnaire->topic }}
-                </h2>
-                <div class="text-secondary small">
-                    {{ $feedbackQuestionnaire->questions->count() }} questions
-                    @if ($response)
-                        &bull; Submitted on {{ $response->created_at?->format('M d, Y h:i A') }}
-                    @endif
+        <div class="questionnaire-hero-card section-card mb-3">
+            <div class="questionnaire-hero-content">
+                <div class="questionnaire-hero-icon" aria-hidden="true">
+                    <i class="fa-solid fa-clipboard-question"></i>
                 </div>
+                <div class="flex-grow-1">
+                    <div class="social-eyebrow mb-2">Feedback questionnaire</div>
+                    <h2 class="h3 fw-bold text-dark mb-2">{{ $feedbackQuestionnaire->topic }}</h2>
+                    <div class="d-flex flex-wrap align-items-center gap-2 text-secondary small">
+                        <span><i class="fa-regular fa-circle-question me-1"></i>{{ $feedbackQuestionnaire->questions->count() }} questions</span>
+                        @if ($response)
+                            <span class="questionnaire-meta-divider" aria-hidden="true">&bull;</span>
+                            <span><i class="fa-regular fa-calendar-check me-1"></i>Submitted {{ $response->created_at?->format('M d, Y h:i A') }}</span>
+                        @else
+                            <span class="questionnaire-meta-divider" aria-hidden="true">&bull;</span>
+                            <span><i class="fa-regular fa-clock me-1"></i>One response allowed</span>
+                        @endif
+                    </div>
+                </div>
+                <a href="{{ route('student.feedback.index') }}" class="btn btn-sm btn-outline-secondary px-3 rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i>Back
+                </a>
             </div>
-
-            <a href="{{ route('student.feedback.index') }}" class="btn btn-sm btn-outline-secondary px-3 rounded-pill">
-                <i class="fa-solid fa-arrow-left me-1"></i>Back
-            </a>
         </div>
 
         <div class="row g-3 align-items-start">
             <div class="col-12">
-                <div class="section-card mb-3">
-                    <div class="card-header bg-white border-bottom p-3">
-                        <div class="social-eyebrow mb-1 small text-uppercase fw-bold text-muted">
-                            <i class="fa-solid fa-file-lines me-1"></i>Questionnaire Overview
+                <div class="section-card questionnaire-card mb-3">
+                    <div class="questionnaire-overview">
+                        <div class="social-eyebrow mb-2 small text-uppercase fw-bold text-muted">
+                            <i class="fa-solid fa-file-lines me-1"></i>Questionnaire overview
                         </div>
                         <div class="rte-content small text-secondary">
                             {!! $feedbackQuestionnaire->description ?: 'No description provided.' !!}
                         </div>
+                        @if (! $response)
+                            <div class="questionnaire-required-note mt-3" role="note">
+                                <span class="questionnaire-required-mark" aria-hidden="true">*</span>
+                                <span>Required questions must be answered before submitting.</span>
+                            </div>
+                        @endif
                     </div>
 
                     @if ($response)
                         @if ($hasLikert)
                             <div class="questionnaire-likert-wrap">
-                                <table class="table questionnaire-likert-table align-middle mb-0">
+                                <table class="table questionnaire-likert-table align-middle mb-0" aria-label="Likert scale questions">
                                     <thead>
                                         <tr>
                                             <th scope="col" class="questionnaire-likert-statement">Statement</th>
@@ -83,11 +97,13 @@
                                                 @endphp
                                                 <tr>
                                                     <th scope="row" class="questionnaire-likert-question">
-                                                        <span class="questionnaire-question-number">{{ $index + 1 }}</span>
-                                                        <span class="rte-content">{!! $question->question_text !!}</span>
-                                                        @if ($question->is_required)
-                                                            <span class="text-danger ms-1" title="Required">*</span>
-                                                        @endif
+                                                        <div class="questionnaire-question-label">
+                                                            <span class="questionnaire-question-number">{{ $index + 1 }}</span>
+                                                            <div class="questionnaire-question-copy rte-content">{!! $question->question_text !!}</div>
+                                                            @if ($question->is_required)
+                                                                <span class="questionnaire-required-mark questionnaire-required-mark--inline" title="Required">*</span>
+                                                            @endif
+                                                        </div>
                                                     </th>
                                                     @foreach ($likertLabels as $value => $label)
                                                         <td class="text-center">
@@ -116,11 +132,11 @@
                                     @if ($question->question_type !== 'likert')
                                         @php $answer = $answersByQuestion->get($question->id); @endphp
                                         <div class="questionnaire-written-card">
-                                            <div class="questionnaire-written-question">
+                                            <div class="questionnaire-written-question questionnaire-question-label">
                                                 <span class="questionnaire-question-number">{{ $index + 1 }}</span>
-                                                <span class="rte-content">{!! $question->question_text !!}</span>
+                                                <div class="questionnaire-question-copy rte-content">{!! $question->question_text !!}</div>
                                                 @if ($question->is_required)
-                                                    <span class="text-danger ms-1" title="Required">*</span>
+                                                    <span class="questionnaire-required-mark questionnaire-required-mark--inline" title="Required">*</span>
                                                 @endif
                                             </div>
                                             <div class="questionnaire-written-answer rte-content small">
@@ -132,12 +148,12 @@
                             </div>
                         @endif
                     @else
-                        <form method="POST" action="{{ route('student.feedback.questionnaires.store', $feedbackQuestionnaire) }}">
+                        <form method="POST" action="{{ route('student.feedback.questionnaires.store', $feedbackQuestionnaire) }}" data-required-indicators="manual">
                             @csrf
 
                             @if ($hasLikert)
                                 <div class="questionnaire-likert-wrap">
-                                    <table class="table questionnaire-likert-table align-middle mb-0">
+                                    <table class="table questionnaire-likert-table align-middle mb-0" aria-label="Likert scale questions">
                                         <thead>
                                             <tr>
                                                 <th scope="col" class="questionnaire-likert-statement">Statement</th>
@@ -154,11 +170,13 @@
                                                 @if ($question->question_type === 'likert')
                                                     <tr class="@error('answers.' . $question->id) bg-danger-subtle @enderror">
                                                         <th scope="row" class="questionnaire-likert-question">
-                                                            <span class="questionnaire-question-number">{{ $index + 1 }}</span>
-                                                            <span class="rte-content">{!! $question->question_text !!}</span>
-                                                            @if ($question->is_required)
-                                                                <span class="text-danger ms-1" title="Required">*</span>
-                                                            @endif
+                                                            <div class="questionnaire-question-label">
+                                                                <span class="questionnaire-question-number">{{ $index + 1 }}</span>
+                                                                <div class="questionnaire-question-copy rte-content">{!! $question->question_text !!}</div>
+                                                                @if ($question->is_required)
+                                                                    <span class="questionnaire-required-mark questionnaire-required-mark--inline" title="Required">*</span>
+                                                                @endif
+                                                            </div>
                                                         </th>
                                                         @foreach ($likertLabels as $value => $label)
                                                             @php $inputId = 'q_' . $question->id . '_' . $value; @endphp
@@ -199,11 +217,11 @@
                                     @foreach ($feedbackQuestionnaire->questions as $index => $question)
                                         @if ($question->question_type !== 'likert')
                                             <div class="questionnaire-written-card @error('answers.' . $question->id) border-danger @enderror">
-                                                <div class="questionnaire-written-question">
+                                                <div class="questionnaire-written-question questionnaire-question-label">
                                                     <span class="questionnaire-question-number">{{ $index + 1 }}</span>
-                                                    <span class="rte-content">{!! $question->question_text !!}</span>
+                                                    <div class="questionnaire-question-copy rte-content">{!! $question->question_text !!}</div>
                                                     @if ($question->is_required)
-                                                        <span class="text-danger ms-1" title="Required">*</span>
+                                                        <span class="questionnaire-required-mark questionnaire-required-mark--inline" title="Required">*</span>
                                                     @else
                                                         <span class="text-muted fw-normal extra-small ms-1">(Optional)</span>
                                                     @endif

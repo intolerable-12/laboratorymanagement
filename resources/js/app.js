@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return fieldWrapper?.querySelector('label') ?? null;
     };
 
+    const shouldManageRequiredIndicator = (field) => field.closest('form')?.dataset.requiredIndicators !== 'manual';
+
     const markRequiredLabel = (label) => {
         if (!label || label.querySelector('.required-indicator')) {
             return;
@@ -97,11 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             field.setAttribute('aria-required', isRequired ? 'true' : 'false');
 
-            const label = findRequiredFieldLabel(field);
-            if (isRequired) {
-                markRequiredLabel(label);
-            } else {
-                unmarkRequiredLabel(label);
+            if (shouldManageRequiredIndicator(field)) {
+                const label = findRequiredFieldLabel(field);
+                if (isRequired) {
+                    markRequiredLabel(label);
+                } else {
+                    unmarkRequiredLabel(label);
+                }
             }
 
             if (field.dataset.requiredWhen && !field.dataset.requiredWhenListener) {
@@ -113,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const form = field.closest('form');
-            if (form && isRequired) {
+            if (form && isRequired && shouldManageRequiredIndicator(field)) {
                 forms.add(form);
             }
         });

@@ -1658,6 +1658,72 @@ body.coordinator-page {
     --bs-table-color: #fff;
 }
 
+.role-page .questionnaire-hero-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #fff7fb 100%);
+}
+
+.role-page .questionnaire-hero-card::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.35rem;
+    background: linear-gradient(180deg, #ff67ab 0%, #ff2e7b 100%);
+    content: "";
+}
+
+.role-page .questionnaire-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+}
+
+.role-page .questionnaire-hero-icon {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 3.25rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #ff67ab 0%, #ff2e7b 100%);
+    color: #fff;
+    font-size: 1.25rem;
+    box-shadow: 0 10px 22px rgba(255, 46, 123, 0.2);
+}
+
+.role-page .questionnaire-meta-divider {
+    color: var(--role-accent);
+}
+
+.role-page .questionnaire-card {
+    overflow: hidden;
+}
+
+.role-page .questionnaire-overview {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--role-border-color);
+    background: linear-gradient(180deg, #ffffff 0%, #fffafd 100%);
+}
+
+.role-page .questionnaire-required-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid rgba(255, 79, 154, 0.2);
+    border-radius: 0.65rem;
+    background: var(--role-accent-soft);
+    color: var(--role-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.role-page .questionnaire-required-mark {
+    color: var(--bs-danger);
+    font-weight: 800;
+}
+
 .role-page .questionnaire-likert-wrap {
     overflow-x: auto;
 }
@@ -1715,6 +1781,42 @@ body.coordinator-page {
     color: var(--role-text);
     font-size: 0.88rem;
     font-weight: 600;
+}
+
+.role-page .questionnaire-likert-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.role-page .questionnaire-likert-table tbody tr:not(.questionnaire-error-row):hover {
+    background: #fff9fc;
+}
+
+.role-page .questionnaire-question-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.role-page .questionnaire-question-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.55;
+}
+
+.role-page .questionnaire-question-copy p {
+    margin: 0;
+}
+
+.role-page .questionnaire-question-copy p + p {
+    margin-top: 0.3rem;
+}
+
+.role-page .questionnaire-required-mark--inline {
+    flex: 0 0 auto;
+    margin-top: 0.1rem;
+    font-size: 1rem;
+    line-height: 1.2;
 }
 
 .role-page .questionnaire-question-number {
@@ -1826,6 +1928,10 @@ body.coordinator-page {
     font-weight: 600;
 }
 
+.role-page .questionnaire-written-question .questionnaire-question-copy {
+    font-weight: 600;
+}
+
 .role-page .questionnaire-written-answer {
     min-height: 3.5rem;
     padding: 0.85rem 1rem;
@@ -1835,6 +1941,20 @@ body.coordinator-page {
 }
 
 @media (max-width: 767.98px) {
+    .role-page .questionnaire-hero-content {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 1.15rem 1.15rem;
+    }
+
+    .role-page .questionnaire-hero-content .btn {
+        margin-left: 4.25rem;
+    }
+
+    .role-page .questionnaire-overview {
+        padding: 1.1rem 1rem;
+    }
+
     .role-page .questionnaire-likert-table {
         min-width: 650px;
     }
