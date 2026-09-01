@@ -14,12 +14,6 @@
             <div class="alert alert-success mb-4">{{ session('status') }}</div>
         @endif
 
-        <section class="hero-banner card border-0 mb-4">
-            <div class="card-body p-4 p-xl-5">
-                <h2 class="h3 fw-semibold mb-0 text-dark">My Account</h2>
-            </div>
-        </section>
-
         <section class="row g-4 mb-4">
             <div class="col-lg-6">
                 <div class="card section-card border-0 h-100">

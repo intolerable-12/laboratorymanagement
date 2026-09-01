@@ -1,6 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'My Reservations')
+@section('page-title', 'My Reservations')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
@@ -38,12 +39,12 @@
 					<table class="table align-middle">
 						<thead>
 							<tr class="text-secondary small text-uppercase">
-								<th>Reservation</th>
-								<th>Laboratory</th>
-								<th>Schedule</th>
-								<th>Items</th>
-								<th>Status</th>
-								<th class="text-end">Actions</th>
+								<th class="text-dark">Reservation</th>
+								<th class="text-dark">Laboratory</th>
+								<th class="text-dark">Schedule</th>
+								<th class="text-dark">Items</th>
+								<th class="text-dark">Status</th>
+								<th class="text-center text-dark">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -81,7 +82,7 @@
 											{{ $reservation->status }}
 										</span>
 									</td>
-									<td class="text-end">
+									<td class="text-center">
 										<a href="{{ route('student.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">View</a>
 									</td>
 								</tr>

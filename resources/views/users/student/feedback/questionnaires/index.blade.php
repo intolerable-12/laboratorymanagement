@@ -1,6 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'Feedback Questionnaires')
+@section('page-title', 'Feedback Questionnaires')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 

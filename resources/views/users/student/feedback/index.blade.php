@@ -1,6 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'Feedback')
+@section('page-title', 'Feedback')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
@@ -45,10 +46,10 @@
                     <table class="table table-hover align-middle mb-0 table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col" class="ps-3">Topic</th>
-                                <th scope="col">Questions</th>
-                                <th scope="col">Status</th>
-                                <th scope="col" class="text-end pe-3">Action</th>
+                                <th scope="col" class="text-dark ps-3">Topic</th>
+                                <th scope="col" class="text-dark">Questions</th>
+                                <th scope="col" class="text-dark">Status</th>
+                                <th scope="col" class="text-center text-dark pe-3">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -66,7 +67,7 @@
                                             {{ $questionnaire->user_response_count > 0 ? 'Answered' : 'Open' }}
                                         </span>
                                     </td>
-                                    <td class="text-end pe-3">
+                                    <td class="text-center pe-3">
                                         <a href="{{ route('student.feedback.questionnaires.show', $questionnaire) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fa-solid fa-clipboard-check me-1"></i>
                                             {{ $questionnaire->user_response_count > 0 ? 'View response' : 'Answer' }}

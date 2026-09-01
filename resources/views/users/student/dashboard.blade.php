@@ -6,7 +6,7 @@
 @section('content')
     <div class="student-dashboard">
         <section class="hero-banner card border-0 mb-4">
-            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-php items-lg-center justify-content-between gap-3">
                 <div>
                     <h2 class="h3 fw-semibold mb-2 text-dark">Welcome Back, Student!</h2>
                     <p class="mb-0 text-secondary">Here's your laboratory reservation, borrowing, and inventory overview.</p>
