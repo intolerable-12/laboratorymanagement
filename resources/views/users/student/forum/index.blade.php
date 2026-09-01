@@ -1,6 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'Forum')
+@section('page-title', 'Forum') 
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 

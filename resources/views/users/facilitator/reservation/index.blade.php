@@ -90,7 +90,7 @@
                                     <td>
                                         <span class="badge text-bg-{{ $statusTone }}">{{ $reservation->status }}</span>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-center">
                                         <a href="{{ route('facilitator.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">Review</a>
                                     </td>
                                 </tr>

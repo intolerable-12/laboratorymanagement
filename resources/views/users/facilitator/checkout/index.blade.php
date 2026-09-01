@@ -36,13 +36,13 @@
                 <div class="table-responsive">
                     <table class="table align-middle">
                         <thead>
-                            <tr class="text-secondary small text-uppercase">
-                                <th>Borrow</th>
-                                <th>Student</th>
-                                <th>Scheduled</th>
-                                <th>Items</th>
-                                <th>Status</th>
-                                <th class="text-end">Action</th>
+                            <tr>
+                                <th class="text-dark">Borrow</th>
+                                <th class="text-dark">Student</th>
+                                <th class="text-dark">Scheduled</th>
+                                <th class="text-dark">Items</th>
+                                <th class="text-dark">Status</th>
+                                <th class="text-center text-dark">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,7 +67,7 @@
                                     </td>
                                     <td>{{ $itemCount }} item{{ $itemCount === 1 ? '' : 's' }}</td>
                                     <td><span class="badge text-bg-{{ $statusTone }}">{{ $borrow->status === 'Coordinator Approved' && $ready ? 'Ready' : $borrow->status }}</span></td>
-                                    <td class="text-end">
+                                    <td class="text-center">
                                         <a href="{{ route('facilitator.checkout.show', $borrow) }}" class="btn btn-sm btn-{{ $ready ? 'primary' : 'outline-secondary' }}">{{ $borrow->status === 'Partially Borrowed' ? 'Continue' : 'Open Checkout' }}</a>
                                     </td>
                                 </tr>
