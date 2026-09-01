@@ -58,6 +58,16 @@ class ReservationController extends Controller
 
         $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
         $chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
+        $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
+        $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
+        $selectedEquipmentItems = Equipment::query()
+            ->whereIn('id', array_keys($oldEquipmentSelections))
+            ->get()
+            ->keyBy('id');
+        $selectedChemicalItems = Chemical::query()
+            ->whereIn('id', array_keys($oldChemicalSelections))
+            ->get()
+            ->keyBy('id');
         $schoolYears = SchoolYear::orderByDesc('is_current')->orderByDesc('start_date')->get(['id', 'school_year', 'is_current']);
         $semesters = Semester::orderBy('display_order')->get(['id', 'semester_name', 'display_order']);
 
@@ -73,7 +83,20 @@ class ReservationController extends Controller
             }
         }
 
-        return view('users.student.reservation.create', compact('laboratories', 'equipmentItems', 'chemicalItems', 'schoolYears', 'semesters', 'activeTab', 'selectedLaboratoryId', 'reservationMinDate'));
+        return view('users.student.reservation.create', compact(
+            'laboratories',
+            'equipmentItems',
+            'chemicalItems',
+            'schoolYears',
+            'semesters',
+            'activeTab',
+            'selectedLaboratoryId',
+            'reservationMinDate',
+            'oldEquipmentSelections',
+            'oldChemicalSelections',
+            'selectedEquipmentItems',
+            'selectedChemicalItems'
+        ));
     }
 
     public function store(Request $request)
@@ -94,6 +117,18 @@ class ReservationController extends Controller
             $schoolYear = SchoolYear::findOrFail($data['school_year_id']);
             $laboratory = Laboratory::findOrFail($data['laboratory_id']);
             $codeGenerator = app(SequentialCodeGenerator::class);
+
+            $coordinatorApprovedConflict = Reservation::query()
+                ->where('laboratory_id', $data['laboratory_id'])
+                ->whereDate('reservation_date', $data['reservation_date'])
+                ->where('status', 'Coordinator Approved')
+                ->exists();
+
+            if ($coordinatorApprovedConflict) {
+                throw ValidationException::withMessages([
+                    'reservation_date' => 'This laboratory is already reserved on the selected date by an approved reservation.',
+                ]);
+            }
 
             $reservation = Reservation::create([
                 'reservation_no' => $codeGenerator->reservationNumber($schoolYear, $laboratory),
@@ -205,6 +240,18 @@ class ReservationController extends Controller
         if ($reservationDate->lt($minimumReservationDate)) {
             throw ValidationException::withMessages([
                 'reservation_date' => 'Reservation dates must be at least 3 business days in advance.',
+            ]);
+        }
+
+        $coordinatorApprovedConflict = Reservation::query()
+            ->where('laboratory_id', $data['laboratory_id'])
+            ->whereDate('reservation_date', $data['reservation_date'])
+            ->where('status', 'Coordinator Approved')
+            ->exists();
+
+        if ($coordinatorApprovedConflict) {
+            throw ValidationException::withMessages([
+                'reservation_date' => 'This laboratory is already reserved on the selected date by an approved reservation.',
             ]);
         }
 

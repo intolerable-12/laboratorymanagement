@@ -1,5 +1,5 @@
 @php
-    $statuses = ['Active', 'Inactive', 'Suspended'];
+    $statuses = ['Active'];
     $genders = ['Male', 'Female'];
 @endphp
 

@@ -79,3 +79,32 @@ it('accepts well-formed user data', function () {
     $response->assertRedirect(route('coordinator.users.index'));
     $this->assertDatabaseHas('users', ['email' => 'maria.cruz@lccdo.edu.ph', 'userID' => 'STU-2025']);
 });
+
+it('rejects inactive and suspended user statuses', function () {
+    $coordinatorRole = Role::create(['role_name' => 'Coordinator']);
+    $instructorRole = Role::create(['role_name' => 'Instructor']);
+    $coordinator = User::create([
+        'userID' => 'C-1003',
+        'first_name' => 'Carol',
+        'last_name' => 'Coordinator',
+        'email' => 'carol.coordinator@lccdo.edu.ph',
+        'password' => bcrypt('password123'),
+        'role_id' => $coordinatorRole->id,
+        'status' => 'Active',
+    ]);
+
+    foreach (['Inactive', 'Suspended'] as $status) {
+        $response = $this->actingAs($coordinator)
+            ->post(route('coordinator.users.store'), [
+                'userID' => 'INS-' . $status,
+                'first_name' => 'Maria',
+                'last_name' => 'Cruz',
+                'email' => strtolower($status) . '.user@lccdo.edu.ph',
+                'role_id' => $instructorRole->id,
+                'status' => $status,
+                'password' => 'StrongPass1',
+            ]);
+
+        $response->assertSessionHasErrors('status');
+    }
+});

@@ -169,6 +169,16 @@ class StudentBorrowController extends Controller
 
 		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
 		$chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
+		$oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
+		$oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
+		$selectedEquipmentItems = Equipment::query()
+			->whereIn('id', array_keys($oldEquipmentSelections))
+			->get()
+			->keyBy('id');
+		$selectedChemicalItems = Chemical::query()
+			->whereIn('id', array_keys($oldChemicalSelections))
+			->get()
+			->keyBy('id');
 
 		if ($request->ajax()) {
 			$fragment = $request->query('fragment', $activeTab);
@@ -182,7 +192,16 @@ class StudentBorrowController extends Controller
 			}
 		}
 
-		return view('users.student.borrow.create', compact('equipmentItems', 'chemicalItems', 'activeTab', 'borrowDateMin'));
+		return view('users.student.borrow.create', compact(
+			'equipmentItems',
+			'chemicalItems',
+			'activeTab',
+			'borrowDateMin',
+			'oldEquipmentSelections',
+			'oldChemicalSelections',
+			'selectedEquipmentItems',
+			'selectedChemicalItems'
+		));
 	}
 
 	public function store(Request $request)

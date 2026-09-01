@@ -8,15 +8,35 @@
 	@include('users.instructor.partials.nav-links', ['active' => 'approvals'])
 @endsection
 
+@php
+	$currentSort = $sort ?? request()->query('sort', 'reservation_date');
+	$currentDirection = $direction ?? request()->query('direction', 'desc');
+	$sortQuery = request()->except('page', 'sort', 'direction', 'status');
+	$sortUrl = function (string $column) use ($sortQuery, $currentSort, $currentDirection) {
+		$nextDirection = $currentSort === $column && $currentDirection === 'asc' ? 'desc' : 'asc';
+
+		return route('instructor.reservations.index', array_merge($sortQuery, [
+			'sort' => $column,
+			'direction' => $nextDirection,
+		]));
+	};
+	$sortIcon = function (string $column) use ($currentSort, $currentDirection) {
+		if ($currentSort !== $column) {
+			return 'fa-sort text-secondary opacity-50';
+		}
+
+		return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
+	};
+@endphp
+
 @section('content')
 	<div class="account-page">
 		<section class="hero-banner card border-0 mb-4">
 			<div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
 				<div>
 					<h2 class="h3 fw-semibold mb-2 text-dark">Reservation Approvals</h2>
-					<p class="mb-0 text-secondary">Review student requests and decide whether to approve or reject them.</p>
+					<p class="mb-0 text-secondary">Review all student reservation requests and decide whether to approve or reject them.</p>
 				</div>
-				<a href="{{ route('instructor.reservations.index', ['status' => 'Pending']) }}" class="btn btn-outline-secondary px-4">Pending First</a>
 			</div>
 		</section>
 
@@ -26,30 +46,16 @@
 
 		<div class="card section-card border-0 mb-4">
 			<div class="card-body p-4 p-xl-5">
-				<form method="GET" action="{{ route('instructor.reservations.index') }}" class="row g-3 align-items-end mb-4">
-					<div class="col-md-4 col-lg-3">
-						<label class="form-label fw-semibold text-dark">Status filter</label>
-						<select name="status" class="form-select">
-							@foreach ($statuses as $option)
-								<option value="{{ $option }}" @selected($status === $option)>{{ $option }}</option>
-							@endforeach
-						</select>
-					</div>
-					<div class="col-auto">
-						<button class="btn btn-primary px-4" type="submit">Apply</button>
-					</div>
-				</form>
-
 				<div class="table-responsive">
 					<table class="table align-middle">
 						<thead>
 							<tr class="text-secondary small text-uppercase">
-								<th class="text-dark">Reservation</th>
-								<th class="text-dark">Student</th>
-								<th class="text-dark">Laboratory</th>
-								<th class="text-dark">Schedule</th>
-								<th class="text-dark">Status</th>
-								<th class="text-center text-dark">Actions</th>
+								<th><a href="{{ $sortUrl('reservation_no') }}" class="text-decoration-none text-dark">Reservation <i class="fa-solid {{ $sortIcon('reservation_no') }} small"></i></a></th>
+								<th><a href="{{ $sortUrl('student') }}" class="text-decoration-none text-dark">Student <i class="fa-solid {{ $sortIcon('student') }} small"></i></a></th>
+								<th><a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i></a></th>
+								<th><a href="{{ $sortUrl('reservation_date') }}" class="text-decoration-none text-dark">Schedule <i class="fa-solid {{ $sortIcon('reservation_date') }} small"></i></a></th>
+								<th><a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark">Status <i class="fa-solid {{ $sortIcon('status') }} small"></i></a></th>
+								<th class="text-end">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -101,7 +107,7 @@
 				</div>
 
 				<div class="mt-4">
-					{{ $reservations->links('pagination::bootstrap-5') }}
+					{{ $reservations->withQueryString()->links('pagination::bootstrap-5') }}
 				</div>
 			</div>
 		</div>

@@ -89,6 +89,7 @@ class UserManagementController extends Controller
     {
         $this->preventCoordinatorDeletion($user);
 
+        $user->update(['status' => 'Archived']);
         $user->delete();
 
         return redirect()->route('coordinator.users.index')->with('status', 'User archived successfully.');
@@ -101,6 +102,7 @@ class UserManagementController extends Controller
         abort_unless($user->trashed(), 404);
 
         $user->restore();
+        $user->update(['status' => 'Active']);
 
         return redirect()->route('coordinator.users.archived')->with('status', 'User restored successfully.');
     }
@@ -139,7 +141,10 @@ class UserManagementController extends Controller
                         ->orWhere('contact_number', 'like', '%' . $search . '%');
                 });
             })
-            ->when($status !== '', fn (Builder $query) => $query->where('status', $status))
+            ->where('users.status', $archived ? 'Archived' : 'Active')
+            ->when($status !== '', function (Builder $query) use ($status) {
+                $query->where('users.status', $status);
+            })
             ->when($roleId !== '', fn (Builder $query) => $query->where('role_id', $roleId))
             ->when($departmentId !== '', fn (Builder $query) => $query->where('department_id', $departmentId))
             ->leftJoin('roles', 'users.role_id', '=', 'roles.id')
@@ -157,13 +162,11 @@ class UserManagementController extends Controller
         $roles = $this->manageableRoles();
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $pendingAccountRequests = UserAccountRequest::pending()->count();
-        $statuses = ['Active', 'Inactive', 'Suspended'];
+        $statuses = ['Active', 'Archived'];
 
         $stats = [
             'total' => $this->manageableUsersQuery(false)->count(),
             'active' => $this->manageableUsersQuery(false)->where('status', 'Active')->count(),
-            'inactive' => $this->manageableUsersQuery(false)->where('status', 'Inactive')->count(),
-            'suspended' => $this->manageableUsersQuery(false)->where('status', 'Suspended')->count(),
             'archived' => $this->manageableUsersQuery(true)->count(),
         ];
 
@@ -232,7 +235,7 @@ class UserManagementController extends Controller
                 Rule::exists('roles', 'id')->where(fn (QueryBuilder $query) => $query->where('role_name', '!=', 'Coordinator')),
             ],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'status' => ['required', Rule::in(['Active', 'Inactive', 'Suspended'])],
+            'status' => ['required', Rule::in(['Active'])],
             'password' => $user
                 ? ['nullable', 'string', 'min:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/']
                 : ['required', 'string', 'min:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],

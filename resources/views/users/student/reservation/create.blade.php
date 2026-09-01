@@ -119,26 +119,39 @@
 
             <div class="card section-card border-0 mb-4" data-reservation-tabs>
                 <div class="card-body p-4 p-xl-5">
-                    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-                        <div>
-                            <h3 class="h4 fw-semibold mb-1 text-dark">Requested Items</h3>
-                            <p class="mb-0 text-secondary">Browse 10 items at a time. Switching pages keeps your selections on the form.</p>
-                        </div>
-                        <div class="d-inline-flex btn-group reservation-tab-switcher" role="tablist" aria-label="Requested items tabs">
-                            <button type="button" class="btn btn-outline-primary {{ $activeTab === 'equipment' ? 'active' : '' }}" data-reservation-tab-button data-target="equipment" aria-pressed="{{ $activeTab === 'equipment' ? 'true' : 'false' }}">Equipment</button>
-                            <button type="button" class="btn btn-outline-primary {{ $activeTab === 'chemical' ? 'active' : '' }}" data-reservation-tab-button data-target="chemical" aria-pressed="{{ $activeTab === 'chemical' ? 'true' : 'false' }}">Chemical</button>
-                        </div>
-                    </div>
+                    <div class="row g-4 align-items-start" data-item-picker>
+                        <div class="col-lg-8">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+                                <div>
+                                    <h3 class="h4 fw-semibold mb-1 text-dark">Requested Items</h3>
+                                    <p class="mb-0 text-secondary">Click an item to enter its quantity, then add it to your request.</p>
+                                </div>
+                                <div class="d-inline-flex btn-group reservation-tab-switcher" role="tablist" aria-label="Requested items tabs">
+                                    <button type="button" class="btn btn-outline-primary {{ $activeTab === 'equipment' ? 'active' : '' }}" data-reservation-tab-button data-target="equipment" aria-pressed="{{ $activeTab === 'equipment' ? 'true' : 'false' }}">Equipment</button>
+                                    <button type="button" class="btn btn-outline-primary {{ $activeTab === 'chemical' ? 'active' : '' }}" data-reservation-tab-button data-target="chemical" aria-pressed="{{ $activeTab === 'chemical' ? 'true' : 'false' }}">Chemical</button>
+                                </div>
+                            </div>
 
-                    @error('items')<div class="alert alert-danger border-0 rounded-4 mb-4">{{ $message }}</div>@enderror
+                            @error('items')<div class="alert alert-danger border-0 rounded-4 mb-4">{{ $message }}</div>@enderror
 
-                    <div class="tab-content">
-                        <div class="tab-pane fade {{ $activeTab === 'equipment' ? 'show active' : '' }}" id="equipment-tab" data-reservation-tab-pane="equipment">
-                            @include('users.student.reservation.partials.equipment-tab', ['equipmentItems' => $equipmentItems])
+                            <div class="tab-content">
+                                <div class="tab-pane fade {{ $activeTab === 'equipment' ? 'show active' : '' }}" id="equipment-tab" data-reservation-tab-pane="equipment">
+                                    @include('users.student.reservation.partials.equipment-tab', ['equipmentItems' => $equipmentItems])
+                                </div>
+
+                                <div class="tab-pane fade {{ $activeTab === 'chemical' ? 'show active' : '' }}" id="chemical-tab" data-reservation-tab-pane="chemical">
+                                    @include('users.student.reservation.partials.chemical-tab', ['chemicalItems' => $chemicalItems])
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="tab-pane fade {{ $activeTab === 'chemical' ? 'show active' : '' }}" id="chemical-tab" data-reservation-tab-pane="chemical">
-                            @include('users.student.reservation.partials.chemical-tab', ['chemicalItems' => $chemicalItems])
+                        <div class="col-lg-4">
+                            @include('users.student.partials.request-item-cart', [
+                                'oldEquipmentSelections' => $oldEquipmentSelections,
+                                'oldChemicalSelections' => $oldChemicalSelections,
+                                'selectedEquipmentItems' => $selectedEquipmentItems,
+                                'selectedChemicalItems' => $selectedChemicalItems,
+                            ])
                         </div>
                     </div>
                 </div>

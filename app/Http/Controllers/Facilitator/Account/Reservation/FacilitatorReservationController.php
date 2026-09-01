@@ -19,16 +19,31 @@ class FacilitatorReservationController extends Controller
 	{
 		$this->ensureFacilitator($request);
 
-		$status = $request->query('status', 'Instructor Approved');
+		$sort = $request->query('sort', 'reservation_date');
+		$direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+		$sortableColumns = [
+			'reservation_no' => 'reservations.reservation_no',
+			'student' => 'reservation_users.last_name',
+			'laboratory' => 'laboratories.laboratory_name',
+			'reservation_date' => 'reservations.reservation_date',
+			'status' => 'reservations.status',
+		];
+
+		if (! array_key_exists($sort, $sortableColumns)) {
+			$sort = 'reservation_date';
+		}
 
 		$reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
-			->when($status !== 'All', fn ($query) => $query->where('status', $status))
-			->latest()
+			->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
+			->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
+			->select('reservations.*')
+			->orderBy($sortableColumns[$sort], $direction)
+			->when($sort === 'student', fn ($query) => $query->orderBy('reservation_users.first_name', $direction))
+			->when($sort === 'reservation_date', fn ($query) => $query->orderBy('reservations.start_time', $direction))
+			->orderByDesc('reservations.id')
 			->paginate(10);
 
-		$statuses = ['All', 'Instructor Approved', 'Facilitator Approved', 'Coordinator Approved', 'Rejected', 'Completed'];
-
-		return view('users.facilitator.reservation.index', compact('reservations', 'status', 'statuses'));
+		return view('users.facilitator.reservation.index', compact('reservations', 'sort', 'direction'));
 	}
 
 	public function show(Request $request, Reservation $reservation)

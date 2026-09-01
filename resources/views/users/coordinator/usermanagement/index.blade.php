@@ -56,7 +56,7 @@
 
 
     <div class="row g-3 g-xl-4 mb-4">
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-4">
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2">Total users</div>
@@ -65,7 +65,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-4">
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2">Active</div>
@@ -74,21 +74,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-4">
             <div class="card metric-card h-100">
                 <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Inactive</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['inactive'] }}</div>
-                    <div class="small text-secondary">Temporarily disabled</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Suspended</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['suspended'] }}</div>
-                    <div class="small text-secondary">Needs admin review</div>
+                    <div class="small text-uppercase text-secondary mb-2">Archived</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['archived'] }}</div>
+                    <div class="small text-secondary">Removed from active users</div>
                 </div>
             </div>
         </div>
@@ -264,7 +255,7 @@
                                 <td>{{ $user->email }}</td>
                                 <td>
                                     <span
-                                        class="badge text-bg-{{ $archived ? 'secondary' : ($user->status === 'Active' ? 'success' : ($user->status === 'Suspended' ? 'warning' : 'secondary')) }}">
+                                        class="badge text-bg-{{ $archived ? 'secondary' : 'success' }}">
                                         {{ $archived ? 'Archived' : $user->status }}
                                     </span>
                                 </td>
