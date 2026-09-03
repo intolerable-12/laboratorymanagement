@@ -21,9 +21,9 @@ class FacilitatorCheckoutController extends Controller
 {
     public function index(Request $request): View
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
-        $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item', 'releasedBy'])
+        $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'reservation', 'items.item', 'releasedBy'])
             ->whereIn('status', ['Coordinator Approved', 'Partially Borrowed'])
             ->orderBy('borrowed_at')
             ->latest('id')
@@ -32,28 +32,30 @@ class FacilitatorCheckoutController extends Controller
         return view('users.facilitator.checkout.index', [
             'borrows' => $borrows,
             'now' => now(),
+            'isCoordinator' => $this->isCoordinator($request),
         ]);
     }
 
     public function show(Request $request, BorrowTransaction $borrowTransaction): View
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
         abort_unless(in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed', 'Borrowed'], true), 404);
 
-        $borrowTransaction->load(['borrower', 'laboratory', 'items.item', 'releasedBy', 'barcodeLogs.item']);
+        $borrowTransaction->load(['borrower', 'laboratory', 'reservation', 'items.item', 'releasedBy', 'barcodeLogs.item']);
 
         return view('users.facilitator.checkout.show', [
             'borrowTransaction' => $borrowTransaction,
             'scanLogs' => $borrowTransaction->barcodeLogs->where('is_voided', false)->sortByDesc('scanned_at')->values(),
             'canCheckout' => $this->isCheckoutWindowOpen($borrowTransaction),
             'now' => now(),
+            'isCoordinator' => $this->isCoordinator($request),
         ]);
     }
 
     public function scan(Request $request, BorrowTransaction $borrowTransaction)
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
@@ -218,7 +220,7 @@ class FacilitatorCheckoutController extends Controller
             'Borrow',
             $result['complete'] ? 'Borrow request checked out' : 'Borrow item checked out',
             $result['complete']
-                ? 'Your borrow request '.$borrowTransaction->borrow_no.' has been checked out by the Laboratory In-charge.'
+                ? 'Your borrow request '.$borrowTransaction->borrow_no.' has been checked out by '.$this->checkoutStaffLabel($request).'.'
                 : $result['quantity'].' unit(s) of '.$result['item_name'].' from borrow request '.$borrowTransaction->borrow_no.' have been checked out.'
         );
 
@@ -256,13 +258,13 @@ class FacilitatorCheckoutController extends Controller
         }
 
         return redirect()
-            ->route('facilitator.checkout.show', $borrowTransaction)
+            ->route($this->routePrefix($request).'.checkout.show', $borrowTransaction)
             ->with('scan_status', $result['item_name'].' checked out successfully.');
     }
 
     public function remove(Request $request, BorrowTransaction $borrowTransaction, BarcodeLog $barcodeLog)
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $barcodeLog): array {
             $transaction = BorrowTransaction::query()
@@ -403,7 +405,7 @@ class FacilitatorCheckoutController extends Controller
         }
 
         return redirect()
-            ->route('facilitator.checkout.show', $borrowTransaction)
+            ->route($this->routePrefix($request).'.checkout.show', $borrowTransaction)
             ->with('scan_status', $result['item_name'].' was removed from the checkout cart.');
     }
 
@@ -491,8 +493,23 @@ class FacilitatorCheckoutController extends Controller
         throw ValidationException::withMessages([$key => $message]);
     }
 
-    private function ensureFacilitator(Request $request): void
+    private function ensureCheckoutStaff(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Laboratory In-charge', 'Coordinator'], true), 403);
+    }
+
+    private function isCoordinator(Request $request): bool
+    {
+        return optional($request->user()->role)->role_name === 'Coordinator';
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $this->isCoordinator($request) ? 'coordinator' : 'facilitator';
+    }
+
+    private function checkoutStaffLabel(Request $request): string
+    {
+        return $this->isCoordinator($request) ? 'the Coordinator' : 'the Laboratory In-charge';
     }
 }

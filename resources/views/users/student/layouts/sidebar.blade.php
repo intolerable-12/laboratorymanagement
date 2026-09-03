@@ -50,36 +50,17 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#studentInventoryMenu"
-                    aria-expanded="{{ $isInventoryGroup ? 'true' : 'false' }}" aria-controls="studentInventoryMenu"
-                    title="Inventory">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
-                        <span class="sidebar-item__label">Inventory</span>
-                    </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isInventoryGroup ? 'show' : '' }}" id="studentInventoryMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isInventoryIndex ? 'active' : '' }}"
-                            href="{{ route('student.inventory.index') }}" title="Inventory Overview">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-layer-group"></i></span>
-                            <span class="sidebar-item__label">Inventory Overview</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('student.inventory.equipment.*') ? 'active' : '' }}"
-                            href="{{ route('student.inventory.equipment.index') }}" title="Equipment">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
-                            <span class="sidebar-item__label">Equipment</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('student.inventory.chemicals.*') ? 'active' : '' }}"
-                            href="{{ route('student.inventory.chemicals.index') }}" title="Chemicals">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-vial"></i></span>
-                            <span class="sidebar-item__label">Chemicals</span>
-                        </a>
-                    </div>
-                </div>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('student.inventory.equipment.*') ? 'active' : '' }}"
+                    href="{{ route('student.inventory.equipment.index') }}" title="Equipment">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
+                    <span class="sidebar-item__label">Equipment</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('student.inventory.chemicals.*') ? 'active' : '' }}"
+                    href="{{ route('student.inventory.chemicals.index') }}" title="Chemicals">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-vial"></i></span>
+                    <span class="sidebar-item__label">Chemicals</span>
+                </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup ? 'active' : '' }}"
                     href="{{ route('student.reservations.index') }}" title="Reservations">

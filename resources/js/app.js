@@ -5,6 +5,7 @@ import Quill from 'quill';
 import './barcode';
 import './checkin';
 import './request-items';
+import './review-items';
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
@@ -436,6 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
             Array.from(reservationTabs.querySelectorAll('[data-reservation-tab-pane]')).map((pane) => [pane.dataset.reservationTabPane, pane]),
         );
         const fieldCache = new Map();
+        const tabRequests = new Map();
+        const searchDebounceTimers = new Map();
 
         const updateFieldCache = (scope = form) => {
             if (!scope) {
@@ -473,11 +476,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        const buildReservationFragmentUrl = (baseUrl, tabName) => {
+        const buildReservationFragmentUrl = (baseUrl, tabName, searchValue = null, resetPage = false) => {
             const url = new URL(baseUrl, window.location.href);
             const laboratoryId = laboratorySelect?.value;
+            const search = String(searchValue ?? tabPanes.get(tabName)?.querySelector('[data-reservation-item-search]')?.value ?? '').trim();
 
             url.searchParams.set('fragment', tabName);
+
+            if (search) {
+                url.searchParams.set('search', search);
+            } else {
+                url.searchParams.delete('search');
+            }
+
+            if (resetPage) {
+                url.searchParams.delete(`${tabName}_page`);
+            }
 
             if (laboratoryId) {
                 url.searchParams.set('laboratory_id', laboratoryId);
@@ -504,26 +518,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const replaceTabContent = async (tabName, url) => {
             updateFieldCache(form);
 
-            const response = await fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    Accept: 'text/html',
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to load reservation items.');
-            }
-
-            const html = await response.text();
+            tabRequests.get(tabName)?.abort();
+            const controller = new AbortController();
+            tabRequests.set(tabName, controller);
             const pane = tabPanes.get(tabName);
+            pane?.setAttribute('aria-busy', 'true');
 
-            if (!pane) {
-                return;
+            try {
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'text/html',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load reservation items.');
+                }
+
+                const html = await response.text();
+
+                if (!pane) {
+                    return;
+                }
+
+                pane.innerHTML = html;
+                restoreCachedValues(pane);
+                pane.dispatchEvent(new CustomEvent('request-items-content-replaced', { bubbles: true }));
+            } finally {
+                if (tabRequests.get(tabName) === controller) {
+                    tabRequests.delete(tabName);
+                    pane?.removeAttribute('aria-busy');
+                }
             }
-
-            pane.innerHTML = html;
-            restoreCachedValues(pane);
         };
 
         const reloadReservationTabs = async (tabNames = Array.from(tabPanes.keys())) => {
@@ -567,6 +595,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await replaceTabContent(tabName, buildReservationFragmentUrl(paginationLink.href, tabName));
             } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
                 window.location.href = paginationLink.href;
             }
         });
@@ -581,6 +613,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         reservationTabs.addEventListener('input', (event) => {
             const field = event.target;
+
+            if (field?.matches('[data-reservation-item-search]')) {
+                const pane = field.closest('[data-reservation-tab-pane]');
+                const tabName = pane?.dataset.reservationTabPane;
+
+                if (!tabName) {
+                    return;
+                }
+
+                window.clearTimeout(searchDebounceTimers.get(tabName));
+                searchDebounceTimers.set(tabName, window.setTimeout(async () => {
+                    try {
+                        await replaceTabContent(
+                            tabName,
+                            buildReservationFragmentUrl(window.location.href, tabName, field.value, true),
+                        );
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            console.error('Unable to search requested items.', error);
+                        }
+                    }
+                }, 300));
+
+                return;
+            }
 
             if (field && field.name) {
                 fieldCache.set(field.name, field.value);

@@ -1,11 +1,17 @@
-@extends('users.facilitator.layouts.app')
+@extends($isCoordinator ? 'users.coordinator.layouts.app' : 'users.facilitator.layouts.app')
 
 @section('title', 'Check In Items')
 @section('page-title', 'Check In Items')
 
 @section('nav-links')
-    @include('users.facilitator.partials.nav-links', ['active' => 'checkin'])
+    @if (! $isCoordinator)
+        @include('users.facilitator.partials.nav-links', ['active' => 'checkin'])
+    @endif
 @endsection
+
+@php
+    $checkinRoutePrefix = $isCoordinator ? 'coordinator.checkin' : 'facilitator.checkin';
+@endphp
 
 @section('content')
     <div class="account-page">
@@ -56,6 +62,9 @@
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $borrow->borrow_no }}</div>
                                         <div class="small text-secondary">{{ $borrow->laboratory?->laboratory_name ?? 'Laboratory not specified' }}</div>
+                                        @if ($borrow->reservation)
+                                            <div class="small text-info"><i class="fa-solid fa-calendar-check me-1"></i>Reservation {{ $borrow->reservation->reservation_no }}</div>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ trim(($borrow->borrower?->first_name ?? '').' '.($borrow->borrower?->last_name ?? '')) }}</div>
@@ -68,7 +77,7 @@
                                     <td>{{ $itemCount }} item{{ $itemCount === 1 ? '' : 's' }}</td>
                                     <td><span class="badge text-bg-{{ $statusTone }}">{{ $isOverdue ? 'Overdue' : $borrow->status }}</span></td>
                                     <td class="text-center">
-                                        <a href="{{ route('facilitator.checkin.show', $borrow) }}" class="btn btn-sm btn-{{ $isOverdue ? 'danger' : 'primary' }}">Open Check-in</a>
+                                        <a href="{{ route($checkinRoutePrefix.'.show', $borrow) }}" class="btn btn-sm btn-{{ $isOverdue ? 'danger' : 'primary' }}">Open Check-in</a>
                                     </td>
                                 </tr>
                             @empty

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Student\Account;
 
 use App\Http\Controllers\Controller;
-use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,16 +32,11 @@ class MyAccountController extends Controller
 			'contact_number' => ['nullable', 'string', 'max:25'],
 			'gender' => ['nullable', 'string', 'max:50'],
 			'birth_date' => ['nullable', 'date'],
-			'department_id' => ['nullable', 'exists:departments,id'],
 			'profile_photo' => ['nullable', 'image', 'max:2048'],
 		]);
 
 		if (($validated['birth_date'] ?? null) === '') {
 			$validated['birth_date'] = null;
-		}
-
-		if (($validated['department_id'] ?? null) === '') {
-			$validated['department_id'] = null;
 		}
 
 		if ($request->hasFile('profile_photo')) {
@@ -78,7 +72,6 @@ class MyAccountController extends Controller
 	{
 		return [
 			'user' => $user,
-			'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
 			'displayName' => $this->displayName($user),
 			'roleName' => $user->role?->role_name ?? 'Student',
 			'email' => $user->email,
@@ -86,7 +79,6 @@ class MyAccountController extends Controller
 			'birthDateInput' => $user->getRawOriginal('birth_date') ? Carbon::parse($user->getRawOriginal('birth_date'))->format('Y-m-d') : '',
 			'birthDate' => $user->getRawOriginal('birth_date') ? Carbon::parse($user->getRawOriginal('birth_date'))->format('F d, Y') : '—',
 			'campus' => $user->department?->department_name ?? 'College Campus',
-			'departmentId' => $user->department_id,
 			'accountStatus' => $user->status,
 			'memberSince' => $user->created_at?->format('F Y') ?? '—',
 			'avatarUrl' => $this->avatarUrl($user),

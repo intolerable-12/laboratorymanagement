@@ -89,9 +89,22 @@ class GoogleAuthController extends Controller
 			]);
 		}
 
-		if (UserAccountRequest::pending()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
-			return redirect()->route('login')->with('status', 'Your registration request is currently under review. Please wait for the laboratory coordinator to approve your account.');
-		}
+        $accountRequest = UserAccountRequest::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->latest()
+            ->first();
+
+        if ($accountRequest?->status === 'Pending') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Your account request is still waiting for coordinator approval. You cannot sign in until it is approved.',
+            ]);
+        }
+
+        if ($accountRequest?->status === 'Rejected') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Your account request was not approved by the coordinator. Please contact the coordinator or submit a new registration request.',
+            ]);
+        }
 
 		$request->session()->put('google_registration', [
 			'name' => trim((string) $googleUser->getName()) !== '' ? $googleUser->getName() : Str::before($email, '@'),

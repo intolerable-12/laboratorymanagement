@@ -26,7 +26,9 @@ class BorrowTransaction extends Model
         'received_by',
         'borrowed_at',
         'checked_out_at',
+        'checkout_notified_at',
         'due_at',
+        'checkin_notified_at',
         'returned_at',
         'status',
         'remarks',
@@ -42,7 +44,9 @@ class BorrowTransaction extends Model
         return [
             'borrowed_at' => 'datetime',
             'checked_out_at' => 'datetime',
+            'checkout_notified_at' => 'datetime',
             'due_at' => 'datetime',
+            'checkin_notified_at' => 'datetime',
             'returned_at' => 'datetime',
         ];
     }

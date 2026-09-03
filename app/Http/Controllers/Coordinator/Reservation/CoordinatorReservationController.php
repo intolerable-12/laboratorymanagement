@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Coordinator\Reservation;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationEmailController;
 use App\Models\ApprovalLog;
+use App\Models\BorrowItem;
+use App\Models\BorrowTransaction;
 use App\Models\Reservation;
 use App\Services\RequestNotificationService;
+use App\Services\SequentialCodeGenerator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -109,6 +113,8 @@ class CoordinatorReservationController extends Controller
                 'remarks' => $data['remarks'] ?? $reservation->remarks,
             ]);
 
+            $this->createBorrowTransactionFromReservation($reservation);
+
             ApprovalLog::create([
                 'reservation_id' => $reservation->id,
                 'approved_by' => $request->user()->userNo,
@@ -172,6 +178,60 @@ class CoordinatorReservationController extends Controller
         return redirect()
             ->route('coordinator.reservations.show', $reservation)
             ->with('status', 'Reservation rejected successfully.');
+    }
+
+    private function createBorrowTransactionFromReservation(Reservation $reservation): ?BorrowTransaction
+    {
+        $reservation->loadMissing(['items', 'schoolYear']);
+
+        $existingTransaction = $reservation->borrowTransactions()->lockForUpdate()->first();
+
+        if ($existingTransaction) {
+            return $existingTransaction;
+        }
+
+        if ($reservation->items->isEmpty()) {
+            return null;
+        }
+
+        $scheduledDate = $reservation->reservation_date?->format('Y-m-d')
+            ?? (string) $reservation->getRawOriginal('reservation_date');
+        $borrowedAt = Carbon::createFromFormat('Y-m-d H:i', $scheduledDate.' '.substr((string) $reservation->start_time, 0, 5));
+        $dueAt = Carbon::createFromFormat('Y-m-d H:i', $scheduledDate.' '.substr((string) $reservation->end_time, 0, 5));
+
+        $borrowTransaction = BorrowTransaction::create([
+            'borrow_no' => app(SequentialCodeGenerator::class)->borrowNumber($reservation->schoolYear),
+            'laboratory_id' => $reservation->laboratory_id,
+            'reservation_id' => $reservation->id,
+            'borrower_id' => $reservation->user_no,
+            'released_by' => null,
+            'received_by' => null,
+            'borrowed_at' => $borrowedAt,
+            'checked_out_at' => null,
+            'due_at' => $dueAt,
+            'returned_at' => null,
+            'status' => 'Coordinator Approved',
+            'remarks' => $reservation->remarks,
+        ]);
+
+        foreach ($reservation->items as $item) {
+            BorrowItem::create([
+                'borrow_transaction_id' => $borrowTransaction->id,
+                'item_type' => $item->item_type,
+                'item_id' => $item->item_id,
+                'quantity_borrowed' => $item->quantity,
+                'quantity_checked_out' => 0,
+                'quantity_returned' => 0,
+                'quantity_used' => 0,
+                'quantity_lost' => 0,
+                'quantity_damaged' => 0,
+                'condition_out' => 'Good',
+                'condition_in' => null,
+                'remarks' => $item->remarks,
+            ]);
+        }
+
+        return $borrowTransaction;
     }
 
     private function guardForCoordinator(Reservation $reservation): void

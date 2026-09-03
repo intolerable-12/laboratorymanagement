@@ -188,6 +188,24 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
                 Route::post('/{borrowTransaction}/reject', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'reject'])->name('reject');
             });
 
+        Route::prefix('checkout')
+            ->name('checkout.')
+            ->group(function () {
+                Route::get('/', [FacilitatorCheckoutController::class, 'index'])->name('index');
+                Route::get('/{borrowTransaction}', [FacilitatorCheckoutController::class, 'show'])->name('show');
+                Route::post('/{borrowTransaction}/scan', [FacilitatorCheckoutController::class, 'scan'])->name('scan');
+                Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckoutController::class, 'remove'])->name('remove');
+            });
+
+        Route::prefix('checkin')
+            ->name('checkin.')
+            ->group(function () {
+                Route::get('/', [FacilitatorCheckinController::class, 'index'])->name('index');
+                Route::get('/{borrowTransaction}', [FacilitatorCheckinController::class, 'show'])->name('show');
+                Route::post('/{borrowTransaction}/scan', [FacilitatorCheckinController::class, 'scan'])->name('scan');
+                Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckinController::class, 'remove'])->name('remove');
+            });
+
         Route::prefix('forum')
             ->name('forum.')
             ->group(function () {

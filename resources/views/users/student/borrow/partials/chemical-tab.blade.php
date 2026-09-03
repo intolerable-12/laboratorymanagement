@@ -1,10 +1,17 @@
 <div data-reservation-tab-content="chemical">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
+    <div class="row g-3 align-items-end mb-4">
+        <div class="col-md-6">
             <h4 class="h5 fw-semibold mb-1 text-dark">Available Chemicals</h4>
             <p class="mb-0 text-secondary">Click a row to enter the quantity and add the chemical to your request.</p>
         </div>
-        <span class="text-secondary small">Page {{ $chemicalItems->currentPage() }} of {{ $chemicalItems->lastPage() }}</span>
+        <div class="col-md-6">
+            <label class="form-label small fw-semibold text-dark mb-1" for="borrow-chemical-search">Search chemicals</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i></span>
+                <input type="search" id="borrow-chemical-search" class="form-control" data-reservation-item-search placeholder="Name, code, or barcode" value="{{ request()->query('search', '') }}" autocomplete="off">
+            </div>
+        </div>
+        <div class="col-12"><span class="text-secondary small">Page {{ $chemicalItems->currentPage() }} of {{ $chemicalItems->lastPage() }}</span></div>
     </div>
 
     <div class="request-item-selection card border-0 bg-light mb-3 d-none" data-picker-selection>
@@ -71,7 +78,7 @@
     <div class="d-flex justify-content-between align-items-center gap-3 mt-3 flex-wrap" data-reservation-pagination>
         <div class="small text-secondary">Showing {{ $chemicalItems->firstItem() ?? 0 }}-{{ $chemicalItems->lastItem() ?? 0 }} of {{ $chemicalItems->total() }} chemical items</div>
         <div>
-            {{ $chemicalItems->appends(['tab' => 'chemical', 'fragment' => 'chemical'])->links('pagination::bootstrap-5') }}
+            {{ $chemicalItems->appends(['tab' => 'chemical', 'fragment' => 'chemical', 'search' => request()->query('search')])->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>

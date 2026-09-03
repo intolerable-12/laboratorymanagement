@@ -5,7 +5,7 @@
                 <div class="card-body p-4">
                     <div class="small text-uppercase fw-semibold text-secondary mb-2">Upcoming Borrow Requests for {{ now()->format('F') }}</div>
                     <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['upcomingMonth'] }}</div>
-                    <div class="small text-secondary">Approved borrow requests starting or ending after today</div>
+                    <div class="small text-secondary">Approved borrow request deadlines after today</div>
                 </div>
             </div>
         </div>
@@ -14,7 +14,7 @@
                 <div class="card-body p-4">
                     <div class="small text-uppercase fw-semibold text-secondary mb-2">Borrow Requests Today</div>
                     <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['today'] }}</div>
-                    <div class="small text-secondary">Borrow starts or deadlines on {{ now()->format('F j, Y') }}</div>
+                    <div class="small text-secondary">Borrow deadlines on {{ now()->format('F j, Y') }}</div>
                 </div>
             </div>
         </div>
@@ -25,7 +25,7 @@
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center mb-4">
                 <div>
                     <h3 class="h5 fw-semibold mb-1 text-dark">Approved Borrow Schedule</h3>
-                    <p class="mb-0 text-secondary">Each request appears on its borrow start date and deadline only.</p>
+                    <p class="mb-0 text-secondary">Each request appears on its borrow deadline only.</p>
                 </div>
                 <div class="reservation-calendar-legend d-flex flex-wrap gap-2">
                     <span class="badge text-bg-primary px-3 py-2">Coordinator Approved</span>
@@ -54,7 +54,7 @@
                         <div class="modal-body vstack gap-4">
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <span class="badge text-bg-primary" data-reservation-calendar-status>Scheduled</span>
-                                <span class="small text-secondary">The selected entry is an endpoint of the borrow schedule.</span>
+                                <span class="small text-secondary">The selected entry is the deadline of the borrow schedule.</span>
                             </div>
 
                             <div class="row g-3">

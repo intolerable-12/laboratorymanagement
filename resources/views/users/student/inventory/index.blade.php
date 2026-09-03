@@ -8,6 +8,10 @@
 
 @section('content')
     <div class="inventory-page">
+        <div class="d-flex justify-content-end mb-3">
+            @include('users.student.inventory.partials.view-switcher', ['active' => null])
+        </div>
+
         <section class="inventory-hero card border-0 mb-4">
             <div class="card-body p-4 p-xl-5">
                 <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-4">

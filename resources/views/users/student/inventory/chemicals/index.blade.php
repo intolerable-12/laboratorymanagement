@@ -33,6 +33,9 @@
         <section class="inventory-hero card border-0 mb-4">
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
+                    <div class="mb-3">
+                        @include('users.student.inventory.partials.view-switcher', ['active' => 'chemical'])
+                    </div>
                     <a href="{{ route('student.inventory.index') }}" class="inventory-back-link mb-3">
                         <i class="fa-solid fa-arrow-left"></i>
                         Back to inventory

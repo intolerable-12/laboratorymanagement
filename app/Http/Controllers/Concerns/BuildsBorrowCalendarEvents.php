@@ -87,30 +87,17 @@ trait BuildsBorrowCalendarEvents
             ])->values(),
         ];
 
-        return [
-            [
-                'id' => 'borrow-' . $borrowTransaction->getKey() . '-start',
-                'event_type' => 'borrow',
-                'reference_no' => $borrowTransaction->borrow_no,
-                'title' => $laboratoryName . ' - ' . $studentLabel . ' (Borrow start)',
-                'start' => $borrowedAt?->format('Y-m-d\TH:i:s'),
-                'backgroundColor' => $statusColor,
-                'borderColor' => $statusColor,
-                'textColor' => '#ffffff',
-                'extendedProps' => $extendedProps + ['schedule_marker' => 'Borrow start'],
-            ],
-            [
-                'id' => 'borrow-' . $borrowTransaction->getKey() . '-deadline',
-                'event_type' => 'borrow',
-                'reference_no' => $borrowTransaction->borrow_no,
-                'title' => $laboratoryName . ' - ' . $studentLabel . ' (Borrow deadline)',
-                'start' => $dueAt?->format('Y-m-d\TH:i:s'),
-                'backgroundColor' => $statusColor,
-                'borderColor' => $statusColor,
-                'textColor' => '#ffffff',
-                'extendedProps' => $extendedProps + ['schedule_marker' => 'Borrow deadline'],
-            ],
-        ];
+        return [[
+            'id' => 'borrow-' . $borrowTransaction->getKey() . '-deadline',
+            'event_type' => 'borrow',
+            'reference_no' => $borrowTransaction->borrow_no,
+            'title' => $laboratoryName . ' - ' . $studentLabel . ' (Borrow deadline)',
+            'start' => $dueAt?->format('Y-m-d\TH:i:s'),
+            'backgroundColor' => $statusColor,
+            'borderColor' => $statusColor,
+            'textColor' => '#ffffff',
+            'extendedProps' => $extendedProps + ['schedule_marker' => 'Borrow deadline'],
+        ]];
     }
 
     protected function borrowStatusColor(string $status): string

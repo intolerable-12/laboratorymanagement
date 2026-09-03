@@ -111,9 +111,7 @@ class UserAccountRequestController extends Controller
 
     public function reject(Request $request, UserAccountRequest $accountRequest): RedirectResponse
     {
-        $validated = $request->validate([
-            'review_notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        // No review_notes expected from the UI anymore; skip validation.
 
         abort_unless($accountRequest->status === 'Pending', 404);
 
@@ -121,7 +119,7 @@ class UserAccountRequestController extends Controller
             'status' => 'Rejected',
             'reviewed_by' => $request->user()->userNo,
             'reviewed_at' => now(),
-            'review_notes' => $validated['review_notes'] ?? null,
+            'review_notes' => null,
         ]);
 
         AuditLog::create([

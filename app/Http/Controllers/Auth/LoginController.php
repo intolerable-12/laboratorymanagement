@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserAccountRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -63,10 +64,31 @@ class LoginController extends Controller
                 ->with('activeTab', 'login');
         }
 
+        $registeredUserExists = User::query()
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim($credentials['email']))])
+            ->exists();
+
         if (! Auth::attempt($credentials)) {
+            $message = 'Invalid email or password.';
+
+            if (! $registeredUserExists) {
+                $email = strtolower(trim($credentials['email']));
+                $accountRequest = UserAccountRequest::query()
+                    ->whereRaw('LOWER(email) = ?', [$email])
+                    ->latest()
+                    ->first();
+
+                $message = match ($accountRequest?->status) {
+                    'Pending' => 'Your account request is still waiting for coordinator approval. You cannot sign in until it is approved.',
+                    'Rejected' => 'Your account request was not approved by the coordinator. Please contact the coordinator or submit a new registration request.',
+                    'Approved' => 'Your account request was approved, but your account is not available for login yet. Please contact the coordinator.',
+                    default => 'No registered account was found for this email. Please complete registration and wait for coordinator approval, or contact the coordinator.',
+                };
+            }
+
             return back()
                 ->withErrors([
-                    'email' => 'Invalid email or password.',
+                    'email' => $message,
                 ])
                 ->withInput()
                 ->with('activeTab', 'login');

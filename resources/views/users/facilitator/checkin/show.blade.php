@@ -1,11 +1,17 @@
-@extends('users.facilitator.layouts.app')
+@extends($isCoordinator ? 'users.coordinator.layouts.app' : 'users.facilitator.layouts.app')
 
 @section('title', 'Check In '.$borrowTransaction->borrow_no)
 @section('page-title', 'Check In '.$borrowTransaction->borrow_no)
 
 @section('nav-links')
-    @include('users.facilitator.partials.nav-links', ['active' => 'checkin'])
+    @if (! $isCoordinator)
+        @include('users.facilitator.partials.nav-links', ['active' => 'checkin'])
+    @endif
 @endsection
+
+@php
+    $checkinRoutePrefix = $isCoordinator ? 'coordinator.checkin' : 'facilitator.checkin';
+@endphp
 
 @section('content')
     @php
@@ -20,7 +26,7 @@
 
     <div class="account-page" data-barcode-checkin>
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-            <a href="{{ route('facilitator.checkin.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route($checkinRoutePrefix.'.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-arrow-left me-1"></i> Check-in queue
             </a>
             <div class="d-flex align-items-center gap-2">
@@ -80,7 +86,7 @@
                             <span class="badge rounded-pill text-bg-light border text-dark px-3 py-2"><span id="checkin-cart-count">{{ $scanCount }}</span> line{{ $scanCount === 1 ? '' : 's' }}</span>
                         </div>
                     </div>
-                    <div id="checkin-cart" class="card-body p-4 scanned-cart-scroll" data-remove-url-template="{{ route('facilitator.checkin.remove', ['borrowTransaction' => $borrowTransaction, 'barcodeLog' => '__SCAN__']) }}">
+                    <div id="checkin-cart" class="card-body p-4 scanned-cart-scroll" data-remove-url-template="{{ route($checkinRoutePrefix.'.remove', ['borrowTransaction' => $borrowTransaction, 'barcodeLog' => '__SCAN__']) }}">
                         @forelse ($scanLogs as $log)
                             @php
                                 $logItemName = $log->item?->equipment_name ?? $log->item?->chemical_name ?? 'Item unavailable';
@@ -162,7 +168,7 @@
                             <div class="alert alert-success small border-0"><i class="fa-solid fa-circle-check me-1"></i>All borrowed items are accounted for.</div>
                         @endif
                         <div id="checkin-ajax-feedback" class="alert border-0 small d-none" role="alert"></div>
-                        <form method="POST" action="{{ route('facilitator.checkin.scan', $borrowTransaction) }}" id="checkin-scan-form">
+                        <form method="POST" action="{{ route($checkinRoutePrefix.'.scan', $borrowTransaction) }}" id="checkin-scan-form">
                             @csrf
                             <div class="mb-3">
                                 <label for="checkin-barcode" class="form-label fw-semibold text-dark">Barcode</label>

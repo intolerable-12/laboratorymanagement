@@ -81,14 +81,10 @@
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">Department</label>
-                                    <select name="department_id" class="form-select account-input">
-                                        <option value="">Select department</option>
-                                        @foreach ($departments as $department)
-                                            <option value="{{ $department->id }}" @selected((string) old('department_id', $departmentId) === (string) $department->id)>
-                                                {{ $department->department_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <div class="form-control account-input bg-light" aria-readonly="true">
+                                        {{ $user->department?->department_name ?? 'Not assigned' }}
+                                    </div>
+                                    <div class="form-text">Your department is managed by the administrator.</div>
                                 </div>
                             </div>
 
