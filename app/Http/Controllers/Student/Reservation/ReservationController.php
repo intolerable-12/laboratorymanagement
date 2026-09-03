@@ -47,6 +47,20 @@ class ReservationController extends Controller
         $chemicalQuery = Chemical::with('laboratory')
             ->where('status', 'Available')
             ->orderBy('chemical_name');
+        $search = trim((string) $request->query('search', ''));
+
+        if ($search !== '') {
+            $equipmentQuery->where(function ($query) use ($search) {
+                $query->where('equipment_name', 'like', '%' . $search . '%')
+                    ->orWhere('equipment_code', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', 'like', '%' . $search . '%');
+            });
+            $chemicalQuery->where(function ($query) use ($search) {
+                $query->where('chemical_name', 'like', '%' . $search . '%')
+                    ->orWhere('chemical_code', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', 'like', '%' . $search . '%');
+            });
+        }
 
         if ($selectedLaboratoryId) {
             $equipmentQuery->where('laboratory_id', $selectedLaboratoryId);

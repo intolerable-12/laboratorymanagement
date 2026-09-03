@@ -21,9 +21,9 @@ class FacilitatorCheckinController extends Controller
 {
     public function index(Request $request): View
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
-        $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item', 'receivedBy'])
+        $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'reservation', 'items.item', 'receivedBy'])
             ->whereIn('status', ['Borrowed', 'Partially Returned', 'Overdue'])
             ->orderByRaw("CASE WHEN status = 'Overdue' THEN 0 WHEN status = 'Partially Returned' THEN 1 ELSE 2 END")
             ->orderBy('due_at')
@@ -33,16 +33,17 @@ class FacilitatorCheckinController extends Controller
         return view('users.facilitator.checkin.index', [
             'borrows' => $borrows,
             'now' => now(),
+            'isCoordinator' => $this->isCoordinator($request),
         ]);
     }
 
     public function show(Request $request, BorrowTransaction $borrowTransaction): View
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
         abort_unless(in_array($borrowTransaction->status, ['Borrowed', 'Partially Returned', 'Overdue', 'Returned'], true), 404);
 
-        $borrowTransaction->load(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy', 'barcodeLogs.item']);
+        $borrowTransaction->load(['borrower', 'laboratory', 'reservation', 'items.item', 'releasedBy', 'receivedBy', 'barcodeLogs.item']);
 
         return view('users.facilitator.checkin.show', [
             'borrowTransaction' => $borrowTransaction,
@@ -53,12 +54,13 @@ class FacilitatorCheckinController extends Controller
                 ->values(),
             'progressItems' => $this->progressItems($borrowTransaction),
             'now' => now(),
+            'isCoordinator' => $this->isCoordinator($request),
         ]);
     }
 
     public function scan(Request $request, BorrowTransaction $borrowTransaction)
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
@@ -245,7 +247,7 @@ class FacilitatorCheckinController extends Controller
             'Borrow',
             $result['complete'] ? 'Borrow request returned' : 'Borrow item returned',
             $result['complete']
-                ? 'Your borrow request '.$borrowTransaction->borrow_no.' has been checked in by the Laboratory In-charge.'
+                ? 'Your borrow request '.$borrowTransaction->borrow_no.' has been checked in by '.$this->checkoutStaffLabel($request).'.'
                 : $result['quantity'].' '.$result['unit'].' of '.$result['item_name'].' has been checked in.'
         );
 
@@ -276,13 +278,13 @@ class FacilitatorCheckinController extends Controller
         }
 
         return redirect()
-            ->route('facilitator.checkin.show', $borrowTransaction)
+            ->route($this->routePrefix($request).'.checkin.show', $borrowTransaction)
             ->with('checkin_status', $result['item_name'].' checked in successfully.');
     }
 
     public function remove(Request $request, BorrowTransaction $borrowTransaction, BarcodeLog $barcodeLog)
     {
-        $this->ensureFacilitator($request);
+        $this->ensureCheckoutStaff($request);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $barcodeLog): array {
             $transaction = BorrowTransaction::query()->lockForUpdate()->findOrFail($borrowTransaction->id);
@@ -421,7 +423,7 @@ class FacilitatorCheckinController extends Controller
         }
 
         return redirect()
-            ->route('facilitator.checkin.show', $borrowTransaction)
+            ->route($this->routePrefix($request).'.checkin.show', $borrowTransaction)
             ->with('checkin_status', $result['item_name'].' was removed from the check-in cart.');
     }
 
@@ -552,8 +554,23 @@ class FacilitatorCheckinController extends Controller
         throw ValidationException::withMessages([$key => $message]);
     }
 
-    private function ensureFacilitator(Request $request): void
+    private function ensureCheckoutStaff(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Laboratory In-charge', 'Coordinator'], true), 403);
+    }
+
+    private function isCoordinator(Request $request): bool
+    {
+        return optional($request->user()->role)->role_name === 'Coordinator';
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $this->isCoordinator($request) ? 'coordinator' : 'facilitator';
+    }
+
+    private function checkoutStaffLabel(Request $request): string
+    {
+        return $this->isCoordinator($request) ? 'the Coordinator' : 'the Laboratory In-charge';
     }
 }

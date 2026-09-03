@@ -74,8 +74,6 @@
                 <div class="col-lg-8">
                     <form method="POST" action="{{ route('coordinator.users.requests.reject', $accountRequest) }}">
                         @csrf
-                        <label for="review-notes" class="form-label">Rejection note <span class="text-secondary">(optional)</span></label>
-                        <textarea id="review-notes" name="review_notes" rows="3" maxlength="1000" class="form-control admin-form-control" placeholder="Provide a reason for rejecting this request.">{{ old('review_notes') }}</textarea>
                         <button type="submit" class="btn btn-outline-danger mt-3" onclick="return confirm('Reject this account request?');">
                             <i class="fa-solid fa-xmark me-2"></i>Reject request
                         </button>

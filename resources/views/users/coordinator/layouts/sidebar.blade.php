@@ -33,9 +33,11 @@
         $isReservationsCalendar = request()->routeIs('coordinator.reservations.calendar');
         $isBorrowIndex = request()->routeIs('coordinator.borrow.index');
         $isBorrowCalendar = request()->routeIs('coordinator.borrow.calendar');
+        $isCheckoutGroup = request()->routeIs('coordinator.checkout.*');
+        $isCheckinGroup = request()->routeIs('coordinator.checkin.*');
         $isReservationsGroup = request()->routeIs('coordinator.reservations.*');
         $isBorrowGroup = request()->routeIs('coordinator.borrow.*');
-        $isRequestGroup = $isReservationsGroup || $isBorrowGroup;
+        $isRequestGroup = $isReservationsGroup || $isBorrowGroup || $isCheckoutGroup || $isCheckinGroup;
 
         $isForumIndex = request()->routeIs('coordinator.forum.index');
         $isForumGroup = request()->routeIs('coordinator.forum.*');
@@ -146,6 +148,17 @@
                         </a>
                     </div>
                 </div>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckoutGroup ? 'active' : '' }}"
+                    href="{{ route('coordinator.checkout.index') }}" title="Checkout Items">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-barcode"></i></span>
+                    <span class="sidebar-item__label">Checkout Items</span>
+                </a>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckinGroup ? 'active' : '' }}"
+                    href="{{ route('coordinator.checkin.index') }}" title="Check In Items">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-rotate-left"></i></span>
+                    <span class="sidebar-item__label">Check In Items</span>
+                </a>
 
 
                 <button

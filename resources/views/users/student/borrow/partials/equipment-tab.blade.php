@@ -1,10 +1,17 @@
 <div data-reservation-tab-content="equipment">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
+    <div class="row g-3 align-items-end mb-4">
+        <div class="col-md-6">
             <h4 class="h5 fw-semibold mb-1 text-dark">Available Equipment</h4>
             <p class="mb-0 text-secondary">Click a row to enter the quantity and add the item to your request.</p>
         </div>
-        <span class="text-secondary small">Page {{ $equipmentItems->currentPage() }} of {{ $equipmentItems->lastPage() }}</span>
+        <div class="col-md-6">
+            <label class="form-label small fw-semibold text-dark mb-1" for="borrow-equipment-search">Search equipment</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i></span>
+                <input type="search" id="borrow-equipment-search" class="form-control" data-reservation-item-search placeholder="Name, code, or barcode" value="{{ request()->query('search', '') }}" autocomplete="off">
+            </div>
+        </div>
+        <div class="col-12"><span class="text-secondary small">Page {{ $equipmentItems->currentPage() }} of {{ $equipmentItems->lastPage() }}</span></div>
     </div>
 
     <div class="request-item-selection card border-0 bg-light mb-3 d-none" data-picker-selection>
@@ -67,7 +74,7 @@
     <div class="d-flex justify-content-between align-items-center gap-3 mt-3 flex-wrap" data-reservation-pagination>
         <div class="small text-secondary">Showing {{ $equipmentItems->firstItem() ?? 0 }}-{{ $equipmentItems->lastItem() ?? 0 }} of {{ $equipmentItems->total() }} equipment items</div>
         <div>
-            {{ $equipmentItems->appends(['tab' => 'equipment', 'fragment' => 'equipment'])->links('pagination::bootstrap-5') }}
+            {{ $equipmentItems->appends(['tab' => 'equipment', 'fragment' => 'equipment', 'search' => request()->query('search')])->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>

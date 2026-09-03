@@ -237,6 +237,8 @@ const initializeItemPicker = (root) => {
         }
     });
 
+    root.addEventListener('request-items-content-replaced', syncCart);
+
     root.addEventListener('keydown', (event) => {
         const row = event.target.closest('[data-picker-item]');
 

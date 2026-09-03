@@ -166,6 +166,20 @@ class StudentBorrowController extends Controller
 		$chemicalQuery = Chemical::query()
 			->where('status', 'Available')
 			->orderBy('chemical_name');
+		$search = trim((string) $request->query('search', ''));
+
+		if ($search !== '') {
+			$equipmentQuery->where(function ($query) use ($search) {
+				$query->where('equipment_name', 'like', '%' . $search . '%')
+					->orWhere('equipment_code', 'like', '%' . $search . '%')
+					->orWhere('barcode', 'like', '%' . $search . '%');
+			});
+			$chemicalQuery->where(function ($query) use ($search) {
+				$query->where('chemical_name', 'like', '%' . $search . '%')
+					->orWhere('chemical_code', 'like', '%' . $search . '%')
+					->orWhere('barcode', 'like', '%' . $search . '%');
+			});
+		}
 
 		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
 		$chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');

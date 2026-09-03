@@ -150,11 +150,20 @@ class RequestNotificationService
         }
 
         if ($reference instanceof BorrowTransaction) {
-            return match ($user->role?->role_name) {
-                'Coordinator' => route('coordinator.borrow.show', $reference),
-                'Laboratory In-charge' => route('facilitator.borrow.show', $reference),
-                'Instructor' => route('instructor.borrow.show', $reference),
-                'Student' => route('student.borrow.show', $reference),
+            $roleName = $user->role?->role_name;
+            $routeGroup = in_array($roleName, ['Coordinator', 'Laboratory In-charge'], true)
+                ? match ($notification->title) {
+                    'Checkout is due now' => 'checkout',
+                    'Check-in is due now' => 'checkin',
+                    default => 'borrow',
+                }
+                : 'borrow';
+
+            return match ($roleName) {
+                'Coordinator' => route('coordinator.'.$routeGroup.'.show', $reference),
+                'Laboratory In-charge' => route('facilitator.'.$routeGroup.'.show', $reference),
+                'Instructor' => route('instructor.'.$routeGroup.'.show', $reference),
+                'Student' => route('student.'.$routeGroup.'.show', $reference),
                 default => route('notifications.index'),
             };
         }
