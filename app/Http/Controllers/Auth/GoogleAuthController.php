@@ -101,9 +101,7 @@ class GoogleAuthController extends Controller
         }
 
         if ($accountRequest?->status === 'Rejected') {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Your account request was not approved by the coordinator. Please contact the coordinator or submit a new registration request.',
-            ]);
+            $request->session()->flash('registration_notice', 'Your previous account request was rejected. Please review your information and submit a new registration request.');
         }
 
 		$request->session()->put('google_registration', [

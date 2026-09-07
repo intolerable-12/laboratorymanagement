@@ -140,7 +140,9 @@
                         <div class="d-grid gap-2">
                             <a href="{{ route('student.inventory.index') }}" class="btn btn-primary">Browse Inventory</a>
                             <a href="{{ route('student.reservations.create') }}" class="btn btn-outline-secondary">New Reservation</a>
+                            <a href="{{ route('student.reservations.calendar') }}" class="btn btn-outline-secondary">Reservation Calendar</a>
                             <a href="{{ route('student.borrow.create') }}" class="btn btn-outline-secondary">Borrow Equipment</a>
+                            <a href="{{ route('student.borrow.calendar') }}" class="btn btn-outline-secondary">Borrow Calendar</a>
                         </div>
                     </div>
                 </div>

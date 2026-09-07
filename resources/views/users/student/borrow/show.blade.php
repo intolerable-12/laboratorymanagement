@@ -43,11 +43,22 @@
                                     'Returned' => 'success',
                                     'Overdue' => 'danger',
                                     'Rejected' => 'danger',
+                                    'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
                             @endphp
                             <span class="badge text-bg-{{ $statusTone }}">{{ $borrowTransaction->status }}</span>
                         </div>
+
+                        @if (in_array($borrowTransaction->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
+                            <div class="d-flex justify-content-end mb-4">
+                                <form method="POST" action="{{ route('student.borrow.cancel', $borrowTransaction) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this borrow request?');">Cancel Request</button>
+                                </form>
+                            </div>
+                        @endif
 
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">

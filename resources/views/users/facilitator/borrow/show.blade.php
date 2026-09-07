@@ -21,6 +21,7 @@
             'Returned' => 'success',
             'Overdue' => 'danger',
             'Rejected' => 'danger',
+							'Cancelled' => 'danger',
             default => 'secondary',
         };
     @endphp
@@ -51,6 +52,7 @@
                                     'Returned' => 'success',
                                     'Overdue' => 'danger',
                                     'Rejected' => 'danger',
+									'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
                             @endphp

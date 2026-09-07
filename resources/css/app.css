@@ -1014,8 +1014,213 @@ body.coordinator-page {
     padding: 0.9rem 1rem;
 }
 
-.role-page .account-info-card {
-    min-height: 74px;
+.role-page .request-review-shell {
+    margin-top: 0.25rem;
+}
+
+.role-page .request-review-topbar {
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.role-page .request-review-eyebrow {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.role-page .request-review-subtext {
+    color: #64748b;
+    margin-top: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.role-page .request-review-nav {
+    border-radius: 0.82rem;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.role-page .request-review-nav .btn {
+    padding: 0.65rem 0.95rem;
+    font-weight: 600;
+    border: 0;
+    background: transparent;
+    color: #475569;
+    font-size: 0.92rem;
+}
+
+.role-page .request-review-nav .btn + .btn {
+    border-left: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.role-page .request-review-nav .btn-primary {
+    background: linear-gradient(135deg, #ff6aa0 0%, #ec4899 100%);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.role-page .request-review-card {
+    overflow: hidden;
+    padding: 0;
+}
+
+.role-page .request-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.3rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.role-page .request-review-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.role-page .request-review-back-btn {
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    background: #ffffff;
+    color: #475569;
+    border-radius: 0.7rem;
+    padding: 0.55rem 0.9rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.role-page .request-review-back-btn:hover,
+.role-page .request-review-back-btn:focus-visible {
+    background: #f8fafc;
+    color: #334155;
+}
+
+.role-page .request-review-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.role-page .request-review-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6aa0 0%, #ec4899 100%);
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    box-shadow: 0 8px 18px rgba(236, 72, 153, 0.18);
+}
+
+.role-page .request-review-name {
+    margin: 0;
+    font-size: clamp(1.35rem, 1.7vw, 1.9rem);
+    line-height: 1.2;
+    font-weight: 700;
+    color: #202a36;
+}
+
+.role-page .request-review-meta {
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.88rem;
+}
+
+.role-page .request-review-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #f6d75d;
+    color: #513c00;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: inset 0 0 0 1px rgba(209, 163, 0, 0.18);
+}
+
+.role-page .request-review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem 1.8rem;
+    padding: 1.35rem 1.3rem 0.4rem;
+}
+
+.role-page .request-detail-item {
+    min-height: 4.5rem;
+}
+
+.role-page .request-detail-item--full {
+    grid-column: 1 / -1;
+}
+
+.role-page .request-detail-label {
+    margin-bottom: 0.45rem;
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #7a8798;
+}
+
+.role-page .request-detail-value {
+    font-size: clamp(1rem, 1.2vw, 1.5rem);
+    line-height: 1.35;
+    font-weight: 600;
+    color: #1f2937;
+    word-break: break-word;
+}
+
+.role-page .request-review-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1.3rem 1.4rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    margin-top: 0.9rem;
+}
+
+.role-page .request-review-actions form {
+    margin: 0;
+}
+
+.role-page .request-review-btn {
+    min-width: 200px;
+    min-height: 2.9rem;
+    border-radius: 0.8rem;
+    font-weight: 700;
+    font-size: 0.98rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.role-page .request-review-btn:hover,
+.role-page .request-review-btn:focus-visible {
+    transform: translateY(-1px);
+    filter: brightness(0.98);
+}
+
+.role-page .request-review-btn--reject {
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    background: transparent;
+    color: #dc2626;
+}
+
+.role-page .request-review-btn--approve {
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: linear-gradient(135deg, #1abf9a 0%, #0f9d74 100%);
+    color: #fff;
+    box-shadow: 0 10px 18px rgba(15, 157, 116, 0.2);
 }
 
 .role-page .account-profile-header {

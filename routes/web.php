@@ -46,8 +46,10 @@ use App\Http\Controllers\Student\DashboardController as StudentDashboardControll
 use App\Http\Controllers\Student\Inventory\ChemicalController as StudentChemicalInventoryController;
 use App\Http\Controllers\Student\Inventory\LabEquipmentController as StudentLabEquipmentController;
 use App\Http\Controllers\Student\Reservation\ReservationController as StudentReservationController;
+use App\Http\Controllers\Student\Reservation\ReservationCalendarController as StudentReservationCalendarController;
 use App\Http\Controllers\Student\Borrow\StudentBorrowController;
 use App\Http\Controllers\Student\Borrow\StudentBorrowEmailController;
+use App\Http\Controllers\Student\Borrow\StudentBorrowCalendarController;
 use App\Http\Controllers\Student\Account\MyAccountController as StudentMyAccountController;
 use App\Http\Controllers\Student\Forum\ForumController as StudentForumController;
 use App\Http\Controllers\Student\Forum\ForumCommentController as StudentForumCommentController;
@@ -210,8 +212,11 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
             ->name('forum.')
             ->group(function () {
                 Route::get('/', [CoordinatorForumController::class, 'index'])->name('index');
-                Route::get('/{forumPost}', [CoordinatorForumController::class, 'show'])->name('show');
+                Route::get('/create', [CoordinatorForumController::class, 'create'])->name('create');
+                Route::post('/', [CoordinatorForumController::class, 'store'])->name('store');
+                Route::get('/{forumPost}', [CoordinatorForumController::class, 'show'])->whereNumber('forumPost')->name('show');
                 Route::put('/{forumPost}', [CoordinatorForumController::class, 'update'])->name('update');
+                Route::post('/{forumPost}/comments', [CoordinatorForumCommentController::class, 'store'])->whereNumber('forumPost')->name('comments.store');
                 Route::post('/comments/{forumComment}/toggle-visibility', [CoordinatorForumCommentController::class, 'toggleVisibility'])->name('comments.toggle-visibility');
             });
 
@@ -279,8 +284,10 @@ Route::middleware(['auth', 'role:Student'])
         Route::prefix('reservations')
             ->name('reservations.')
             ->group(function () {
+                Route::get('/calendar', [StudentReservationCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [StudentReservationController::class, 'index'])->name('index');
                 Route::get('/create', [StudentReservationController::class, 'create'])->name('create');
+                Route::patch('/{reservation}/cancel', [StudentReservationController::class, 'cancel'])->name('cancel');
                 Route::post('/', [StudentReservationController::class, 'store'])->name('store');
                 Route::get('/{reservation}', [StudentReservationController::class, 'show'])->name('show');
             });
@@ -290,6 +297,8 @@ Route::middleware(['auth', 'role:Student'])
             ->group(function () {
                 Route::get('/', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'index'])->name('index');
                 Route::get('/create', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'create'])->name('create');
+                Route::get('/calendar', [StudentBorrowCalendarController::class, 'index'])->name('calendar');
+                Route::patch('/{borrowTransaction}/cancel', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'cancel'])->name('cancel');
                 Route::post('/', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'store'])->name('store');
                 Route::get('/{borrowTransaction}', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'show'])->name('show');
             });

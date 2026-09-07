@@ -29,6 +29,12 @@
                         <p class="auth-subtitle mb-0">Your Google account is verified. Finish your student profile to continue.</p>
                     </div>
 
+                    @if (session('registration_notice'))
+                        <div class="alert alert-warning" role="alert">
+                            {{ session('registration_notice') }}
+                        </div>
+                    @endif
+
                     @if ($errors->any())
                         <div class="alert alert-danger" role="alert">
                             <ul class="mb-0 ps-3">
