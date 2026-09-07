@@ -29,11 +29,12 @@ class StudentBorrowController extends Controller
 			->latest('borrowed_at')
 			->get();
 
-		$groupKeys = ['current', 'pending', 'returned'];
+		$groupKeys = ['current', 'pending', 'returned', 'cancelled'];
 		$groupFilters = [
 			'current' => ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'],
 			'pending' => ['Pending', 'Instructor Approved', 'Facilitator Approved'],
 			'returned' => ['Returned'],
+			'cancelled' => ['Cancelled'],
 		];
 
 		$groupEntries = [];
@@ -66,6 +67,7 @@ class StudentBorrowController extends Controller
 							'Partially Returned' => 'primary',
 							'Returned' => 'success',
 							'Overdue' => 'danger',
+							'Cancelled' => 'danger',
 							default => 'secondary',
 						},
 						'borrowed_at' => $transaction->borrowed_at?->format('M d, Y') ?? '—',
@@ -139,6 +141,7 @@ class StudentBorrowController extends Controller
 				'current' => ['label' => 'Current Borrowing', 'tone' => 'primary'],
 				'pending' => ['label' => 'Pending', 'tone' => 'warning'],
 				'returned' => ['label' => 'Returned', 'tone' => 'success'],
+				'cancelled' => ['label' => 'Cancelled', 'tone' => 'danger'],
 			][$sectionKey],
 		]);
 	}
@@ -309,6 +312,32 @@ class StudentBorrowController extends Controller
 		$borrowTransaction->load(['borrower', 'items.item', 'releasedBy', 'receivedBy']);
 
 		return view('users.student.borrow.show', compact('borrowTransaction'));
+	}
+
+	public function cancel(Request $request, BorrowTransaction $borrowTransaction)
+	{
+		$this->ensureStudent($request);
+
+		abort_unless($borrowTransaction->borrower_id === $request->user()->userNo, 403);
+
+		$cancelled = BorrowTransaction::query()
+			->whereKey($borrowTransaction->getKey())
+			->where('borrower_id', $request->user()->userNo)
+			->whereIn('status', ['Pending', 'Instructor Approved', 'Facilitator Approved'])
+			->update([
+				'status' => 'Cancelled',
+				'updated_at' => now(),
+			]);
+
+		if ($cancelled !== 1) {
+			throw ValidationException::withMessages([
+				'status' => 'Only requests awaiting coordinator approval can be cancelled.',
+			]);
+		}
+
+		return redirect()
+			->route('student.borrow.show', $borrowTransaction)
+			->with('status', 'Borrow request cancelled successfully.');
 	}
 
 	private function validateBorrowRequest(Request $request): array

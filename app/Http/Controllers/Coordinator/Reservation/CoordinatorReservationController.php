@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Coordinator\Reservation;
 
+use App\Http\Controllers\Concerns\ValidatesReservationSchedule;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationEmailController;
 use App\Models\ApprovalLog;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
+use App\Models\Laboratory;
 use App\Models\Reservation;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
@@ -17,6 +19,8 @@ use Illuminate\Validation\ValidationException;
 
 class CoordinatorReservationController extends Controller
 {
+    use ValidatesReservationSchedule;
+
     public function index(Request $request)
     {
         $this->ensureCoordinator($request);
@@ -75,33 +79,34 @@ class CoordinatorReservationController extends Controller
             ]);
         }
 
-        $coordinatorApprovedConflict = Reservation::query()
-            ->where('laboratory_id', $reservation->laboratory_id)
-            ->whereDate('reservation_date', $data['reservation_date'])
-            ->where('status', 'Coordinator Approved')
-            ->where('id', '!=', $reservation->id)
-            ->exists();
+        $this->ensureReservationHours($data['reservation_date'], $data['start_time'], $data['end_time']);
 
-        if ($coordinatorApprovedConflict) {
+        if ($this->hasReservationTimeConflict(
+            (int) $reservation->laboratory_id,
+            $data['reservation_date'],
+            $data['start_time'],
+            $data['end_time'],
+            (int) $reservation->id
+        )) {
             throw ValidationException::withMessages([
-                'reservation_date' => 'This laboratory is already reserved on the selected date by another approved reservation.',
+                'reservation_date' => 'This laboratory already has another reservation that overlaps the selected time.',
             ]);
         }
 
         $notificationService = app(RequestNotificationService::class);
 
         DB::transaction(function () use ($request, $reservation, $data, $notificationService) {
-            $coordinatorApprovedConflict = Reservation::query()
-                ->where('laboratory_id', $reservation->laboratory_id)
-                ->whereDate('reservation_date', $data['reservation_date'])
-                ->where('status', 'Coordinator Approved')
-                ->where('id', '!=', $reservation->id)
-                ->lockForUpdate()
-                ->exists();
+            Laboratory::query()->lockForUpdate()->findOrFail($reservation->laboratory_id);
 
-            if ($coordinatorApprovedConflict) {
+            if ($this->hasReservationTimeConflict(
+                (int) $reservation->laboratory_id,
+                $data['reservation_date'],
+                $data['start_time'],
+                $data['end_time'],
+                (int) $reservation->id
+            )) {
                 throw ValidationException::withMessages([
-                    'reservation_date' => 'This laboratory is already reserved on the selected date by another approved reservation.',
+                    'reservation_date' => 'This laboratory already has another reservation that overlaps the selected time.',
                 ]);
             }
 

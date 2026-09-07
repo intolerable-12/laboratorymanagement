@@ -59,21 +59,25 @@
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                            <input type="date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-weekday-only="true" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
+                            <input type="date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <div class="form-text">Reservations must be made at least 3 business days in advance.</div>
+                            <div class="form-text">At least 3 business days in advance. Sundays are unavailable; Saturdays are available.</div>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Start Time</label>
-                            <input type="time" name="start_time" value="{{ old('start_time') }}" class="form-control @error('start_time') is-invalid @enderror" required>
+                            <input type="time" id="reservation-start-time" name="start_time" value="{{ old('start_time') }}" min="07:30" max="17:00" step="900" class="form-control @error('start_time') is-invalid @enderror" required>
                             @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">End Time</label>
-                            <input type="time" name="end_time" value="{{ old('end_time') }}" class="form-control @error('end_time') is-invalid @enderror" required>
+                            <input type="time" id="reservation-end-time" name="end_time" value="{{ old('end_time') }}" min="07:30" max="17:00" step="900" class="form-control @error('end_time') is-invalid @enderror" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-text">Laboratory hours: Monday-Friday 7:30 AM-5:00 PM; Saturday 8:00 AM-12:00 NN.</div>
                         </div>
 
                         <div class="col-md-4">
@@ -163,4 +167,34 @@
             </div>
         </form>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const dateField = document.querySelector('input[name="reservation_date"]');
+            const startField = document.querySelector('#reservation-start-time');
+            const endField = document.querySelector('#reservation-end-time');
+
+            if (!dateField || !startField || !endField) {
+                return;
+            }
+
+            const updateReservationHours = () => {
+                const selectedDate = dateField.value ? new Date(`${dateField.value}T00:00:00`) : null;
+                const day = selectedDate && !Number.isNaN(selectedDate.getTime()) ? selectedDate.getDay() : null;
+                const isSunday = day === 0;
+                const isSaturday = day === 6;
+                const minimum = isSaturday ? '08:00' : '07:30';
+                const maximum = isSaturday ? '12:00' : '17:00';
+
+                [startField, endField].forEach((field) => {
+                    field.min = isSunday ? '00:00' : minimum;
+                    field.max = isSunday ? '00:00' : maximum;
+                    field.setCustomValidity(isSunday ? 'Reservations are not available on Sundays.' : '');
+                });
+            };
+
+            dateField.addEventListener('change', updateReservationHours);
+            dateField.addEventListener('input', updateReservationHours);
+            updateReservationHours();
+        });
+    </script>
 @endsection

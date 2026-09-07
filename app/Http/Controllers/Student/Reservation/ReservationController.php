@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student\Reservation;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\ValidatesReservationSchedule;
 use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\Laboratory;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
 {
+    use ValidatesReservationSchedule;
+
     public function index(Request $request)
     {
         $this->ensureStudent($request);
@@ -129,18 +132,17 @@ class ReservationController extends Controller
 
         $reservation = DB::transaction(function () use ($request, $data, $items, $notificationService) {
             $schoolYear = SchoolYear::findOrFail($data['school_year_id']);
-            $laboratory = Laboratory::findOrFail($data['laboratory_id']);
+            $laboratory = Laboratory::query()->lockForUpdate()->findOrFail($data['laboratory_id']);
             $codeGenerator = app(SequentialCodeGenerator::class);
 
-            $coordinatorApprovedConflict = Reservation::query()
-                ->where('laboratory_id', $data['laboratory_id'])
-                ->whereDate('reservation_date', $data['reservation_date'])
-                ->where('status', 'Coordinator Approved')
-                ->exists();
-
-            if ($coordinatorApprovedConflict) {
+            if ($this->hasReservationTimeConflict(
+                (int) $data['laboratory_id'],
+                $data['reservation_date'],
+                $data['start_time'],
+                $data['end_time']
+            )) {
                 throw ValidationException::withMessages([
-                    'reservation_date' => 'This laboratory is already reserved on the selected date by an approved reservation.',
+                    'reservation_date' => 'This laboratory already has a reservation that overlaps the selected time.',
                 ]);
             }
 
@@ -215,6 +217,32 @@ class ReservationController extends Controller
         return view('users.student.reservation.show', compact('reservation'));
     }
 
+    public function cancel(Request $request, Reservation $reservation)
+    {
+        $this->ensureStudent($request);
+
+        abort_unless($reservation->user_no === $request->user()->userNo, 403);
+
+        $cancelled = Reservation::query()
+            ->whereKey($reservation->getKey())
+            ->where('user_no', $request->user()->userNo)
+            ->whereIn('status', ['Pending', 'Instructor Approved', 'Facilitator Approved'])
+            ->update([
+                'status' => 'Cancelled',
+                'updated_at' => now(),
+            ]);
+
+        if ($cancelled !== 1) {
+            throw ValidationException::withMessages([
+                'status' => 'Only requests awaiting coordinator approval can be cancelled.',
+            ]);
+        }
+
+        return redirect()
+            ->route('student.reservations.show', $reservation)
+            ->with('status', 'Reservation request cancelled successfully.');
+    }
+
     private function validateReservation(Request $request): array
     {
         $data = $request->validate([
@@ -242,12 +270,14 @@ class ReservationController extends Controller
             ]);
         }
 
+        $this->ensureReservationHours($data['reservation_date'], $data['start_time'], $data['end_time']);
+
         $reservationDate = Carbon::parse($data['reservation_date'])->startOfDay();
         $minimumReservationDate = $this->minimumReservationDate();
 
-        if ($reservationDate->isWeekend()) {
+        if ($reservationDate->isSunday()) {
             throw ValidationException::withMessages([
-                'reservation_date' => 'Reservation dates cannot fall on Saturday or Sunday.',
+                'reservation_date' => 'Reservation dates cannot fall on Sunday.',
             ]);
         }
 
@@ -257,15 +287,14 @@ class ReservationController extends Controller
             ]);
         }
 
-        $coordinatorApprovedConflict = Reservation::query()
-            ->where('laboratory_id', $data['laboratory_id'])
-            ->whereDate('reservation_date', $data['reservation_date'])
-            ->where('status', 'Coordinator Approved')
-            ->exists();
-
-        if ($coordinatorApprovedConflict) {
+        if ($this->hasReservationTimeConflict(
+            (int) $data['laboratory_id'],
+            $data['reservation_date'],
+            $data['start_time'],
+            $data['end_time']
+        )) {
             throw ValidationException::withMessages([
-                'reservation_date' => 'This laboratory is already reserved on the selected date by an approved reservation.',
+                'reservation_date' => 'This laboratory already has a reservation that overlaps the selected time.',
             ]);
         }
 

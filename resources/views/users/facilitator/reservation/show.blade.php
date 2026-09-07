@@ -16,6 +16,7 @@
             'Facilitator Approved' => 'primary',
             'Coordinator Approved' => 'success',
             'Rejected' => 'danger',
+							'Cancelled' => 'danger',
             default => 'secondary',
         };
     @endphp
@@ -41,6 +42,7 @@
                                     'Facilitator Approved' => 'primary',
                                     'Coordinator Approved' => 'success',
                                     'Rejected' => 'danger',
+									'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
                             @endphp

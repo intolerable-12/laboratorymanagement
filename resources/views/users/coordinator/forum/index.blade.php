@@ -13,6 +13,12 @@
             transform: translateY(-2px);
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
         }
+        .forum-list-preview {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+        }
     </style>
 
     @if (session('status'))
@@ -92,16 +98,25 @@
 
     {{-- Feed Header & View Switcher Bar --}}
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-3">
-        <h3 class="h4 fw-semibold mb-0 text-dark">Moderation feed</h3>
+        <div>
+            <h3 class="h4 fw-semibold mb-0 text-dark">Moderation feed</h3>
+            <div class="small text-secondary mt-1">Create and join discussions as a coordinator.</div>
+        </div>
 
-        {{-- Switcher Button Group with Font Awesome Icons --}}
-        <div class="btn-group" role="group" aria-label="View toggle">
-            <button type="button" class="btn btn-outline-secondary" id="btnListView" onclick="switchForumView('list')">
-                <i class="fa-solid fa-list me-1"></i> List
-            </button>
-            <button type="button" class="btn btn-outline-secondary" id="btnCardView" onclick="switchForumView('card')">
-                <i class="fa-solid fa-border-all me-1"></i> Cards
-            </button>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('coordinator.forum.create') }}" class="btn btn-primary rounded-pill px-4">
+                <i class="fa-solid fa-plus me-1"></i> New post
+            </a>
+
+            {{-- Switcher Button Group with Font Awesome Icons --}}
+            <div class="btn-group" role="group" aria-label="View toggle">
+                <button type="button" class="btn btn-outline-secondary" id="btnListView" onclick="switchForumView('list')">
+                    <i class="fa-solid fa-list me-1"></i> List
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnCardView" onclick="switchForumView('card')">
+                    <i class="fa-solid fa-border-all me-1"></i> Cards
+                </button>
+            </div>
         </div>
     </div>
 
@@ -116,7 +131,7 @@
                 $postUrl = route('coordinator.forum.show', $forumPost);
             @endphp
             <article class="card social-card post-card border-0 mb-3 position-relative clickable-card">
-                <div class="card-body p-4 p-xl-5">
+                <div class="card-body p-3 p-xl-4">
                     <div class="d-flex gap-3">
                         <div class="feed-avatar">{{ $authorInitial }}</div>
                         <div class="flex-grow-1 min-w-0">
@@ -136,9 +151,9 @@
                                 <span class="btn btn-outline-primary rounded-pill align-self-start pe-none">Review post</span>
                             </div>
 
-                            <div class="rte-preview mt-3 text-secondary">{{ $preview }}</div>
+                            <div class="rte-preview mt-2 text-secondary forum-list-preview">{{ $preview }}</div>
 
-                            <div class="d-flex flex-wrap gap-4 mt-4 small text-secondary">
+                            <div class="d-flex flex-wrap gap-4 mt-3 small text-secondary">
                                 <span><i class="fa-regular fa-comments me-1"></i>{{ $forumPost->comments_count }} comments</span>
                                 <span><i class="fa-regular fa-eye me-1"></i>{{ $forumPost->views }} views</span>
                             </div>

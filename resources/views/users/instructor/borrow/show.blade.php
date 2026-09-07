@@ -44,7 +44,8 @@
                                     'Partially Returned' => 'primary',
                                     'Returned' => 'success',
                                     'Overdue' => 'danger',
-                                    'Rejected' => 'danger',
+					'Rejected' => 'danger',
+					'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
                             @endphp

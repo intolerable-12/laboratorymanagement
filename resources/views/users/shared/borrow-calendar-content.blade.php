@@ -1,24 +1,26 @@
 <div class="account-page reservation-calendar-page">
-    <section class="row g-3 g-xl-4 mb-4">
-        <div class="col-12 col-lg-6">
-            <div class="card {{ $cardClass }} border-0 h-100">
-                <div class="card-body p-4">
-                    <div class="small text-uppercase fw-semibold text-secondary mb-2">Upcoming Borrow Requests for {{ now()->format('F') }}</div>
-                    <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['upcomingMonth'] }}</div>
-                    <div class="small text-secondary">Approved borrow request deadlines after today</div>
+    @if ($showMetrics ?? true)
+        <section class="row g-3 g-xl-4 mb-4">
+            <div class="col-12 col-lg-6">
+                <div class="card {{ $cardClass }} border-0 h-100">
+                    <div class="card-body p-4">
+                        <div class="small text-uppercase fw-semibold text-secondary mb-2">Upcoming Borrow Requests for {{ now()->format('F') }}</div>
+                        <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['upcomingMonth'] }}</div>
+                        <div class="small text-secondary">Approved borrow request deadlines after today</div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-12 col-lg-6">
-            <div class="card {{ $cardClass }} border-0 h-100">
-                <div class="card-body p-4">
-                    <div class="small text-uppercase fw-semibold text-secondary mb-2">Borrow Requests Today</div>
-                    <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['today'] }}</div>
-                    <div class="small text-secondary">Borrow deadlines on {{ now()->format('F j, Y') }}</div>
+            <div class="col-12 col-lg-6">
+                <div class="card {{ $cardClass }} border-0 h-100">
+                    <div class="card-body p-4">
+                        <div class="small text-uppercase fw-semibold text-secondary mb-2">Borrow Requests Today</div>
+                        <div class="display-6 fw-semibold text-dark mb-1">{{ $calendarStats['today'] }}</div>
+                        <div class="small text-secondary">Borrow deadlines on {{ now()->format('F j, Y') }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+    @endif
 
     <section class="card {{ $cardClass }} border-0 reservation-calendar-shell" data-reservation-calendar-shell>
         <div class="card-body p-4 p-xl-5">

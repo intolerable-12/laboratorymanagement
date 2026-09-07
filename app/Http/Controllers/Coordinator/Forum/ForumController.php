@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Coordinator\Forum;
 use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
+use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ForumController extends Controller
 {
@@ -48,6 +51,49 @@ class ForumController extends Controller
         ];
 
         return view('users.coordinator.forum.index', compact('forumPosts', 'search', 'category', 'categories', 'stats'));
+    }
+
+    public function create(Request $request)
+    {
+        $this->ensureCoordinator($request);
+
+        return view('users.coordinator.forum.create', [
+            'categories' => ForumPost::categories(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $this->ensureCoordinator($request);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'category' => ['required', Rule::in(ForumPost::categories())],
+            'content' => ['required', 'string', 'max:15000'],
+        ]);
+
+        $content = RichTextSanitizer::sanitize($data['content']);
+
+        if ($content === null) {
+            throw ValidationException::withMessages([
+                'content' => 'Content is required.',
+            ]);
+        }
+
+        $forumPost = ForumPost::create([
+            'user_no' => $request->user()->userNo,
+            'title' => $data['title'],
+            'category' => $data['category'],
+            'content' => $content,
+            'views' => 0,
+            'is_pinned' => false,
+            'is_locked' => false,
+            'is_hidden' => false,
+        ]);
+
+        return redirect()
+            ->route('coordinator.forum.show', $forumPost)
+            ->with('status', 'Forum post created successfully.');
     }
 
     public function show(Request $request, ForumPost $forumPost)

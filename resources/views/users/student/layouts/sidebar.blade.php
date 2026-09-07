@@ -26,8 +26,10 @@
         $isInventoryGroup = request()->routeIs('student.inventory.*');
 
         $isReservationsGroup = request()->routeIs('student.reservations.*');
+        $isReservationCalendar = request()->routeIs('student.reservations.calendar');
 
         $isBorrowGroup = request()->routeIs('student.borrow.*');
+        $isBorrowCalendar = request()->routeIs('student.borrow.calendar');
 
         $isForumIndex = request()->routeIs('student.forum.index');
         $isForumGroup = request()->routeIs('student.forum.*');
@@ -62,16 +64,28 @@
                     <span class="sidebar-item__label">Chemicals</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup ? 'active' : '' }}"
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup && ! $isReservationCalendar ? 'active' : '' }}"
                     href="{{ route('student.reservations.index') }}" title="Reservations">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
                     <span class="sidebar-item__label">Reservations</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup ? 'active' : '' }}"
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationCalendar ? 'active' : '' }}"
+                    href="{{ route('student.reservations.calendar') }}" title="Reservation Calendar">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span class="sidebar-item__label">Reservation Calendar</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup && ! $isBorrowCalendar ? 'active' : '' }}"
                     href="{{ route('student.borrow.index') }}" title="Borrowing">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-box-open"></i></span>
                     <span class="sidebar-item__label">Borrowing</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                    href="{{ route('student.borrow.calendar') }}" title="Borrow Calendar">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
+                    <span class="sidebar-item__label">Borrow Calendar</span>
                 </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"

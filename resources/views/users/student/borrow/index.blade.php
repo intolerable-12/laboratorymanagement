@@ -44,6 +44,7 @@
                             'current' => ['label' => 'Current Borrowing', 'tone' => 'primary'],
                             'pending' => ['label' => 'Pending', 'tone' => 'warning'],
                             'returned' => ['label' => 'Returned', 'tone' => 'success'],
+                            'cancelled' => ['label' => 'Cancelled', 'tone' => 'danger'],
                         ];
                     @endphp
 
@@ -208,7 +209,7 @@
                     const url = new URL(window.location.href);
                     url.searchParams.set('view', mode);
                     url.searchParams.delete('section');
-                    ['current', 'pending', 'returned'].forEach((section) => url.searchParams.delete('page[' + section + ']'));
+                    ['current', 'pending', 'returned', 'cancelled'].forEach((section) => url.searchParams.delete('page[' + section + ']'));
                     window.location.assign(url);
                 });
             });

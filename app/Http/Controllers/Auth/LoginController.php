@@ -80,7 +80,7 @@ class LoginController extends Controller
 
                 $message = match ($accountRequest?->status) {
                     'Pending' => 'Your account request is still waiting for coordinator approval. You cannot sign in until it is approved.',
-                    'Rejected' => 'Your account request was not approved by the coordinator. Please contact the coordinator or submit a new registration request.',
+                    'Rejected' => 'Your account request was not approved by the coordinator. Sign in with your @lccdo.edu.ph Google account to submit a new registration request.',
                     'Approved' => 'Your account request was approved, but your account is not available for login yet. Please contact the coordinator.',
                     default => 'No registered account was found for this email. Please complete registration and wait for coordinator approval, or contact the coordinator.',
                 };

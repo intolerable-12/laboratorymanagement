@@ -32,7 +32,8 @@
                                 'Instructor Approved' => 'info',
                                 'Facilitator Approved' => 'primary',
                                 'Coordinator Approved' => 'success',
-                                'Rejected' => 'danger',
+                                    'Rejected' => 'danger',
+									'Cancelled' => 'danger',
                                 default => 'secondary',
                             };
                         @endphp

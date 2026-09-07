@@ -94,6 +94,29 @@
                 </div>
             </article>
 
+            @if (! $forumPost->is_locked)
+                <div class="card social-card border-0 mb-4">
+                    <div class="card-body p-4 p-xl-5">
+                        <div class="social-eyebrow mb-2">Join the thread</div>
+                        <h3 class="h5 fw-semibold mb-4 text-dark">Add a reply</h3>
+
+                        <form method="POST" action="{{ route('coordinator.forum.comments.store', $forumPost) }}" class="vstack gap-3">
+                            @csrf
+
+                            <div>
+                                <label for="comment" class="form-label fw-semibold text-dark">Comment</label>
+                                <textarea id="comment" name="comment" rows="4" class="form-control social-input @error('comment') is-invalid @enderror" placeholder="Write a reply..." required>{{ old('comment') }}</textarea>
+                                @error('comment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary px-4 rounded-pill">Post reply</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
             <div class="card social-card border-0">
                 <div class="card-body p-4 p-xl-5">
                     <div class="d-flex justify-content-between align-items-center mb-4">

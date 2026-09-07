@@ -56,6 +56,7 @@
 										'Facilitator Approved' => 'primary',
 										'Coordinator Approved' => 'success',
 										'Rejected' => 'danger',
+										'Cancelled' => 'danger',
 										default => 'secondary',
 									};
 								@endphp
@@ -83,7 +84,16 @@
 										</span>
 									</td>
 									<td class="text-center">
-										<a href="{{ route('student.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">View</a>
+										<div class="d-inline-flex align-items-center gap-2">
+											<a href="{{ route('student.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">View</a>
+											@if (in_array($reservation->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
+												<form method="POST" action="{{ route('student.reservations.cancel', $reservation) }}" class="d-inline">
+													@csrf
+													@method('PATCH')
+													<button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this reservation request?');">Cancel</button>
+												</form>
+											@endif
+										</div>
 									</td>
 								</tr>
 							@empty
