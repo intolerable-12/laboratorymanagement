@@ -7,31 +7,20 @@ use App\Models\ChemicalCategory;
 use App\Models\Laboratory;
 use Illuminate\Database\Seeder;
 
-class ChemicalSeeder extends Seeder
+class ChemistryChemicalSeeder extends Seeder
 {
-    /**
-     * Seed the chemicals table.
-     */
     public function run(): void
     {
         $categories = ChemicalCategory::pluck('id', 'category_code');
+        $chemistryLab = Laboratory::where('laboratory_code', 'LAB-001')->first();
 
-        $laboratoryId = Laboratory::query()->value('id');
-
-        if (!$laboratoryId) {
-            $this->command->error(
-                'No laboratory record found. Please run the LaboratorySeeder first.'
-            );
-
+        if (!$chemistryLab) {
+            $this->command->error('Chemistry Laboratory not found. Please run LaboratorySeeder first.');
             return;
         }
 
         $chemicals = [
-
-            // =========================================================
-            // ACIDS
-            // =========================================================
-
+            // Acids
             [
                 'chemical_name' => 'Hydrochloric Acid',
                 'category_code' => 'ACID',
@@ -102,11 +91,15 @@ class ChemicalSeeder extends Seeder
                 'hazard_classification' => 'Irritant',
                 'storage_location' => 'Reagent Cabinet R-01',
             ],
+            [
+                'chemical_name' => 'Salicylic Acid',
+                'category_code' => 'ACID',
+                'unit' => 'kg',
+                'hazard_classification' => 'Irritant',
+                'storage_location' => 'Reagent Cabinet R-30',
+            ],
 
-            // =========================================================
-            // BASES
-            // =========================================================
-
+            // Bases
             [
                 'chemical_name' => 'Sodium Hydroxide Pellets',
                 'category_code' => 'BASE',
@@ -157,10 +150,7 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'Base Cabinet B-07',
             ],
 
-            // =========================================================
-            // SOLVENTS
-            // =========================================================
-
+            // Solvents
             [
                 'chemical_name' => 'Methanol',
                 'category_code' => 'SOLVENT',
@@ -260,10 +250,7 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'General Chemical Shelf C-04',
             ],
 
-            // =========================================================
-            // SALTS
-            // =========================================================
-
+            // Salts
             [
                 'chemical_name' => 'Potassium Ferrocyanide',
                 'category_code' => 'SALT',
@@ -544,18 +531,8 @@ class ChemicalSeeder extends Seeder
                 'hazard_classification' => 'Non-Hazardous',
                 'storage_location' => 'General Chemical Shelf C-22',
             ],
-            [
-                'chemical_name' => 'Sodium Hydrogen Carbonate',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'General Chemical Shelf C-23',
-            ],
 
-            // =========================================================
-            // OXIDIZERS
-            // =========================================================
-
+            // Oxidizers
             [
                 'chemical_name' => 'Potassium Dichromate',
                 'category_code' => 'OXIDIZER',
@@ -584,11 +561,15 @@ class ChemicalSeeder extends Seeder
                 'hazard_classification' => 'Oxidizer',
                 'storage_location' => 'Oxidizer Cabinet O-08',
             ],
+            [
+                'chemical_name' => 'Lithium Nitrate',
+                'category_code' => 'OXIDIZER',
+                'unit' => 'kg',
+                'hazard_classification' => 'Oxidizer',
+                'storage_location' => 'Oxidizer Cabinet O-09',
+            ],
 
-            // =========================================================
-            // INDICATORS
-            // =========================================================
-
+            // Indicators
             [
                 'chemical_name' => 'Blue Litmus Paper',
                 'category_code' => 'INDICATOR',
@@ -660,13 +641,6 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'Reagent Cabinet R-10',
             ],
             [
-                'chemical_name' => 'Methylene Blue',
-                'category_code' => 'INDICATOR',
-                'unit' => 'g',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'Reagent Cabinet R-11',
-            ],
-            [
                 'chemical_name' => 'Eriochrome Black',
                 'category_code' => 'INDICATOR',
                 'unit' => 'g',
@@ -674,23 +648,20 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'Reagent Cabinet R-12',
             ],
 
-            // =========================================================
-            // GENERAL REAGENTS
-            // =========================================================
-
+            // Reagents
+            [
+                'chemical_name' => 'Sodium Hydrogen Carbonate',
+                'category_code' => 'REAGENT',
+                'unit' => 'kg',
+                'hazard_classification' => 'Non-Hazardous',
+                'storage_location' => 'General Chemical Shelf C-23',
+            ],
             [
                 'chemical_name' => 'Staining Solution',
                 'category_code' => 'REAGENT',
                 'unit' => 'L',
                 'hazard_classification' => 'Irritant',
                 'storage_location' => 'Reagent Cabinet R-13',
-            ],
-            [
-                'chemical_name' => 'Powder Soap',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'General Chemical Shelf C-24',
             ],
             [
                 'chemical_name' => 'Silica Gel',
@@ -1001,25 +972,11 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'General Chemical Shelf C-41',
             ],
             [
-                'chemical_name' => 'Nutrient Agar',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'Biology Chemical Shelf B-01',
-            ],
-            [
                 'chemical_name' => 'Sucrose',
                 'category_code' => 'REAGENT',
                 'unit' => 'kg',
                 'hazard_classification' => 'Non-Hazardous',
                 'storage_location' => 'General Chemical Shelf C-42',
-            ],
-            [
-                'chemical_name' => 'Dextrose Agar Granulated',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'Biology Chemical Shelf B-02',
             ],
             [
                 'chemical_name' => 'Benedict\'s Solution',
@@ -1071,13 +1028,6 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'General Chemical Shelf C-47',
             ],
             [
-                'chemical_name' => 'Starch',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'Biology Chemical Shelf B-03',
-            ],
-            [
                 'chemical_name' => 'Water Soluble',
                 'category_code' => 'REAGENT',
                 'unit' => 'kg',
@@ -1097,13 +1047,6 @@ class ChemicalSeeder extends Seeder
                 'unit' => 'kg',
                 'hazard_classification' => 'Irritant',
                 'storage_location' => 'General Chemical Shelf C-49',
-            ],
-            [
-                'chemical_name' => 'Yeast',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'Biology Chemical Shelf B-04',
             ],
             [
                 'chemical_name' => 'Menthol Crystal',
@@ -1139,13 +1082,6 @@ class ChemicalSeeder extends Seeder
                 'unit' => 'kg',
                 'hazard_classification' => 'Flammable',
                 'storage_location' => 'Metal Storage Cabinet M-11',
-            ],
-            [
-                'chemical_name' => 'Corn Starch',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'Biology Chemical Shelf B-05',
             ],
             [
                 'chemical_name' => 'Baking Soda',
@@ -1190,13 +1126,6 @@ class ChemicalSeeder extends Seeder
                 'storage_location' => 'General Chemical Shelf C-56',
             ],
             [
-                'chemical_name' => 'Salicylic Acid',
-                'category_code' => 'ACID',
-                'unit' => 'kg',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'Reagent Cabinet R-30',
-            ],
-            [
                 'chemical_name' => 'Camphor',
                 'category_code' => 'REAGENT',
                 'unit' => 'kg',
@@ -1216,13 +1145,6 @@ class ChemicalSeeder extends Seeder
                 'unit' => 'g',
                 'hazard_classification' => 'Toxic',
                 'storage_location' => 'Toxic Chemical Cabinet T-16',
-            ],
-            [
-                'chemical_name' => 'Lithium Nitrate',
-                'category_code' => 'OXIDIZER',
-                'unit' => 'kg',
-                'hazard_classification' => 'Oxidizer',
-                'storage_location' => 'Oxidizer Cabinet O-09',
             ],
             [
                 'chemical_name' => 'Phosphotungstic Reagent',
@@ -1251,13 +1173,6 @@ class ChemicalSeeder extends Seeder
                 'unit' => 'L',
                 'hazard_classification' => 'Non-Hazardous',
                 'storage_location' => 'Reagent Cabinet R-34',
-            ],
-            [
-                'chemical_name' => 'Pancreatin Solution',
-                'category_code' => 'REAGENT',
-                'unit' => 'L',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'Biology Chemical Shelf B-06',
             ],
             [
                 'chemical_name' => 'Alpha-Naphthol Solution',
@@ -1307,20 +1222,6 @@ class ChemicalSeeder extends Seeder
                 'unit' => 'kg',
                 'hazard_classification' => 'Non-Hazardous',
                 'storage_location' => 'General Chemical Shelf C-61',
-            ],
-            [
-                'chemical_name' => 'Glucose',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'Biology Chemical Shelf B-07',
-            ],
-            [
-                'chemical_name' => 'Pepsin Solution',
-                'category_code' => 'REAGENT',
-                'unit' => 'L',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'Biology Chemical Shelf B-08',
             ],
             [
                 'chemical_name' => 'Acacia/Gum Arabic',
@@ -1392,25 +1293,8 @@ class ChemicalSeeder extends Seeder
                 'hazard_classification' => 'Toxic',
                 'storage_location' => 'Toxic Chemical Cabinet T-17',
             ],
-            [
-                'chemical_name' => 'Ammonium Carbonate',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'Reagent Cabinet R-38',
-            ],
-            [
-                'chemical_name' => 'Acacia/Gum Arabic',
-                'category_code' => 'REAGENT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'General Chemical Shelf C-62',
-            ],
 
-            // =========================================================
-            // SPECIAL REAGENTS
-            // =========================================================
-
+            // Special Reagents
             [
                 'chemical_name' => 'Nade\'s Reagent',
                 'category_code' => 'REAGENT',
@@ -1453,30 +1337,7 @@ class ChemicalSeeder extends Seeder
                 'hazard_classification' => 'Toxic',
                 'storage_location' => 'Toxic Chemical Cabinet T-18',
             ],
-
-            // =========================================================
-            // DISINFECTANTS
-            // =========================================================
-
-            [
-                'chemical_name' => 'Powder Soap',
-                'category_code' => 'DISINFECTANT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Irritant',
-                'storage_location' => 'Cleaning Supply Cabinet D-01',
-            ],
         ];
-
-        /*
-        |--------------------------------------------------------------------------
-        | Remove duplicate names
-        |--------------------------------------------------------------------------
-        |
-        | Your original list contains duplicates such as:
-        | Hydrogen peroxide, Staining solution, Powder soap,
-        | Silica gel, and Mercury.
-        |
-        */
 
         $chemicals = collect($chemicals)
             ->unique('chemical_name')
@@ -1484,90 +1345,40 @@ class ChemicalSeeder extends Seeder
             ->all();
 
         foreach ($chemicals as $index => $item) {
-
-            $categoryCode = $item['category_code'];
-
-            $categoryId = $categories->get($categoryCode);
+            $categoryId = $categories->get($item['category_code']);
 
             if (!$categoryId) {
-                $this->command->warn(
-                    "Category [{$categoryCode}] was not found. Skipping {$item['chemical_name']}."
-                );
-
+                $this->command->warn("Category [{$item['category_code']}] not found. Skipping {$item['chemical_name']}.");
                 continue;
             }
 
-            $chemicalCode = 'CHEM-' . str_pad(
-                $index + 1,
-                6,
-                '0',
-                STR_PAD_LEFT
-            );
-
-            $barcode = '480' . str_pad(
-                $index + 1,
-                10,
-                '0',
-                STR_PAD_LEFT
-            );
+            $chemicalCode = 'CHEM-' . str_pad($index + 1, 6, '0', STR_PAD_LEFT);
+            $barcode = '480' . str_pad($index + 1, 10, '0', STR_PAD_LEFT);
 
             Chemical::updateOrCreate(
-                [
-                    'chemical_code' => $chemicalCode,
-                ],
+                ['chemical_code' => $chemicalCode],
                 [
                     'barcode' => $barcode,
-
                     'chemical_name' => $item['chemical_name'],
-
                     'category_id' => $categoryId,
-
-                    'laboratory_id' => $laboratoryId,
-
-                    // Supplier is optional.
+                    'laboratory_id' => $chemistryLab->id,
                     'supplier_id' => null,
-
-                    // Seed quantities.
                     'quantity' => 10.00,
-
                     'unit' => $item['unit'],
-
                     'minimum_stock' => 2.00,
-
-                    'manufactured_date' => now()
-                        ->subMonths(6)
-                        ->toDateString(),
-
-                    'expiration_date' => now()
-                        ->addYears(3)
-                        ->toDateString(),
-
-                    'received_date' => now()
-                        ->subMonths(3)
-                        ->toDateString(),
-
-                    'hazard_classification' =>
-                        $item['hazard_classification'],
-
-                    'storage_location' =>
-                        $item['storage_location'],
-
+                    'manufactured_date' => now()->subMonths(6)->toDateString(),
+                    'expiration_date' => now()->addYears(3)->toDateString(),
+                    'received_date' => now()->subMonths(3)->toDateString(),
+                    'hazard_classification' => $item['hazard_classification'],
+                    'storage_location' => $item['storage_location'],
                     'status' => 'Available',
-
                     'image' => null,
-
-                    'description' =>
-                        $item['chemical_name'] .
-                        ' used for laboratory experiments, analysis, and instructional activities.',
-
-                    'remarks' =>
-                        'Store and handle according to the laboratory chemical safety requirements.',
+                    'description' => $item['chemical_name'] . ' - Chemistry Laboratory Chemical',
+                    'remarks' => 'Store and handle according to chemical safety requirements.',
                 ]
             );
         }
 
-        $this->command->info(
-            count($chemicals) . ' chemical records seeded successfully.'
-        );
+        $this->command->info('Chemistry Chemicals seeded successfully (' . count($chemicals) . ' items).');
     }
 }

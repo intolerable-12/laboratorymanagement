@@ -94,10 +94,10 @@
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h3 class="h5 fw-semibold mb-1">Department list</h3>
+                    <h3 class="h5 fw-semibold mb-3">Department list</h3>
                 </div>
 
-                <a href="{{ route('coordinator.departments.create') }}" class="btn btn-primary px-4">Add department</a>
+                <a href="{{ route('coordinator.departments.create') }}" class="btn btn-primary mb-3 px-4">Add department</a>
             </div>
         </div>
 
@@ -106,11 +106,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Department</th>
-                            <th scope="col">Code</th>
-                            <th scope="col">Users</th>
-                            <th scope="col">Description</th>
-                            <th scope="col" class="text-end pe-4">Actions</th>
+                            <th scope="col" class="text-dark ps-4">Department</th>
+                            <th scope="col" class="text-dark">Code</th>
+                            <th scope="col" class="text-dark">Users</th>
+                            <th scope="col" class="text-dark">Description</th>
+                            <th scope="col" class="text-center text-dark pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -123,8 +123,8 @@
                                 <td><span class="badge text-bg-light border text-dark">{{ $department->department_code }}</span></td>
                                 <td>{{ $department->users_count }}</td>
                                 <td class="text-secondary">{{ $department->description ?? '-' }}</td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group" role="group" aria-label="Department actions">
+                                <td class="text-center pe-4">
+                                    <div class="btn-group action-buttons" role="group" aria-label="Department actions">
                                         <!-- View -->
                                         <a href="{{ route('coordinator.departments.show', $department) }}"
                                             class="btn btn-sm btn-outline-secondary"
