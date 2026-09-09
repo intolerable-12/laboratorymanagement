@@ -19,6 +19,8 @@ use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
 use App\Http\Controllers\Coordinator\EquipmentCategoryController;
 use App\Http\Controllers\Coordinator\EquipmentController;
 use App\Http\Controllers\Coordinator\EquipmentBarcodePrintController;
+use App\Http\Controllers\Coordinator\EquipmentMultipleItemsBarcodeController;
+use App\Http\Controllers\Coordinator\ChemicalMultipleItemsBarcodeController;
 use App\Http\Controllers\Coordinator\LaboratoryController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorBorrowCalendarController;
@@ -40,6 +42,8 @@ use App\Http\Controllers\Instructor\Borrow\InstructorBorrowController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowEmailController;
 use App\Http\Controllers\Instructor\Inventory\ChemicalController as InstructorChemicalInventoryController;
 use App\Http\Controllers\Instructor\Inventory\EquipmentController as InstructorEquipmentInventoryController;
+use App\Http\Controllers\Instructor\Feedback\FeedbackController as InstructorFeedbackController;
+use App\Http\Controllers\Instructor\Feedback\FeedbackQuestionnaireController as InstructorFeedbackQuestionnaireController;
 use App\Http\Controllers\Instructor\Forum\InstructorForumController;
 use App\Http\Controllers\Instructor\Account\MyAccountController as InstructorMyAccountController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
@@ -55,6 +59,8 @@ use App\Http\Controllers\Student\Forum\ForumController as StudentForumController
 use App\Http\Controllers\Student\Forum\ForumCommentController as StudentForumCommentController;
 use App\Http\Controllers\Student\Feedback\FeedbackController as StudentFeedbackController;
 use App\Http\Controllers\Student\Feedback\FeedbackQuestionnaireController as StudentFeedbackQuestionnaireController;
+use App\Http\Controllers\Guest\GuestBorrowController;
+use App\Http\Controllers\Guest\GuestReservationController;
 use App\Http\Controllers\Coordinator\Forum\ForumController as CoordinatorForumController;
 use App\Http\Controllers\Coordinator\Forum\ForumCommentController as CoordinatorForumCommentController;
 use App\Http\Controllers\Coordinator\Feedback\FeedbackController as CoordinatorFeedbackController;
@@ -76,6 +82,13 @@ Route::post('/register', [RegistrationController::class, 'store'])->name('regist
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
 
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+Route::prefix('guest')->name('guest.')->group(function () {
+    Route::get('/borrow', [GuestBorrowController::class, 'create'])->name('borrow.create');
+    Route::post('/borrow', [GuestBorrowController::class, 'store'])->name('borrow.store');
+    Route::get('/reservations', [GuestReservationController::class, 'create'])->name('reservations.create');
+    Route::post('/reservations', [GuestReservationController::class, 'store'])->name('reservations.store');
+});
 
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
@@ -109,6 +122,7 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
                 Route::get('/archived', [EquipmentController::class, 'archived'])->name('archived');
                 Route::get('/create', [EquipmentController::class, 'create'])->name('create');
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
+                Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
                 Route::post('/{equipment}/restore', [EquipmentController::class, 'restore'])->withTrashed()->name('restore');
@@ -148,6 +162,7 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
                 Route::get('/archived', [ChemicalController::class, 'archived'])->name('archived');
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
+                Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->withTrashed()->name('barcode-print');
                 Route::post('/{chemical}/restore', [ChemicalController::class, 'restore'])->withTrashed()->name('restore');
@@ -438,6 +453,22 @@ Route::middleware(['auth', 'role:Instructor'])
                 Route::get('/{borrowTransaction}', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'approve'])->name('approve');
                 Route::post('/{borrowTransaction}/reject', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'reject'])->name('reject');
+            });
+
+        Route::prefix('feedback')
+            ->name('feedback.')
+            ->group(function () {
+                Route::get('/', [InstructorFeedbackController::class, 'index'])->name('index');
+                Route::get('/create', [InstructorFeedbackController::class, 'create'])->name('create');
+                Route::post('/', [InstructorFeedbackController::class, 'store'])->name('store');
+                Route::prefix('questionnaires')
+                    ->name('questionnaires.')
+                    ->group(function () {
+                        Route::get('/', [InstructorFeedbackQuestionnaireController::class, 'index'])->name('index');
+                        Route::get('/{feedbackQuestionnaire}', [InstructorFeedbackQuestionnaireController::class, 'show'])->whereNumber('feedbackQuestionnaire')->name('show');
+                        Route::post('/{feedbackQuestionnaire}', [InstructorFeedbackQuestionnaireController::class, 'store'])->whereNumber('feedbackQuestionnaire')->name('store');
+                    });
+                Route::get('/{feedback}', [InstructorFeedbackController::class, 'show'])->whereNumber('feedback')->name('show');
             });
 
         Route::prefix('forum')

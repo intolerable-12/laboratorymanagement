@@ -75,6 +75,18 @@
                         <span>Sign in using @lccdo.edu.ph google account</span>
                     </a>
 
+                    <div class="border-top mt-4 pt-4">
+                        <p class="text-center text-secondary small mb-3">Need to request laboratory items without signing in?</p>
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <a href="{{ route('guest.borrow.create') }}" class="btn btn-outline-primary w-100">Borrow as guest</a>
+                            </div>
+                            <div class="col-sm-6">
+                                <a href="{{ route('guest.reservations.create') }}" class="btn btn-outline-primary w-100">Reserve as guest</a>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
