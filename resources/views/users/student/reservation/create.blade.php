@@ -59,21 +59,24 @@
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                            <input type="date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
+                            <input type="date" id="reservation-date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" aria-describedby="reservation-date-feedback" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div id="reservation-date-feedback" class="invalid-feedback" data-date-validation-message hidden></div>
                             <div class="form-text">At least 3 business days in advance. Sundays are unavailable; Saturdays are available.</div>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Start Time</label>
-                            <input type="time" id="reservation-start-time" name="start_time" value="{{ old('start_time') }}" min="07:30" max="17:00" step="900" class="form-control @error('start_time') is-invalid @enderror" required>
+                            <input type="time" id="reservation-start-time" name="start_time" value="{{ old('start_time') }}" min="07:30" max="17:00" step="60" class="form-control @error('start_time') is-invalid @enderror" aria-describedby="reservation-start-time-feedback" required>
                             @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div id="reservation-start-time-feedback" class="invalid-feedback" data-time-validation-message="start_time" hidden></div>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">End Time</label>
-                            <input type="time" id="reservation-end-time" name="end_time" value="{{ old('end_time') }}" min="07:30" max="17:00" step="900" class="form-control @error('end_time') is-invalid @enderror" required>
+                            <input type="time" id="reservation-end-time" name="end_time" value="{{ old('end_time') }}" min="07:30" max="17:00" step="60" class="form-control @error('end_time') is-invalid @enderror" aria-describedby="reservation-end-time-feedback" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div id="reservation-end-time-feedback" class="invalid-feedback" data-time-validation-message="end_time" hidden></div>
                         </div>
 
                         <div class="col-12">
@@ -169,31 +172,128 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('input[name="reservation_date"]')?.closest('form');
             const dateField = document.querySelector('input[name="reservation_date"]');
             const startField = document.querySelector('#reservation-start-time');
             const endField = document.querySelector('#reservation-end-time');
 
-            if (!dateField || !startField || !endField) {
+            if (!form || !dateField || !startField || !endField) {
                 return;
             }
 
-            const updateReservationHours = () => {
+            const fields = [startField, endField];
+            const dateFeedback = document.querySelector('[data-date-validation-message]');
+
+            const validationMessage = (field) => document.querySelector(`[data-time-validation-message="${field.name}"]`);
+
+            const getSchedule = () => {
                 const selectedDate = dateField.value ? new Date(`${dateField.value}T00:00:00`) : null;
                 const day = selectedDate && !Number.isNaN(selectedDate.getTime()) ? selectedDate.getDay() : null;
                 const isSunday = day === 0;
                 const isSaturday = day === 6;
-                const minimum = isSaturday ? '08:00' : '07:30';
-                const maximum = isSaturday ? '12:00' : '17:00';
 
-                [startField, endField].forEach((field) => {
-                    field.min = isSunday ? '00:00' : minimum;
-                    field.max = isSunday ? '00:00' : maximum;
-                    field.setCustomValidity(isSunday ? 'Reservations are not available on Sundays.' : '');
+                return {
+                    isSunday,
+                    opening: isSaturday ? '08:00' : '07:30',
+                    closing: isSaturday ? '12:00' : '17:00',
+                    openingLabel: isSaturday ? '8:00 AM' : '7:30 AM',
+                    closingLabel: isSaturday ? '12:00 PM' : '5:00 PM',
+                };
+            };
+
+            const timeToMinutes = (value) => {
+                if (!value || !/^\d{2}:\d{2}$/.test(value)) {
+                    return null;
+                }
+
+                const [hours, minutes] = value.split(':').map(Number);
+                return (hours * 60) + minutes;
+            };
+
+            const validateDate = (showMessage = false) => {
+                const selectedDate = dateField.value ? new Date(`${dateField.value}T00:00:00`) : null;
+                const isSunday = selectedDate && !Number.isNaN(selectedDate.getTime()) && selectedDate.getDay() === 0;
+                const message = isSunday ? 'Sundays are unavailable. Please choose a Monday-Saturday date.' : '';
+
+                if (isSunday) {
+                    dateField.value = '';
+                }
+
+                const shouldShow = showMessage || dateField.classList.contains('is-invalid');
+                dateField.setCustomValidity(message);
+                dateField.classList.toggle('is-invalid', shouldShow && Boolean(message));
+
+                if (dateFeedback) {
+                    dateFeedback.textContent = message;
+                    dateFeedback.hidden = !shouldShow || !message;
+                }
+            };
+
+            const validateTimes = (showMessages = false) => {
+                const schedule = getSchedule();
+                const messages = new Map([[startField, ''], [endField, '']]);
+                const start = timeToMinutes(startField.value);
+                const end = timeToMinutes(endField.value);
+                const opening = timeToMinutes(schedule.opening);
+                const closing = timeToMinutes(schedule.closing);
+
+                if (schedule.isSunday) {
+                    fields.forEach((field) => messages.set(field, 'Reservations are not available on Sundays.'));
+                } else {
+                    if (start !== null && (start < opening || start > closing)) {
+                        messages.set(startField, `Start time must be between ${schedule.openingLabel} and ${schedule.closingLabel}.`);
+                    }
+
+                    if (end !== null && (end < opening || end > closing)) {
+                        messages.set(endField, `End time must be between ${schedule.openingLabel} and ${schedule.closingLabel}.`);
+                    } else if (start !== null && end !== null && end <= start) {
+                        messages.set(endField, 'End time must be after the start time.');
+                    }
+                }
+
+                fields.forEach((field) => {
+                    const message = messages.get(field);
+                    const feedback = validationMessage(field);
+                    const shouldShow = showMessages || field.classList.contains('is-invalid');
+
+                    field.setCustomValidity(message);
+                    field.classList.toggle('is-invalid', shouldShow && Boolean(message));
+
+                    if (feedback) {
+                        feedback.textContent = message;
+                        feedback.hidden = !shouldShow || !message;
+                    }
                 });
             };
 
-            dateField.addEventListener('change', updateReservationHours);
-            dateField.addEventListener('input', updateReservationHours);
+            const updateReservationHours = () => {
+                const schedule = getSchedule();
+
+                fields.forEach((field) => {
+                    field.min = schedule.isSunday ? '00:00' : schedule.opening;
+                    field.max = schedule.isSunday ? '00:00' : schedule.closing;
+                });
+
+                validateTimes();
+            };
+
+            dateField.addEventListener('change', () => {
+                validateDate(true);
+                updateReservationHours();
+            });
+            dateField.addEventListener('input', () => {
+                validateDate(true);
+                updateReservationHours();
+            });
+            fields.forEach((field) => {
+                field.addEventListener('input', () => validateTimes());
+                field.addEventListener('change', () => validateTimes());
+            });
+            form.addEventListener('invalid', () => {
+                validateDate(true);
+                validateTimes(true);
+            }, true);
+            validateDate();
             updateReservationHours();
         });
     </script>

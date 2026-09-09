@@ -63,6 +63,9 @@
 									'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
+                                $statusLabel = $reservation->status === 'Facilitator Approved'
+                                    ? 'Laboratory In-charge Approved'
+                                    : $reservation->status;
                             @endphp
                             <tr>
                                 <td>
@@ -82,7 +85,7 @@
                                     <div class="small text-secondary">{{ substr((string) $reservation->start_time, 0, 5) }} - {{ substr((string) $reservation->end_time, 0, 5) }}</div>
                                 </td>
                                 <td>
-                                    <span class="badge text-bg-{{ $statusTone }}">{{ $reservation->status }}</span>
+                                    <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('coordinator.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">Review</a>

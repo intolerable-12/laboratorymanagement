@@ -2,7 +2,7 @@
 
 @section('title', 'Borrow Review')
 @section('page-title', 'Borrow Review')
-@section('page-subtitle', 'Take the final coordinator action on facilitator-approved borrow requests')
+@section('page-subtitle', 'Take the final coordinator action on laboratory in-charge-approved borrow requests')
 
 @section('content')
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
@@ -41,12 +41,16 @@
 									'Cancelled' => 'danger',
                                 default => 'secondary',
                             };
+                            $statusLabel = $borrowTransaction->status === 'Facilitator Approved'
+                                ? 'Laboratory In-charge Approved'
+                                : $borrowTransaction->status;
                         @endphp
-                        <span class="badge text-bg-{{ $statusTone }}">{{ $borrowTransaction->status }}</span>
+                        <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                     </div>
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Student</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->first_name }} {{ $borrowTransaction->borrower?->last_name }}</div><div class="small text-secondary">{{ $borrowTransaction->borrower?->userID }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->email ?? '—' }}</div><div class="small text-secondary">{{ $borrowTransaction->borrower?->contact_number ?? 'No contact number' }} · {{ $borrowTransaction->borrower?->department?->department_name ?? 'No department' }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Borrowed At</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div><div class="small text-secondary">Due {{ $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '—' }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Submitted</div><div class="fw-semibold text-dark">{{ $borrowTransaction->created_at?->format('M d, Y h:i A') }}</div><div class="small text-secondary">Updated {{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Items</div><div class="fw-semibold text-dark">{{ $borrowTransaction->items->count() }} item{{ $borrowTransaction->items->count() === 1 ? '' : 's' }}</div><div class="small text-secondary">Borrow request</div></div></div>

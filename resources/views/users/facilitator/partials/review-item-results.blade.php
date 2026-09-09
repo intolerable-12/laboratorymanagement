@@ -44,10 +44,58 @@
         </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center gap-3 mt-3 flex-wrap" data-review-pagination>
-        <div class="small text-secondary">Showing {{ $items->firstItem() ?? 0 }}-{{ $items->lastItem() ?? 0 }} of {{ $items->total() }} {{ strtolower($itemType) }} items</div>
-        <div>
-            {{ $items->appends(['fragment' => 'item-results', 'item_type' => strtolower($itemType), 'search' => request()->query('search')])->links('pagination::bootstrap-5') }}
-        </div>
+    @php
+        $pagination = $items->appends([
+            'fragment' => 'item-results',
+            'item_type' => strtolower($itemType),
+            'search' => request()->query('search'),
+        ]);
+        $currentPage = $pagination->currentPage();
+        $lastPage = $pagination->lastPage();
+        $visiblePages = collect([1, $currentPage - 1, $currentPage, $currentPage + 1, $lastPage])
+            ->filter(fn ($page) => $page >= 1 && $page <= $lastPage)
+            ->unique()
+            ->sort()
+            ->values();
+    @endphp
+
+    <div class="review-item-pagination d-flex justify-content-between align-items-center gap-3 mt-3 flex-wrap" data-review-pagination>
+        <div class="small text-secondary flex-shrink-0">Showing {{ $pagination->firstItem() ?? 0 }}-{{ $pagination->lastItem() ?? 0 }} of {{ $pagination->total() }} {{ strtolower($itemType) }} items</div>
+        @if ($pagination->hasPages())
+            <nav class="review-item-pagination__links" aria-label="{{ $itemType }} item pagination">
+                <ul class="pagination mb-0">
+                    <li class="page-item {{ $pagination->onFirstPage() ? 'disabled' : '' }}">
+                        @if ($pagination->onFirstPage())
+                            <span class="page-link">Previous</span>
+                        @else
+                            <a class="page-link" href="{{ $pagination->previousPageUrl() }}" rel="prev">Previous</a>
+                        @endif
+                    </li>
+
+                    @php($previousPage = null)
+                    @foreach ($visiblePages as $page)
+                        @if ($previousPage !== null && $page > $previousPage + 1)
+                            <li class="page-item disabled" aria-disabled="true"><span class="page-link">&hellip;</span></li>
+                        @endif
+                        <li class="page-item {{ $page === $currentPage ? 'active' : '' }}" @if ($page === $currentPage) aria-current="page" @endif>
+                            @if ($page === $currentPage)
+                                <span class="page-link">{{ $page }}</span>
+                            @else
+                                <a class="page-link" href="{{ $pagination->url($page) }}">{{ $page }}</a>
+                            @endif
+                        </li>
+                        @php($previousPage = $page)
+                    @endforeach
+
+                    <li class="page-item {{ $pagination->hasMorePages() ? '' : 'disabled' }}">
+                        @if ($pagination->hasMorePages())
+                            <a class="page-link" href="{{ $pagination->nextPageUrl() }}" rel="next">Next</a>
+                        @else
+                            <span class="page-link">Next</span>
+                        @endif
+                    </li>
+                </ul>
+            </nav>
+        @endif
     </div>
 </div>

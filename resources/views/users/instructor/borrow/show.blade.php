@@ -62,6 +62,13 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="account-summary-card h-100">
+                                    <div class="small text-secondary">Requester contact</div>
+                                    <div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->email ?? '—' }}</div>
+                                    <div class="small text-secondary">{{ $borrowTransaction->borrower?->contact_number ?? 'No contact number' }} · {{ $borrowTransaction->borrower?->department?->department_name ?? 'No department' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="account-summary-card h-100">
                                     <div class="small text-secondary">Borrowed At</div>
                                     <div class="fw-semibold text-dark">{{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div>
                                     <div class="small text-secondary">Due {{ $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '—' }}</div>

@@ -163,16 +163,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const validateDateInput = (field) => {
         const value = field.value.trim();
+        const messageElement = field.parentElement?.querySelector('[data-date-validation-message]');
+        const setValidationMessage = (message) => {
+            const hadClientError = field.dataset.clientValidationError === 'true';
+
+            field.setCustomValidity(message);
+
+            if (message) {
+                field.classList.add('is-invalid');
+                field.dataset.clientValidationError = 'true';
+            } else if (hadClientError) {
+                field.classList.remove('is-invalid');
+                field.dataset.clientValidationError = 'false';
+            }
+
+            if (messageElement) {
+                messageElement.textContent = message;
+                messageElement.classList.toggle('d-none', !message);
+                messageElement.classList.toggle('d-block', Boolean(message));
+            }
+        };
 
         if (!value) {
-            field.setCustomValidity('');
+            setValidationMessage('');
             return;
         }
 
         const selectedDate = parseLocalDateTime(value, field.type === 'date');
 
         if (!selectedDate) {
-            field.setCustomValidity('Please enter a valid date.');
+            setValidationMessage('Please enter a valid date.');
             return;
         }
 
@@ -180,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const day = selectedDate.getDay();
 
             if (day === 0 || day === 6) {
-                field.setCustomValidity('Weekends are not allowed.');
+                setValidationMessage('Borrow dates cannot fall on Saturday or Sunday.');
                 return;
             }
         }
@@ -191,12 +211,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const minimumDate = parseLocalDateTime(minimumDateValue, field.type === 'date');
 
             if (minimumDate && selectedDate < minimumDate) {
-                field.setCustomValidity('Please choose a later date.');
+                setValidationMessage(field.dataset.minimumMessage || 'Please choose a later date.');
                 return;
             }
         }
 
-        field.setCustomValidity('');
+        setValidationMessage('');
     };
 
     document.querySelectorAll('input[type="date"][data-weekday-only], input[type="date"][data-business-days-min], input[type="datetime-local"][data-weekday-only]').forEach((field) => {

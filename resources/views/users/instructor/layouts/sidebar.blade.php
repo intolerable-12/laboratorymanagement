@@ -21,11 +21,14 @@
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Instructor';
 
         $isDashboard = request()->routeIs('instructor.dashboard');
-        $isInventoryIndex = request()->routeIs('instructor.inventory.index');
-        $isInventoryGroup = request()->routeIs('instructor.inventory.*');
         $isReservationsGroup = request()->routeIs('instructor.reservations.*');
         $isBorrowGroup = request()->routeIs('instructor.borrow.*');
         $isForumGroup = request()->routeIs('instructor.forum.*');
+        $isFeedbackIndex = request()->routeIs('instructor.feedback.index');
+        $isFeedbackCreate = request()->routeIs('instructor.feedback.create');
+        $isQuestionnairesIndex = request()->routeIs('instructor.feedback.questionnaires.index');
+        $isQuestionnairesGroup = request()->routeIs('instructor.feedback.questionnaires.*');
+        $isFeedbackGroup = request()->routeIs('instructor.feedback.*');
         $isMyAccount = request()->routeIs('instructor.myaccount');
     @endphp
 
@@ -38,36 +41,17 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <button
-                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#instructorInventoryMenu"
-                    aria-expanded="{{ $isInventoryGroup ? 'true' : 'false' }}" aria-controls="instructorInventoryMenu"
-                    title="Inventory">
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
-                        <span class="sidebar-item__label">Inventory</span>
-                    </span>
-                    <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="collapse {{ $isInventoryGroup ? 'show' : '' }}" id="instructorInventoryMenu">
-                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isInventoryIndex ? 'active' : '' }}"
-                            href="{{ route('instructor.inventory.index') }}" title="Inventory Overview">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-layer-group"></i></span>
-                            <span class="sidebar-item__label">Inventory Overview</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('instructor.inventory.equipment.*') ? 'active' : '' }}"
-                            href="{{ route('instructor.inventory.equipment.index') }}" title="Equipment">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
-                            <span class="sidebar-item__label">Equipment</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('instructor.inventory.chemicals.*') ? 'active' : '' }}"
-                            href="{{ route('instructor.inventory.chemicals.index') }}" title="Chemicals">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-vial"></i></span>
-                            <span class="sidebar-item__label">Chemicals</span>
-                        </a>
-                    </div>
-                </div>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('instructor.inventory.equipment.*') ? 'active' : '' }}"
+                    href="{{ route('instructor.inventory.equipment.index') }}" title="Equipment">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
+                    <span class="sidebar-item__label">Equipment</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('instructor.inventory.chemicals.*') ? 'active' : '' }}"
+                    href="{{ route('instructor.inventory.chemicals.index') }}" title="Chemicals">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-vial"></i></span>
+                    <span class="sidebar-item__label">Chemicals</span>
+                </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup ? 'active' : '' }}"
                     href="{{ route('instructor.reservations.index') }}" title="Reservations">
@@ -86,6 +70,32 @@
                     <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
                     <span class="sidebar-item__label">Forum</span>
                 </a>
+
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#instructorFeedbackMenu"
+                    aria-expanded="{{ $isFeedbackGroup || $isQuestionnairesGroup ? 'true' : 'false' }}"
+                    aria-controls="instructorFeedbackMenu" title="Feedback">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
+                        <span class="sidebar-item__label">Feedback</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isFeedbackGroup || $isQuestionnairesGroup ? 'show' : '' }}" id="instructorFeedbackMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackIndex || $isFeedbackCreate ? 'active' : '' }}"
+                            href="{{ route('instructor.feedback.index') }}" title="Feedback">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
+                            <span class="sidebar-item__label">Feedback</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isQuestionnairesIndex || $isQuestionnairesGroup ? 'active' : '' }}"
+                            href="{{ route('instructor.feedback.questionnaires.index') }}" title="Questionnaires">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-question"></i></span>
+                            <span class="sidebar-item__label">Questionnaires</span>
+                        </a>
+                    </div>
+                </div>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isMyAccount ? 'active' : '' }}"
                     href="{{ route('instructor.myaccount') }}" title="My Account">

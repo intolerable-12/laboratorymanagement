@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Print Barcode | {{ $chemical->chemical_name }}</title>
+    <title>{{ isset($items) ? 'Print Chemical Barcodes' : 'Print Barcode | ' . $chemical->chemical_name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @page {
@@ -133,6 +133,22 @@
     <div class="barcode-print-shell">
         <div class="barcode-print-card section-card p-4 p-lg-5">
             <div class="barcode-print-toolbar no-print">
+                @if (isset($items))
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div>
+                            <h1 class="h4 fw-semibold mb-1">Print chemical barcodes</h1>
+                            <p class="mb-0 text-secondary">{{ $items->count() }} selected chemical{{ $items->count() === 1 ? '' : 's' }}</p>
+                        </div>
+
+                        <div class="barcode-print-count">
+                            {{ $items->count() }} label{{ $items->count() === 1 ? '' : 's' }}
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+                    </div>
+                @else
                 <form method="GET" action="{{ route('coordinator.chemicals.barcode-print', $chemical) }}" class="row g-2 align-items-end">
                     <div class="col-sm-7 col-md-5 col-lg-4">
                         <label for="count" class="form-label fw-medium mb-1">Labels to print</label>
@@ -163,29 +179,52 @@
                         {{ $printCount }} label{{ $printCount === 1 ? '' : 's' }}
                     </div>
                 </div>
+                @endif
             </div>
 
             <div class="barcode-print-grid">
-                @for ($i = 0; $i < $printCount; $i++)
-                    <div class="barcode-label barcode-print-label barcode-print-item">
-                        <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
+                @if (isset($items))
+                    @foreach ($items as $printItem)
+                        @php
+                            $chemical = $printItem['item'];
+                        @endphp
+                        <div class="barcode-label barcode-print-label barcode-print-item">
+                            <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
 
-                        <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
-                            {!! $barcodeSvg !!}
+                            <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
+                                {!! $printItem['barcodeSvg'] !!}
+                            </div>
+
+                            <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
+
+                            <div class="barcode-print-label__meta">
+                                <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                                <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                            </div>
                         </div>
+                    @endforeach
+                @else
+                    @for ($i = 0; $i < $printCount; $i++)
+                        <div class="barcode-label barcode-print-label barcode-print-item">
+                            <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
 
-                        <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
+                            <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
+                                {!! $barcodeSvg !!}
+                            </div>
 
-                        <div class="barcode-print-label__meta">
-                            <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
-                            <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                            <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
+
+                            <div class="barcode-print-label__meta">
+                                <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                                <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                            </div>
                         </div>
-                    </div>
-                @endfor
+                    @endfor
+                @endif
             </div>
 
             <div class="mt-3 no-print">
-                <a href="{{ route('coordinator.chemicals.show', $chemical) }}" class="btn btn-outline-secondary">Back</a>
+                <a href="{{ isset($items) ? route('coordinator.chemicals.index') : route('coordinator.chemicals.show', $chemical) }}" class="btn btn-outline-secondary">Back</a>
             </div>
         </div>
     </div>

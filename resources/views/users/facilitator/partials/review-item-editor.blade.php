@@ -5,29 +5,25 @@
 
 <section class="card border-0 bg-light" data-review-item-editor data-review-results-url="{{ $resultsUrl }}">
     <div class="card-body p-3 p-xl-4">
-        <div class="row g-4 align-items-end mb-3">
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-lg-5">
+                <h4 class="h5 fw-semibold text-dark mb-1">Items to forward</h4>
+                <p class="small text-secondary mb-0">Keep, remove, or add available laboratory items before approving.</p>
+            </div>
             <div class="col-lg-7">
-                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 h-100">
-                    <div class="d-flex align-items-end">
-                        <div>
-                            <h4 class="h5 fw-semibold text-dark mb-1">Items to forward</h4>
-                            <p class="small text-secondary mb-0">Keep, remove, or add available laboratory items before approving.</p>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-end">
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-start justify-content-lg-end">
                         <div class="btn-group" role="tablist" aria-label="Item type to add">
                             <button type="button" class="btn btn-outline-primary active" data-review-tab-button data-target="equipment" aria-pressed="true">Equipment</button>
                             <button type="button" class="btn btn-outline-primary" data-review-tab-button data-target="chemical" aria-pressed="false">Chemical</button>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-lg-5">
-                <div class="d-flex align-items-center gap-2 h-100 ps-lg-4">
-                    <div class="small text-uppercase text-secondary text-nowrap">Add an item</div>
-                    <div class="input-group flex-grow-1">
-                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i></span>
-                        <input type="search" class="form-control" data-review-item-search placeholder="Search items" aria-label="Search equipment or chemicals by name, code, or barcode" autocomplete="off">
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                        <div class="small text-uppercase text-secondary text-nowrap">Add an item</div>
+                        <div class="input-group flex-grow-1">
+                            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i></span>
+                            <input type="search" class="form-control" data-review-item-search placeholder="Search items" aria-label="Search equipment or chemicals by name, code, or barcode" autocomplete="off">
+                        </div>
                     </div>
                 </div>
             </div>

@@ -2208,6 +2208,30 @@ body.coordinator-page {
     border-bottom: 0 !important;
 }
 
+.facilitator-page [data-review-item-editor] .min-w-0 {
+    min-width: 0;
+}
+
+.facilitator-page [data-review-pagination] {
+    min-width: 0;
+}
+
+.facilitator-page .review-item-pagination__links {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.facilitator-page .review-item-pagination__links .pagination {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+}
+
+.facilitator-page .review-item-pagination__links .page-link {
+    white-space: nowrap;
+}
+
 @media (min-width: 768px) {
     .admin-sidebar .offcanvas-body {
         border-right: 1px solid var(--admin-border-color);
