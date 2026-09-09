@@ -87,13 +87,13 @@
                                             <span>Category</span><i class="fa-solid {{ $sortIcon('category') }} small"></i>
                                         </a>
                                     </th>
-                                    <th scope="col">Description</th>
+                                    <th scope="col" class="text-dark">Description</th>
                                     <th scope="col">
                                         <a href="{{ $sortUrl('available') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                             <span>Available items</span><i class="fa-solid {{ $sortIcon('available') }} small"></i>
                                         </a>
                                     </th>
-                                    <th scope="col" class="text-center pe-4">Action</th>
+                                    <th scope="col" class="text-center text-dark pe-4">Action</th>
                                 </tr>
                             </thead>
                             <tbody>

@@ -6,7 +6,7 @@
 @section('content')
     <div class="student-dashboard">
         <section class="hero-banner card border-0 mb-4">
-            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-php items-lg-center justify-content-between gap-3">
+            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
                     <h2 class="h3 fw-semibold mb-2 text-dark">Welcome Back, Student!</h2>
                     <p class="mb-0 text-secondary">Here's your laboratory reservation, borrowing, and inventory overview.</p>
@@ -146,25 +146,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="card section-card border-0">
-                    <div class="card-body p-4 p-xl-5">
-                        <h3 class="h4 fw-semibold mb-3 text-dark">Borrowing Status</h3>
-                        <div class="display-6 fw-semibold mb-1 text-dark">Excellent</div>
-                        <p class="mb-0 text-secondary">Keep it up, good work!</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="card section-card border-0 mb-4">
-            <div class="card-body p-4 p-xl-5">
-                <h3 class="h4 fw-semibold mb-4 text-dark">Important Notices</h3>
-                <ul class="mb-0 text-dark">
-                    <li class="mb-3">Laboratory will be closed for maintenance on February 20-21, 2026</li>
-                    <li class="mb-3">New safety equipment available for borrowing in Biology Lab</li>
-                    <li>Please return all items before semester break</li>
-                </ul>
             </div>
         </section>
     </div>
