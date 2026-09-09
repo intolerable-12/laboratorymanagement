@@ -46,7 +46,7 @@
             <a href="{{ route('coordinator.equipment.index', $tabQuery) }}" class="btn btn-primary">
                 <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
             </a>
-            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-sm btn-outline-secondary">
+            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
             </a>
         </div>

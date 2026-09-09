@@ -93,10 +93,10 @@
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h3 class="h5 fw-semibold mb-1">Category list</h3>
+                    <h3 class="h5 fw-semibold mb-3">Category list</h3>
                 </div>
 
-                <a href="{{ route('coordinator.chemical.categories.create') }}" class="btn btn-primary px-4">Add category</a>
+                <a href="{{ route('coordinator.chemical.categories.create') }}" class="btn btn-primary mb-3 px-4">Add category</a>
             </div>
         </div>
 
@@ -105,11 +105,11 @@
                 <table class="table table-hover align-middle mb-0 equipment-table">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Category</th>
-                            <th scope="col">Code</th>
-                            <th scope="col">Chemical count</th>
-                            <th scope="col">Description</th>
-                            <th scope="col" class="text-end pe-4">Actions</th>
+                            <th scope="col" class=" text-dark ps-4">Category</th>
+                            <th scope="col" class="text-dark">Code</th>
+                            <th scope="col" class="text-dark">Chemical count</th>
+                            <th scope="col" class="text-dark">Description</th>
+                            <th scope="col" class="text-center text-dark pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -120,31 +120,31 @@
                                 <td>{{ $category->chemicals_count }}</td>
                                 <td class="equipment-category-table-description text-secondary">{{ $category->description ?? '—' }}</td>
                                 <td class="text-end pe-4">
-                                    <div class="btn-group" role="group" aria-label="Category actions">
-                                        <!-- View Icon -->
-                                        <a href="{{ route('coordinator.chemical.categories.show', $category) }}"
-                                            class="btn btn-sm btn-outline-secondary"
-                                            title="View" aria-label="View">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </a>
+                                    <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
+                                            <!-- View Icon -->
+                                            <a href="{{ route('coordinator.chemical.categories.show', $category) }}"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                title="View" aria-label="View">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
 
-                                        <!-- Edit Icon -->
-                                        <a href="{{ route('coordinator.chemical.categories.edit', $category) }}"
-                                            class="btn btn-sm btn-outline-primary"
-                                            title="Edit" aria-label="Edit">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                        </a>
+                                            <!-- Edit Icon -->
+                                            <a href="{{ route('coordinator.chemical.categories.edit', $category) }}"
+                                                class="btn btn-sm btn-outline-primary"
+                                                title="Edit" aria-label="Edit">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </a>
 
-                                        <!-- Delete Icon -->
-                                        <form action="{{ route('coordinator.chemical.categories.destroy', $category) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('Delete this category?');"
-                                                title="Delete" aria-label="Delete">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
-                                        </form>
+                                            <!-- Delete Icon -->
+                                            <form action="{{ route('coordinator.chemical.categories.destroy', $category) }}" method="POST">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Delete this laboratory?');"
+                                                    title="Delete" aria-label="Delete">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </form>
                                     </div>
                                 </td>
                             </tr>

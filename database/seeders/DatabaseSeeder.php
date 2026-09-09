@@ -22,9 +22,13 @@ class DatabaseSeeder extends Seeder
             SemesterSeeder::class,
             EquipmentCategorySeeder::class,
             LaboratorySeeder::class,
-            EquipmentSeeder::class,
+            PhysicsEquipmentSeeder::class,
+            ChemistryEquipmentSeeder::class,
+            BiologyEquipmentSeeder::class,
             ChemicalCategorySeeder::class,
-            ChemicalSeeder::class
+            ChemistryChemicalSeeder::class,
+            BiologyChemicalSeeder::class,
+            PhysicsChemicalSeeder::class,
 
         ]);
     }
