@@ -57,6 +57,13 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="account-summary-card h-100">
+                                    <div class="small text-secondary">Requester contact</div>
+                                    <div class="fw-semibold text-dark">{{ $reservation->user?->email ?? '—' }}</div>
+                                    <div class="small text-secondary">{{ $reservation->user?->contact_number ?? 'No contact number' }} · {{ $reservation->user?->department?->department_name ?? 'No department' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="account-summary-card h-100">
                                     <div class="small text-secondary">Laboratory</div>
                                     <div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? '—' }}</div>
                                     <div class="small text-secondary">{{ $reservation->laboratory?->laboratory_code }}</div>

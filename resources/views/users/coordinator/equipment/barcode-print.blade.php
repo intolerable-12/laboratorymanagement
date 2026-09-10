@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Print Barcode | {{ $equipment->equipment_name }}</title>
+    <title>{{ isset($items) ? 'Print Equipment Barcodes' : 'Print Barcode | ' . $equipment->equipment_name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @page {
@@ -42,11 +42,30 @@
         .barcode-print-item {
             break-inside: avoid;
             page-break-inside: avoid;
-            border: 1px dashed rgba(148, 163, 184, 0.45);
+            border: 1px solid rgba(148, 163, 184, 0.35);
             border-radius: 0;
             padding: 0.12in 0.2in 0.1in;
             background: #fff;
             width: min(100%, 520px);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .barcode-print-label {
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .barcode-print-label__name {
+            font-size: 1.05rem;
+            line-height: 1.2;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: #111827;
+            text-transform: uppercase;
+        }
+
+        .barcode-print-label__barcode {
+            margin-top: 0.55rem;
         }
 
         .barcode-print-item .barcode-svg--label {
@@ -54,26 +73,21 @@
             margin-inline: auto;
         }
 
-        .barcode-print-label__name {
-            font-size: 1.15rem;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            text-align: center;
-            margin-bottom: 0.35rem;
-        }
-
         .barcode-print-label__code {
-            margin-top: 0.35rem;
-            text-align: center;
+            margin-top: 0.45rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            letter-spacing: 0.2em;
+            letter-spacing: 0.08em;
+            color: #111827;
+            text-transform: uppercase;
         }
 
         .barcode-print-label__meta {
-            margin-top: 0.25rem;
-            text-align: center;
-            font-size: 0.82rem;
+            margin-top: 0.45rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.86rem;
             color: #475569;
         }
 
@@ -119,6 +133,22 @@
     <div class="barcode-print-shell">
         <div class="barcode-print-card section-card p-4 p-lg-5">
             <div class="barcode-print-toolbar no-print">
+                @if (isset($items))
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div>
+                            <h1 class="h4 fw-semibold mb-1">Print equipment barcodes</h1>
+                            <p class="mb-0 text-secondary">{{ $items->count() }} selected equipment item{{ $items->count() === 1 ? '' : 's' }}</p>
+                        </div>
+
+                        <div class="barcode-print-count">
+                            {{ $items->count() }} label{{ $items->count() === 1 ? '' : 's' }}
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+                    </div>
+                @else
                 <form method="GET" action="{{ route('coordinator.equipment.barcode-print', $equipment) }}" class="row g-2 align-items-end">
                     <div class="col-sm-7 col-md-5 col-lg-4">
                         <label for="count" class="form-label fw-medium mb-1">Labels to print</label>
@@ -149,27 +179,50 @@
                         {{ $printCount }} label{{ $printCount === 1 ? '' : 's' }}
                     </div>
                 </div>
+                @endif
             </div>
 
             <div class="barcode-print-grid">
-                @for ($i = 0; $i < $printCount; $i++)
-                    <div class="barcode-label barcode-print-label barcode-print-item">
-                        <div class="barcode-print-label__name">{{ $equipment->equipment_name }}</div>
+                @if (isset($items))
+                    @foreach ($items as $printItem)
+                        @php
+                            $equipment = $printItem['item'];
+                        @endphp
+                        <div class="barcode-label barcode-print-label barcode-print-item">
+                            <div class="barcode-print-label__name">{{ $equipment->equipment_name }}</div>
 
-                        <div class="barcode-svg barcode-svg--label">
-                            {!! $barcodeSvg !!}
-                        </div>
+                            <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
+                                {!! $printItem['barcodeSvg'] !!}
+                            </div>
 
-                        <div class="barcode-print-label__code">{{ $equipment->barcode }}</div>
-                        <div class="barcode-print-label__meta">
-                            Condition: {{ $equipment->condition }} | Location: {{ $equipment->storage_location ?? 'N/A' }}
+                            <div class="barcode-print-label__code text-center">{{ $equipment->barcode }}</div>
+                            <div class="barcode-print-label__meta">
+                                <span>Purchase date: {{ $equipment->purchase_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                                <span>Loc: {{ $equipment->storage_location ?? 'N/A' }}</span>
+                            </div>
                         </div>
-                    </div>
-                @endfor
+                    @endforeach
+                @else
+                    @for ($i = 0; $i < $printCount; $i++)
+                        <div class="barcode-label barcode-print-label barcode-print-item">
+                            <div class="barcode-print-label__name">{{ $equipment->equipment_name }}</div>
+
+                            <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
+                                {!! $barcodeSvg !!}
+                            </div>
+
+                            <div class="barcode-print-label__code text-center">{{ $equipment->barcode }}</div>
+                            <div class="barcode-print-label__meta">
+                                <span>Purchase date: {{ $equipment->purchase_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                                <span>Loc: {{ $equipment->storage_location ?? 'N/A' }}</span>
+                            </div>
+                        </div>
+                    @endfor
+                @endif
             </div>
 
             <div class="mt-3 no-print">
-                <a href="{{ route('coordinator.equipment.show', $equipment) }}" class="btn btn-outline-secondary">Back</a>
+                <a href="{{ isset($items) ? route('coordinator.equipment.index') : route('coordinator.equipment.show', $equipment) }}" class="btn btn-outline-secondary">Back</a>
             </div>
         </div>
     </div>

@@ -9,7 +9,6 @@ use App\Models\Laboratory;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Picqer\Barcode\BarcodeGenerator;
 use Picqer\Barcode\BarcodeGeneratorSVG;
@@ -165,8 +164,9 @@ class EquipmentController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateEquipment($request);
-        $data['equipment_code'] = $this->generateEquipmentCode();
-        $data['barcode'] = $this->generateBarcodeValue();
+        $laboratory = Laboratory::findOrFail($data['laboratory_id']);
+        $data['equipment_code'] = $this->generateEquipmentCode($laboratory);
+        $data['barcode'] = $this->generateBarcodeValue($data['equipment_code']);
         $data['available_quantity'] = $data['quantity'];
 
         if ($request->hasFile('image')) {
@@ -242,27 +242,28 @@ class EquipmentController extends Controller
         ]);
     }
 
-    private function generateEquipmentCode(): string
+    private function generateEquipmentCode(Laboratory $laboratory): string
     {
-        $year = now()->format('y'); // Returns 2-digit year (e.g., '26')
-        $prefix = "EQP-{$year}";
+        $prefix = 'EQ-' . $laboratory->sequenceCode();
+        $prefixWithSeparator = $prefix . '-';
 
-        // Count existing equipment records created in the current year (including archived ones)
-        $count = Equipment::withTrashed()
-            ->where('equipment_code', 'LIKE', "{$prefix}-%")
-            ->count() + 1;
+        // Keep archived equipment in the sequence so codes are never reused.
+        $lastNumber = Equipment::withTrashed()
+            ->where('equipment_code', 'LIKE', $prefixWithSeparator.'%')
+            ->pluck('equipment_code')
+            ->map(function (string $equipmentCode) use ($prefixWithSeparator): int {
+                $number = substr($equipmentCode, strlen($prefixWithSeparator));
 
-        // Formats counter with 5 leading zeros (e.g., EQP-26-00001)
-        return sprintf('%s-%05d', $prefix, $count);
+                return ctype_digit($number) ? (int) $number : 0;
+            })
+            ->max() ?? 0;
+
+        return sprintf('%s%04d', $prefixWithSeparator, $lastNumber + 1);
     }
 
-    private function generateBarcodeValue(): string
+    private function generateBarcodeValue(string $equipmentCode): string
     {
-        do {
-            $barcode = 'EQ-' . Str::upper(Str::random(6));
-        } while (Equipment::where('barcode', $barcode)->exists());
-
-        return $barcode;
+        return str_replace('-', '', $equipmentCode);
     }
 
     private function renderBarcodeSvg(string $barcode): string

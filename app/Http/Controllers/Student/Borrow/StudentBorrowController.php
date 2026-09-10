@@ -162,7 +162,9 @@ class StudentBorrowController extends Controller
 		$this->ensureStudent($request);
 
 		$activeTab = $request->query('tab', 'equipment');
-		$borrowDateMin = $this->minimumBorrowDateTime()->format('Y-m-d\TH:i');
+		$minimumBorrowDate = $this->minimumBorrowDateTime();
+		$borrowDateMin = $minimumBorrowDate->format('Y-m-d\TH:i');
+		$borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
 		$equipmentQuery = Equipment::query()
 			->where('status', 'Available')
 			->orderBy('equipment_name');
@@ -214,6 +216,7 @@ class StudentBorrowController extends Controller
 			'chemicalItems',
 			'activeTab',
 			'borrowDateMin',
+			'borrowDateMinLabel',
 			'oldEquipmentSelections',
 			'oldChemicalSelections',
 			'selectedEquipmentItems',
@@ -363,6 +366,14 @@ class StudentBorrowController extends Controller
 			]);
 		}
 
+		$minimumBorrowDate = $this->minimumBorrowDateTime();
+
+		if ($borrowedAt->startOfDay()->lt($minimumBorrowDate)) {
+			throw ValidationException::withMessages([
+				'borrowed_at' => 'Borrow requests must be submitted at least 3 business days in advance. The earliest available borrow date is ' . $minimumBorrowDate->format('F j, Y') . '.',
+			]);
+		}
+
 		if ($dueAt->isWeekend()) {
 			throw ValidationException::withMessages([
 				'due_at' => 'Borrow due dates cannot fall on Saturday or Sunday.',
@@ -502,12 +513,17 @@ class StudentBorrowController extends Controller
 
 	private function minimumBorrowDateTime(): Carbon
 	{
-		$minimumDate = now();
+		$minimumDate = now()->startOfDay();
+		$businessDaysAhead = 0;
 
-		while ($minimumDate->isWeekend()) {
+		while ($businessDaysAhead < 3) {
 			$minimumDate->addDay();
+
+			if (!$minimumDate->isWeekend()) {
+				$businessDaysAhead++;
+			}
 		}
 
-		return $minimumDate->startOfDay();
+		return $minimumDate;
 	}
 }

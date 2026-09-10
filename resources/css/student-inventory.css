@@ -1,3 +1,8 @@
+.inventory-view-switcher,
+.inventory-view-switcher > .btn {
+    border-radius: 0 !important;
+}
+
 .inventory-page {
     position: relative;
 }

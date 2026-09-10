@@ -93,72 +93,111 @@
     </div>
 
     {{-- Search & Filter Section --}}
+    @php
+        $activeFilterCount = collect($filters)->except('search')->count();
+    @endphp
     <div class="section-card mb-4">
-        <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route($tableRoute) }}" class="row g-3 align-items-end" data-live-search-form="equipment">
-                <div class="col-12 col-lg-4">
-                    <label for="search" class="form-label fw-medium mb-1">Search</label>
-                    <input
-                        type="search"
-                        id="search"
-                        name="search"
-                        value="{{ $search }}"
-                        placeholder="Name, code, barcode, brand, model, or location"
-                        class="form-control admin-form-control"
-                    >
+        <div class="card-body p-3 p-xl-4">
+            <form method="GET" action="{{ route($tableRoute) }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="equipment">
+                <div class="flex-grow-1">
+                    <label for="equipment-search" class="form-label fw-medium mb-1">Search equipment</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white admin-form-control" aria-hidden="true"><i class="fa-solid fa-magnifying-glass text-secondary"></i></span>
+                        <input
+                            type="search"
+                            id="equipment-search"
+                            name="search"
+                            value="{{ $search }}"
+                            placeholder="Name, code, barcode, brand, model, or location"
+                            class="form-control admin-form-control"
+                        >
+                    </div>
                 </div>
 
-                <div class="col-6 col-lg-2">
-                    <label for="status" class="form-label fw-medium mb-1">Status</label>
-                    <select id="status" name="status" class="form-select admin-form-control">
-                        <option value="">All</option>
-                        @foreach ($statuses as $option)
-                            <option value="{{ $option }}" @selected($status === $option)>{{ $option }}</option>
-                        @endforeach
-                    </select>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-3">
+                        <i class="fa-solid fa-magnifying-glass me-2" aria-hidden="true"></i>Search
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-toggle="modal" data-bs-target="#equipmentFiltersModal" aria-controls="equipmentFiltersModal">
+                        <i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>Filters
+                        @if ($activeFilterCount > 0)
+                            <span class="badge rounded-pill text-bg-primary ms-1">{{ $activeFilterCount }}</span>
+                        @endif
+                    </button>
                 </div>
 
-                <div class="col-6 col-lg-2">
-                    <label for="category_id" class="form-label fw-medium mb-1">Category</label>
-                    <select id="category_id" name="category_id" class="form-select admin-form-control">
-                        <option value="">All</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->category_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <input type="hidden" name="sort" value="{{ $currentSort }}">
+                <input type="hidden" name="direction" value="{{ $currentDirection }}">
 
-                <div class="col-6 col-lg-2">
-                    <label for="laboratory_id" class="form-label fw-medium mb-1">Laboratory</label>
-                    <select id="laboratory_id" name="laboratory_id" class="form-select admin-form-control">
-                        <option value="">All</option>
-                        @foreach ($laboratories as $laboratory)
-                            <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <div class="modal fade" id="equipmentFiltersModal" tabindex="-1" aria-labelledby="equipmentFiltersModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                        <div class="modal-content border-0 shadow-lg rounded-4">
+                            <div class="modal-header px-4 pt-4 border-bottom">
+                                <div>
+                                    <h2 class="modal-title h5 fw-semibold mb-1" id="equipmentFiltersModalLabel">Equipment filters</h2>
+                                    <p class="text-secondary small mb-0">Refine the equipment list using one or more filters.</p>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close filters"></button>
+                            </div>
 
-                <div class="col-6 col-lg-2">
-                    <label for="condition" class="form-label fw-medium mb-1">Condition</label>
-                    <select id="condition" name="condition" class="form-select admin-form-control">
-                        <option value="">All</option>
-                        @foreach ($conditions as $option)
-                            <option value="{{ $option }}" @selected($condition === $option)>{{ $option }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                            <div class="modal-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label for="equipment-filter-status" class="form-label fw-medium">Status</label>
+                                        <select id="equipment-filter-status" name="status" class="form-select admin-form-control">
+                                            <option value="">All statuses</option>
+                                            @foreach ($statuses as $option)
+                                                <option value="{{ $option }}" @selected($status === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
 
-                <div class="col-12 col-lg-auto d-flex gap-2">
-                    <input type="hidden" name="sort" value="{{ $currentSort }}">
-                    <input type="hidden" name="direction" value="{{ $currentDirection }}">
-                    <button type="submit" class="btn btn-primary px-4">Search</button>
-                    <a href="{{ $archived ? route('coordinator.equipment.archived') : route('coordinator.equipment.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                                    <div class="col-12 col-md-6">
+                                        <label for="equipment-filter-category" class="form-label fw-medium">Category</label>
+                                        <select id="equipment-filter-category" name="category_id" class="form-select admin-form-control">
+                                            <option value="">All categories</option>
+                                            @foreach ($categories as $category)
+                                                <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->category_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="equipment-filter-laboratory" class="form-label fw-medium">Laboratory</label>
+                                        <select id="equipment-filter-laboratory" name="laboratory_id" class="form-select admin-form-control">
+                                            <option value="">All laboratories</option>
+                                            @foreach ($laboratories as $laboratory)
+                                                <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="equipment-filter-condition" class="form-label fw-medium">Condition</label>
+                                        <select id="equipment-filter-condition" name="condition" class="form-select admin-form-control">
+                                            <option value="">All conditions</option>
+                                            @foreach ($conditions as $option)
+                                                <option value="{{ $option }}" @selected($condition === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer px-4 py-3 border-top">
+                                <a href="{{ $archived ? route('coordinator.equipment.archived') : route('coordinator.equipment.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <div data-live-search-results="equipment">
+    <div data-live-search-results="equipment" data-barcode-selection="equipment" data-barcode-storage-key="labcentral.bulk-barcode.equipment">
+        <form id="equipment-bulk-print-form" method="GET" action="{{ route('coordinator.equipment.barcode-print-multiple') }}" target="_blank"></form>
         {{-- Equipment Switcher Bar (Placed directly on top of the table) --}}
         <div class="d-flex justify-content-between align-items-center mb-3">
 
@@ -183,7 +222,10 @@
 
             </div>
             {{-- Right side: Add chemical --}}
-            <div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" form="equipment-bulk-print-form" class="btn btn-outline-dark px-4" data-barcode-submit disabled>
+                    <i class="fa-solid fa-print me-2"></i>Print selected (<span data-barcode-count>0</span>)
+                </button>
                 @if (! $archived)
                     <a href="{{ route('coordinator.equipment.create') }}"
                     class="btn btn-primary px-4">
@@ -210,6 +252,9 @@
                     <table class="table table-hover align-middle mb-0 equipment-table">
                         <thead class="table-light">
                             <tr>
+                                <th scope="col" class="ps-3 pe-0" style="width: 3rem;">
+                                    <input type="checkbox" class="form-check-input" data-barcode-select-all aria-label="Select all equipment on this page">
+                                </th>
                                 <th scope="col" class="ps-4">
                                     <a href="{{ $sortUrl('item') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                         <span>Item</span>
@@ -264,6 +309,9 @@
                                     $canRestore = $restoreDeadline?->isFuture() ?? false;
                                 @endphp
                                 <tr>
+                                    <td class="ps-3 pe-0">
+                                        <input type="checkbox" class="form-check-input" value="{{ $equipment->id }}" data-barcode-item aria-label="Select {{ $equipment->equipment_name }}">
+                                    </td>
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="equipment-thumb">
@@ -308,6 +356,9 @@
                                             <a href="{{ route('coordinator.equipment.show', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-secondary" title="View" aria-label="View">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
+                                            <a href="{{ route('coordinator.equipment.barcode-print', $equipment) }}" class="btn btn-sm btn-outline-dark" title="Print barcode" aria-label="Print barcode" target="_blank" rel="noopener noreferrer">
+                                                <i class="fa-solid fa-print"></i>
+                                            </a>
                                             @if ($archived)
                                                 @if ($canRestore)
                                                     <form action="{{ route('coordinator.equipment.restore', $equipment) }}" method="POST" class="d-inline">
@@ -338,7 +389,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $archived ? 8 : 7 }}" class="text-center text-secondary py-5">No equipment found.</td>
+                                    <td colspan="{{ $archived ? 9 : 8 }}" class="text-center text-secondary py-5">No equipment found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -351,4 +402,111 @@
             {{ $equipmentItems->withQueryString()->links('pagination::bootstrap-5') }}
         </div>
     </div>
+
+    <script>
+        (() => {
+            const scope = document.querySelector('[data-barcode-selection="equipment"]');
+
+            if (!scope) {
+                return;
+            }
+
+            const storageKey = scope.dataset.barcodeStorageKey;
+            let selectedIds = new Set();
+
+            try {
+                selectedIds = new Set(JSON.parse(sessionStorage.getItem(storageKey) || '[]').map(String));
+            } catch (error) {
+                selectedIds = new Set();
+            }
+
+            const saveSelection = () => {
+                try {
+                    sessionStorage.setItem(storageKey, JSON.stringify([...selectedIds]));
+                } catch (error) {
+                    // Continue without persistence when browser storage is unavailable.
+                }
+            };
+
+            const syncScope = (currentScope) => {
+                const items = [...currentScope.querySelectorAll('[data-barcode-item]')];
+                const selectAll = currentScope.querySelector('[data-barcode-select-all]');
+                const form = currentScope.querySelector('#equipment-bulk-print-form');
+
+                items.forEach((item) => {
+                    item.checked = selectedIds.has(String(item.value));
+                });
+
+                if (form) {
+                    form.querySelectorAll('[data-barcode-hidden-id]').forEach((input) => input.remove());
+                    selectedIds.forEach((id) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = id;
+                        input.dataset.barcodeHiddenId = '';
+                        form.appendChild(input);
+                    });
+                }
+
+                const selectedCount = selectedIds.size;
+                const submit = currentScope.querySelector('[data-barcode-submit]');
+                const count = currentScope.querySelector('[data-barcode-count]');
+
+                if (submit) {
+                    submit.disabled = selectedCount === 0;
+                }
+
+                if (count) {
+                    count.textContent = selectedCount;
+                }
+
+                if (selectAll) {
+                    const currentPageSelected = items.filter((item) => item.checked).length;
+                    selectAll.checked = items.length > 0 && currentPageSelected === items.length;
+                    selectAll.indeterminate = currentPageSelected > 0 && currentPageSelected < items.length;
+                }
+            };
+
+            document.addEventListener('change', (event) => {
+                const control = event.target.closest('[data-barcode-select-all], [data-barcode-item]');
+                const currentScope = control?.closest('[data-barcode-selection="equipment"]');
+
+                if (!currentScope) {
+                    return;
+                }
+
+                const items = [...currentScope.querySelectorAll('[data-barcode-item]')];
+
+                if (control.matches('[data-barcode-select-all]')) {
+                    items.forEach((item) => {
+                        item.checked = control.checked;
+                        if (control.checked) {
+                            selectedIds.add(String(item.value));
+                        } else {
+                            selectedIds.delete(String(item.value));
+                        }
+                    });
+                } else if (control.checked) {
+                    selectedIds.add(String(control.value));
+                } else {
+                    selectedIds.delete(String(control.value));
+                }
+
+                saveSelection();
+                syncScope(currentScope);
+            });
+
+            syncScope(scope);
+
+            let observedScope = scope;
+            new MutationObserver(() => {
+                const nextScope = document.querySelector('[data-barcode-selection="equipment"]');
+                if (nextScope && nextScope !== observedScope) {
+                    observedScope = nextScope;
+                    syncScope(nextScope);
+                }
+            }).observe(document.body, { childList: true, subtree: true });
+        })();
+    </script>
 @endsection

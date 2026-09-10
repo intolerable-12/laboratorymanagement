@@ -68,6 +68,7 @@
 
                         <div class="row g-3 mb-4">
                             <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Student</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->first_name }} {{ $borrowTransaction->borrower?->last_name }}</div><div class="small text-secondary">{{ $borrowTransaction->borrower?->userID }}</div></div></div>
+                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->email ?? '—' }}</div><div class="small text-secondary">{{ $borrowTransaction->borrower?->contact_number ?? 'No contact number' }} · {{ $borrowTransaction->borrower?->department?->department_name ?? 'No department' }}</div></div></div>
                             <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Borrowed At</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div><div class="small text-secondary">Due {{ $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '—' }}</div></div></div>
                             <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Updated</div><div class="fw-semibold text-dark">{{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</div><div class="small text-secondary">Submitted {{ $borrowTransaction->created_at?->format('M d, Y h:i A') }}</div></div></div>
                             <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Items</div><div class="fw-semibold text-dark">{{ $borrowTransaction->items->count() }} item{{ $borrowTransaction->items->count() === 1 ? '' : 's' }}</div><div class="small text-secondary">Borrow request</div></div></div>
@@ -114,15 +115,11 @@
 
                         @if ($borrowTransaction->status === 'Instructor Approved')
                             <div data-shared-remarks>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <form method="POST" action="{{ route('facilitator.borrow.approve', $borrowTransaction) }}" class="card border-0 bg-light h-100">
-                                        @csrf
-                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                        <div class="card-body p-3 p-xl-4">
-                                            <h4 class="h5 fw-semibold text-dark mb-2">Approve Request</h4>
-                                            <p class="small text-secondary mb-3">Use this after verifying that the laboratory and items are available. Quantities can be adjusted before approval.</p>
-
+                                <div class="card border-0 bg-light h-100">
+                                    <div class="card-body p-3 p-xl-4">
+                                        <form id="borrow-approve-form" method="POST" action="{{ route('facilitator.borrow.approve', $borrowTransaction) }}">
+                                            @csrf
+                                            <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
                                             @include('users.facilitator.partials.review-item-editor', [
                                                 'requestKind' => 'borrow',
                                                 'requestItems' => $borrowTransaction->items,
@@ -139,24 +136,21 @@
                                                     @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                                 </div>
                                             </div>
+                                        </form>
 
-                                            <button type="submit" class="btn btn-success w-100 mt-3" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                        <div class="mt-3 pt-3 border-top">
+                                            <h4 class="h5 fw-semibold text-dark mb-3">Approve Request</h4>
+                                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                                <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.borrow.reject', $borrowTransaction) }}" class="d-flex flex-fill">
+                                                    @csrf
+                                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                                </form>
+                                            </div>
                                         </div>
-                                    </form>
+                                    </div>
                                 </div>
-
-                                <div class="col-12">
-                                    <form method="POST" action="{{ route('facilitator.borrow.reject', $borrowTransaction) }}" class="card border-0 bg-light h-100">
-                                        @csrf
-                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                        <div class="card-body p-3 p-xl-4">
-                                            <h4 class="h5 fw-semibold text-dark mb-2">Reject Request</h4>
-                                            <p class="small text-secondary mb-3">Write a reason so the requester knows what to correct.</p>
-                                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
                             </div>
                         @endif
                     </div>

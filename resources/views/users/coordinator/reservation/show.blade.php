@@ -2,7 +2,7 @@
 
 @section('title', 'Reservation Review')
 @section('page-title', 'Reservation Review')
-@section('page-subtitle', 'Take the final coordinator action on facilitator-approved requests')
+@section('page-subtitle', 'Take the final coordinator action on laboratory in-charge-approved requests')
 
 @section('content')
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
@@ -36,12 +36,16 @@
 									'Cancelled' => 'danger',
                                 default => 'secondary',
                             };
+                            $statusLabel = $reservation->status === 'Facilitator Approved'
+                                ? 'Laboratory In-charge Approved'
+                                : $reservation->status;
                         @endphp
-                        <span class="badge text-bg-{{ $statusTone }}">{{ $reservation->status }}</span>
+                        <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                     </div>
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Student</div><div class="fw-semibold text-dark">{{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</div><div class="small text-secondary">{{ $reservation->user?->userID }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->user?->email ?? '—' }}</div><div class="small text-secondary">{{ $reservation->user?->contact_number ?? 'No contact number' }} · {{ $reservation->user?->department?->department_name ?? 'No department' }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Laboratory</div><div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? '—' }}</div><div class="small text-secondary">{{ $reservation->laboratory?->laboratory_code }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Schedule</div><div class="fw-semibold text-dark">{{ $reservation->reservation_date?->format('M d, Y') }}</div><div class="small text-secondary">{{ substr((string) $reservation->start_time, 0, 5) }} - {{ substr((string) $reservation->end_time, 0, 5) }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Participants</div><div class="fw-semibold text-dark">{{ $reservation->expected_participants }}</div><div class="small text-secondary">{{ $reservation->schoolYear?->school_year }} | {{ $reservation->semester?->semester_name }}</div></div></div>
