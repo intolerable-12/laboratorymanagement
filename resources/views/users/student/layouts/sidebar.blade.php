@@ -26,10 +26,21 @@
         $isInventoryGroup = request()->routeIs('student.inventory.*');
 
         $isReservationsGroup = request()->routeIs('student.reservations.*');
+        $isReservationsIndex = request()->routeIs('student.reservations.index');
         $isReservationCalendar = request()->routeIs('student.reservations.calendar');
 
+        $isStudentReservationGroup = $isReservationsGroup;
+
+        $isEquipmentGroup = request()->routeIs('student.inventory.equipment.*');
+        $isChemicalGroup = request()->routeIs('student.inventory.chemicals.*');
+
+        $isStudentInventoryGroup = $isEquipmentGroup || $isChemicalGroup;
+
         $isBorrowGroup = request()->routeIs('student.borrow.*');
+        $isBorrowIndex = request()->routeIs('student.borrow.index');
         $isBorrowCalendar = request()->routeIs('student.borrow.calendar');
+
+        $isStudentBorrowGroup = $isBorrowGroup;
 
         $isForumIndex = request()->routeIs('student.forum.index');
         $isForumGroup = request()->routeIs('student.forum.*');
@@ -39,6 +50,8 @@
         $isQuestionnairesIndex = request()->routeIs('student.feedback.questionnaires.index');
         $isQuestionnairesGroup = request()->routeIs('student.feedback.questionnaires.*');
         $isFeedbackGroup = request()->routeIs('student.feedback.*');
+
+        $isCommunicationGroup = $isQuestionnairesGroup || $isFeedbackGroup || $isForumGroup;
 
         $isMyAccount = request()->routeIs('student.myaccount');
     @endphp
@@ -52,61 +65,111 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('student.inventory.equipment.*') ? 'active' : '' }}"
-                    href="{{ route('student.inventory.equipment.index') }}" title="Equipment">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
-                    <span class="sidebar-item__label">Equipment</span>
-                </a>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#studentInventoryMenu"
+                    aria-expanded="{{ $isStudentInventoryGroup ? 'true' : 'false' }}" aria-controls="studentInventoryMenu"
+                    title="Inventory">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-layer-group"></i></span>
+                        <span class="sidebar-item__label">Inventory</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isStudentInventoryGroup ? 'show' : '' }}" id="studentInventoryMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentGroup ? 'active' : '' }}"
+                            href="{{ route('student.inventory.equipment.index') }}" title="Equipment">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
+                            <span class="sidebar-item__label">Equipment</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalGroup ? 'active' : '' }}"
+                            href="{{ route('student.inventory.chemicals.index') }}" title="Chemical">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-vial"></i></span>
+                                <span class="sidebar-item__label">Chemical</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('student.inventory.chemicals.*') ? 'active' : '' }}"
-                    href="{{ route('student.inventory.chemicals.index') }}" title="Chemicals">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-vial"></i></span>
-                    <span class="sidebar-item__label">Chemicals</span>
-                </a>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#studentReservationMenu"
+                    aria-expanded="{{ $isStudentReservationGroup ? 'true' : 'false' }}" aria-controls="studentReservationMenu"
+                    title="Requests">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <span class="sidebar-item__label">Reservation</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isStudentReservationGroup ? 'show' : '' }}" id="studentReservationMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationCalendar ? 'active' : '' }}"
+                            href="{{ route('student.reservations.calendar') }}" title="Reservation Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                            <span class="sidebar-item__label">Reservation Calendar</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
+                            href="{{ route('student.reservations.index') }}" title="Reservations">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                <span class="sidebar-item__label">Reservations Request</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup && ! $isReservationCalendar ? 'active' : '' }}"
-                    href="{{ route('student.reservations.index') }}" title="Reservations">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
-                    <span class="sidebar-item__label">Reservations</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationCalendar ? 'active' : '' }}"
-                    href="{{ route('student.reservations.calendar') }}" title="Reservation Calendar">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
-                    <span class="sidebar-item__label">Reservation Calendar</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup && ! $isBorrowCalendar ? 'active' : '' }}"
-                    href="{{ route('student.borrow.index') }}" title="Borrowing">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-box-open"></i></span>
-                    <span class="sidebar-item__label">Borrowing</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
-                    href="{{ route('student.borrow.calendar') }}" title="Borrow Calendar">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
-                    <span class="sidebar-item__label">Borrow Calendar</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
-                    href="{{ route('student.forum.index') }}" title="Forum">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
-                    <span class="sidebar-item__label">Forum</span>
-                </a>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#studentBorrowMenu"
+                    aria-expanded="{{ $isStudentBorrowGroup ? 'true' : 'false' }}" aria-controls="studentBorrowMenu"
+                    title="Requests">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <span class="sidebar-item__label">Borrow</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isStudentBorrowGroup ? 'show' : '' }}" id="studentBorrowMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                            href="{{ route('student.borrow.calendar') }}" title="Borrow Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                            <span class="sidebar-item__label">Borrow Calendar</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowIndex ? 'active' : '' }}"
+                            href="{{ route('student.borrow.index') }}" title="Borrow">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                <span class="sidebar-item__label">Borrow Request</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#studentFeedbackMenu"
-                    aria-expanded="{{ $isFeedbackGroup || $isQuestionnairesGroup ? 'true' : 'false' }}"
+                    aria-expanded="{{ $isCommunicationGroup ? 'true' : 'false' }}"
                     aria-controls="studentFeedbackMenu" title="Feedback">
                     <span class="d-flex align-items-center gap-2">
                         <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
-                        <span class="sidebar-item__label">Feedback</span>
+                        <span class="sidebar-item__label">Communication</span>
                     </span>
                     <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
                 </button>
-                <div class="collapse {{ $isFeedbackGroup || $isQuestionnairesGroup ? 'show' : '' }}" id="studentFeedbackMenu">
+                <div class="collapse {{ $isCommunicationGroup ? 'show' : '' }}" id="studentFeedbackMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
+                            href="{{ route('student.forum.index') }}" title="Forun">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
+                            <span class="sidebar-item__label">Forum</span>
+                        </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackIndex ? 'active' : '' }}"
                             href="{{ route('student.feedback.index') }}" title="Feedback">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>

@@ -49,12 +49,12 @@
                 <div class="table-responsive">
                     <table class="table align-middle">
                         <thead>
-                            <tr class="text-secondary small text-uppercase">
+                            <tr>
                                 <th><a href="{{ $sortUrl('borrow_no') }}" class="text-decoration-none text-dark">Borrow <i class="fa-solid {{ $sortIcon('borrow_no') }} small"></i></a></th>
                                 <th><a href="{{ $sortUrl('student') }}" class="text-decoration-none text-dark">Student <i class="fa-solid {{ $sortIcon('student') }} small"></i></a></th>
                                 <th><a href="{{ $sortUrl('borrowed_at') }}" class="text-decoration-none text-dark">Borrow Period <i class="fa-solid {{ $sortIcon('borrowed_at') }} small"></i></a></th>
                                 <th><a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark">Status <i class="fa-solid {{ $sortIcon('status') }} small"></i></a></th>
-                                <th class="text-end">Actions</th>
+                                <th class="text-center   text-dark">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,7 +91,7 @@
                                     <td>
                                         <span class="badge text-bg-{{ $statusTone }}">{{ $borrow->status }}</span>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-center">
                                         <a href="{{ route('facilitator.borrow.show', $borrow) }}" class="btn btn-sm btn-outline-primary">Review</a>
                                     </td>
                                 </tr>

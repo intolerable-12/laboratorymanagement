@@ -43,7 +43,7 @@
     <div class="section-card">
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <h2 class="h5 fw-semibold mb-1">Pending user requests</h2>
-            <p class="mb-0 text-secondary">New student registrations are listed below.</p>
+            <p class="mb-3 text-secondary">New student registrations are listed below.</p>
         </div>
 
         <div class="card-body p-0">
@@ -51,11 +51,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Applicant</th>
-                            <th scope="col">Student ID</th>
-                            <th scope="col">Department</th>
-                            <th scope="col">Submitted</th>
-                            <th scope="col" class="text-end pe-4">Action</th>
+                            <th scope="col" class="text-dark ps-4">Applicant</th>
+                            <th scope="col" class="text-dark">Student ID</th>
+                            <th scope="col" class="text-dark">Department</th>
+                            <th scope="col" class="text-dark">Submitted</th>
+                            <th scope="col" class="text-center text-dark pe-4">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,7 +68,7 @@
                                 <td class="fw-medium text-dark">{{ $accountRequest->user_id }}</td>
                                 <td>{{ $accountRequest->department?->department_name ?? '—' }}</td>
                                 <td>{{ $accountRequest->created_at?->format('M d, Y') }}</td>
-                                <td class="text-end pe-4">
+                                <td class="text-center pe-4">
                                     <a href="{{ route('coordinator.users.requests.show', $accountRequest) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="fa-solid fa-eye me-1"></i>Review request
                                     </a>

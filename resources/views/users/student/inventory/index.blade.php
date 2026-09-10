@@ -13,7 +13,6 @@
             <div>
                 <div class="text-secondary">Browse available laboratory inventory.</div>
             </div>
-            @include('users.student.inventory.partials.view-switcher', ['active' => null])
         </div>
 
         <div class="row g-3 g-xl-4">

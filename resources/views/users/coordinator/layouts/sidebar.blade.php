@@ -24,6 +24,7 @@
 
         $isEquipmentGroup = request()->routeIs('coordinator.equipment.*', 'coordinator.equipment.categories.*');
         $isChemicalGroup = request()->routeIs('coordinator.chemicals.*', 'coordinator.chemical.categories.*');
+        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup;
 
         $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
 
@@ -37,13 +38,17 @@
         $isCheckinGroup = request()->routeIs('coordinator.checkin.*');
         $isReservationsGroup = request()->routeIs('coordinator.reservations.*');
         $isBorrowGroup = request()->routeIs('coordinator.borrow.*');
-        $isRequestGroup = $isReservationsGroup || $isBorrowGroup || $isCheckoutGroup || $isCheckinGroup;
+        $isReservationRequestGroup = $isReservationsGroup || $isReservationsIndex;
+        $isBorrowRequestGroup = $isBorrowIndex || $isBorrowCalendar;
+        $isScanGroup = $isCheckoutGroup || $isCheckinGroup;
+
 
         $isForumIndex = request()->routeIs('coordinator.forum.index');
         $isForumGroup = request()->routeIs('coordinator.forum.*');
         $isFeedbackIndex = request()->routeIs('coordinator.feedback.index');
         $isFeedbackQuestionnaires = request()->routeIs('coordinator.feedback.questionnaires.*');
         $isFeedbackGroup = request()->routeIs('coordinator.feedback.*');
+        $isCommunicationGroup = $isFeedbackGroup || $isForumGroup || $isAnnouncementsIndex;
 
         $pendingReservationRequests = \App\Models\Reservation::where('status', 'Facilitator Approved')->count();
         $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Facilitator Approved')->count();
@@ -59,26 +64,6 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.laboratories.*') ? 'active' : '' }}"
-                    href="{{ route('coordinator.laboratories.index') }}" title="Laboratory">
-                    <span class="sidebar-item__icon">
-                        <i class="fa-solid fa-flask-vial"></i>
-                    </span>
-                    <span class="sidebar-item__label">Laboratory</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentGroup ? 'active' : '' }}"
-                    href="{{ route('coordinator.equipment.index') }}" title="Equipment">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
-                    <span class="sidebar-item__label">Equipment</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalGroup ? 'active' : '' }}"
-                    href="{{ route('coordinator.chemicals.index') }}" title="Chemical">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
-                    <span class="sidebar-item__label">Chemical</span>
-                </a>
-
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isUserManagementGroup ? 'active' : '' }}"
                     href="{{ route('coordinator.users.index') }}" title="User Management">
                     <span class="d-flex align-items-center gap-2 flex-grow-1">
@@ -92,35 +77,61 @@
                     @endif
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.announcements.*') ? 'active' : '' }}"
-                    href="{{ route('coordinator.announcements.index') }}" title="Announcements">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
-                    <span class="sidebar-item__label">Announcements</span>
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.laboratories.*') ? 'active' : '' }}"
+                    href="{{ route('coordinator.laboratories.index') }}" title="Laboratory">
+                    <span class="sidebar-item__icon">
+                        <i class="fa-solid fa-flask-vial"></i>
+                    </span>
+                    <span class="sidebar-item__label">Laboratory</span>
                 </a>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorRequestMenu"
-                    aria-expanded="{{ $isRequestGroup ? 'true' : 'false' }}" aria-controls="coordinatorRequestMenu"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorInventoryMenu"
+                    aria-expanded="{{ $isInventoryGroup ? 'true' : 'false' }}" aria-controls="coordinatorInventoryMenu"
                     title="Requests">
                     <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
-                        <span class="sidebar-item__label">Requests</span>
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-layer-group"></i></span>
+                        <span class="sidebar-item__label">Inventory</span>
                     </span>
                     <span class="sidebar-item__chevron small" aria-hidden="true"><i
                             class="fa-solid fa-chevron-down"></i></span>
                 </button>
-                <div class="collapse {{ $isRequestGroup ? 'show' : '' }}" id="coordinatorRequestMenu">
+                <div class="collapse {{ $isInventoryGroup ? 'show' : '' }}" id="coordinatorInventoryMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentGroup ? 'active' : '' }}"
+                            href="{{ route('coordinator.equipment.index') }}" title="Equipment">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
+                            <span class="sidebar-item__label">Equipment</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalGroup ? 'active' : '' }}"
+                            href="{{ route('coordinator.chemicals.index') }}" title="Chemical">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
+                                <span class="sidebar-item__label">Chemical</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorReservationRequestMenu"
+                    aria-expanded="{{ $isReservationRequestGroup ? 'true' : 'false' }}" aria-controls="coordinatorRequestMenu"
+                    title="Reservation Requests">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <span class="sidebar-item__label">Reservation</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isReservationRequestGroup ? 'show' : '' }}" id="coordinatorReservationRequestMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsCalendar ? 'active' : '' }}"
                             href="{{ route('coordinator.reservations.calendar') }}" title="Reservation Calendar">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
-                        </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
-                            href="{{ route('coordinator.borrow.calendar') }}" title="Borrow Calendar">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
-                            <span class="sidebar-item__label">Borrow Calendar</span>
                         </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
                             href="{{ route('coordinator.reservations.index') }}" title="Reservation Requests">
@@ -134,11 +145,33 @@
                                 </span>
                             @endif
                         </a>
+                    </div>
+                </div>
+
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorBorrowRequestMenu"
+                    aria-expanded="{{ $isBorrowRequestGroup ? 'true' : 'false' }}" aria-controls="coordinatorRequestMenu"
+                    title="Borrow Requests">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <span class="sidebar-item__label">Borrow</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isBorrowRequestGroup ? 'show' : '' }}" id="coordinatorBorrowRequestMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                            href="{{ route('coordinator.borrow.calendar') }}" title="Borrow Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
+                            <span class="sidebar-item__label">Borrow Calendar</span>
+                        </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowIndex ? 'active' : '' }}"
-                            href="{{ route('coordinator.borrow.index') }}" title="Borrowing Requests">
+                            href="{{ route('coordinator.borrow.index') }}" title="Borrow Requests">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
-                                <span class="sidebar-item__label">Borrowing Requests</span>
+                                <span class="sidebar-item__label">Borrow Requests</span>
                             </span>
                             @if ($pendingBorrowRequests > 0)
                                 <span class="badge rounded-pill text-bg-danger ms-auto">
@@ -149,32 +182,59 @@
                     </div>
                 </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckoutGroup ? 'active' : '' }}"
-                    href="{{ route('coordinator.checkout.index') }}" title="Checkout Items">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-barcode"></i></span>
-                    <span class="sidebar-item__label">Checkout Items</span>
-                </a>
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckinGroup ? 'active' : '' }}"
-                    href="{{ route('coordinator.checkin.index') }}" title="Check In Items">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-rotate-left"></i></span>
-                    <span class="sidebar-item__label">Check In Items</span>
-                </a>
-
-
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorFeedbackMenu"
-                    aria-expanded="{{ $isFeedbackGroup ? 'true' : 'false' }}" aria-controls="coordinatorFeedbackMenu"
-                    title="Feedback">
+                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorScannerMenu"
+                    aria-expanded="{{ $isScanGroup ? 'true' : 'false' }}" aria-controls="coordinatorScannerMenu"
+                    title="Requests">
                     <span class="d-flex align-items-center gap-2">
-                        <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
-                        <span class="sidebar-item__label">Feedback</span>
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-barcode"></i></span>
+                        <span class="sidebar-item__label">Scan Barcode</span>
                     </span>
                     <span class="sidebar-item__chevron small" aria-hidden="true"><i
                             class="fa-solid fa-chevron-down"></i></span>
                 </button>
-                <div class="collapse {{ $isFeedbackGroup ? 'show' : '' }}" id="coordinatorFeedbackMenu">
+                <div class="collapse {{ $isScanGroup ? 'show' : '' }}" id="coordinatorScannerMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckoutGroup ? 'active' : '' }}"
+                            href="{{ route('coordinator.checkout.index') }}" title="Checkout Items">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-barcode"></i></span>
+                            <span class="sidebar-item__label">Checkout Items</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isCheckinGroup ? 'active' : '' }}"
+                            href="{{ route('coordinator.checkin.index') }}" title="Check In Items">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-rotate-left"></i></span>
+                                <span class="sidebar-item__label">Check In Items</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorCommunicationMenu"
+                    aria-expanded="{{ $isCommunicationGroup ? 'true' : 'false' }}" aria-controls="coordinatorCommunicationMenu"
+                    title="Communication">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
+                        <span class="sidebar-item__label">Communication</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isCommunicationGroup ? 'show' : '' }}" id="coordinatorCommunicationMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAnnouncementsIndex ? 'active' : '' }}"
+                            href="{{ route('coordinator.announcements.index') }}" title="Announcements">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
+                            <span class="sidebar-item__label">Announcements</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
+                            href="{{ route('coordinator.forum.index') }}" title="Forum">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
+                            <span class="sidebar-item__label">Forum</span>
+                        </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackIndex ? 'active' : '' }}"
                             href="{{ route('coordinator.feedback.index') }}" title="Feedback">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
@@ -187,14 +247,6 @@
                         </a>
                     </div>
                 </div>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
-                    href="{{ route('coordinator.forum.index') }}" title="Forum">
-                    <span class="sidebar-item__icon">
-                        <i class="fa-solid fa-comments"></i>
-                    </span>
-                    <span class="sidebar-item__label">Forum</span>
-                </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2" href="#" title="Reports">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-chart-column"></i></span>
