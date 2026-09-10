@@ -113,7 +113,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup ? 'active' : '' }}"
                             href="{{ route('student.reservations.index') }}" title="Reservations">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>

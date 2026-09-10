@@ -85,7 +85,7 @@
 									</td>
 									<td class="text-center">
 										<div class="d-inline-flex align-items-center gap-2">
-											<a href="{{ route('student.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">View</a>
+											<a href="{{ route('student.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
 											@if (in_array($reservation->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
 												<form method="POST" action="{{ route('student.reservations.cancel', $reservation) }}" class="d-inline">
 													@csrf
