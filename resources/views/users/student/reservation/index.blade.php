@@ -38,7 +38,7 @@
 				<div class="table-responsive">
 					<table class="table align-middle">
 						<thead>
-							<tr class="text-secondary small text-uppercase">
+							<tr>
 								<th class="text-dark">Reservation</th>
 								<th class="text-dark">Laboratory</th>
 								<th class="text-dark">Schedule</th>

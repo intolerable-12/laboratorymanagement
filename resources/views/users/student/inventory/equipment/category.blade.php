@@ -73,15 +73,15 @@
         <div data-live-search-results="student-equipment-items">
             <section class="inventory-table-shell">
                 <div class="table-responsive">
-                    <table class="table inventory-table align-middle">
+                    <table class="table align-middle">
                         <thead>
                             <tr>
-                                <th><a href="{{ $sortUrl('item') }}" class="inventory-table__sort-link">Equipment <i class="fa-solid {{ $sortIcon('item') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('laboratory') }}" class="inventory-table__sort-link">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('brand') }}" class="inventory-table__sort-link">Brand / model <i class="fa-solid {{ $sortIcon('brand') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('available') }}" class="inventory-table__sort-link">Availability <i class="fa-solid {{ $sortIcon('available') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('condition') }}" class="inventory-table__sort-link">Condition <i class="fa-solid {{ $sortIcon('condition') }}" aria-hidden="true"></i></a></th>
-                                <th class="text-end">Action</th>
+                                <th><a href="{{ $sortUrl('item') }}" class="text-decoration-none text-dark">Equipment <i class="fa-solid {{ $sortIcon('item') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('brand') }}" class="text-decoration-none text-dark">Brand / model <i class="fa-solid {{ $sortIcon('brand') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('available') }}" class="text-decoration-none text-dark">Availability <i class="fa-solid {{ $sortIcon('available') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('condition') }}" class="text-decoration-none text-dark">Condition <i class="fa-solid {{ $sortIcon('condition') }}" aria-hidden="true"></i></a></th>
+                                <th class="text-center text-dark">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -116,16 +116,14 @@
                                         </span>
                                     </td>
                                     <td>{{ $equipment->condition ?: 'Not listed' }}</td>
-                                    <td class="text-end inventory-table__action">
-                                        <a href="{{ route('student.inventory.equipment.show', $equipment) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                            View details <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
-                                        </a>
+                                    <td class="text-center pe-4">
+                                        <a href="{{ route('student.inventory.equipment.show', $equipment) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="6" class="text-center text-secondary py-5">
-                                        <i class="fa-solid fa-box-open d-block fs-3 mb-2 text-primary"></i>
+                                        <i class="mb-2 text-primary"></i>
                                         No available equipment was found in this category.
                                     </td>
                                 </tr>
