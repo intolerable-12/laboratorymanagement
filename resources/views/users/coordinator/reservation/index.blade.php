@@ -87,8 +87,8 @@
                                 <td>
                                     <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                                 </td>
-                                <td class="text-end">
-                                    <a href="{{ route('coordinator.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">Review</a>
+                                <td class="text-center pe-4">
+                                    <a href="{{ route('coordinator.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
                                 </td>
                             </tr>
                         @empty
