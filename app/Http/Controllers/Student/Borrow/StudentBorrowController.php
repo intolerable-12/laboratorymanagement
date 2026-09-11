@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student\Borrow;
 
+use App\Http\Controllers\Concerns\ValidatesBorrowSchedule;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Borrow\StudentBorrowEmailController;
 use App\Models\BorrowItem;
@@ -20,6 +21,8 @@ use Illuminate\Validation\ValidationException;
 
 class StudentBorrowController extends Controller
 {
+	use ValidatesBorrowSchedule;
+
 	public function index(Request $request)
 	{
 		$this->ensureStudent($request);
@@ -294,7 +297,7 @@ class StudentBorrowController extends Controller
             'Review borrow request',
             [
                 ['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
-                ['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+                ['label' => 'Return at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
                 ['label' => 'Status', 'value' => $borrowTransaction->status],
             ]
         );
@@ -358,25 +361,14 @@ class StudentBorrowController extends Controller
 		]);
 
 		$borrowedAt = Carbon::parse($data['borrowed_at']);
-		$dueAt = Carbon::parse($data['due_at']);
-
-		if ($borrowedAt->isWeekend()) {
-			throw ValidationException::withMessages([
-				'borrowed_at' => 'Borrow dates cannot fall on Saturday or Sunday.',
-			]);
-		}
+		$returnAt = Carbon::parse($data['due_at']);
+		$this->ensureBorrowRequestHours($borrowedAt, $returnAt);
 
 		$minimumBorrowDate = $this->minimumBorrowDateTime();
 
 		if ($borrowedAt->startOfDay()->lt($minimumBorrowDate)) {
 			throw ValidationException::withMessages([
 				'borrowed_at' => 'Borrow requests must be submitted at least 3 business days in advance. The earliest available borrow date is ' . $minimumBorrowDate->format('F j, Y') . '.',
-			]);
-		}
-
-		if ($dueAt->isWeekend()) {
-			throw ValidationException::withMessages([
-				'due_at' => 'Borrow due dates cannot fall on Saturday or Sunday.',
 			]);
 		}
 

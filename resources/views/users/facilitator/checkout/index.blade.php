@@ -34,7 +34,7 @@
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
                     <div>
                         <h3 class="h4 fw-semibold mb-1 text-dark">Requests waiting for checkout</h3>
-                        <p class="mb-0 text-secondary">Checkout is enabled at the scheduled borrow or reservation date and time.</p>
+                        <p class="mb-0 text-secondary">Checkout is enabled throughout the scheduled borrow or reservation date. Past scheduled dates remain available and are marked overdue.</p>
                     </div>
                     <span class="text-secondary small fw-semibold">{{ $borrows->total() }} REQUEST{{ $borrows->total() === 1 ? '' : 'S' }}</span>
                 </div>
@@ -54,7 +54,10 @@
                         <tbody>
                             @forelse ($borrows as $borrow)
                                 @php
-                                    $ready = $borrow->borrowed_at && !$now->lt($borrow->borrowed_at);
+                                    $ready = $borrow->borrowed_at && !$now->startOfDay()->lt($borrow->borrowed_at->copy()->startOfDay());
+                                    $isCheckoutOverdue = $borrow->borrowed_at
+                                        && $borrow->borrowed_at->copy()->startOfDay()->lt($now->copy()->startOfDay())
+                                        && in_array($borrow->status, ['Coordinator Approved', 'Partially Borrowed'], true);
                                     $statusTone = $borrow->status === 'Partially Borrowed' ? 'warning' : ($ready ? 'success' : 'secondary');
                                     $itemCount = $borrow->items->count();
                                 @endphp
@@ -75,7 +78,12 @@
                                         <div class="small text-secondary">Due {{ $borrow->due_at?->format('M d, Y h:i A') ?? '—' }}</div>
                                     </td>
                                     <td>{{ $itemCount }} item{{ $itemCount === 1 ? '' : 's' }}</td>
-                                    <td><span class="badge text-bg-{{ $statusTone }}">{{ $borrow->status === 'Coordinator Approved' && $ready ? 'Ready' : $borrow->status }}</span></td>
+                                    <td>
+                                        <span class="badge text-bg-{{ $statusTone }}">{{ $borrow->status === 'Coordinator Approved' && $ready ? 'Ready' : $borrow->status }}</span>
+                                        @if ($isCheckoutOverdue)
+                                            <span class="badge text-bg-danger mt-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Overdue checkout</span>
+                                        @endif
+                                    </td>
                                     <td class="text-center">
                                         <a href="{{ route($checkoutRoutePrefix.'.show', $borrow) }}" class="btn btn-sm btn-{{ $ready ? 'primary' : 'outline-secondary' }}">{{ $borrow->status === 'Partially Borrowed' ? 'Continue' : 'Open Checkout' }}</a>
                                     </td>

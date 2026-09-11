@@ -21,8 +21,10 @@
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Instructor';
 
         $isDashboard = request()->routeIs('instructor.dashboard');
-        $isReservationsGroup = request()->routeIs('instructor.reservations.*');
-        $isBorrowGroup = request()->routeIs('instructor.borrow.*');
+        $isReservationCalendar = request()->routeIs('instructor.reservations.calendar');
+        $isBorrowCalendar = request()->routeIs('instructor.borrow.calendar');
+        $isReservationsGroup = request()->routeIs('instructor.reservations.*') && ! $isReservationCalendar;
+        $isBorrowGroup = request()->routeIs('instructor.borrow.*') && ! $isBorrowCalendar;
         $isForumGroup = request()->routeIs('instructor.forum.*');
         $isFeedbackIndex = request()->routeIs('instructor.feedback.index');
         $isFeedbackCreate = request()->routeIs('instructor.feedback.create');
@@ -83,10 +85,22 @@
                     <span class="sidebar-item__label">Reservations</span>
                 </a>
 
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationCalendar ? 'active' : '' }}"
+                    href="{{ route('instructor.reservations.calendar') }}" title="Reservation Calendar">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span class="sidebar-item__label">Reservation Calendar</span>
+                </a>
+
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup ? 'active' : '' }}"
                     href="{{ route('instructor.borrow.index') }}" title="Borrowing">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-box-open"></i></span>
                     <span class="sidebar-item__label">Borrowing</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                    href="{{ route('instructor.borrow.calendar') }}" title="Borrow Calendar">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span class="sidebar-item__label">Borrow Calendar</span>
                 </a>
 
                 <button

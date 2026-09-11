@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Guest;
 
 use App\Http\Controllers\Concerns\CollectsRequestItems;
+use App\Http\Controllers\Concerns\ValidatesBorrowSchedule;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
@@ -21,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 
 class GuestBorrowController extends Controller
 {
-    use CollectsRequestItems;
+    use CollectsRequestItems, ValidatesBorrowSchedule;
 
     public function create(Request $request)
     {
@@ -161,7 +162,7 @@ class GuestBorrowController extends Controller
             'Review borrow request',
             [
                 ['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
-                ['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+                ['label' => 'Return at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
                 ['label' => 'Status', 'value' => $borrowTransaction->status],
             ]
         );
@@ -177,12 +178,10 @@ class GuestBorrowController extends Controller
     private function ensureBorrowDates(array $data): void
     {
         $borrowedAt = Carbon::parse($data['borrowed_at']);
-        $dueAt = Carbon::parse($data['due_at']);
+        $returnAt = Carbon::parse($data['due_at']);
         $minimumBorrowDate = $this->minimumBorrowDateTime();
 
-        if ($borrowedAt->isWeekend()) {
-            throw ValidationException::withMessages(['borrowed_at' => 'Borrow dates cannot fall on Saturday or Sunday.']);
-        }
+        $this->ensureBorrowRequestHours($borrowedAt, $returnAt);
 
         if ($borrowedAt->startOfDay()->lt($minimumBorrowDate)) {
             throw ValidationException::withMessages([
@@ -190,9 +189,6 @@ class GuestBorrowController extends Controller
             ]);
         }
 
-        if ($dueAt->isWeekend()) {
-            throw ValidationException::withMessages(['due_at' => 'Borrow due dates cannot fall on Saturday or Sunday.']);
-        }
     }
 
     private function minimumBorrowDateTime(): Carbon

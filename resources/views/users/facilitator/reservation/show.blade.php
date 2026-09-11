@@ -19,6 +19,9 @@
 							'Cancelled' => 'danger',
             default => 'secondary',
         };
+        $statusLabel = $reservation->status === 'Facilitator Approved'
+            ? 'Laboratory In-charge Approved'
+            : $reservation->status;
     @endphp
     <div class="account-page">
 
@@ -47,7 +50,7 @@
                                 };
                             @endphp
                             <div class="d-flex align-items-center gap-3">
-                                <span class="badge text-bg-{{ $statusTone }}">{{ $reservation->status }}</span>
+                                <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                                 <a href="{{ route('facilitator.reservations.index') }}" class="btn btn-outline-secondary px-3">Back to Queue</a>
                             </div>
                         </div>

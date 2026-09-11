@@ -32,7 +32,7 @@
                         <p class="mb-0 text-secondary">Switch between compact card view and a more detailed list.</p>
                     </div>
 
-                    <div class="btn-group" role="group" aria-label="Borrow view switcher">
+                    <div class="btn-group borrow-view-switcher" role="group" aria-label="Borrow view switcher">
                         <button type="button" class="btn btn-sm {{ $viewMode === 'card' ? 'btn-primary' : 'btn-outline-secondary' }}" data-view-toggle="card">Card View</button>
                         <button type="button" class="btn btn-sm {{ $viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary' }}" data-view-toggle="list">List View</button>
                     </div>
@@ -67,6 +67,11 @@
     </div>
 
     <style>
+        .borrow-view-switcher .btn {
+            min-width: 96px;
+            border-radius: 0.4rem !important;
+        }
+
         .borrow-equipment-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

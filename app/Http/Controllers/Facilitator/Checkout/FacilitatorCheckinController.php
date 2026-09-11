@@ -317,8 +317,6 @@ class FacilitatorCheckinController extends Controller
             }
 
             $quantity = (float) $scan->quantity;
-            $condition = $scan->condition_in ?? 'Good';
-            $isUsableReturn = in_array($condition, ['Excellent', 'Good', 'Fair'], true);
             $inventoryQuery = $scan->item_type === 'Equipment' ? Equipment::query() : Chemical::query();
             $inventoryItem = $inventoryQuery->lockForUpdate()->find($scan->item_id);
 
@@ -326,9 +324,32 @@ class FacilitatorCheckinController extends Controller
                 $this->checkinError('scan', 'The inventory item for this check-in line could not be found.');
             }
 
+            $remainingScans = BarcodeLog::query()
+                ->where('borrow_transaction_id', $transaction->id)
+                ->where('item_type', $scan->item_type)
+                ->where('item_id', $scan->item_id)
+                ->where('action', 'Return')
+                ->where('is_voided', false)
+                ->where('id', '!=', $scan->id)
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->get();
+
+            $remainingReturned = $remainingScans
+                ->filter(fn (BarcodeLog $remainingScan): bool => in_array($remainingScan->condition_in, ['Excellent', 'Good', 'Fair'], true))
+                ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
+            $remainingLost = $remainingScans
+                ->filter(fn (BarcodeLog $remainingScan): bool => $remainingScan->condition_in === 'Lost')
+                ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
+            $remainingDamaged = $remainingScans
+                ->filter(fn (BarcodeLog $remainingScan): bool => $remainingScan->condition_in === 'Damaged')
+                ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
+            $remainingCondition = $remainingScans->first()?->condition_in;
+
             $before = $scan->item_type === 'Equipment'
                 ? (float) $inventoryItem->available_quantity
                 : (float) $inventoryItem->quantity;
+            $isUsableReturn = in_array($scan->condition_in, ['Excellent', 'Good', 'Fair'], true);
             $after = $isUsableReturn ? max(0, round($before - $quantity, 2)) : $before;
 
             if ($scan->item_type === 'Equipment' && $isUsableReturn) {
@@ -345,20 +366,19 @@ class FacilitatorCheckinController extends Controller
                 ]);
             }
 
-            $returned = (float) $borrowItem->quantity_returned - ($isUsableReturn ? $quantity : 0);
-            $lost = (float) $borrowItem->quantity_lost - ($condition === 'Lost' ? $quantity : 0);
-            $damaged = (float) $borrowItem->quantity_damaged - ($condition === 'Damaged' ? $quantity : 0);
             $checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
             $used = $scan->item_type === 'Chemical'
-                ? max(0, round($checkedOut - $returned - $lost - $damaged, 2))
-                : (float) ($borrowItem->quantity_used ?? 0);
+                ? ($remainingScans->isEmpty()
+                    ? 0
+                    : max(0, round($checkedOut - $remainingReturned - $remainingLost - $remainingDamaged, 2)))
+                : 0;
 
             $borrowItem->update([
-                'quantity_returned' => max(0, $returned),
+                'quantity_returned' => max(0, $remainingReturned),
                 'quantity_used' => $used,
-                'quantity_lost' => max(0, $lost),
-                'quantity_damaged' => max(0, $damaged),
-                'condition_in' => $this->hasAccountedQuantity($borrowItem, $returned, $used, $lost, $damaged) ? $condition : null,
+                'quantity_lost' => max(0, $remainingLost),
+                'quantity_damaged' => max(0, $remainingDamaged),
+                'condition_in' => $remainingCondition,
             ]);
 
             $now = now();
@@ -516,11 +536,6 @@ class FacilitatorCheckinController extends Controller
                 'outstanding' => max(0, round($checkedOut - $accounted, 2)),
             ];
         })->values()->all();
-    }
-
-    private function hasAccountedQuantity(BorrowItem $item, float $returned, float $used, float $lost, float $damaged): bool
-    {
-        return $returned + $used + $lost + $damaged > 0;
     }
 
     private function unitLabel(string $itemType, mixed $inventoryItem): string

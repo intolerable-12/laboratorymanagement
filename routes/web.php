@@ -38,7 +38,9 @@ use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckinController;
 use App\Http\Controllers\Facilitator\Forum\LaboratoryInchargeForumController;
 use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardController;
 use App\Http\Controllers\Instructor\Reservation\ReservationController as InstructorReservationController;
+use App\Http\Controllers\Instructor\Reservation\InstructorReservationCalendarController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowController;
+use App\Http\Controllers\Instructor\Borrow\InstructorBorrowCalendarController;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowEmailController;
 use App\Http\Controllers\Instructor\Inventory\ChemicalController as InstructorChemicalInventoryController;
 use App\Http\Controllers\Instructor\Inventory\EquipmentController as InstructorEquipmentInventoryController;
@@ -440,6 +442,7 @@ Route::middleware(['auth', 'role:Instructor'])
         Route::prefix('reservations')
             ->name('reservations.')
             ->group(function () {
+                Route::get('/calendar', [InstructorReservationCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [InstructorReservationController::class, 'index'])->name('index');
                 Route::get('/{reservation}', [InstructorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [InstructorReservationController::class, 'approve'])->name('approve');
@@ -449,6 +452,7 @@ Route::middleware(['auth', 'role:Instructor'])
         Route::prefix('borrow')
             ->name('borrow.')
             ->group(function () {
+                Route::get('/calendar', [InstructorBorrowCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'index'])->name('index');
                 Route::get('/{borrowTransaction}', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'approve'])->name('approve');

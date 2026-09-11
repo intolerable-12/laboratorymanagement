@@ -61,7 +61,7 @@
 
                     <div class="borrow-equipment-meta">
                         <span><i class="fa-solid fa-calendar-plus"></i> {{ $entry['borrowed_at'] }}</span>
-                        <span><i class="fa-solid fa-clock"></i> Due {{ $entry['due_at'] }}</span>
+                        <span><i class="fa-solid fa-clock"></i> Return {{ $entry['due_at'] }}</span>
                     </div>
 
                     @if ($entry['status'] === 'Returned')

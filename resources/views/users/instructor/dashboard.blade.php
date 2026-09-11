@@ -109,5 +109,20 @@
                 </div>
             </div>
         </section>
+
+        <section class="card section-card border-0 mb-4">
+            <div class="card-body p-4 p-xl-5">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <h3 class="h4 fw-semibold mb-1 text-dark">Laboratory Calendars</h3>
+                        <p class="mb-0 text-secondary">Review approved borrowing and reservation schedules.</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('instructor.borrow.calendar') }}" class="btn btn-outline-primary">Borrowing Calendar</a>
+                        <a href="{{ route('instructor.reservations.calendar') }}" class="btn btn-primary">Reservation Calendar</a>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 @endsection

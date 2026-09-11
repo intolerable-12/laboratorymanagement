@@ -24,6 +24,9 @@
 							'Cancelled' => 'danger',
             default => 'secondary',
         };
+        $statusLabel = $borrowTransaction->status === 'Facilitator Approved'
+            ? 'Laboratory In-charge Approved'
+            : $borrowTransaction->status;
     @endphp
     <div class="account-page">
 
@@ -61,7 +64,7 @@
                                     <span class="d-block text-uppercase">Last activity</span>
                                     <span class="fw-semibold text-dark">{{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</span>
                                 </div>
-                                <span class="badge text-bg-{{ $statusTone }}">{{ $borrowTransaction->status }}</span>
+                                <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                                 <a href="{{ route('facilitator.borrow.index') }}" class="btn btn-outline-secondary px-3">Back to Queue</a>
                             </div>
                         </div>
