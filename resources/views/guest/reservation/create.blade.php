@@ -11,7 +11,6 @@
                     <h1 class="h3 fw-semibold mb-2 text-dark">Create a Reservation Request</h1>
                     <p class="mb-0 text-secondary">Provide your details, choose a laboratory schedule, and request the items needed for your activity.</p>
                 </div>
-                <a href="{{ route('login') }}" class="btn btn-outline-secondary px-4">Back to Sign in</a>
             </div>
         </section>
 

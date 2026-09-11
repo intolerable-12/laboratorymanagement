@@ -29,7 +29,14 @@
         $isReservationsIndex = request()->routeIs('student.reservations.index');
         $isReservationCalendar = request()->routeIs('student.reservations.calendar');
 
-        $isStudentReservationGroup = $isReservationsGroup;
+        $isReservationRequestActive = request()->routeIs(
+            'student.reservations.index',
+            'student.reservations.show',
+            'student.reservations.edit',
+            'student.reservations.create'
+        );
+
+        $isStudentReservationGroup = $isReservationCalendar || $isReservationRequestActive;
 
         $isEquipmentGroup = request()->routeIs('student.inventory.equipment.*');
         $isChemicalGroup = request()->routeIs('student.inventory.chemicals.*');
@@ -40,7 +47,13 @@
         $isBorrowIndex = request()->routeIs('student.borrow.index');
         $isBorrowCalendar = request()->routeIs('student.borrow.calendar');
 
-        $isStudentBorrowGroup = $isBorrowGroup;
+        $isBorrowRequestActive = request()->routeIs(
+            'student.borrow.index',
+            'student.borrow.show',
+            'student.borrow.create'
+        );
+
+        $isStudentBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive;
 
         $isForumIndex = request()->routeIs('student.forum.index');
         $isForumGroup = request()->routeIs('student.forum.*');
@@ -49,9 +62,15 @@
         $isFeedbackCreate = request()->routeIs('student.feedback.create');
         $isQuestionnairesIndex = request()->routeIs('student.feedback.questionnaires.index');
         $isQuestionnairesGroup = request()->routeIs('student.feedback.questionnaires.*');
-        $isFeedbackGroup = request()->routeIs('student.feedback.*');
+        $isFeedbackCreate = request()->routeIs('student.feedback.create');
 
-        $isCommunicationGroup = $isQuestionnairesGroup || $isFeedbackGroup || $isForumGroup;
+        $isFeedbackActiveGroup = request()->routeIs(
+            'student.feedback.index',
+            'student.feedback.show',
+            'student.feedback.create'
+        );
+
+        $isCommunicationGroup = $isFeedbackActiveGroup || $isQuestionnairesGroup || $isForumGroup;
 
         $isMyAccount = request()->routeIs('student.myaccount');
     @endphp
@@ -113,7 +132,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
                             href="{{ route('student.reservations.index') }}" title="Reservations">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
@@ -142,7 +161,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Borrow Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
                             href="{{ route('student.borrow.index') }}" title="Borrow">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
@@ -165,17 +184,17 @@
                 </button>
                 <div class="collapse {{ $isCommunicationGroup ? 'show' : '' }}" id="studentFeedbackMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"
                             href="{{ route('student.forum.index') }}" title="Forun">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
                             <span class="sidebar-item__label">Forum</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackActiveGroup ? 'active' : '' }}"
                             href="{{ route('student.feedback.index') }}" title="Feedback">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
                             <span class="sidebar-item__label">Feedback</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isQuestionnairesIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isQuestionnairesGroup ? 'active' : '' }}"
                             href="{{ route('student.feedback.questionnaires.index') }}" title="Questionnaires">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-question"></i></span>
                             <span class="sidebar-item__label">Questionnaires</span>

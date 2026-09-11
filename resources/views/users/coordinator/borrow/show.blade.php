@@ -68,7 +68,13 @@
                         <div class="table-responsive">
                             <table class="table align-middle">
                                 <thead>
-                                    <tr class="text-secondary small text-uppercase"><th>Type</th><th>Item</th><th>Quantity</th><th>Condition Out</th><th>Remarks</th></tr>
+                                    <tr>
+                                        <th class="text-dark">Type</th>
+                                        <th class="text-dark">Item</th>
+                                        <th class="text-dark">Quantity</th>
+                                        <th class="text-dark">Condition Out</th>
+                                        <th class="text-dark">Remarks</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     @forelse ($borrowTransaction->items as $item)

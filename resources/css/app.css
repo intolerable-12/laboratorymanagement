@@ -1851,6 +1851,21 @@ body.coordinator-page {
     border-color: transparent;
 }
 
+.role-page .text-guest,
+.role-page .text-guest th,
+.role-page .text-guest td,
+.role-page .text-guest .text-dark {
+    color: var(--role-text) !important;
+}
+
+.role-page .text-guest1,
+.role-page .text-guest1 th,
+.role-page .text-guest1 td,
+.role-page .text-guest1 .text-dark {
+    color: var(--role-text) !important;
+}
+
+
 .student-page .borrow-item-remarks {
     min-width: 190px;
     max-width: 260px;

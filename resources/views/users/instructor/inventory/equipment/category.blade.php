@@ -53,24 +53,50 @@
         </section>
 
         <section class="inventory-filter-card card border-0 mb-4">
-            <div class="card-body p-4">
-                <form method="GET" action="{{ route('instructor.inventory.equipment.categories.show', $equipmentCategory) }}" class="row g-3 align-items-end" data-live-search-form="instructor-equipment-items">
-                    <div class="col-12 col-md-8 col-lg-9">
-                        <label for="equipment-search" class="form-label fw-semibold text-dark">Search equipment</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-primary" aria-hidden="true"></i></span>
-                            <input type="search" id="equipment-search" name="search" value="{{ $search }}" class="form-control" placeholder="Search by name, code, laboratory, brand, or condition">
-                        </div>
+        <div class="card-body p-4">
+            <form method="GET"
+                action="{{ route('instructor.inventory.equipment.categories.show', $equipmentCategory) }}"
+                class="row g-3 align-items-end"
+                data-live-search-form="instructor-equipment-items">
+
+                <div class="col-12 col-md-8 col-lg-9">
+                    <label for="equipment-search"
+                        class="form-label fw-semibold text-dark">
+                        Search equipment
+                    </label>
+
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="fa-solid fa-magnifying-glass text-primary"
+                            aria-hidden="true"></i>
+                        </span>
+
+                        <input type="search"
+                            id="equipment-search"
+                            name="search"
+                            value="{{ $search }}"
+                            class="form-control"
+                            placeholder="Search by name, code, laboratory, brand, or condition">
                     </div>
-                    <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-grow-1">Search</button>
-                        <a href="{{ route('instructor.inventory.equipment.categories.show', $equipmentCategory) }}" class="btn btn-outline-secondary">Clear</a>
-                    </div>
-                    <input type="hidden" name="sort" value="{{ $currentSort }}">
-                    <input type="hidden" name="direction" value="{{ $currentDirection }}">
-                </form>
-            </div>
-        </section>
+                </div>
+
+                <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
+                    <button type="submit"
+                            class="btn btn-primary flex-grow-1">
+                        Search
+                    </button>
+
+                    <a href="{{ route('instructor.inventory.equipment.categories.show', $equipmentCategory) }}"
+                    class="btn btn-outline-secondary">
+                        Clear
+                    </a>
+                </div>
+
+                <input type="hidden" name="sort" value="{{ $currentSort }}">
+                <input type="hidden" name="direction" value="{{ $currentDirection }}">
+            </form>
+        </div>
+    </section>
 
         <div data-live-search-results="instructor-equipment-items">
             <section class="inventory-table-shell">

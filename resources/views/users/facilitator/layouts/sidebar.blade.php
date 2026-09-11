@@ -32,8 +32,21 @@
         $isForumGroup = request()->routeIs('facilitator.forum.*');
         $isMyAccount = request()->routeIs('facilitator.myaccount');
 
-        $isFacilitatorReservationGroup = $isReservationsGroup;
-        $isFacilitatorBorrowGroup = $isBorrowGroup;
+        $isReservationRequestActive = request()->routeIs(
+            'facilitator.reservations.index',
+            'facilitator.reservations.show',
+            'facilitator.reservations.edit',
+            'facilitator.reservations.create'
+        );
+
+        $isBorrowRequestActive = request()->routeIs(
+            'facilitator.borrow.index',
+            'facilitator.borrow.show',
+            'facilitator.borrow.create'
+        );
+
+        $isFacilitatorReservationGroup = $isReservationsCalendar || $isReservationRequestActive;
+        $isFacilitatorBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive;
         $isFacilitatorScanGroup = $isCheckoutGroup || $isCheckinGroup;
 
         $pendingReservationRequests = \App\Models\Reservation::where('status', 'Instructor Approved')->count();
@@ -69,7 +82,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
                             href="{{ route('facilitator.reservations.index') }}" title="Reservation Requests">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
@@ -103,7 +116,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Borrow Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
                             href="{{ route('facilitator.borrow.index') }}" title="Borrow Requests">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>

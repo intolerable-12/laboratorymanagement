@@ -45,12 +45,12 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table align-middle request-item-table">
+        <table class="table align-middle text-guest">
             <thead>
-                <tr class="text-secondary small text-uppercase">
-                    <th>Chemical</th>
-                    <th>Available</th>
-                    <th class="text-end">Select</th>
+                <tr>
+                    <th class="text-dark">Chemical</th>
+                    <th class="text-dark">Available</th>
+                    <th class="text-center text-dark">Select</th>
                 </tr>
             </thead>
             <tbody>
@@ -64,7 +64,7 @@
                             <div class="fw-semibold text-dark">{{ $chemical->quantity }} {{ $chemical->unit }}</div>
                             <div class="small text-secondary">{{ $chemical->status }}</div>
                         </td>
-                        <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-picker-row-action>Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></button></td>
+                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-picker-row-action>Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></button></td>
                     </tr>
                 @empty
                     <tr>
