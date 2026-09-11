@@ -14,7 +14,7 @@
         </div>
 
         <div class="request-cart-empty text-center text-secondary py-4 {{ $hasSelectedItems ? 'd-none' : '' }}" data-cart-empty>
-            <i class="fa-solid fa-cart-shopping d-block fs-3 mb-2 text-primary" aria-hidden="true"></i>
+            <i class=" mb-2 text-primary" aria-hidden="true"></i>
             <div class="small">No items added yet.</div>
         </div>
 

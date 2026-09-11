@@ -57,22 +57,51 @@
             </div>
         </div>
 
-        <div class="section-card mb-4">
-            <div class="card-body p-3 p-xl-4">
-                <form method="GET" action="{{ route('instructor.inventory.chemicals.index') }}" class="row g-3 align-items-end" data-live-search-form="instructor-chemical-categories">
-                    <div class="col-12 col-lg-8">
-                        <label for="chemical-category-search" class="form-label fw-medium mb-1">Search categories</label>
-                        <input type="search" id="chemical-category-search" name="search" value="{{ $search }}" placeholder="Category name, code, or description" class="form-control admin-form-control">
+        <section class="inventory-filter-card card border-0 mb-4">
+            <div class="card-body p-4">
+                <form method="GET"
+                    action="{{ route('instructor.inventory.chemicals.index') }}"
+                    class="row g-3 align-items-end"
+                    data-live-search-form="instructor-chemical-categories">
+
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <label for="chemical-category-search" class="form-label fw-semibold text-dark">
+                            Search categories
+                        </label>
+
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="fa-solid fa-magnifying-glass text-primary" aria-hidden="true"></i>
+                            </span>
+
+                            <input
+                                type="search"
+                                id="chemical-category-search"
+                                name="search"
+                                value="{{ $search }}"
+                                class="form-control"
+                                placeholder="Search by category name, code, or description"
+                            >
+                        </div>
                     </div>
-                    <div class="col-12 col-lg-auto d-flex gap-2">
-                        <input type="hidden" name="sort" value="{{ $currentSort }}">
-                        <input type="hidden" name="direction" value="{{ $currentDirection }}">
-                        <button type="submit" class="btn btn-primary px-4">Search</button>
-                        <a href="{{ route('instructor.inventory.chemicals.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+
+                    <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            Search
+                        </button>
+
+                        <a href="{{ route('instructor.inventory.chemicals.index') }}"
+                        class="btn btn-outline-secondary">
+                            Clear
+                        </a>
                     </div>
+
+                    <input type="hidden" name="sort" value="{{ $currentSort }}">
+                    <input type="hidden" name="direction" value="{{ $currentDirection }}">
                 </form>
             </div>
-        </div>
+        </section>
+
 
         <div data-live-search-results="instructor-chemical-categories">
             <div class="section-card" id="chemicalCategoriesTable">

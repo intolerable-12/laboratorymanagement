@@ -29,6 +29,7 @@
         $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
 
         $isAnnouncementsIndex = request()->routeIs('coordinator.announcements.index');
+        $isAnnouncementsGroup = request()->routeIs('coordinator.announcements.*');
 
         $isReservationsIndex = request()->routeIs('coordinator.reservations.index');
         $isReservationsCalendar = request()->routeIs('coordinator.reservations.calendar');
@@ -38,17 +39,30 @@
         $isCheckinGroup = request()->routeIs('coordinator.checkin.*');
         $isReservationsGroup = request()->routeIs('coordinator.reservations.*');
         $isBorrowGroup = request()->routeIs('coordinator.borrow.*');
-        $isReservationRequestGroup = $isReservationsGroup || $isReservationsIndex;
-        $isBorrowRequestGroup = $isBorrowIndex || $isBorrowCalendar;
         $isScanGroup = $isCheckoutGroup || $isCheckinGroup;
 
+        $isReservationRequestActive = request()->routeIs(
+            'coordinator.reservations.index',
+            'coordinator.reservations.show',
+            'coordinator.reservations.edit',
+            'coordinator.reservations.update'
+        );
+
+        $isBorrowRequestActive = request()->routeIs(
+            'coordinator.borrow.index',
+            'coordinator.borrow.show'
+        );
+
+
+        $isReservationRequestGroup = $isReservationsCalendar || $isReservationRequestActive;
+        $isBorrowRequestGroup = $isBorrowRequestActive || $isBorrowCalendar;
 
         $isForumIndex = request()->routeIs('coordinator.forum.index');
         $isForumGroup = request()->routeIs('coordinator.forum.*');
         $isFeedbackIndex = request()->routeIs('coordinator.feedback.index');
         $isFeedbackQuestionnaires = request()->routeIs('coordinator.feedback.questionnaires.*');
         $isFeedbackGroup = request()->routeIs('coordinator.feedback.*');
-        $isCommunicationGroup = $isFeedbackGroup || $isForumGroup || $isAnnouncementsIndex;
+        $isCommunicationGroup = $isFeedbackGroup || $isForumGroup || $isAnnouncementsGroup;
 
         $pendingReservationRequests = \App\Models\Reservation::where('status', 'Facilitator Approved')->count();
         $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Facilitator Approved')->count();
@@ -133,7 +147,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
                             href="{{ route('coordinator.reservations.index') }}" title="Reservation Requests">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
@@ -167,7 +181,7 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
                             <span class="sidebar-item__label">Borrow Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
                             href="{{ route('coordinator.borrow.index') }}" title="Borrow Requests">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
@@ -225,12 +239,12 @@
                 </button>
                 <div class="collapse {{ $isCommunicationGroup ? 'show' : '' }}" id="coordinatorCommunicationMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAnnouncementsIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAnnouncementsGroup ? 'active' : '' }}"
                             href="{{ route('coordinator.announcements.index') }}" title="Announcements">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
                             <span class="sidebar-item__label">Announcements</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumIndex ? 'active' : '' }}"
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"
                             href="{{ route('coordinator.forum.index') }}" title="Forum">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
                             <span class="sidebar-item__label">Forum</span>

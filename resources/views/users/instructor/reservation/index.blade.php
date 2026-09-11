@@ -49,13 +49,13 @@
 				<div class="table-responsive">
 					<table class="table align-middle">
 						<thead>
-							<tr class="text-secondary small text-uppercase">
+							<tr>
 								<th><a href="{{ $sortUrl('reservation_no') }}" class="text-decoration-none text-dark">Reservation <i class="fa-solid {{ $sortIcon('reservation_no') }} small"></i></a></th>
 								<th><a href="{{ $sortUrl('student') }}" class="text-decoration-none text-dark">Student <i class="fa-solid {{ $sortIcon('student') }} small"></i></a></th>
 								<th><a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i></a></th>
 								<th><a href="{{ $sortUrl('reservation_date') }}" class="text-decoration-none text-dark">Schedule <i class="fa-solid {{ $sortIcon('reservation_date') }} small"></i></a></th>
 								<th><a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark">Status <i class="fa-solid {{ $sortIcon('status') }} small"></i></a></th>
-								<th class="text-end">Actions</th>
+								<th class="text-center text-dark">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -94,8 +94,8 @@
 											{{ $reservation->status }}
 										</span>
 									</td>
-									<td class="text-center">
-										<a href="{{ route('instructor.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary">Review</a>
+									<td class="text-center pe-4">
+										<a href="{{ route('instructor.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
 									</td>
 								</tr>
 							@empty

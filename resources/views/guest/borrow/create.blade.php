@@ -10,8 +10,7 @@
                     <div class="text-uppercase small text-primary fw-semibold mb-2">No account required</div>
                     <h1 class="h3 fw-semibold mb-2 text-dark">Create a Borrow Request</h1>
                     <p class="mb-0 text-secondary">Provide your details, choose the items you need, and wait for the laboratory team to review your request.</p>
-                </div>
-                <a href="{{ route('login') }}" class="btn btn-outline-secondary px-4">Back to Sign in</a>
+                </div> 
             </div>
         </section>
 

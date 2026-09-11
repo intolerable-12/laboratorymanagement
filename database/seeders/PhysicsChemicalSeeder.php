@@ -20,69 +20,15 @@ class PhysicsChemicalSeeder extends Seeder
         }
 
         $chemicals = [
-            // Limited chemicals for physics demonstrations
-            [
-                'chemical_name' => 'Ethanol',
-                'category_code' => 'SOLVENT',
-                'unit' => 'L',
-                'hazard_classification' => 'Flammable',
-                'storage_location' => 'Flammable Cabinet P-01',
-            ],
-            [
-                'chemical_name' => 'Acetone',
-                'category_code' => 'SOLVENT',
-                'unit' => 'L',
-                'hazard_classification' => 'Flammable',
-                'storage_location' => 'Flammable Cabinet P-02',
-            ],
-            [
-                'chemical_name' => 'Mercury',
-                'category_code' => 'REAGENT',
-                'unit' => 'g',
-                'hazard_classification' => 'Toxic',
-                'storage_location' => 'Toxic Cabinet P-01',
-            ],
-            [
-                'chemical_name' => 'Glycerol',
-                'category_code' => 'SOLVENT',
-                'unit' => 'L',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'General Shelf P-01',
-            ],
-            [
-                'chemical_name' => 'Sodium Chloride',
-                'category_code' => 'SALT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'General Shelf P-02',
-            ],
-            [
-                'chemical_name' => 'Copper Sulfate',
-                'category_code' => 'SALT',
-                'unit' => 'kg',
-                'hazard_classification' => 'Toxic',
-                'storage_location' => 'Chemical Cabinet P-01',
-            ],
-            [
-                'chemical_name' => 'Distilled Water',
-                'category_code' => 'REAGENT',
-                'unit' => 'L',
-                'hazard_classification' => 'Non-Hazardous',
-                'storage_location' => 'General Shelf P-03',
-            ],
-            [
-                'chemical_name' => 'Hydrogen Peroxide',
-                'category_code' => 'OXIDIZER',
-                'unit' => 'L',
-                'hazard_classification' => 'Oxidizer',
-                'storage_location' => 'Oxidizer Cabinet P-01',
-            ],
+            ['chemical_name' => 'Ethanol', 'category_code' => 'SOLVENT', 'unit' => 'L', 'hazard_classification' => 'Flammable', 'storage_location' => 'Physics Flammable Cabinet PF-01'],
+            ['chemical_name' => 'Acetone', 'category_code' => 'SOLVENT', 'unit' => 'L', 'hazard_classification' => 'Flammable', 'storage_location' => 'Physics Flammable Cabinet PF-02'],
+            ['chemical_name' => 'Mercury', 'category_code' => 'REAGENT', 'unit' => 'g', 'hazard_classification' => 'Toxic', 'storage_location' => 'Physics Toxic Cabinet PT-01'],
+            ['chemical_name' => 'Glycerol', 'category_code' => 'SOLVENT', 'unit' => 'L', 'hazard_classification' => 'Non-Hazardous', 'storage_location' => 'Physics General Shelf PG-01'],
+            ['chemical_name' => 'Sodium Chloride', 'category_code' => 'SALT', 'unit' => 'kg', 'hazard_classification' => 'Non-Hazardous', 'storage_location' => 'Physics General Shelf PG-02'],
+            ['chemical_name' => 'Copper Sulfate', 'category_code' => 'SALT', 'unit' => 'kg', 'hazard_classification' => 'Toxic', 'storage_location' => 'Physics Chemical Cabinet PC-01'],
+            ['chemical_name' => 'Distilled Water', 'category_code' => 'REAGENT', 'unit' => 'L', 'hazard_classification' => 'Non-Hazardous', 'storage_location' => 'Physics General Shelf PG-03'],
+            ['chemical_name' => 'Hydrogen Peroxide', 'category_code' => 'OXIDIZER', 'unit' => 'L', 'hazard_classification' => 'Oxidizer', 'storage_location' => 'Physics Oxidizer Cabinet PO-01'],
         ];
-
-        $chemicals = collect($chemicals)
-            ->unique('chemical_name')
-            ->values()
-            ->all();
 
         foreach ($chemicals as $index => $item) {
             $categoryId = $categories->get($item['category_code']);
@@ -91,6 +37,8 @@ class PhysicsChemicalSeeder extends Seeder
                 $this->command->warn("Category [{$item['category_code']}] not found. Skipping {$item['chemical_name']}.");
                 continue;
             }
+
+            $dates = $this->generateChemicalDates($item['category_code']);
 
             $chemicalCode = 'CHEM-PHYS-' . str_pad($index + 1, 4, '0', STR_PAD_LEFT);
             $barcode = '482' . str_pad($index + 1, 10, '0', STR_PAD_LEFT);
@@ -106,9 +54,9 @@ class PhysicsChemicalSeeder extends Seeder
                     'quantity' => 10.00,
                     'unit' => $item['unit'],
                     'minimum_stock' => 2.00,
-                    'manufactured_date' => now()->subMonths(6)->toDateString(),
-                    'expiration_date' => now()->addYears(3)->toDateString(),
-                    'received_date' => now()->subMonths(3)->toDateString(),
+                    'manufactured_date' => $dates['manufactured_date'],
+                    'expiration_date' => $dates['expiration_date'],
+                    'received_date' => $dates['received_date'],
                     'hazard_classification' => $item['hazard_classification'],
                     'storage_location' => $item['storage_location'],
                     'status' => 'Available',
@@ -120,5 +68,30 @@ class PhysicsChemicalSeeder extends Seeder
         }
 
         $this->command->info('Physics Chemicals seeded successfully (' . count($chemicals) . ' items).');
+    }
+
+    private function generateChemicalDates(string $categoryCode): array
+    {
+        $shelfLife = match($categoryCode) {
+            'ACID'         => rand(2, 5),
+            'BASE'         => rand(2, 3),
+            'SOLVENT'      => rand(2, 3),
+            'SALT'         => rand(3, 5),
+            'OXIDIZER'     => rand(2, 3),
+            'INDICATOR'    => rand(1, 3),
+            'REAGENT'      => rand(1, 3),
+            'DISINFECTANT' => rand(1, 2),
+            default        => rand(2, 3),
+        };
+
+        $manufactured = now()->subMonths(rand(3, 24))->subDays(rand(0, 28));
+        $received = $manufactured->copy()->addMonths(rand(1, 3));
+        $expiration = $manufactured->copy()->addYears($shelfLife);
+
+        return [
+            'manufactured_date' => $manufactured->toDateString(),
+            'received_date' => $received->toDateString(),
+            'expiration_date' => $expiration->toDateString(),
+        ];
     }
 }
