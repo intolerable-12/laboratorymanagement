@@ -75,15 +75,15 @@
         <div data-live-search-results="instructor-chemical-items">
             <section class="inventory-table-shell">
                 <div class="table-responsive">
-                    <table class="table inventory-table align-middle">
+                    <table class="table align-middle">
                         <thead>
                             <tr>
-                                <th><a href="{{ $sortUrl('item') }}" class="inventory-table__sort-link">Chemical <i class="fa-solid {{ $sortIcon('item') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('laboratory') }}" class="inventory-table__sort-link">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('quantity') }}" class="inventory-table__sort-link">Quantity <i class="fa-solid {{ $sortIcon('quantity') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('hazard') }}" class="inventory-table__sort-link">Hazard <i class="fa-solid {{ $sortIcon('hazard') }}" aria-hidden="true"></i></a></th>
-                                <th><a href="{{ $sortUrl('expiration') }}" class="inventory-table__sort-link">Expiration <i class="fa-solid {{ $sortIcon('expiration') }}" aria-hidden="true"></i></a></th>
-                                <th class="text-end">Action</th>
+                                <th><a href="{{ $sortUrl('item') }}" class="text-decoration-none text-dark">Chemical <i class="fa-solid {{ $sortIcon('item') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('quantity') }}" class="text-decoration-none text-dark">Quantity <i class="fa-solid {{ $sortIcon('quantity') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark">Hazard <i class="fa-solid {{ $sortIcon('hazard') }}" aria-hidden="true"></i></a></th>
+                                <th><a href="{{ $sortUrl('expiration') }}" class="text-decoration-none text-dark">Expiration <i class="fa-solid {{ $sortIcon('expiration') }}" aria-hidden="true"></i></a></th>
+                                <th class="text-center text-dark">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -115,10 +115,8 @@
                                     </td>
                                     <td>{{ $chemical->hazard_classification ?: 'Not listed' }}</td>
                                     <td>{{ $chemical->expiration_date?->format('M d, Y') ?: 'Not listed' }}</td>
-                                    <td class="text-end inventory-table__action">
-                                        <a href="{{ route('instructor.inventory.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                            View details <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
-                                        </a>
+                                    <td class="text-center pe-4">
+                                        <a href="{{ route('instructor.inventory.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
                                     </td>
                                 </tr>
                             @empty

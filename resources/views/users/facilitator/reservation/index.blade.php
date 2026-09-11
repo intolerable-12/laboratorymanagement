@@ -64,10 +64,10 @@
                                     $statusTone = match ($reservation->status) {
                                         'Pending' => 'warning',
                                         'Instructor Approved' => 'info',
-                                        'Facilitator Approved' => 'primary',
+                                        'Laboratory In-charge Approved' => 'primary',
                                         'Coordinator Approved' => 'success',
-									'Rejected' => 'danger',
-									'Cancelled' => 'danger',
+									    'Rejected' => 'danger',
+									    'Cancelled' => 'danger',
                                         default => 'secondary',
                                     };
                                 @endphp
