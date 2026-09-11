@@ -29,6 +29,9 @@
             </a>
             <div class="d-flex align-items-center gap-2">
                 <span class="text-secondary small"><span id="scan-count">{{ $scanCount }}</span> scan{{ $scanCount === 1 ? '' : 's' }}</span>
+                @if ($isCheckoutOverdue)
+                    <span class="badge text-bg-danger px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i>Overdue checkout</span>
+                @endif
                 <span id="checkout-status" class="badge text-bg-{{ $completed ? 'success' : ($borrowTransaction->status === 'Partially Borrowed' ? 'warning' : 'primary') }} px-3 py-2">{{ $borrowTransaction->status }}</span>
             </div>
         </div>
@@ -169,9 +172,13 @@
                         </div>
                         <p class="text-secondary small mb-4">Start the scanner, then scan the barcode. Your USB HID scanner types into the focused field like a keyboard.</p>
 
-                        @if (!$canCheckout && !$completed)
+                        @if ($isCheckoutOverdue && !$completed)
+                            <div class="alert alert-danger small border-0">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i>Checkout is overdue. It was scheduled for {{ $borrowTransaction->borrowed_at?->format('M d, Y') ?? 'the scheduled borrow date' }}, but checkout is still allowed.
+                            </div>
+                        @elseif (!$canCheckout && !$completed)
                             <div class="alert alert-warning small border-0">
-                                Checkout opens at {{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? 'the scheduled borrow time' }}.
+                                Checkout opens on {{ $borrowTransaction->borrowed_at?->format('M d, Y') ?? 'the scheduled borrow date' }}.
                             </div>
                         @elseif ($completed)
                             <div class="alert alert-success small border-0">

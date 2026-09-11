@@ -151,9 +151,9 @@ trait CollectsRequestItems
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'suffix' => ['nullable', 'string', 'max:20'],
-            'student_id' => ['required', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:255'],
-            'contact_number' => ['required', 'string', 'max:20'],
+            'student_id' => ['required', 'string', 'regex:/^[SC]\d{2}-\d{4}$/'],
+            'email' => ['required', 'email', 'regex:/^[^@\s]+@lccdo\.edu\.ph$/i', 'max:255'],
+            'contact_number' => ['required', 'string', 'regex:/^(?:09\d{9}|\+639\d{9})$/'],
             'department_id' => ['required', 'exists:departments,id'],
         ];
     }

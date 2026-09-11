@@ -34,18 +34,18 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark">Borrowed At</label>
-                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" data-minimum-message="Borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
                             @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
-                            <div class="form-text">Submit at least 3 business days ahead. Earliest available date: {{ $borrowDateMinLabel }}. Weekends are not available.</div>
+                            <div class="form-text">Submit at least 3 business days ahead. Monday-Friday: 7:30 AM-5:00 PM; Saturday: 8:00 AM-12:00 NN. Sundays are unavailable.</div>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">Due At</label>
-                            <input type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" class="form-control @error('due_at') is-invalid @enderror" required>
+                            <label class="form-label fw-semibold text-dark">Return At</label>
+                            <input type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" class="form-control @error('due_at') is-invalid @enderror" required>
                             @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
-                            <div class="form-text">Due dates must also fall on weekdays.</div>
+                            <div class="form-text">Return at the same laboratory hours: Monday-Friday 7:30 AM-5:00 PM; Saturday 8:00 AM-12:00 NN. Sundays are unavailable.</div>
                         </div>
 
                         <div class="col-12">

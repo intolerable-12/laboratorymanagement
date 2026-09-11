@@ -55,7 +55,7 @@
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-student-id" class="form-label fw-semibold">Student ID</label>
-                            <input id="guest-reservation-student-id" type="text" name="student_id" value="{{ old('student_id') }}" class="form-control @error('student_id') is-invalid @enderror" required>
+                            <input id="guest-reservation-student-id" type="text" name="student_id" value="{{ old('student_id') }}" pattern="[SC][0-9]{2}-[0-9]{4}" maxlength="8" placeholder="SXX-XXXX or CXX-XXXX" class="form-control @error('student_id') is-invalid @enderror" required>
                             @error('student_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
@@ -70,12 +70,12 @@
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-email" class="form-label fw-semibold">Email address</label>
-                            <input id="guest-reservation-email" type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
+                            <input id="guest-reservation-email" type="email" name="email" value="{{ old('email') }}" pattern="[^@\s]+@lccdo\.edu\.ph" placeholder="name@lccdo.edu.ph" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-contact" class="form-label fw-semibold">Contact number</label>
-                            <input id="guest-reservation-contact" type="text" name="contact_number" value="{{ old('contact_number') }}" class="form-control @error('contact_number') is-invalid @enderror" autocomplete="tel" required>
+                            <input id="guest-reservation-contact" type="tel" name="contact_number" value="{{ old('contact_number') }}" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" maxlength="13" placeholder="09XXXXXXXXX or +639XXXXXXXXX" class="form-control @error('contact_number') is-invalid @enderror" autocomplete="tel" required>
                             @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>

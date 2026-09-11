@@ -93,7 +93,7 @@
                             @forelse ($recentBorrowedItems as $equipment)
                                 <div class="activity-item d-flex flex-column gap-1">
                                     <div class="fw-semibold text-dark">{{ $equipment['name'] }}</div>
-                                    <div class="small text-secondary">{{ $equipment['type'] }} · {{ $equipment['laboratory'] }} · Due: {{ $equipment['return'] }}</div>
+                                    <div class="small text-secondary">{{ $equipment['type'] }} · {{ $equipment['laboratory'] }} · Return: {{ $equipment['return'] }}</div>
                                 </div>
                             @empty
                                 <div class="text-secondary small">No active borrowed items yet.</div>

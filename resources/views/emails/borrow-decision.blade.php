@@ -36,7 +36,7 @@
                         <td style="padding:12px 16px;">{{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</td>
                     </tr>
                     <tr>
-                        <td style="padding:12px 16px; background:#f9fafb; font-weight:bold; width:40%;">Due at</td>
+                        <td style="padding:12px 16px; background:#f9fafb; font-weight:bold; width:40%;">Return at</td>
                         <td style="padding:12px 16px;">{{ $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '—' }}</td>
                     </tr>
                     <tr>

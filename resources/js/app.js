@@ -205,6 +205,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        if (field.dataset.labHours === 'borrow') {
+            const day = selectedDate.getDay();
+            const time = value.split('T')[1]?.slice(0, 5);
+
+            if (day === 0) {
+                setValidationMessage('Borrowing and returns are not available on Sundays.');
+                return;
+            }
+
+            const opening = day === 6 ? '08:00' : '07:30';
+            const closing = day === 6 ? '12:00' : '17:00';
+            const openingLabel = day === 6 ? '8:00 AM' : '7:30 AM';
+            const closingLabel = day === 6 ? '12:00 PM' : '5:00 PM';
+
+            if (!time || time < opening || time > closing) {
+                setValidationMessage(`This day is available from ${openingLabel} to ${closingLabel}.`);
+                return;
+            }
+        }
+
         const minimumDateValue = field.dataset.businessDaysMin || field.min;
 
         if (minimumDateValue) {
@@ -219,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setValidationMessage('');
     };
 
-    document.querySelectorAll('input[type="date"][data-weekday-only], input[type="date"][data-business-days-min], input[type="datetime-local"][data-weekday-only]').forEach((field) => {
+    document.querySelectorAll('input[type="date"][data-weekday-only], input[type="date"][data-business-days-min], input[type="datetime-local"][data-weekday-only], input[type="datetime-local"][data-lab-hours]').forEach((field) => {
         validateDateInput(field);
         field.addEventListener('input', () => validateDateInput(field));
         field.addEventListener('change', () => validateDateInput(field));

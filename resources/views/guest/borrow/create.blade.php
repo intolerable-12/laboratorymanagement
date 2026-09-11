@@ -55,7 +55,7 @@
                         </div>
                         <div class="col-md-6">
                             <label for="guest-borrow-student-id" class="form-label fw-semibold">Student ID</label>
-                            <input id="guest-borrow-student-id" type="text" name="student_id" value="{{ old('student_id') }}" class="form-control @error('student_id') is-invalid @enderror" required>
+                            <input id="guest-borrow-student-id" type="text" name="student_id" value="{{ old('student_id') }}" pattern="[SC][0-9]{2}-[0-9]{4}" maxlength="8" placeholder="SXX-XXXX or CXX-XXXX" class="form-control @error('student_id') is-invalid @enderror" required>
                             @error('student_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
@@ -70,12 +70,12 @@
                         </div>
                         <div class="col-md-6">
                             <label for="guest-borrow-email" class="form-label fw-semibold">Email address</label>
-                            <input id="guest-borrow-email" type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
+                            <input id="guest-borrow-email" type="email" name="email" value="{{ old('email') }}" pattern="[^@\s]+@lccdo\.edu\.ph" placeholder="name@lccdo.edu.ph" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-borrow-contact" class="form-label fw-semibold">Contact number</label>
-                            <input id="guest-borrow-contact" type="text" name="contact_number" value="{{ old('contact_number') }}" class="form-control @error('contact_number') is-invalid @enderror" autocomplete="tel" required>
+                            <input id="guest-borrow-contact" type="tel" name="contact_number" value="{{ old('contact_number') }}" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" maxlength="13" placeholder="09XXXXXXXXX or +639XXXXXXXXX" class="form-control @error('contact_number') is-invalid @enderror" autocomplete="tel" required>
                             @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -88,17 +88,17 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="guest-borrowed-at" class="form-label fw-semibold">Borrowed at</label>
-                            <input id="guest-borrowed-at" type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" data-minimum-message="Guest borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                            <input id="guest-borrowed-at" type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Guest borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
                             @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
-                            <div class="form-text">Submit at least 3 business days ahead. Earliest available date: {{ $borrowDateMinLabel }}. Weekends are not available.</div>
+                            <div class="form-text">Submit at least 3 business days ahead. Monday-Friday: 7:30 AM-5:00 PM; Saturday: 8:00 AM-12:00 NN. Sundays are unavailable.</div>
                         </div>
                         <div class="col-md-6">
-                            <label for="guest-due-at" class="form-label fw-semibold">Due at</label>
-                            <input id="guest-due-at" type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-weekday-only="true" class="form-control @error('due_at') is-invalid @enderror" required>
+                            <label for="guest-due-at" class="form-label fw-semibold">Return at</label>
+                            <input id="guest-due-at" type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" class="form-control @error('due_at') is-invalid @enderror" required>
                             @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
-                            <div class="form-text">Due dates must also fall on weekdays.</div>
+                            <div class="form-text">Return at the same laboratory hours: Monday-Friday 7:30 AM-5:00 PM; Saturday 8:00 AM-12:00 NN. Sundays are unavailable.</div>
                         </div>
                         <div class="col-12">
                             <label for="guest-borrow-remarks" class="form-label fw-semibold">Remarks <span class="text-secondary fw-normal">(optional)</span></label>

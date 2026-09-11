@@ -11,8 +11,8 @@ use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\InventoryLog;
 use App\Services\RequestNotificationService;
-use Illuminate\Http\Request;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -48,6 +48,7 @@ class FacilitatorCheckoutController extends Controller
             'borrowTransaction' => $borrowTransaction,
             'scanLogs' => $borrowTransaction->barcodeLogs->where('is_voided', false)->sortByDesc('scanned_at')->values(),
             'canCheckout' => $this->isCheckoutWindowOpen($borrowTransaction),
+            'isCheckoutOverdue' => $this->isCheckoutOverdue($borrowTransaction),
             'now' => now(),
             'isCoordinator' => $this->isCoordinator($request),
         ]);
@@ -73,8 +74,8 @@ class FacilitatorCheckoutController extends Controller
             }
 
             if (! $this->isCheckoutWindowOpen($transaction)) {
-                $scheduledAt = $transaction->borrowed_at?->format('M d, Y h:i A') ?? 'the scheduled borrow time';
-                $this->checkoutError('barcode', 'Checkout is not available until '.$scheduledAt.'.');
+                $scheduledDate = $transaction->borrowed_at?->format('M d, Y') ?? 'the scheduled borrow date';
+                $this->checkoutError('barcode', 'Checkout is not available until '.$scheduledDate.'.');
             }
 
             $barcode = trim($data['barcode']);
@@ -469,7 +470,18 @@ class FacilitatorCheckoutController extends Controller
 
     private function isCheckoutWindowOpen(BorrowTransaction $borrowTransaction): bool
     {
-        return $borrowTransaction->borrowed_at !== null && ! now()->lt($borrowTransaction->borrowed_at);
+        if ($borrowTransaction->borrowed_at === null) {
+            return false;
+        }
+
+        return ! now()->startOfDay()->lt($borrowTransaction->borrowed_at->copy()->startOfDay());
+    }
+
+    private function isCheckoutOverdue(BorrowTransaction $borrowTransaction): bool
+    {
+        return $borrowTransaction->borrowed_at !== null
+            && $borrowTransaction->borrowed_at->copy()->startOfDay()->lt(now()->startOfDay())
+            && in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed'], true);
     }
 
     private function borrowerName(BorrowTransaction $borrowTransaction): string
