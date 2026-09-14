@@ -86,6 +86,18 @@
                     <h2 class="h4 fw-semibold mb-4 text-dark">Borrow details</h2>
                     <div class="row g-3">
                         <div class="col-md-6">
+                            <label for="guest-borrow-laboratory" class="form-label fw-semibold">Laboratory</label>
+                            <select id="guest-borrow-laboratory" name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
+                                <option value="">Select laboratory</option>
+                                @foreach ($laboratories as $laboratory)
+                                    <option value="{{ $laboratory->id }}" @selected(old('laboratory_id', $selectedLaboratoryId) == $laboratory->id)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
+                                @endforeach
+                            </select>
+                            @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="form-text">Only available items from the selected laboratory will be shown.</div>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="guest-borrowed-at" class="form-label fw-semibold">Borrowed at</label>
                             <input id="guest-borrowed-at" type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Guest borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
                             @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

@@ -24,7 +24,8 @@
 
         $isEquipmentGroup = request()->routeIs('coordinator.equipment.*', 'coordinator.equipment.categories.*');
         $isChemicalGroup = request()->routeIs('coordinator.chemicals.*', 'coordinator.chemical.categories.*');
-        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup;
+        $isSupplierGroup = request()->routeIs('coordinator.suppliers.*', 'coordinator.inventory-alerts.*');
+        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isSupplierGroup;
 
         $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
 
@@ -124,6 +125,16 @@
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
                                 <span class="sidebar-item__label">Chemical</span>
                             </span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.inventory-alerts.*') ? 'active' : '' }}"
+                            href="{{ route('coordinator.inventory-alerts.index') }}" title="Supplier Alerts">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-bell"></i></span>
+                            <span class="sidebar-item__label">Supplier Alerts</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.suppliers.*') ? 'active' : '' }}"
+                            href="{{ route('coordinator.suppliers.index') }}" title="Suppliers">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-truck-field"></i></span>
+                            <span class="sidebar-item__label">Suppliers</span>
                         </a>
                     </div>
                 </div>
@@ -265,6 +276,12 @@
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2" href="#" title="Reports">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-chart-column"></i></span>
                     <span class="sidebar-item__label">Reports</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.audit-logs.*') ? 'active' : '' }}"
+                    href="{{ route('coordinator.audit-logs.index') }}" title="Audit Log">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span class="sidebar-item__label">Audit Log</span>
                 </a>
             </nav>
         </div>

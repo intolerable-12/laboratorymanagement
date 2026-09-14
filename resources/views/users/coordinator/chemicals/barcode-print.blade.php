@@ -46,8 +46,21 @@
             border-radius: 0;
             padding: 0.12in 0.2in 0.1in;
             background: #fff;
-            width: min(100%, 520px);
+            width: min(100%, var(--barcode-card-width, 520px));
+            max-width: none;
+            height: var(--barcode-card-height, auto);
+            box-sizing: border-box;
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .barcode-print-content {
+            width: 480px;
+            max-width: none;
+            position: relative;
+            left: 50%;
+            margin-left: -240px;
+            transform: scale(var(--barcode-content-scale, 1));
+            transform-origin: top center;
         }
 
         .barcode-print-label {
@@ -69,7 +82,7 @@
         }
 
         .barcode-print-item .barcode-svg--label {
-            width: min(100%, 360px);
+            width: 360px;
             margin-inline: auto;
         }
 
@@ -102,6 +115,25 @@
             font-weight: 600;
         }
 
+        .barcode-print-size-controls {
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 0.75rem;
+            background: #f8fafc;
+        }
+
+        .barcode-print-size-controls input[type="range"] {
+            width: min(100%, 320px);
+        }
+
+        .barcode-print-size-control {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1 1 360px;
+            min-width: 0;
+        }
+
         @media print {
             body {
                 background: #fff;
@@ -124,7 +156,7 @@
 
             .barcode-print-label {
                 width: 100%;
-                max-width: 520px;
+                max-width: none;
             }
         }
     </style>
@@ -180,6 +212,20 @@
                     </div>
                 </div>
                 @endif
+
+                <div class="barcode-print-size-controls d-flex flex-wrap align-items-center gap-3 mt-3" data-barcode-size-controls>
+                    <div class="barcode-print-size-control">
+                        <label for="barcode-size" class="form-label fw-medium mb-0">Card width</label>
+                        <input id="barcode-size" type="range" min="240" max="800" step="10" value="520" data-barcode-size aria-describedby="barcode-size-help">
+                        <output class="fw-semibold text-primary" data-barcode-size-output for="barcode-size">520px</output>
+                    </div>
+                    <div class="barcode-print-size-control">
+                        <label for="barcode-height" class="form-label fw-medium mb-0">Card height</label>
+                        <input id="barcode-height" type="range" min="120" max="360" step="10" value="180" data-barcode-height aria-describedby="barcode-size-help">
+                        <output class="fw-semibold text-primary" data-barcode-height-output for="barcode-height">180px</output>
+                    </div>
+                    <span id="barcode-size-help" class="small text-secondary">Resize the whole barcode card before printing.</span>
+                </div>
             </div>
 
             <div class="barcode-print-grid">
@@ -189,34 +235,38 @@
                             $chemical = $printItem['item'];
                         @endphp
                         <div class="barcode-label barcode-print-label barcode-print-item">
-                            <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
+                            <div class="barcode-print-content">
+                                <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
 
-                            <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
-                                {!! $printItem['barcodeSvg'] !!}
-                            </div>
+                                <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
+                                    {!! $printItem['barcodeSvg'] !!}
+                                </div>
 
-                            <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
+                                <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
 
-                            <div class="barcode-print-label__meta">
-                                <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
-                                <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                                <div class="barcode-print-label__meta">
+                                    <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                                    <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                                </div>
                             </div>
                         </div>
                     @endforeach
                 @else
                     @for ($i = 0; $i < $printCount; $i++)
                         <div class="barcode-label barcode-print-label barcode-print-item">
-                            <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
+                            <div class="barcode-print-content">
+                                <div class="barcode-print-label__name">{{ $chemical->chemical_name }}</div>
 
-                            <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
-                                {!! $barcodeSvg !!}
-                            </div>
+                                <div class="barcode-print-label__barcode barcode-svg barcode-svg--label">
+                                    {!! $barcodeSvg !!}
+                                </div>
 
-                            <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
+                                <div class="barcode-print-label__code text-center">{{ $chemical->barcode }}</div>
 
-                            <div class="barcode-print-label__meta">
-                                <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
-                                <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                                <div class="barcode-print-label__meta">
+                                    <span>Expiry: {{ $chemical->expiration_date?->format('d-M-Y') ?? 'N/A' }}</span>
+                                    <span>Loc: {{ $chemical->storage_location ?? 'N/A' }}</span>
+                                </div>
                             </div>
                         </div>
                     @endfor

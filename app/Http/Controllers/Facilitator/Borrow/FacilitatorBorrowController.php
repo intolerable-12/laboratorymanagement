@@ -46,7 +46,7 @@ class FacilitatorBorrowController extends Controller
 	{
 		$this->ensureFacilitator($request);
 
-		$borrowTransaction->load(['borrower', 'items.item', 'releasedBy', 'receivedBy']);
+		$borrowTransaction->load(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy']);
 		$equipmentItems = $this->availableItems($request, (int) $borrowTransaction->laboratory_id, 'Equipment');
 		$chemicalItems = $this->availableItems($request, (int) $borrowTransaction->laboratory_id, 'Chemical');
 

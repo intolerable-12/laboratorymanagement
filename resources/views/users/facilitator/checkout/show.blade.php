@@ -101,7 +101,12 @@
                                 </div>
                                 <div class="flex-grow-1 min-width-0">
                                     <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <span class="fw-semibold text-dark">{{ $logItemName }}</span>
+                                        <span class="fw-semibold text-dark">
+                                            {{ $logItemName }}
+                                            @if ($log->item_type === 'Chemical' && $log->item?->is_expired)
+                                                <span class="badge text-bg-danger ms-1">Expired</span>
+                                            @endif
+                                        </span>
                                         <span class="badge rounded-pill text-bg-light border text-secondary">{{ $log->item_type }}</span>
                                     </div>
                                     <div class="small text-secondary mt-1">
@@ -147,7 +152,12 @@
                             @endphp
                             <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}">
                                 <div class="flex-grow-1">
-                                    <div class="fw-semibold text-dark">{{ $itemName }}</div>
+                                    <div class="fw-semibold text-dark">
+                                        {{ $itemName }}
+                                        @if ($item->item_type === 'Chemical' && $item->item?->is_expired)
+                                            <span class="badge text-bg-danger ms-1">Expired</span>
+                                        @endif
+                                    </div>
                                     <div class="small text-secondary">{{ $item->item_type }} · {{ $item->item?->barcode ?? 'Barcode unavailable' }}</div>
                                 </div>
                                 <div class="text-end">
@@ -194,12 +204,12 @@
                                     <label for="barcode" class="form-label fw-semibold text-dark">Barcode</label>
                                     <div class="input-group input-group-lg">
                                         <span class="input-group-text bg-white"><i class="fa-solid fa-barcode text-primary"></i></span>
-                                        <input type="text" name="barcode" id="barcode" class="form-control" autocomplete="off" autofocus required {{ !$canCheckout || $completed ? 'disabled' : '' }} placeholder="Scan barcode">
+                                        <input type="text" name="barcode" id="barcode" class="form-control" autocomplete="off" required {{ !$canCheckout || $completed ? 'disabled' : '' }} placeholder="Scan barcode">
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="quantity" class="form-label fw-semibold text-dark">Quantity <span class="fw-normal text-secondary">(optional)</span></label>
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="0.01" step="0.01" {{ !$canCheckout || $completed ? 'disabled' : '' }} placeholder="Equipment: 1 · Chemical: remaining">
+                                    <label for="quantity" class="form-label fw-semibold text-dark">Quantity</label>
+                                    <input type="number" name="quantity" id="quantity" class="form-control" min="0.01" step="0.01" required {{ !$canCheckout || $completed ? 'disabled' : '' }} placeholder="Enter quantity">
                                 </div>
                                 <div class="mb-4">
                                     <label for="condition_out" class="form-label fw-semibold text-dark">Condition</label>
@@ -211,6 +221,9 @@
                                 </div>
                                 <button type="button" class="btn btn-primary btn-lg w-100" id="start-scanner" {{ !$canCheckout || $completed ? 'disabled' : '' }}>
                                     <i class="fa-solid fa-barcode me-1"></i> Start scanner
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-lg w-100 d-none" id="stop-scanner" {{ !$canCheckout || $completed ? 'disabled' : '' }}>
+                                    <i class="fa-solid fa-stop me-1"></i> Stop scanning
                                 </button>
                                 <button type="submit" class="visually-hidden" tabindex="-1">Submit scan</button>
                             </form>

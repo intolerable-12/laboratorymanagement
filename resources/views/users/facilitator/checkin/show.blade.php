@@ -98,7 +98,12 @@
                                 </div>
                                 <div class="flex-grow-1 min-width-0">
                                     <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <span class="fw-semibold text-dark">{{ $logItemName }}</span>
+                                        <span class="fw-semibold text-dark">
+                                            {{ $logItemName }}
+                                            @if ($log->item_type === 'Chemical' && $log->item?->is_expired)
+                                                <span class="badge text-bg-danger ms-1">Expired</span>
+                                            @endif
+                                        </span>
                                         <span class="badge rounded-pill text-bg-light border text-secondary">{{ $log->item_type }}</span>
                                         <span class="badge rounded-pill text-bg-{{ $log->condition_in === 'Damaged' || $log->condition_in === 'Lost' ? 'danger' : 'success' }}">{{ $log->condition_in ?? 'Good' }}</span>
                                     </div>
@@ -142,7 +147,12 @@
                             @endphp
                             <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checkin-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}">
                                 <div class="flex-grow-1">
-                                    <div class="fw-semibold text-dark">{{ $itemName }}</div>
+                                    <div class="fw-semibold text-dark">
+                                        {{ $itemName }}
+                                        @if ($item->item_type === 'Chemical' && $item->item?->is_expired)
+                                            <span class="badge text-bg-danger ms-1">Expired</span>
+                                        @endif
+                                    </div>
                                     <div class="small text-secondary">{{ $item->item_type }} · {{ $item->item?->barcode ?? 'Barcode unavailable' }} · {{ $unit }}</div>
                                     <div class="small text-secondary mt-1">Returned <span data-progress-returned>{{ number_format($returned, $precision) }}</span> · Used <span data-progress-used>{{ number_format($used, $precision) }}</span> · Damaged <span data-progress-damaged>{{ number_format($damaged, $precision) }}</span> · Lost <span data-progress-lost>{{ number_format($lost, $precision) }}</span></div>
                                 </div>
@@ -172,12 +182,12 @@
                             @csrf
                             <div class="mb-3">
                                 <label for="checkin-barcode" class="form-label fw-semibold text-dark">Barcode</label>
-                                <div class="input-group input-group-lg"><span class="input-group-text bg-white"><i class="fa-solid fa-barcode text-primary"></i></span><input type="text" name="barcode" id="checkin-barcode" class="form-control" autocomplete="off" autofocus required {{ $completed ? 'disabled' : '' }} placeholder="Scan returned item"></div>
+                                <div class="input-group input-group-lg"><span class="input-group-text bg-white"><i class="fa-solid fa-barcode text-primary"></i></span><input type="text" name="barcode" id="checkin-barcode" class="form-control" autocomplete="off" required {{ $completed ? 'disabled' : '' }} placeholder="Scan returned item"></div>
                             </div>
                             <div class="mb-3">
                                 <label for="checkin-quantity" class="form-label fw-semibold text-dark">Returned quantity</label>
-                                <input type="number" name="quantity" id="checkin-quantity" class="form-control" min="0.01" step="0.01" {{ $completed ? 'disabled' : '' }} placeholder="Chemical quantity is required">
-                                <div class="form-text">Equipment defaults to 1 unit. Chemical quantity uses its listed unit.</div>
+                                <input type="number" name="quantity" id="checkin-quantity" class="form-control" min="0.01" step="0.01" required {{ $completed ? 'disabled' : '' }} placeholder="Enter returned quantity">
+                                <div class="form-text">Enter the returned quantity using the item’s listed unit.</div>
                             </div>
                             <div class="mb-4">
                                 <label for="condition_in" class="form-label fw-semibold text-dark">Condition received</label>
@@ -188,6 +198,7 @@
                                 </select>
                             </div>
                             <button type="button" class="btn btn-primary btn-lg w-100" id="start-checkin-scanner" {{ $completed ? 'disabled' : '' }}><i class="fa-solid fa-barcode me-1"></i> Start scanner</button>
+                            <button type="button" class="btn btn-outline-danger btn-lg w-100 d-none" id="stop-checkin-scanner" {{ $completed ? 'disabled' : '' }}><i class="fa-solid fa-stop me-1"></i> Stop scanning</button>
                             <button type="submit" class="visually-hidden" tabindex="-1">Submit return</button>
                         </form>
                         <div id="checkin-scanner-help" class="small text-success mt-3 d-none"><i class="fa-solid fa-circle-dot me-1"></i>Scanner active - scan the returned item now.</div>

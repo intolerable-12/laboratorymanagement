@@ -125,6 +125,9 @@
                             <h3 class="h5 fw-semibold mb-1">Recent activity logs</h3>
                             <p class="mb-0 text-secondary">Latest activity recorded by the platform.</p>
                         </div>
+                        <a href="{{ route('coordinator.audit-logs.index') }}" class="btn btn-sm btn-outline-primary">
+                            View all <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
                 <div class="card-body p-0">

@@ -64,7 +64,7 @@ class FacilitatorCheckinController extends Controller
 
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
-            'quantity' => ['nullable', 'numeric', 'gt:0'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
             'condition_in' => ['required', 'in:Excellent,Good,Fair,Damaged,Lost'],
         ]);
 
@@ -472,12 +472,8 @@ class FacilitatorCheckinController extends Controller
 
     private function checkinQuantity(string $itemType, mixed $rawQuantity, float $outstanding, ?string $unit = null): float|int
     {
-        if ($itemType === 'Chemical' && ($rawQuantity === null || $rawQuantity === '')) {
-            $this->checkinError('quantity', 'Specify how much chemical was returned in '.($unit ?? 'its listed unit').'.');
-        }
-
         if ($rawQuantity === null || $rawQuantity === '') {
-            return 1;
+            $this->checkinError('quantity', 'Enter the returned quantity in '.($unit ?? 'the item’s listed unit').'.');
         }
 
         if ($itemType === 'Equipment' && filter_var($rawQuantity, FILTER_VALIDATE_INT) === false) {

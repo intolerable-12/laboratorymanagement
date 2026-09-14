@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserAccountRequest;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
+    public function __construct(private readonly AuditLogger $auditLogger) {}
+
     /**
      * Show login page.
      */
@@ -98,6 +101,10 @@ class LoginController extends Controller
 
         $user = Auth::id() ? User::with('role')->find(Auth::id()) : null;
 
+        $this->auditLogger->log('Authentication', 'Login', $user?->getKey(), null, [
+            'email' => $user?->email,
+        ], $request, $user?->getKey());
+
         $dashboardRoute = $this->dashboardRouteName($user);
 
         if (! $dashboardRoute) {
@@ -117,6 +124,10 @@ class LoginController extends Controller
      */
     public function destroy(Request $request)
     {
+        $user = $request->user();
+
+        $this->auditLogger->log('Authentication', 'Logout', $user?->getKey(), null, null, $request, $user?->getKey());
+
         Auth::logout();
 
         $request->session()->invalidate();

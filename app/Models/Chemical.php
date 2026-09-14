@@ -28,6 +28,8 @@ class Chemical extends Model
         'minimum_stock',
         'manufactured_date',
         'expiration_date',
+        'expiration_alert_days',
+        'supplier_alert_sent_at',
         'received_date',
         'hazard_classification',
         'storage_location',
@@ -49,8 +51,18 @@ class Chemical extends Model
             'minimum_stock' => 'decimal:2',
             'manufactured_date' => 'date',
             'expiration_date' => 'date',
+            'expiration_alert_days' => 'integer',
+            'supplier_alert_sent_at' => 'datetime',
             'received_date' => 'date',
         ];
+    }
+
+    /**
+     * Determine whether the chemical has reached its expiration date.
+     */
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->expiration_date?->isPast() ?? false;
     }
 
     /**

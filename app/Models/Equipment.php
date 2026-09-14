@@ -36,6 +36,8 @@ class Equipment extends Model
         'purchase_date',
         'quantity',
         'available_quantity',
+        'low_stock_threshold',
+        'supplier_alert_sent_at',
         'condition',
         'status',
         'image',
@@ -55,6 +57,8 @@ class Equipment extends Model
             'purchase_date' => 'date',
             'quantity' => 'integer',
             'available_quantity' => 'integer',
+            'low_stock_threshold' => 'integer',
+            'supplier_alert_sent_at' => 'datetime',
         ];
     }
 

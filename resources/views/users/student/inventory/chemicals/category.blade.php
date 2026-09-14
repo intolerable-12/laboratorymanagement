@@ -99,6 +99,9 @@
                                             <div>
                                                 <div class="inventory-table__name">
                                                     <a href="{{ route('student.inventory.chemicals.show', $chemical) }}">{{ $chemical->chemical_name }}</a>
+                                                    @if ($chemical->is_expired)
+                                                        <span class="badge text-bg-danger ms-1">Expired</span>
+                                                    @endif
                                                 </div>
                                                 <div class="inventory-table__meta">{{ $chemical->chemical_code }}</div>
                                             </div>
@@ -112,7 +115,12 @@
                                         </span>
                                     </td>
                                     <td>{{ $chemical->hazard_classification ?: 'Not listed' }}</td>
-                                    <td>{{ $chemical->expiration_date?->format('M d, Y') ?: 'Not listed' }}</td>
+                                    <td>
+                                        <div>{{ $chemical->expiration_date?->format('M d, Y') ?: 'Not listed' }}</div>
+                                        @if ($chemical->is_expired)
+                                            <span class="badge text-bg-danger">Expired</span>
+                                        @endif
+                                    </td>
                                      <td class="text-center pe-4">
                                         <a href="{{ route('student.inventory.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
                                     </td>

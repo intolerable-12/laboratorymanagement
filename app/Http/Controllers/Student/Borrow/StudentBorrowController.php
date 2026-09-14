@@ -9,6 +9,7 @@ use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\Laboratory;
 use App\Models\SchoolYear;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
@@ -165,6 +166,10 @@ class StudentBorrowController extends Controller
 		$this->ensureStudent($request);
 
 		$activeTab = $request->query('tab', 'equipment');
+		$selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
+			'options' => ['min_range' => 1],
+		]) ?: null;
+		$laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
 		$minimumBorrowDate = $this->minimumBorrowDateTime();
 		$borrowDateMin = $minimumBorrowDate->format('Y-m-d\TH:i');
 		$borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
@@ -189,16 +194,26 @@ class StudentBorrowController extends Controller
 			});
 		}
 
+		if ($selectedLaboratoryId) {
+			$equipmentQuery->where('laboratory_id', $selectedLaboratoryId);
+			$chemicalQuery->where('laboratory_id', $selectedLaboratoryId);
+		} else {
+			$equipmentQuery->whereRaw('1 = 0');
+			$chemicalQuery->whereRaw('1 = 0');
+		}
+
 		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
 		$chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
 		$oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
 		$oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
 		$selectedEquipmentItems = Equipment::query()
 			->whereIn('id', array_keys($oldEquipmentSelections))
+			->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
 			->get()
 			->keyBy('id');
 		$selectedChemicalItems = Chemical::query()
 			->whereIn('id', array_keys($oldChemicalSelections))
+			->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
 			->get()
 			->keyBy('id');
 
@@ -215,9 +230,11 @@ class StudentBorrowController extends Controller
 		}
 
 		return view('users.student.borrow.create', compact(
+			'laboratories',
 			'equipmentItems',
 			'chemicalItems',
 			'activeTab',
+			'selectedLaboratoryId',
 			'borrowDateMin',
 			'borrowDateMinLabel',
 			'oldEquipmentSelections',
@@ -232,8 +249,8 @@ class StudentBorrowController extends Controller
 		$this->ensureStudent($request);
 
 		$data = $this->validateBorrowRequest($request);
-		$items = $this->collectRequestedItems($request);
-		$laboratoryId = $this->resolveBorrowLaboratoryId($items);
+		$laboratoryId = (int) $data['laboratory_id'];
+		$items = $this->collectRequestedItems($request, $laboratoryId);
 		$notificationService = app(RequestNotificationService::class);
 
 		if ($items === []) {
@@ -351,6 +368,7 @@ class StudentBorrowController extends Controller
 		$data = $request->validate([
 			'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
 			'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
+			'laboratory_id' => ['required', 'exists:laboratories,id'],
 			'remarks' => ['nullable', 'string', 'max:1000'],
 			'equipment_items' => ['nullable', 'array'],
 			'chemical_items' => ['nullable', 'array'],
@@ -375,7 +393,7 @@ class StudentBorrowController extends Controller
 		return $data;
 	}
 
-	private function collectRequestedItems(Request $request): array
+	private function collectRequestedItems(Request $request, int $laboratoryId): array
 	{
 		$errors = [];
 		$items = [];
@@ -400,6 +418,11 @@ class StudentBorrowController extends Controller
 
 			if (! $equipment) {
 				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
+				continue;
+			}
+
+			if ((int) $equipment->laboratory_id !== $laboratoryId) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment does not belong to the selected laboratory.';
 				continue;
 			}
 
@@ -447,6 +470,11 @@ class StudentBorrowController extends Controller
 				continue;
 			}
 
+			if ((int) $chemical->laboratory_id !== $laboratoryId) {
+				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical does not belong to the selected laboratory.';
+				continue;
+			}
+
 			if ($chemical->status !== 'Available') {
 				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently available.';
 				continue;
@@ -473,29 +501,6 @@ class StudentBorrowController extends Controller
 		}
 
 		return $items;
-	}
-
-	private function resolveBorrowLaboratoryId(array $items): int
-	{
-		$laboratoryIds = collect($items)
-			->pluck('laboratory_id')
-			->filter()
-			->unique()
-			->values();
-
-		if ($laboratoryIds->isEmpty()) {
-			throw ValidationException::withMessages([
-				'items' => 'Unable to determine the laboratory for the selected borrow items.',
-			]);
-		}
-
-		if ($laboratoryIds->count() > 1) {
-			throw ValidationException::withMessages([
-				'items' => 'All borrow items must belong to the same laboratory.',
-			]);
-		}
-
-		return (int) $laboratoryIds->first();
 	}
 
 	private function ensureStudent(Request $request): void

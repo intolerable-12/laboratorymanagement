@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('borrow:notify-schedule')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('inventory:notify-suppliers')
+    ->everyMinute()
+    ->withoutOverlapping();

@@ -112,6 +112,8 @@ class DashboardController extends Controller
                 ['label' => 'Laboratories', 'href' => route('coordinator.laboratories.index')],
                 ['label' => 'Equipment Management', 'href' => route('coordinator.equipment.index')],
                 ['label' => 'Chemical Inventory', 'href' => route('coordinator.chemicals.index')],
+                ['label' => 'Supplier Alert Settings', 'href' => route('coordinator.inventory-alerts.index')],
+                ['label' => 'Supplier Management', 'href' => route('coordinator.suppliers.index')],
                 ['label' => 'Reservation Management', 'href' => route('coordinator.reservations.index')],
                 ['label' => 'Borrow Requests', 'href' => route('coordinator.borrow.index')],
                 ['label' => 'Forum', 'href' => route('coordinator.forum.index')],

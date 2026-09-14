@@ -10,6 +10,19 @@ class AuditLog extends Model
 {
     use HasFactory;
 
+    public const ACTIONS = [
+        'Create',
+        'Update',
+        'Delete',
+        'Restore',
+        'Login',
+        'Logout',
+        'Approve',
+        'Reject',
+        'Borrow',
+        'Return',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -46,6 +59,6 @@ class AuditLog extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_no', 'userNo');
+        return $this->belongsTo(User::class, 'user_no', 'userNo')->withTrashed();
     }
 }

@@ -53,6 +53,16 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
+## Automated supplier inventory alerts
+
+Coordinator supplier alerts are checked by the `inventory:notify-suppliers` scheduled command. In production, keep Laravel's scheduler running so the command can execute every minute:
+
+```bash
+php artisan schedule:work
+```
+
+The application must also have a working mail transport configured. Alert settings are managed from Coordinator Dashboard → Supplier Alert Settings, and suppliers are managed from Coordinator Dashboard → Suppliers.
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

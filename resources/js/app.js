@@ -12,6 +12,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('adminSidebar');
     const toggleButtons = document.querySelectorAll('[data-admin-sidebar-toggle]');
 
+    document.querySelectorAll('[data-barcode-size-controls]').forEach((controls) => {
+        const sizeInput = controls.querySelector('[data-barcode-size]');
+        const sizeOutput = controls.querySelector('[data-barcode-size-output]');
+        const heightInput = controls.querySelector('[data-barcode-height]');
+        const heightOutput = controls.querySelector('[data-barcode-height-output]');
+        const printCard = controls.closest('.barcode-print-card');
+        const barcodeGrid = printCard?.querySelector('.barcode-print-grid');
+        const barcodeItems = barcodeGrid?.querySelectorAll('.barcode-print-item');
+
+        if (!sizeInput || !sizeOutput || !heightInput || !heightOutput || !barcodeGrid || !barcodeItems?.length) {
+            return;
+        }
+
+        const updateBarcodeSize = () => {
+            const width = Number(sizeInput.value);
+            const height = Number(heightInput.value);
+
+            barcodeGrid.style.setProperty('--barcode-card-width', `${width}px`);
+            barcodeItems.forEach((item) => {
+                item.style.width = `min(100%, ${width}px)`;
+                item.style.maxWidth = 'none';
+                item.style.height = `${height}px`;
+                item.style.minHeight = '0';
+                item.style.maxHeight = 'none';
+            });
+
+            // Measure the rendered card after the requested dimensions have been
+            // applied. This accounts for the page width, card padding, and print
+            // margins so content never grows beyond the space actually available.
+            const firstItem = barcodeItems[0];
+            const itemStyles = window.getComputedStyle(firstItem);
+            const horizontalPadding = parseFloat(itemStyles.paddingLeft) + parseFloat(itemStyles.paddingRight);
+            const verticalPadding = parseFloat(itemStyles.paddingTop) + parseFloat(itemStyles.paddingBottom);
+            const availableWidth = Math.max(1, firstItem.clientWidth - horizontalPadding);
+            const availableHeight = Math.max(1, firstItem.clientHeight - verticalPadding);
+            const contentScale = Math.min(availableWidth / 480, availableHeight / 220) * 0.98;
+
+            barcodeGrid.style.setProperty('--barcode-content-scale', contentScale.toFixed(3));
+            sizeOutput.textContent = `${width}px`;
+            heightOutput.textContent = `${height}px`;
+        };
+
+        sizeInput.addEventListener('input', updateBarcodeSize);
+        heightInput.addEventListener('input', updateBarcodeSize);
+        updateBarcodeSize();
+    });
+
     if (document.querySelector('[data-reservation-calendar-shell]')) {
         import('./calendar')
             .then(({ initializeCalendars }) => initializeCalendars())
@@ -644,6 +691,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         laboratorySelect?.addEventListener('change', async () => {
+            reservationTabs.querySelectorAll('[data-item-picker]').forEach((itemPicker) => {
+                itemPicker.dispatchEvent(new CustomEvent('request-items-laboratory-changed'));
+            });
+
             try {
                 await reloadReservationTabs();
             } catch (error) {

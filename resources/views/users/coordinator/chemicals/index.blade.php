@@ -307,6 +307,7 @@
                             @php
                                 $restoreDeadline = $chemical->deleted_at?->copy()->addYears(5);
                                 $canRestore = $restoreDeadline?->isFuture() ?? false;
+                                $isExpired = $chemical->is_expired;
                             @endphp
                             <tr>
                                 <td class="ps-3 pe-0">
@@ -325,6 +326,9 @@
                                             <div class="fw-semibold text-dark">{{ $chemical->chemical_name }}</div>
                                             <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                 <span>{{ $chemical->chemical_code }}</span>
+                                                @if ($isExpired)
+                                                    <span class="badge text-bg-danger">Expired</span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -336,8 +340,8 @@
                                     <div class="small text-secondary">Minimum {{ number_format((float) $chemical->minimum_stock, 2) }} {{ $chemical->unit }}</div>
                                 </td>
                                 <td>
-                                    <span class="badge text-bg-{{ $archived ? 'secondary' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary'))) }}">
-                                        {{ $archived ? 'Archived' : $chemical->status }}
+                                    <span class="badge text-bg-{{ $archived ? 'secondary' : ($isExpired || $chemical->status === 'Expired' ? 'danger' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : 'secondary'))) }}">
+                                        {{ $archived ? 'Archived' : ($isExpired ? 'Expired' : $chemical->status) }}
                                     </span>
                                 </td>
                                 <td>

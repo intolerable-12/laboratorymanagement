@@ -156,7 +156,7 @@ class ChemicalController extends Controller
     {
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
-        $suppliers = Supplier::orderBy('supplier_name')->get();
+        $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
         $unitOptions = self::UNIT_OPTIONS;
         $storageLocations = self::STORAGE_LOCATIONS;
 
@@ -169,6 +169,7 @@ class ChemicalController extends Controller
         $data['chemical_code'] = $this->generateChemicalCode();
         $data['barcode'] = $this->generateBarcodeValue();
         $data['minimum_stock'] = 15;
+        $data['supplier_alert_sent_at'] = null;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('chemicals', 'public');
@@ -191,7 +192,10 @@ class ChemicalController extends Controller
     {
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
-        $suppliers = Supplier::orderBy('supplier_name')->get();
+        $suppliers = Supplier::query()
+            ->where(fn ($query) => $query->where('status', 'Active')->orWhereKey($chemical->supplier_id))
+            ->orderBy('supplier_name')
+            ->get();
         $unitOptions = $this->unitOptions($chemical);
         $storageLocations = $this->storageLocations($chemical);
 
@@ -202,6 +206,11 @@ class ChemicalController extends Controller
     {
         $data = $this->validateChemical($request, $chemical);
         $data['minimum_stock'] = 15;
+
+        if (optional($chemical->expiration_date)->toDateString() !== ($data['expiration_date'] ?? null)
+            || (int) ($chemical->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
+            $data['supplier_alert_sent_at'] = null;
+        }
 
         if ($request->hasFile('image')) {
             if ($chemical->image) {
