@@ -155,7 +155,7 @@ class EquipmentController extends Controller
     {
         $categories = EquipmentCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
-        $suppliers = Supplier::orderBy('supplier_name')->get();
+        $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
         $storageLocations = self::STORAGE_LOCATIONS;
 
         return view('users.coordinator.equipment.create', compact('categories', 'laboratories', 'suppliers', 'storageLocations'));
@@ -168,6 +168,7 @@ class EquipmentController extends Controller
         $data['equipment_code'] = $this->generateEquipmentCode($laboratory);
         $data['barcode'] = $this->generateBarcodeValue($data['equipment_code']);
         $data['available_quantity'] = $data['quantity'];
+        $data['supplier_alert_sent_at'] = null;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('equipment', 'public');
@@ -190,7 +191,10 @@ class EquipmentController extends Controller
     {
         $categories = EquipmentCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
-        $suppliers = Supplier::orderBy('supplier_name')->get();
+        $suppliers = Supplier::query()
+            ->where(fn ($query) => $query->where('status', 'Active')->orWhereKey($equipment->supplier_id))
+            ->orderBy('supplier_name')
+            ->get();
         $storageLocations = $this->storageLocations($equipment);
 
         return view('users.coordinator.equipment.edit', compact('equipment', 'categories', 'laboratories', 'suppliers', 'storageLocations'));
@@ -200,6 +204,10 @@ class EquipmentController extends Controller
     {
         $data = $this->validateEquipment($request, $equipment);
         $data['available_quantity'] = $data['quantity'];
+
+        if ((int) ($equipment->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
+            $data['supplier_alert_sent_at'] = null;
+        }
 
         if ($request->hasFile('image')) {
             if ($equipment->image) {

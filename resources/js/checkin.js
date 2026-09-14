@@ -9,6 +9,7 @@ import { attachScannerInputRouter } from './scanner-input';
         const input = root.querySelector('#checkin-barcode');
         const form = root.querySelector('#checkin-scan-form');
         const startButton = root.querySelector('#start-checkin-scanner');
+        const stopButton = root.querySelector('#stop-checkin-scanner');
         const help = root.querySelector('#checkin-scanner-help');
         const feedback = root.querySelector('#checkin-ajax-feedback');
         const cart = root.querySelector('#checkin-cart');
@@ -20,9 +21,11 @@ import { attachScannerInputRouter } from './scanner-input';
         const usedTotal = root.querySelector('#used-total');
         const quantityInput = root.querySelector('#checkin-quantity');
         const removeUrlTemplate = cart?.dataset.removeUrlTemplate;
+        const scannerAvailable = Boolean(input && startButton && !input.disabled && !startButton.disabled);
         let requestInProgress = false;
+        let scannerActive = false;
 
-        if (!input || !form || !startButton || !feedback || !cart || !removeUrlTemplate) {
+        if (!input || !form || !startButton || !stopButton || !quantityInput || !feedback || !cart || !removeUrlTemplate) {
             return;
         }
 
@@ -30,8 +33,14 @@ import { attachScannerInputRouter } from './scanner-input';
 
         const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+        const updateScannerControls = () => {
+            startButton.classList.toggle('d-none', scannerActive);
+            stopButton.classList.toggle('d-none', !scannerActive);
+            help?.classList.toggle('d-none', !scannerActive);
+        };
+
         const focusScanner = () => {
-            if (input.disabled) {
+            if (!scannerActive || input.disabled) {
                 return;
             }
 
@@ -45,6 +54,30 @@ import { attachScannerInputRouter } from './scanner-input';
                 help?.classList.remove('d-none');
             }, 0);
         };
+
+        const startScanning = () => {
+            if (!scannerAvailable || requestInProgress) {
+                return;
+            }
+
+            scannerActive = true;
+            input.disabled = false;
+            updateScannerControls();
+            focusScanner();
+        };
+
+        const stopScanning = () => {
+            scannerActive = false;
+            input.value = '';
+            input.disabled = true;
+            input.blur();
+            updateScannerControls();
+        };
+
+        if (scannerAvailable) {
+            input.disabled = true;
+        }
+        updateScannerControls();
 
         const manualField = (target) => target instanceof Element
             && Boolean(target.closest('#checkin-quantity, #condition_in, [data-barcode-manual-field]'));
@@ -101,6 +134,22 @@ import { attachScannerInputRouter } from './scanner-input';
             feedback.className = 'alert alert-' + type + ' border-0 small';
             feedback.textContent = message;
         };
+
+        const validateQuantity = () => {
+            if (quantityInput.value.trim() !== '') {
+                quantityInput.setCustomValidity('');
+                return true;
+            }
+
+            const message = 'Enter the returned quantity before scanning.';
+            quantityInput.setCustomValidity(message);
+            showFeedback(message, 'danger');
+            quantityInput.reportValidity();
+            quantityInput.focus({ preventScroll: true });
+            return false;
+        };
+
+        quantityInput.addEventListener('input', () => quantityInput.setCustomValidity(''));
 
         const statusClass = (status) => {
             if (status === 'Returned') return 'text-bg-success';
@@ -172,6 +221,7 @@ import { attachScannerInputRouter } from './scanner-input';
         };
 
         const finishCheckin = () => {
+            stopScanning();
             form.querySelectorAll('input, select, button').forEach((element) => {
                 element.disabled = true;
             });
@@ -183,14 +233,21 @@ import { attachScannerInputRouter } from './scanner-input';
             form.querySelectorAll('input, select, button').forEach((element) => {
                 element.disabled = false;
             });
+            input.disabled = !scannerActive;
             startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
+            updateScannerControls();
         };
 
-        startButton.addEventListener('click', focusScanner);
-        window.addEventListener('load', focusScanner);
+        startButton.addEventListener('click', startScanning);
+        stopButton.addEventListener('click', stopScanning);
         input.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
+
+                if (!validateQuantity()) {
+                    return;
+                }
+
                 form.requestSubmit();
             }
         });
@@ -198,10 +255,15 @@ import { attachScannerInputRouter } from './scanner-input';
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
+            if (!validateQuantity()) {
+                return;
+            }
+
             if (requestInProgress) return;
 
             requestInProgress = true;
             startButton.disabled = true;
+            stopButton.disabled = true;
             startButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Checking in...';
             feedback.className = 'd-none';
 
@@ -237,12 +299,14 @@ import { attachScannerInputRouter } from './scanner-input';
                     input.value = '';
                     quantityInput.value = '';
                     startButton.disabled = false;
+                    stopButton.disabled = false;
                     startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
                     focusScanner();
                 }
             } catch (error) {
                 showFeedback(error.message, 'danger');
                 startButton.disabled = false;
+                stopButton.disabled = false;
                 startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
                 focusScanner();
             } finally {
@@ -263,6 +327,7 @@ import { attachScannerInputRouter } from './scanner-input';
             requestInProgress = true;
             removeButton.disabled = true;
             startButton.disabled = true;
+            stopButton.disabled = true;
 
             try {
                 const scanId = removeButton.dataset.removeCheckin;
@@ -298,6 +363,7 @@ import { attachScannerInputRouter } from './scanner-input';
                 showFeedback(error.message, 'danger');
                 removeButton.disabled = false;
                 startButton.disabled = false;
+                stopButton.disabled = false;
                 focusScanner();
             } finally {
                 requestInProgress = false;

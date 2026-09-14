@@ -6,6 +6,7 @@
 
 @php
     $isArchived = $chemical->trashed();
+    $isExpired = $chemical->is_expired;
     $restoreDeadline = $chemical->deleted_at?->copy()->addYears(5);
     $canRestore = $restoreDeadline?->isFuture() ?? false;
 @endphp
@@ -22,7 +23,11 @@
             <i class="fa-solid fa-arrow-left"></i>
             {{ $isArchived ? 'Back to archived' : 'Back to list' }}
         </a>
-        <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+        @if ($isExpired)
+            <span class="badge rounded-pill text-bg-danger px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Expired</span>
+        @else
+            <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+        @endif
     </div>
 
     <div class="row g-4">
@@ -64,7 +69,10 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-4">
-                        <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : $chemical->status }}</span>
+                        <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($isExpired || $chemical->status === 'Expired' ? 'danger' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : ($isExpired ? 'Expired' : $chemical->status) }}</span>
+                        @if ($isExpired)
+                            <span class="badge text-bg-danger">Expired</span>
+                        @endif
                         <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $chemical->chemical_code }}</span>
                     </div>
@@ -129,7 +137,12 @@
                         </div>
                         <div class="col-md-4">
                             <div class="small text-uppercase text-secondary mb-1">Expiration</div>
-                            <div class="fw-semibold text-dark">{{ $chemical->expiration_date?->format('F j, Y') ?? '-' }}</div>
+                            <div class="fw-semibold text-dark">
+                                {{ $chemical->expiration_date?->format('F j, Y') ?? '-' }}
+                                @if ($isExpired)
+                                    <span class="badge text-bg-danger ms-1">Expired</span>
+                                @endif
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <div class="small text-uppercase text-secondary mb-1">Received</div>

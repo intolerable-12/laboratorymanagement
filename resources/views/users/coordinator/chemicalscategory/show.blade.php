@@ -85,11 +85,16 @@
                                     <tr>
                                         <td class="ps-4">
                                             <div class="fw-semibold text-dark">{{ $chemical->chemical_name }}</div>
-                                            <div class="small text-secondary">{{ $chemical->chemical_code }}</div>
+                                            <div class="small text-secondary">
+                                                {{ $chemical->chemical_code }}
+                                                @if ($chemical->is_expired)
+                                                    <span class="badge text-bg-danger ms-1">Expired</span>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td>{{ $chemical->laboratory->laboratory_name ?? '—' }}</td>
                                         <td>
-                                            <span class="badge text-bg-{{ $chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : ($chemical->status === 'Expired' ? 'danger' : 'secondary')) }}">{{ $chemical->status }}</span>
+                                            <span class="badge text-bg-{{ $chemical->is_expired || $chemical->status === 'Expired' ? 'danger' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : 'secondary')) }}">{{ $chemical->is_expired ? 'Expired' : $chemical->status }}</span>
                                         </td>
                                         <td class="text-end pe-4">
                                             <a href="{{ route('coordinator.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-secondary">View</a>

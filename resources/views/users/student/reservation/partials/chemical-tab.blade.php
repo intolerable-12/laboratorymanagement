@@ -59,13 +59,18 @@
                     @forelse ($chemicalItems as $chemical)
                         <tr data-picker-item role="button" tabindex="0" data-item-type="Chemical" data-item-id="{{ $chemical->id }}" data-item-name="{{ $chemical->chemical_name }}" data-item-code="{{ $chemical->chemical_code }}" data-item-available="{{ $chemical->quantity }}" data-item-unit="{{ $chemical->unit }}">
                             <td>
-                                <div class="fw-semibold text-dark">{{ $chemical->chemical_name }}</div>
+                                <div class="fw-semibold text-dark">
+                                    {{ $chemical->chemical_name }}
+                                    @if ($chemical->is_expired)
+                                        <span class="badge text-bg-danger ms-1">Expired</span>
+                                    @endif
+                                </div>
                                 <div class="small text-secondary">{{ $chemical->chemical_code }}</div>
                             </td>
                             <td>{{ $chemical->laboratory?->laboratory_name ?? '—' }}</td>
                             <td>
                                 <div class="fw-semibold text-dark">{{ $chemical->quantity }} {{ $chemical->unit }}</div>
-                                <div class="small text-secondary">{{ $chemical->status }}</div>
+                                <div class="small text-{{ $chemical->is_expired ? 'danger' : 'secondary' }}">{{ $chemical->is_expired ? 'Expired' : $chemical->status }}</div>
                             </td>
                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-picker-row-action>Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></button></td>
                         </tr>

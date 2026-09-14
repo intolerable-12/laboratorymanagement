@@ -102,7 +102,15 @@
                                         @forelse ($borrowTransaction->items as $item)
                                             <tr>
                                                 <td>{{ $item->item_type }}</td>
-                                                <td><div class="fw-semibold text-dark">{{ $item->item?->equipment_name ?? $item->item?->chemical_name ?? '—' }}</div><div class="small text-secondary">{{ $item->item?->equipment_code ?? $item->item?->chemical_code ?? '' }}</div></td>
+                                                <td>
+                                                    <div class="fw-semibold text-dark">
+                                                        {{ $item->item?->equipment_name ?? $item->item?->chemical_name ?? '—' }}
+                                                        @if ($item->item_type === 'Chemical' && $item->item?->is_expired)
+                                                            <span class="badge text-bg-danger ms-1">Expired</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="small text-secondary">{{ $item->item?->equipment_code ?? $item->item?->chemical_code ?? '' }}</div>
+                                                </td>
                                                 <td>{{ $item->quantity_borrowed }}</td>
                                                 <td>{{ $item->condition_out }}</td>
                                                 <td>{{ $item->remarks ?? '—' }}</td>

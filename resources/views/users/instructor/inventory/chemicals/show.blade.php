@@ -15,7 +15,11 @@
                 <i class="fa-solid fa-arrow-left"></i>
                 Back to category
             </a>
-            <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+            @if ($chemical->is_expired)
+                <span class="badge rounded-pill text-bg-danger px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Expired</span>
+            @else
+                <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+            @endif
         </div>
 
         <section class="row g-0 inventory-detail-hero">
@@ -64,7 +68,12 @@
                     </div>
                     <div class="inventory-detail-spec">
                         <span class="inventory-detail-spec__label">Expiration</span>
-                        <span class="inventory-detail-spec__value">{{ $chemical->expiration_date?->format('M d, Y') ?: 'Not listed' }}</span>
+                        <span class="inventory-detail-spec__value">
+                            {{ $chemical->expiration_date?->format('M d, Y') ?: 'Not listed' }}
+                            @if ($chemical->is_expired)
+                                <span class="badge text-bg-danger ms-1">Expired</span>
+                            @endif
+                        </span>
                     </div>
                 </div>
             </div>

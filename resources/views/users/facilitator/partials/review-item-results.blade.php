@@ -25,10 +25,20 @@
                         data-item-available="{{ $available }}"
                         data-item-unit="{{ $unit }}">
                         <td>
-                            <div class="fw-semibold text-dark">{{ $name }}</div>
+                            <div class="fw-semibold text-dark">
+                                {{ $name }}
+                                @if ($isChemical && $item->is_expired)
+                                    <span class="badge text-bg-danger ms-1">Expired</span>
+                                @endif
+                            </div>
                             <div class="small text-secondary">{{ $code }}</div>
                         </td>
-                        <td>{{ $available }} {{ $unit }}</td>
+                        <td>
+                            {{ $available }} {{ $unit }}
+                            @if ($isChemical && $item->is_expired)
+                                <div class="small text-danger">Expired</div>
+                            @endif
+                        </td>
                         <td class="text-end">
                             <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-review-row-action>
                                 Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i>

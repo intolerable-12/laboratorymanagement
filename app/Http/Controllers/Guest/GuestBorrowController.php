@@ -10,6 +10,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Department;
 use App\Models\Equipment;
+use App\Models\Laboratory;
 use App\Models\SchoolYear;
 use App\Services\GuestRequestEmailService;
 use App\Services\GuestRequesterService;
@@ -27,6 +28,10 @@ class GuestBorrowController extends Controller
     public function create(Request $request)
     {
         $activeTab = $request->query('tab', 'equipment');
+        $selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]) ?: null;
+        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
         $minimumBorrowDate = $this->minimumBorrowDateTime();
         $borrowDateMin = $minimumBorrowDate->format('Y-m-d\TH:i');
         $borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
@@ -48,13 +53,29 @@ class GuestBorrowController extends Controller
             });
         }
 
+        if ($selectedLaboratoryId) {
+            $equipmentQuery->where('laboratory_id', $selectedLaboratoryId);
+            $chemicalQuery->where('laboratory_id', $selectedLaboratoryId);
+        } else {
+            $equipmentQuery->whereRaw('1 = 0');
+            $chemicalQuery->whereRaw('1 = 0');
+        }
+
         $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
         $chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
         $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
-        $selectedEquipmentItems = Equipment::whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
-        $selectedChemicalItems = Chemical::whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
+        $selectedEquipmentItems = Equipment::query()
+            ->whereIn('id', array_keys($oldEquipmentSelections))
+            ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
+            ->get()
+            ->keyBy('id');
+        $selectedChemicalItems = Chemical::query()
+            ->whereIn('id', array_keys($oldChemicalSelections))
+            ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
+            ->get()
+            ->keyBy('id');
 
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
@@ -70,9 +91,11 @@ class GuestBorrowController extends Controller
 
         return view('guest.borrow.create', compact(
             'departments',
+            'laboratories',
             'equipmentItems',
             'chemicalItems',
             'activeTab',
+            'selectedLaboratoryId',
             'borrowDateMin',
             'borrowDateMinLabel',
             'oldEquipmentSelections',
@@ -85,6 +108,7 @@ class GuestBorrowController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
+            'laboratory_id' => ['required', 'exists:laboratories,id'],
             'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
             'remarks' => ['nullable', 'string', 'max:1000'],
@@ -97,13 +121,13 @@ class GuestBorrowController extends Controller
         ]));
 
         $this->ensureBorrowDates($data);
-        $items = $this->collectRequestedItems($request);
+        $items = $this->collectRequestedItems($request, (int) $data['laboratory_id']);
 
         if ($items === []) {
             throw ValidationException::withMessages(['items' => 'Select at least one equipment or chemical item.']);
         }
 
-        $laboratoryId = $this->resolveRequestLaboratoryId($items);
+        $laboratoryId = (int) $data['laboratory_id'];
         $notificationService = app(RequestNotificationService::class);
 
         $borrowTransaction = DB::transaction(function () use ($data, $items, $laboratoryId, $notificationService) {

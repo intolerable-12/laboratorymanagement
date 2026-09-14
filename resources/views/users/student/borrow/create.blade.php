@@ -12,7 +12,7 @@
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
                     <h2 class="h3 fw-semibold mb-2 text-dark">Create a Borrow Request</h2>
-                    <p class="mb-0 text-secondary">Request equipment and chemicals without choosing a laboratory first.</p>
+                    <p class="mb-0 text-secondary">Choose a laboratory first, then select equipment and chemicals available in that laboratory.</p>
                 </div>
                 <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
@@ -32,6 +32,20 @@
                     <h3 class="h4 fw-semibold mb-4 text-dark">Borrow Details</h3>
 
                     <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark">Laboratory</label>
+                            <select name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
+                                <option value="">Select laboratory</option>
+                                @foreach ($laboratories as $laboratory)
+                                    <option value="{{ $laboratory->id }}" @selected(old('laboratory_id', $selectedLaboratoryId) == $laboratory->id)>
+                                        {{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="form-text">Only available items from the selected laboratory will be shown.</div>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark">Borrowed At</label>
                             <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>

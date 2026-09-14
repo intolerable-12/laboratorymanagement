@@ -60,7 +60,7 @@ class FacilitatorCheckoutController extends Controller
 
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
-            'quantity' => ['nullable', 'numeric', 'gt:0'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
             'condition_out' => ['nullable', 'in:Excellent,Good,Fair'],
         ]);
 
@@ -452,7 +452,7 @@ class FacilitatorCheckoutController extends Controller
     private function checkoutQuantity(string $itemType, mixed $rawQuantity, float $remaining): float|int
     {
         if ($rawQuantity === null || $rawQuantity === '') {
-            return $itemType === 'Equipment' ? 1 : $remaining;
+            $this->checkoutError('quantity', 'Enter a quantity before scanning.');
         }
 
         if ($itemType === 'Equipment' && filter_var($rawQuantity, FILTER_VALIDATE_INT) === false) {

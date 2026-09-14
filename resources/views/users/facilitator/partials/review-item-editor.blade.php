@@ -57,7 +57,12 @@
                         @endphp
                         <tr data-review-selected-item data-item-type="{{ $item->item_type }}" data-item-id="{{ $item->item_id }}" data-existing-item-id="{{ $item->id }}" data-item-key="{{ $itemKey }}">
                             <td>
-                                <div class="fw-semibold text-dark">{{ $itemName ?? 'Unknown item' }}</div>
+                                <div class="fw-semibold text-dark">
+                                    {{ $itemName ?? 'Unknown item' }}
+                                    @if ($isChemical && $item->item?->is_expired)
+                                        <span class="badge text-bg-danger ms-1">Expired</span>
+                                    @endif
+                                </div>
                                 <div class="small text-secondary">{{ $itemCode ?? '—' }}</div>
                             </td>
                             <td class="small text-secondary">{{ $item->item_type }}</td>

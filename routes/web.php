@@ -12,6 +12,7 @@ use App\Http\Controllers\Coordinator\Chemical\ChemicalBarcodePrintController;
 use App\Http\Controllers\Coordinator\Chemical\ChemicalCategoryController;
 use App\Http\Controllers\Coordinator\Chemical\ChemicalController;
 use App\Http\Controllers\Coordinator\Announcement\AnnouncementController as CoordinatorAnnouncementController;
+use App\Http\Controllers\Coordinator\AuditLogController;
 use App\Http\Controllers\Coordinator\DashboardController as CoordinatorDashboardController;
 use App\Http\Controllers\Coordinator\DepartmentManagementController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\Coordinator\EquipmentBarcodePrintController;
 use App\Http\Controllers\Coordinator\EquipmentMultipleItemsBarcodeController;
 use App\Http\Controllers\Coordinator\ChemicalMultipleItemsBarcodeController;
 use App\Http\Controllers\Coordinator\LaboratoryController;
+use App\Http\Controllers\Coordinator\SupplierController;
+use App\Http\Controllers\Coordinator\InventoryAlertController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorBorrowCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationController;
@@ -104,8 +107,13 @@ Route::middleware(['auth'])
     });
 
 
-Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('coordinator.')->group(function () {
+Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')->name('coordinator.')->group(function () {
         Route::get('/dashboard', [CoordinatorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
+        Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
+        Route::put('/inventory-alerts/chemicals/{chemical}', [InventoryAlertController::class, 'updateChemical'])->name('inventory-alerts.chemical.update');
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
         Route::get('/users/archived', [UserManagementController::class, 'archived'])->name('users.archived');
         Route::get('/users/requests', [UserAccountRequestController::class, 'index'])->name('users.requests.index');
@@ -156,6 +164,8 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
                 Route::put('/{laboratory}', [LaboratoryController::class, 'update'])->name('update');
                 Route::delete('/{laboratory}', [LaboratoryController::class, 'destroy'])->name('destroy');
             });
+
+        Route::resource('suppliers', SupplierController::class)->except(['show']);
 
         Route::prefix('chemicals')
             ->name('chemicals.')
@@ -261,7 +271,7 @@ Route::middleware(['auth', 'role:Coordinator'])->prefix('coordinator')->name('co
     });
 
 
-Route::middleware(['auth', 'role:Student'])
+Route::middleware(['auth', 'role:Student', 'audit'])
     ->prefix('student')
     ->name('student.')
     ->group(function () {
@@ -351,7 +361,7 @@ Route::middleware(['auth', 'role:Student'])
         Route::put('/my-account', [StudentMyAccountController::class, 'update'])->name('myaccount.update');
     });
 
-Route::middleware(['auth', 'role:Laboratory In-charge'])
+Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
     ->prefix('facilitator')
     ->name('facilitator.')
     ->group(function () {
@@ -409,7 +419,7 @@ Route::middleware(['auth', 'role:Laboratory In-charge'])
         Route::put('/my-account', [\App\Http\Controllers\Facilitator\Account\MyAccountController::class, 'update'])->name('myaccount.update');
     });
 
-Route::middleware(['auth', 'role:Instructor'])
+Route::middleware(['auth', 'role:Instructor', 'audit'])
     ->prefix('instructor')
     ->name('instructor.')
     ->group(function () {
