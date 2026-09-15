@@ -60,9 +60,8 @@
 
         $isInstructorCommunicationGroup = $isFeedbackActiveGroup || $isQuestionnairesGroup || $isForumGroup;
 
-        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Instructor Approved')->count();
-        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Instructor Approved')->count();
-        $pendingUserAccountRequests = \App\Models\UserAccountRequest::pending()->count();
+        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Pending')->count();
+        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Pending')->count();
 
     @endphp
 
