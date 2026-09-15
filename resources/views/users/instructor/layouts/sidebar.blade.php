@@ -36,6 +36,20 @@
         $isEquipmentIndex = request()->routeIs('instructor.inventory.equipment.index');
         $isChemicalGroup = request()->routeIs('instructor.inventory.chemicals.*');
         $isChemicalIndex = request()->routeIs('instructor.inventory.chemicals.index');
+
+        $isReservationRequestActive = request()->routeIs(
+            'instructor.reservations.index',
+            'instructor.reservations.show'
+        );
+
+        $isBorrowRequestActive = request()->routeIs(
+            'instructor.borrow.index',
+            'instructor.borrow.show'
+        );
+
+        $isInstructorReservationGroup = $isReservationCalendar || $isReservationRequestActive;
+        $isInstructorBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive;
+
         $isInstructorInventoryGroup = $isEquipmentGroup || $isChemicalGroup;
 
         $isFeedbackActiveGroup = request()->routeIs(
@@ -45,6 +59,10 @@
         );
 
         $isInstructorCommunicationGroup = $isFeedbackActiveGroup || $isQuestionnairesGroup || $isForumGroup;
+
+        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Instructor Approved')->count();
+        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Instructor Approved')->count();
+        $pendingUserAccountRequests = \App\Models\UserAccountRequest::pending()->count();
 
     @endphp
 
@@ -86,29 +104,73 @@
                     </div>
                 </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsGroup ? 'active' : '' }}"
-                    href="{{ route('instructor.reservations.index') }}" title="Reservations">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
-                    <span class="sidebar-item__label">Reservation</span>
-                </a>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#instructorReservationRequestMenu"
+                    aria-expanded="{{ $isInstructorReservationGroup ? 'true' : 'false' }}" aria-controls="instructorReservationRequestMenu"
+                    title="Reservation Requests">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <span class="sidebar-item__label">Reservation</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isInstructorReservationGroup ? 'show' : '' }}" id="instructorReservationRequestMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationCalendar ? 'active' : '' }}"
+                            href="{{ route('instructor.reservations.calendar') }}" title="Reservation Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                            <span class="sidebar-item__label">Reservation Calendar</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
+                            href="{{ route('instructor.reservations.index') }}" title="Reservation Requests">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                <span class="sidebar-item__label">Reservation Requests</span>
+                            </span>
+                            @if ($pendingReservationRequests > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">
+                                    {{ $pendingReservationRequests > 99 ? '99+' : $pendingReservationRequests }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
+                </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationCalendar ? 'active' : '' }}"
-                    href="{{ route('instructor.reservations.calendar') }}" title="Reservation Calendar">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
-                    <span class="sidebar-item__label">Reservation Calendar</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowGroup ? 'active' : '' }}"
-                    href="{{ route('instructor.borrow.index') }}" title="Borrowing">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-box-open"></i></span>
-                    <span class="sidebar-item__label">Borrow</span>
-                </a>
-
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
-                    href="{{ route('instructor.borrow.calendar') }}" title="Borrow Calendar">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
-                    <span class="sidebar-item__label">Borrow Calendar</span>
-                </a>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#instructorBorrowRequestMenu"
+                    aria-expanded="{{ $isInstructorBorrowGroup ? 'true' : 'false' }}" aria-controls="instructorBorrowRequestMenu"
+                    title="Borrow Requests">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <span class="sidebar-item__label">Borrow</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i
+                            class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isInstructorBorrowGroup ? 'show' : '' }}" id="instructorBorrowRequestMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowCalendar ? 'active' : '' }}"
+                            href="{{ route('instructor.borrow.calendar') }}" title="Borrow Calendar">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
+                            <span class="sidebar-item__label">Borrow Calendar</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
+                            href="{{ route('instructor.borrow.index') }}" title="Borrow Requests">
+                            <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
+                                <span class="sidebar-item__label">Borrow Requests</span>
+                            </span>
+                            @if ($pendingBorrowRequests > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">
+                                    {{ $pendingBorrowRequests > 99 ? '99+' : $pendingBorrowRequests }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
+                </div>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"

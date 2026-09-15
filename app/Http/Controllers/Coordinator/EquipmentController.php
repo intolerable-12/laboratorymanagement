@@ -192,7 +192,7 @@ class EquipmentController extends Controller
         $categories = EquipmentCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
         $suppliers = Supplier::query()
-            ->where(fn ($query) => $query->where('status', 'Active')->orWhereKey($equipment->supplier_id))
+            ->where(fn ($query) => $query->where('status', 'Active')->orWhere('id', $equipment->supplier_id))
             ->orderBy('supplier_name')
             ->get();
         $storageLocations = $this->storageLocations($equipment);

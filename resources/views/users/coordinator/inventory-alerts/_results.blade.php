@@ -6,21 +6,21 @@
                 <thead class="table-light">
                     @if ($tab === 'equipment')
                         <tr>
-                            <th class="ps-4">Equipment</th>
-                            <th>Laboratory</th>
-                            <th>Supplier</th>
-                            <th>Available</th>
-                            <th>Alert</th>
-                            <th style="min-width:230px">Threshold</th>
+                            <th class="text-dark ps-4">Equipment</th>
+                            <th class="text-dark">Laboratory</th>
+                            <th class="text-dark">Supplier</th>
+                            <th class="text-dark">Available</th>
+                            <th class="text-dark">Alert</th>
+                            <th class="text-dark text-center">Threshold</th>
                         </tr>
                     @else
                         <tr>
-                            <th class="ps-4">Chemical</th>
-                            <th>Laboratory</th>
-                            <th>Supplier</th>
-                            <th>Expiration date</th>
-                            <th>Alert</th>
-                            <th style="min-width:230px">Lead time in days</th>
+                            <th class="text-dark ps-4">Chemical</th>
+                            <th class="text-dark">Laboratory</th>
+                            <th class="text-dark">Supplier</th>
+                            <th class="text-dark">Expiration date</th>
+                            <th class="text-dark">Alert</th>
+                            <th class="text-dark text-center">Lead time in days</th>
                         </tr>
                     @endif
                 </thead>

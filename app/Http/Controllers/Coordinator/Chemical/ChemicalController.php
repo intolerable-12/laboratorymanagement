@@ -193,7 +193,7 @@ class ChemicalController extends Controller
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::orderBy('laboratory_name')->get();
         $suppliers = Supplier::query()
-            ->where(fn ($query) => $query->where('status', 'Active')->orWhereKey($chemical->supplier_id))
+            ->where(fn ($query) => $query->where('status', 'Active')->orWhere($chemical->supplier_id))
             ->orderBy('supplier_name')
             ->get();
         $unitOptions = $this->unitOptions($chemical);
