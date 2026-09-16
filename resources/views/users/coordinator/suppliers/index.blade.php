@@ -37,7 +37,16 @@
 
     <div class="section-card">
         <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
-            <thead class="table-light"><tr><th class="ps-4">Supplier</th><th>Contact</th><th>Email</th><th>Status</th><th>Assigned items</th><th class="text-end pe-4">Actions</th></tr></thead>
+            <thead class="table-light">
+                <tr>
+                    <th class="text-dark ps-4">Supplier</th>
+                    <th class="text-dark">Contact</th>
+                    <th class="text-dark">Email</th>
+                    <th class="text-dark">Status</th>
+                    <th class="text-dark">Assigned items</th>
+                    <th class="text-center text-dark pe-4">Actions</th>
+                </tr>
+            </thead>
             <tbody>
                 @forelse ($suppliers as $supplier)
                     <tr>
@@ -46,7 +55,7 @@
                         <td>{{ $supplier->email }}</td>
                         <td><span class="badge text-bg-{{ $supplier->status === 'Active' ? 'success' : 'secondary' }}">{{ $supplier->status }}</span></td>
                         <td>{{ $supplier->equipment_count }} equipment · {{ $supplier->chemicals_count }} chemicals</td>
-                        <td class="text-end pe-4"><div class="btn-group action-buttons"><a href="{{ route('coordinator.suppliers.edit', $supplier) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a><form action="{{ route('coordinator.suppliers.destroy', $supplier) }}" method="POST">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this supplier?');" title="Archive"><i class="fa-solid fa-box-archive"></i></button></form></div></td>
+                        <td class="text-center pe-4"><div class="btn-group action-buttons"><a href="{{ route('coordinator.suppliers.edit', $supplier) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a><form action="{{ route('coordinator.suppliers.destroy', $supplier) }}" method="POST">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this supplier?');" title="Archive"><i class="fa-solid fa-box-archive"></i></button></form></div></td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="text-center text-secondary py-5">No suppliers found.</td></tr>

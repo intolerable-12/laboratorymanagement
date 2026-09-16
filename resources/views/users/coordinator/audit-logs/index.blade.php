@@ -143,13 +143,13 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Date and time</th>
-                            <th scope="col">Actor</th>
-                            <th scope="col">Action</th>
-                            <th scope="col">Module</th>
-                            <th scope="col">Record</th>
-                            <th scope="col">IP address</th>
-                            <th scope="col" class="text-center pe-4">Details</th>
+                            <th scope="col" class=" text-dark ps-4">Date and time</th>
+                            <th scope="col" class="text-dark">Actor</th>
+                            <th scope="col" class="text-dark">Action</th>
+                            <th scope="col" class="text-dark">Module</th>
+                            <th scope="col" class="text-dark">Record</th>
+                            <th scope="col" class="text-dark">IP address</th>
+                            <th scope="col" class="text-center text-dark pe-4">Details</th>
                         </tr>
                     </thead>
                     <tbody>
