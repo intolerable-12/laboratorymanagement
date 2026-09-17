@@ -70,6 +70,9 @@
 									'Cancelled' => 'danger',
 										default => 'secondary',
 									};
+									$statusLabel = $reservation->status === 'Facilitator Approved'
+										? 'Laboratory In-charge Approved'
+										: $reservation->status;
 								@endphp
 								@php $itemCount = $reservation->items->count(); @endphp
 								<tr>
@@ -91,7 +94,7 @@
 									</td>
 									<td>
 										<span class="badge text-bg-{{ $statusTone }}">
-											{{ $reservation->status }}
+											{{ $statusLabel }}
 										</span>
 									</td>
 									<td class="text-center pe-4">

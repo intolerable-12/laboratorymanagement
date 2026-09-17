@@ -48,8 +48,11 @@
 					'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
+                                $statusLabel = $borrowTransaction->status === 'Facilitator Approved'
+                                    ? 'Laboratory In-charge Approved'
+                                    : $borrowTransaction->status;
                             @endphp
-                            <span class="badge text-bg-{{ $statusTone }}">{{ $borrowTransaction->status }}</span>
+                            <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                         </div>
 
                         <div class="row g-3 mb-4">
@@ -141,7 +144,7 @@
                                         <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
                                         <div class="card-body p-3 p-xl-4">
                                             <h4 class="h5 fw-semibold text-dark mb-2">Approve Request</h4>
-                                            <p class="small text-secondary mb-3">Add an optional note before forwarding the request to the facilitator.</p>
+                                            <p class="small text-secondary mb-3">Add an optional note before forwarding the request to the Laboratory In-charge.</p>
                                             <button type="submit" class="btn btn-success w-100" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
                                         </div>
                                     </form>

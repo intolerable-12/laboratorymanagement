@@ -43,8 +43,11 @@
 									'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
+                                $statusLabel = $reservation->status === 'Facilitator Approved'
+                                    ? 'Laboratory In-charge Approved'
+                                    : $reservation->status;
                             @endphp
-                            <span class="badge text-bg-{{ $statusTone }}">{{ $reservation->status }}</span>
+                            <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                         </div>
 
                         <div class="row g-3 mb-4">
@@ -134,7 +137,7 @@
                                         <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
                                         <div class="card-body p-3 p-xl-4">
                                             <h4 class="h5 fw-semibold text-dark mb-2">Approve Request</h4>
-                                            <p class="small text-secondary mb-3">Add an optional note before forwarding the request to the facilitator.</p>
+                                            <p class="small text-secondary mb-3">Add an optional note before forwarding the request to the Laboratory In-charge.</p>
                                             <button type="submit" class="btn btn-success w-100" onclick="return confirm('Approve this reservation request and forward it?');">Approve and Forward</button>
                                         </div>
                                     </form>
@@ -176,7 +179,7 @@
                                 <div class="activity-item">
                                     <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
                                         <div class="fw-semibold text-dark">{{ $log->action }}</div>
-                                        <span class="badge text-bg-light border text-secondary">{{ $log->role }}</span>
+                                        <span class="badge text-bg-light border text-secondary">{{ $log->role === 'Facilitator' ? 'Laboratory In-charge' : $log->role }}</span>
                                     </div>
                                     <div class="small text-secondary mb-1">By {{ $log->approvedBy?->first_name ?? 'System' }} {{ $log->approvedBy?->last_name ?? '' }}</div>
                                     <div class="small text-secondary">{{ $log->approved_at?->format('M d, Y h:i A') }}</div>

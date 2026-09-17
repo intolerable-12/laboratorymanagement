@@ -18,6 +18,7 @@ class Semester extends Model
     protected $fillable = [
         'semester_name',
         'display_order',
+        'is_current',
     ];
 
     /**
@@ -29,6 +30,17 @@ class Semester extends Model
     {
         return [
             'display_order' => 'integer',
+            'is_current' => 'boolean',
         ];
+    }
+
+    public function reservations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function laboratorySchedules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LaboratorySchedule::class);
     }
 }

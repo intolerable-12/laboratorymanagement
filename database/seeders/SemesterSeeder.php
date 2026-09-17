@@ -16,14 +16,17 @@ class SemesterSeeder extends Seeder
             [
                 'semester_name' => '1st Semester',
                 'display_order' => 1,
+                'is_current' => true,
             ],
             [
                 'semester_name' => '2nd Semester',
                 'display_order' => 2,
+                'is_current' => false,
             ],
             [
                 'semester_name' => 'Summer Term',
                 'display_order' => 3,
+                'is_current' => false,
             ],
         ];
 

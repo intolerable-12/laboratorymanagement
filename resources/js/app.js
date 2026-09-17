@@ -2,10 +2,13 @@
 import * as bootstrap from 'bootstrap';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import Quill from 'quill';
+import { attachScannerEnterGuard } from './scanner-input';
 import './barcode';
 import './checkin';
 import './request-items';
 import './review-items';
+
+attachScannerEnterGuard();
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;

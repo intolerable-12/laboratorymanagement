@@ -10,7 +10,14 @@
             <h2 class="h4 fw-semibold mb-1 text-dark">{{ $borrowTransaction->borrow_no }}</h2>
             <p class="mb-0 text-secondary">Final review for {{ $borrowTransaction->borrower?->first_name }} {{ $borrowTransaction->borrower?->last_name }}</p>
         </div>
-        <a href="{{ route('coordinator.borrow.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        <div class="d-flex flex-wrap gap-2">
+            @if ($borrowTransaction->status === 'Coordinator Approved')
+                <a href="{{ route('coordinator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
+                    <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                </a>
+            @endif
+            <a href="{{ route('coordinator.borrow.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        </div>
     </div>
 
     @if (session('status'))
@@ -139,6 +146,33 @@
                                 @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             </div>
                         </div>
+                        </div>
+                    @endif
+
+                    @if ($borrowTransaction->status === 'Coordinator Approved')
+                        <div class="card border-0 bg-light mt-3">
+                            <div class="card-body p-3 p-xl-4">
+                                <h4 class="h6 fw-semibold text-dark mb-2">Reschedule checkout</h4>
+                                <p class="small text-secondary mb-3">Update the checkout schedule before any item has been checked out.</p>
+                                <form method="POST" action="{{ route('coordinator.borrow.reschedule', $borrowTransaction) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Borrowed At</label>
+                                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                                            @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Due At</label>
+                                            <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
+                                            @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    @error('status')<div class="alert alert-danger small border-0">{{ $message }}</div>@enderror
+                                    <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Reschedule this borrow request?');">Save new schedule</button>
+                                </form>
+                            </div>
                         </div>
                     @endif
                 </div>
