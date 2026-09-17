@@ -65,7 +65,7 @@ class FacilitatorCheckinController extends Controller
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'numeric', 'gt:0'],
-            'condition_in' => ['required', 'in:Excellent,Good,Fair,Damaged,Lost'],
+            'condition_in' => ['required', 'in:Excellent,Good,Fair,Damaged,Under Repair,Lost'],
         ]);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $data): array {
@@ -117,7 +117,7 @@ class FacilitatorCheckinController extends Controller
             $isUsableReturn = in_array($condition, ['Excellent', 'Good', 'Fair'], true);
             $newReturned = $returned + ($isUsableReturn ? $quantity : 0);
             $newLost = $lost + ($condition === 'Lost' ? $quantity : 0);
-            $newDamaged = $damaged + ($condition === 'Damaged' ? $quantity : 0);
+            $newDamaged = $damaged + (in_array($condition, ['Damaged', 'Under Repair'], true) ? $quantity : 0);
             $newUsed = $itemType === 'Chemical'
                 ? max(0, round($checkedOut - $newReturned - $newLost - $newDamaged, 2))
                 : $used;
@@ -138,7 +138,9 @@ class FacilitatorCheckinController extends Controller
                     'condition' => $condition === 'Lost' ? $inventoryItem->condition : $condition,
                     'status' => $isUsableReturn
                         ? ($after > 0 ? 'Available' : 'Borrowed')
-                        : ($condition === 'Damaged' ? 'Maintenance' : ($after > 0 ? 'Available' : 'Unavailable')),
+                        : (in_array($condition, ['Damaged', 'Under Repair'], true)
+                            ? 'Maintenance'
+                            : ($after > 0 ? 'Available' : 'Unavailable')),
                 ]);
             } elseif ($isUsableReturn) {
                 $inventoryItem->update([
@@ -342,7 +344,7 @@ class FacilitatorCheckinController extends Controller
                 ->filter(fn (BarcodeLog $remainingScan): bool => $remainingScan->condition_in === 'Lost')
                 ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
             $remainingDamaged = $remainingScans
-                ->filter(fn (BarcodeLog $remainingScan): bool => $remainingScan->condition_in === 'Damaged')
+                ->filter(fn (BarcodeLog $remainingScan): bool => in_array($remainingScan->condition_in, ['Damaged', 'Under Repair'], true))
                 ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
             $remainingCondition = $remainingScans->first()?->condition_in;
 

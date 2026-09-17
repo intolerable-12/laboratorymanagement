@@ -56,9 +56,10 @@ class CoordinatorReservationController extends Controller
     {
         $this->ensureCoordinator($request);
 
-        $reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester']);
+        $reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester', 'borrowTransactions']);
+        $borrowTransaction = $reservation->borrowTransactions->sortByDesc('id')->first();
 
-        return view('users.coordinator.reservation.show', compact('reservation'));
+        return view('users.coordinator.reservation.show', compact('reservation', 'borrowTransaction'));
     }
 
     public function approve(Request $request, Reservation $reservation)
@@ -183,6 +184,79 @@ class CoordinatorReservationController extends Controller
         return redirect()
             ->route('coordinator.reservations.show', $reservation)
             ->with('status', 'Reservation rejected successfully.');
+    }
+
+    public function reschedule(Request $request, Reservation $reservation)
+    {
+        $this->ensureCoordinator($request);
+
+        $data = $request->validate([
+            'reservation_date' => ['required', 'date', 'after_or_equal:today'],
+            'start_time' => ['required', 'date_format:H:i'],
+            'end_time' => ['required', 'date_format:H:i'],
+        ]);
+
+        if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
+            throw ValidationException::withMessages([
+                'end_time' => 'The end time must be after the start time.',
+            ]);
+        }
+
+        $this->ensureReservationHours($data['reservation_date'], $data['start_time'], $data['end_time']);
+
+        DB::transaction(function () use ($reservation, $data) {
+            $lockedReservation = Reservation::query()
+                ->lockForUpdate()
+                ->findOrFail($reservation->id);
+
+            if ($lockedReservation->status !== 'Coordinator Approved') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only coordinator-approved reservations can be rescheduled before checkout.',
+                ]);
+            }
+
+            Laboratory::query()->lockForUpdate()->findOrFail($lockedReservation->laboratory_id);
+
+            if ($this->hasReservationTimeConflict(
+                (int) $lockedReservation->laboratory_id,
+                $data['reservation_date'],
+                $data['start_time'],
+                $data['end_time'],
+                (int) $lockedReservation->id
+            )) {
+                throw ValidationException::withMessages([
+                    'reservation_date' => 'This laboratory already has another reservation that overlaps the selected time.',
+                ]);
+            }
+
+            $borrowTransaction = $lockedReservation->borrowTransactions()
+                ->where('status', 'Coordinator Approved')
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $borrowTransaction) {
+                throw ValidationException::withMessages([
+                    'status' => 'This reservation can no longer be rescheduled because checkout has already started.',
+                ]);
+            }
+
+            $lockedReservation->update([
+                'reservation_date' => $data['reservation_date'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+            ]);
+
+            $scheduledDate = $data['reservation_date'];
+            $borrowTransaction->update([
+                'borrowed_at' => Carbon::createFromFormat('Y-m-d H:i', $scheduledDate.' '.$data['start_time']),
+                'due_at' => Carbon::createFromFormat('Y-m-d H:i', $scheduledDate.' '.$data['end_time']),
+            ]);
+        });
+
+        return redirect()
+            ->route('coordinator.reservations.show', $reservation)
+            ->with('status', 'Reservation rescheduled successfully.');
     }
 
     private function createBorrowTransactionFromReservation(Reservation $reservation): ?BorrowTransaction

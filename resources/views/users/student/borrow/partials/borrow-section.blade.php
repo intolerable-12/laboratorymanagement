@@ -31,6 +31,9 @@
                     $item = $entry['item'];
                     $image = $entry['image'];
                     $statusTone = $entry['status_tone'];
+                    $statusLabel = $entry['status'] === 'Facilitator Approved'
+                        ? 'Laboratory In-charge Approved'
+                        : $entry['status'];
                 @endphp
 
                 <article class="borrow-equipment-card {{ $viewMode === 'list' ? 'borrow-list-item' : '' }}">
@@ -51,7 +54,7 @@
                             <div class="text-uppercase small text-secondary mb-1">{{ $entry['item_type'] }}</div>
                             <h5 class="fw-semibold text-dark mb-0">{{ $entry['name'] }}</h5>
                         </div>
-                        <span class="badge text-bg-{{ $statusTone }} rounded-pill">{{ $entry['status'] }}</span>
+                        <span class="badge text-bg-{{ $statusTone }} rounded-pill">{{ $statusLabel }}</span>
                     </div>
 
                     <div class="borrow-equipment-meta">

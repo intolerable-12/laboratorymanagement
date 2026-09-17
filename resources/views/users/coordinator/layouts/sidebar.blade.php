@@ -28,6 +28,7 @@
         $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isSupplierGroup;
 
         $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
+        $isAcademicPeriods = request()->routeIs('coordinator.academic-periods.*');
 
         $isAnnouncementsIndex = request()->routeIs('coordinator.announcements.index');
         $isAnnouncementsGroup = request()->routeIs('coordinator.announcements.*');
@@ -53,6 +54,7 @@
             'coordinator.borrow.index',
             'coordinator.borrow.show'
         );
+        $isRequestHistory = request()->routeIs('coordinator.requesthistory.*');
 
 
         $isReservationRequestGroup = $isReservationsCalendar || $isReservationRequestActive;
@@ -91,6 +93,8 @@
                         </span>
                     @endif
                 </a>
+
+
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.laboratories.*') ? 'active' : '' }}"
                     href="{{ route('coordinator.laboratories.index') }}" title="Laboratory">
@@ -142,8 +146,8 @@
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorReservationRequestMenu"
-                    aria-expanded="{{ $isReservationRequestGroup ? 'true' : 'false' }}" aria-controls="coordinatorRequestMenu"
-                    title="Reservation Requests">
+                    aria-expanded="{{ $isReservationRequestGroup ? 'true' : 'false' }}"
+                    aria-controls="coordinatorRequestMenu" title="Reservation Requests">
                     <span class="d-flex align-items-center gap-2">
                         <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
                         <span class="sidebar-item__label">Reservation</span>
@@ -151,7 +155,8 @@
                     <span class="sidebar-item__chevron small" aria-hidden="true"><i
                             class="fa-solid fa-chevron-down"></i></span>
                 </button>
-                <div class="collapse {{ $isReservationRequestGroup ? 'show' : '' }}" id="coordinatorReservationRequestMenu">
+                <div class="collapse {{ $isReservationRequestGroup ? 'show' : '' }}"
+                    id="coordinatorReservationRequestMenu">
                     <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationsCalendar ? 'active' : '' }}"
                             href="{{ route('coordinator.reservations.calendar') }}" title="Reservation Calendar">
@@ -176,8 +181,8 @@
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorBorrowRequestMenu"
-                    aria-expanded="{{ $isBorrowRequestGroup ? 'true' : 'false' }}" aria-controls="coordinatorRequestMenu"
-                    title="Borrow Requests">
+                    aria-expanded="{{ $isBorrowRequestGroup ? 'true' : 'false' }}"
+                    aria-controls="coordinatorRequestMenu" title="Borrow Requests">
                     <span class="d-flex align-items-center gap-2">
                         <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-list"></i></span>
                         <span class="sidebar-item__label">Borrow</span>
@@ -206,6 +211,12 @@
                         </a>
                     </div>
                 </div>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isRequestHistory ? 'active' : '' }}"
+                    href="{{ route('coordinator.requesthistory.index') }}" title="Request History">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <span class="sidebar-item__label">Request History</span>
+                </a>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
@@ -239,8 +250,8 @@
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#coordinatorCommunicationMenu"
-                    aria-expanded="{{ $isCommunicationGroup ? 'true' : 'false' }}" aria-controls="coordinatorCommunicationMenu"
-                    title="Communication">
+                    aria-expanded="{{ $isCommunicationGroup ? 'true' : 'false' }}"
+                    aria-controls="coordinatorCommunicationMenu" title="Communication">
                     <span class="d-flex align-items-center gap-2">
                         <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
                         <span class="sidebar-item__label">Communication</span>
@@ -272,6 +283,12 @@
                         </a>
                     </div>
                 </div>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAcademicPeriods ? 'active' : '' }}"
+                    href="{{ route('coordinator.academic-periods.index') }}" title="School Year & Semester">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span class="sidebar-item__label">School Year & Semester</span>
+                </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2" href="#" title="Reports">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-chart-column"></i></span>

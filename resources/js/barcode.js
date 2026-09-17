@@ -1,4 +1,4 @@
-import { attachScannerInputRouter } from './scanner-input';
+import * as bootstrap from 'bootstrap';
 
 (() => {
     const initializeBarcodeCheckout = (root) => {
@@ -13,17 +13,31 @@ import { attachScannerInputRouter } from './scanner-input';
         const help = root.querySelector('#scanner-help');
         const feedback = root.querySelector('#ajax-feedback');
         const cart = root.querySelector('#scanned-cart');
+        const filterTabs = root.querySelectorAll('[data-scan-filter]');
         const statusBadge = root.querySelector('#checkout-status');
         const scanCount = root.querySelector('#scan-count');
         const cartCount = root.querySelector('#cart-count');
         const checkoutTotal = root.querySelector('#checkout-total');
-        const quantityInput = root.querySelector('#quantity');
+        const quantityModalElement = document.getElementById('checkout-quantity-modal');
+        const quantityInput = document.getElementById('quantity');
+        const submitButton = document.getElementById('submit-checkout-scan');
+        const conditionInput = document.getElementById('condition_out');
+        const itemNameElement = document.querySelector('[data-checkout-item-name]');
+        const itemStateLabelElement = document.querySelector('[data-checkout-item-state-label]');
+        const itemStateElement = document.querySelector('[data-checkout-item-state]');
+        const unitElement = document.querySelector('[data-checkout-unit]');
+        const conditionLabelElement = document.querySelector('[data-checkout-condition-label]');
+        const quantityModal = quantityModalElement
+            ? bootstrap.Modal.getOrCreateInstance(quantityModalElement)
+            : null;
+        const completionModalElement = document.getElementById('checkout-complete-modal');
         const removeUrlTemplate = cart?.dataset.removeUrlTemplate;
         const scannerAvailable = Boolean(input && startButton && !input.disabled && !startButton.disabled);
         let requestInProgress = false;
         let scannerActive = false;
+        let activeFilter = 'all';
 
-        if (!input || !form || !startButton || !stopButton || !quantityInput || !cart || !removeUrlTemplate) {
+        if (!input || !form || !startButton || !stopButton || !quantityInput || !conditionInput || !cart || !removeUrlTemplate) {
             return;
         }
 
@@ -40,16 +54,77 @@ import { attachScannerInputRouter } from './scanner-input';
                 return;
             }
 
-            window.setTimeout(() => {
-                if (input.disabled) {
-                    return;
-                }
-
-                input.focus({ preventScroll: true });
-                input.select();
-                help?.classList.remove('d-none');
-            }, 0);
+            input.focus({ preventScroll: true });
+            input.select();
+            help?.classList.remove('d-none');
         };
+
+        const hideQuantityField = () => {
+            quantityModal?.hide();
+            quantityInput.value = '';
+            quantityInput.disabled = true;
+            conditionInput.disabled = true;
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+        };
+
+        const showQuantityField = () => {
+            const barcode = input.value.trim();
+            const item = [...root.querySelectorAll('[data-checklist-barcode]')]
+                .find((row) => row.dataset.checklistBarcode === barcode);
+
+            if (itemNameElement) {
+                itemNameElement.textContent = item?.dataset.itemName || 'Scanned item';
+            }
+
+            if (unitElement) {
+                unitElement.textContent = item?.dataset.itemUnit || 'unit(s)';
+            }
+
+            const stateLabel = item?.dataset.itemStateLabel || 'Equipment condition';
+
+            if (itemStateLabelElement) {
+                itemStateLabelElement.textContent = stateLabel;
+            }
+
+            if (itemStateElement) {
+                itemStateElement.textContent = item?.dataset.itemState || 'Unknown';
+            }
+
+            if (conditionLabelElement) {
+                conditionLabelElement.textContent = stateLabel;
+            }
+
+            quantityInput.value = '';
+            quantityInput.setCustomValidity('');
+            quantityInput.disabled = false;
+            conditionInput.value = 'Good';
+            conditionInput.disabled = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+            quantityModal?.show();
+        };
+
+        quantityModalElement?.addEventListener('shown.bs.modal', () => {
+            quantityInput.focus({ preventScroll: true });
+        });
+
+        quantityModalElement?.addEventListener('hidden.bs.modal', () => {
+            if (requestInProgress || quantityInput.disabled) {
+                return;
+            }
+
+            input.value = '';
+            quantityInput.value = '';
+            quantityInput.disabled = true;
+            conditionInput.disabled = true;
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+            focusScanner();
+        });
 
         const startScanning = () => {
             if (!scannerAvailable || requestInProgress) {
@@ -65,6 +140,7 @@ import { attachScannerInputRouter } from './scanner-input';
         const stopScanning = () => {
             scannerActive = false;
             input.value = '';
+            hideQuantityField();
             input.disabled = true;
             input.blur();
             updateScannerControls();
@@ -76,7 +152,7 @@ import { attachScannerInputRouter } from './scanner-input';
         updateScannerControls();
 
         const shouldKeepManualFocus = (target) => target instanceof Element
-            && Boolean(target.closest('#quantity, #condition_out, [data-barcode-manual-field]'));
+            && Boolean(target.closest('#quantity, #condition_out, #checkout-quantity-modal, [data-barcode-manual-field], [data-scan-filter]'));
 
         // HID scanners send keystrokes to the focused element. Restore the barcode
         // field after page controls are used, while leaving manual form fields usable.
@@ -93,13 +169,6 @@ import { attachScannerInputRouter } from './scanner-input';
             if (event.target !== input && !shouldKeepManualFocus(event.target)) {
                 focusScanner();
             }
-        });
-
-        attachScannerInputRouter({
-            root,
-            barcodeInput: input,
-            form,
-            manualFieldSelector: '#quantity, #condition_out, [data-barcode-manual-field]',
         });
 
         const escapeHtml = (value) => {
@@ -128,7 +197,7 @@ import { attachScannerInputRouter } from './scanner-input';
                 return true;
             }
 
-            const message = 'Enter a quantity before scanning.';
+            const message = 'Enter a quantity before confirming.';
             quantityInput.setCustomValidity(message);
             showFeedback(message, 'danger');
             quantityInput.reportValidity();
@@ -154,6 +223,69 @@ import { attachScannerInputRouter } from './scanner-input';
             }
         };
 
+        const conditionTone = (condition) => ['Damaged', 'Under Repair', 'Lost'].includes(condition)
+            ? 'danger'
+            : 'success';
+
+        const updateCartFilter = () => {
+            const rows = [...cart.querySelectorAll('[data-scan-row]')];
+            const visibleRows = rows.filter((row) => activeFilter === 'all' || row.dataset.scanCondition === activeFilter);
+
+            filterTabs.forEach((tab) => {
+                const filter = tab.dataset.scanFilter;
+                const count = filter === 'all'
+                    ? rows.length
+                    : rows.filter((row) => row.dataset.scanCondition === filter).length;
+                const countElement = tab.querySelector('[data-scan-filter-count]');
+
+                if (countElement) {
+                    countElement.textContent = count;
+                }
+
+                const isActive = filter === activeFilter;
+                tab.classList.toggle('btn-primary', isActive);
+                tab.classList.toggle('btn-outline-secondary', !isActive);
+                tab.setAttribute('aria-pressed', String(isActive));
+
+                if (countElement) {
+                    countElement.classList.toggle('bg-white', isActive);
+                    countElement.classList.toggle('text-primary', isActive);
+                    countElement.classList.toggle('bg-secondary', !isActive);
+                    countElement.classList.toggle('text-white', !isActive);
+                }
+            });
+
+            rows.forEach((row) => {
+                const isVisible = visibleRows.includes(row);
+                row.classList.toggle('d-none', !isVisible);
+                row.classList.toggle('border-bottom', isVisible && row !== visibleRows[visibleRows.length - 1]);
+            });
+
+            let filteredEmpty = cart.querySelector('[data-filter-empty]');
+
+            if (!rows.length) {
+                filteredEmpty?.remove();
+                return;
+            }
+
+            if (!filteredEmpty) {
+                filteredEmpty = document.createElement('div');
+                filteredEmpty.dataset.filterEmpty = '';
+                filteredEmpty.className = 'text-center text-secondary small py-4 d-none';
+                cart.append(filteredEmpty);
+            }
+
+            filteredEmpty.textContent = 'No ' + activeFilter.toLowerCase() + ' checkout scans yet.';
+            filteredEmpty.classList.toggle('d-none', visibleRows.length > 0);
+        };
+
+        filterTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                activeFilter = tab.dataset.scanFilter || 'all';
+                updateCartFilter();
+            });
+        });
+
         const addScanToCart = (scan) => {
             root.querySelector('#empty-cart')?.remove();
 
@@ -161,6 +293,7 @@ import { attachScannerInputRouter } from './scanner-input';
             row.className = 'd-flex align-items-center gap-3 py-3 border-bottom';
             row.dataset.scanRow = '';
             row.dataset.scanId = scan.id;
+            row.dataset.scanCondition = scan.condition_out || 'Good';
             row.innerHTML =
                 '<div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px;">' +
                     '<i class="fa-solid fa-' + (scan.item_type === 'Chemical' ? 'flask' : 'microscope') + '"></i>' +
@@ -169,6 +302,7 @@ import { attachScannerInputRouter } from './scanner-input';
                     '<div class="d-flex flex-wrap align-items-center gap-2">' +
                         '<span class="fw-semibold text-dark">' + escapeHtml(scan.item_name) + '</span>' +
                         '<span class="badge rounded-pill text-bg-light border text-secondary">' + escapeHtml(scan.item_type) + '</span>' +
+                        '<span class="badge rounded-pill text-bg-' + conditionTone(row.dataset.scanCondition) + '">' + escapeHtml(row.dataset.scanCondition) + '</span>' +
                     '</div>' +
                     '<div class="small text-secondary mt-1">' +
                         '<i class="fa-solid fa-barcode me-1"></i>' + escapeHtml(scan.barcode) +
@@ -185,6 +319,7 @@ import { attachScannerInputRouter } from './scanner-input';
                     '</button>' +
                 '</div>';
             cart.prepend(row);
+            updateCartFilter();
         };
 
         const updateProgress = (items) => {
@@ -221,8 +356,12 @@ import { attachScannerInputRouter } from './scanner-input';
             form.querySelectorAll('input, select, button').forEach((element) => {
                 element.disabled = true;
             });
+            conditionInput.disabled = true;
             startButton.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i> Checkout complete';
             help?.classList.add('d-none');
+            if (completionModalElement) {
+                bootstrap.Modal.getOrCreateInstance(completionModalElement).show();
+            }
         };
 
         const reopenCheckout = () => {
@@ -230,6 +369,7 @@ import { attachScannerInputRouter } from './scanner-input';
                 element.disabled = false;
             });
             input.disabled = !scannerActive;
+            hideQuantityField();
             startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
             updateScannerControls();
         };
@@ -240,11 +380,9 @@ import { attachScannerInputRouter } from './scanner-input';
             if (event.key === 'Enter') {
                 event.preventDefault();
 
-                if (!validateQuantity()) {
-                    return;
+                if (input.value.trim() !== '') {
+                    showQuantityField();
                 }
-
-                form.requestSubmit();
             }
         });
 
@@ -260,8 +398,12 @@ import { attachScannerInputRouter } from './scanner-input';
             }
 
             requestInProgress = true;
+            quantityModal?.hide();
             startButton.disabled = true;
             stopButton.disabled = true;
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
             startButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Checking out...';
             feedback.className = 'd-none';
 
@@ -295,7 +437,7 @@ import { attachScannerInputRouter } from './scanner-input';
                     finishCheckout();
                 } else {
                     input.value = '';
-                    quantityInput.value = '';
+                    hideQuantityField();
                     startButton.disabled = false;
                     stopButton.disabled = false;
                     startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
@@ -305,8 +447,11 @@ import { attachScannerInputRouter } from './scanner-input';
                 showFeedback(error.message, 'danger');
                 startButton.disabled = false;
                 stopButton.disabled = false;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
                 startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
-                focusScanner();
+                quantityModal?.show();
             } finally {
                 requestInProgress = false;
             }
@@ -352,6 +497,8 @@ import { attachScannerInputRouter } from './scanner-input';
                     cart.innerHTML = '<div id="empty-cart" class="text-center py-5"><div class="rounded-circle bg-light text-secondary d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;"><i class="fa-solid fa-cart-shopping fa-lg"></i></div><h3 class="h5 fw-semibold text-dark">Cart is empty</h3><p class="small text-secondary mb-0">Scanned equipment and chemicals will appear here.</p></div>';
                 }
 
+                updateCartFilter();
+
                 updateProgress(payload.items);
                 updateTotals(payload.items);
                 scanCount.textContent = payload.scan_count;
@@ -371,6 +518,8 @@ import { attachScannerInputRouter } from './scanner-input';
                 requestInProgress = false;
             }
         });
+
+        updateCartFilter();
     };
 
     const initialize = () => {

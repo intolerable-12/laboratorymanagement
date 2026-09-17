@@ -20,6 +20,7 @@
         $totalRequested = $borrowTransaction->items->sum(fn ($item) => (float) $item->quantity_borrowed);
         $totalCheckedOut = $borrowTransaction->items->sum(fn ($item) => (float) ($item->quantity_checked_out ?? 0));
         $scanCount = $scanLogs->count();
+        $scanConditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Lost'];
     @endphp
 
     <div class="account-page" data-barcode-checkout>
@@ -89,13 +90,33 @@
                             <span class="badge rounded-pill text-bg-light border text-dark px-3 py-2"><span id="cart-count">{{ $scanCount }}</span> line{{ $scanCount === 1 ? '' : 's' }}</span>
                         </div>
                     </div>
-                    <div id="scanned-cart" class="card-body p-4 scanned-cart-scroll" data-remove-url-template="{{ route($checkoutRoutePrefix.'.remove', ['borrowTransaction' => $borrowTransaction, 'barcodeLog' => '__SCAN__']) }}">
+                    <div class="card-body p-4" data-scan-cart-shell>
+                        <div class="btn-group shadow-sm flex-wrap mb-3" data-scan-filter-tabs role="group" aria-label="Filter checkout scans by condition">
+                            <button type="button" class="btn btn-primary px-4 py-2" data-scan-filter="all" aria-pressed="true">
+                                All <span class="badge bg-white text-primary ms-2" data-scan-filter-count>{{ $scanCount }}</span>
+                            </button>
+                            @foreach ($scanConditions as $condition)
+                                @php
+                                    $conditionCount = $scanLogs->filter(function ($log) use ($borrowTransaction, $condition) {
+                                        $item = $borrowTransaction->items->first(fn ($borrowItem) => $borrowItem->item_type === $log->item_type && (int) $borrowItem->item_id === (int) $log->item_id);
+
+                                        return ($item?->condition_out ?? 'Good') === $condition;
+                                    })->count();
+                                @endphp
+                                <button type="button" class="btn btn-outline-secondary px-4 py-2" data-scan-filter="{{ $condition }}" aria-pressed="false">
+                                    {{ $condition }} <span class="badge bg-secondary text-white ms-2" data-scan-filter-count>{{ $conditionCount }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                        <div id="scanned-cart" class="scanned-cart-scroll" data-remove-url-template="{{ route($checkoutRoutePrefix.'.remove', ['borrowTransaction' => $borrowTransaction, 'barcodeLog' => '__SCAN__']) }}">
                         @forelse ($scanLogs as $log)
                             @php
                                 $logItemName = $log->item?->equipment_name ?? $log->item?->chemical_name ?? 'Item unavailable';
                                 $logUnit = $log->item_type === 'Chemical' ? ' '.($log->item?->unit ?? 'unit') : ' unit(s)';
+                                $logBorrowItem = $borrowTransaction->items->first(fn ($borrowItem) => $borrowItem->item_type === $log->item_type && (int) $borrowItem->item_id === (int) $log->item_id);
+                                $logCondition = $logBorrowItem?->condition_out ?? 'Good';
                             @endphp
-                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-scan-row data-scan-id="{{ $log->id }}">
+                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-scan-row data-scan-id="{{ $log->id }}" data-scan-condition="{{ $logCondition }}">
                                 <div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px;">
                                     <i class="fa-solid fa-{{ $log->item_type === 'Chemical' ? 'flask' : 'microscope' }}"></i>
                                 </div>
@@ -108,6 +129,7 @@
                                             @endif
                                         </span>
                                         <span class="badge rounded-pill text-bg-light border text-secondary">{{ $log->item_type }}</span>
+                                        <span class="badge rounded-pill text-bg-{{ in_array($logCondition, ['Damaged', 'Under Repair', 'Lost'], true) ? 'danger' : 'success' }}">{{ $logCondition }}</span>
                                     </div>
                                     <div class="small text-secondary mt-1">
                                         <i class="fa-solid fa-barcode me-1"></i>{{ $log->barcode }}
@@ -133,6 +155,7 @@
                                 <p class="small text-secondary mb-0">Scanned equipment and chemicals will appear here.</p>
                             </div>
                         @endforelse
+                        </div>
                     </div>
                 </div>
 
@@ -150,7 +173,7 @@
                                 $itemName = $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Item unavailable';
                                 $precision = $item->item_type === 'Chemical' ? 2 : 0;
                             @endphp
-                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}">
+                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checklist-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold text-dark">
                                         {{ $itemName }}
@@ -207,28 +230,70 @@
                                         <input type="text" name="barcode" id="barcode" class="form-control" autocomplete="off" required {{ !$canCheckout || $completed ? 'disabled' : '' }} placeholder="Scan barcode">
                                     </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="quantity" class="form-label fw-semibold text-dark">Quantity</label>
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="0.01" step="0.01" required {{ !$canCheckout || $completed ? 'disabled' : '' }} placeholder="Enter quantity">
-                                </div>
-                                <div class="mb-4">
-                                    <label for="condition_out" class="form-label fw-semibold text-dark">Condition</label>
-                                    <select name="condition_out" id="condition_out" class="form-select" {{ !$canCheckout || $completed ? 'disabled' : '' }}>
-                                        @foreach (['Excellent', 'Good', 'Fair'] as $condition)
-                                            <option value="{{ $condition }}" @selected($condition === 'Good')>{{ $condition }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
                                 <button type="button" class="btn btn-primary btn-lg w-100" id="start-scanner" {{ !$canCheckout || $completed ? 'disabled' : '' }}>
                                     <i class="fa-solid fa-barcode me-1"></i> Start scanner
                                 </button>
                                 <button type="button" class="btn btn-outline-danger btn-lg w-100 d-none" id="stop-scanner" {{ !$canCheckout || $completed ? 'disabled' : '' }}>
                                     <i class="fa-solid fa-stop me-1"></i> Stop scanning
                                 </button>
-                                <button type="submit" class="visually-hidden" tabindex="-1">Submit scan</button>
                             </form>
                             <div id="scanner-help" class="small text-success mt-3 d-none"><i class="fa-solid fa-circle-dot me-1"></i>Scanner active — scan the item now.</div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="checkout-quantity-modal" tabindex="-1" aria-labelledby="checkout-quantity-modal-title" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <div>
+                        <div class="small text-uppercase fw-semibold text-secondary mb-1">Barcode captured</div>
+                        <h2 class="modal-title h4 fw-semibold text-dark" id="checkout-quantity-modal-title">Enter checkout quantity</h2>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel quantity entry"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="rounded-3 bg-light p-3 mb-4">
+                        <div class="small text-secondary">Item</div>
+                        <div class="fw-semibold text-dark" data-checkout-item-name>Scanned item</div>
+                        <div class="small text-secondary mt-2" data-checkout-item-state-label>Equipment condition</div>
+                        <div class="fw-semibold text-dark" data-checkout-item-state>Unknown</div>
+                    </div>
+                    <label for="quantity" class="form-label fw-semibold text-dark">Quantity</label>
+                    <div class="input-group input-group-lg">
+                        <input type="number" name="quantity" id="quantity" class="form-control" min="0.01" step="0.01" required disabled form="checkout-scan-form" placeholder="Enter quantity">
+                        <span class="input-group-text bg-white" data-checkout-unit>unit(s)</span>
+                    </div>
+                    <div class="form-text">Enter the quantity using the item’s listed unit.</div>
+                    <div class="mt-3">
+                        <label for="condition_out" class="form-label fw-semibold text-dark" data-checkout-condition-label>Equipment condition</label>
+                        <select name="condition_out" id="condition_out" class="form-select" form="checkout-scan-form" required disabled>
+                            @foreach (['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Lost'] as $condition)
+                                <option value="{{ $condition }}" @selected($condition === 'Good')>{{ $condition }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="submit-checkout-scan" disabled form="checkout-scan-form"><i class="fa-solid fa-check me-1"></i> Confirm checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="checkout-complete-modal" tabindex="-1" aria-labelledby="checkout-complete-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-body text-center p-5">
+                    <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                        <i class="fa-solid fa-circle-check fa-2x"></i>
+                    </div>
+                    <h2 class="h4 fw-semibold text-dark mb-2" id="checkout-complete-modal-title">Checkout complete</h2>
+                    <p class="text-secondary mb-4">All items have been successfully scanned and checked out.</p>
+                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">Continue</button>
                 </div>
             </div>
         </div>

@@ -109,6 +109,7 @@ class DashboardController extends Controller
             'activityLogs' => $this->recentActivity(),
             'managementModules' => [
                 ['label' => 'User Management', 'href' => route('coordinator.users.index')],
+                ['label' => 'School Year & Semester', 'href' => route('coordinator.academic-periods.index')],
                 ['label' => 'Laboratories', 'href' => route('coordinator.laboratories.index')],
                 ['label' => 'Equipment Management', 'href' => route('coordinator.equipment.index')],
                 ['label' => 'Chemical Inventory', 'href' => route('coordinator.chemicals.index')],
@@ -116,6 +117,7 @@ class DashboardController extends Controller
                 ['label' => 'Supplier Management', 'href' => route('coordinator.suppliers.index')],
                 ['label' => 'Reservation Management', 'href' => route('coordinator.reservations.index')],
                 ['label' => 'Borrow Requests', 'href' => route('coordinator.borrow.index')],
+                ['label' => 'Request History', 'href' => route('coordinator.requesthistory.index')],
                 ['label' => 'Forum', 'href' => route('coordinator.forum.index')],
                 ['label' => 'Feedback', 'href' => route('coordinator.feedback.index')],
                 ['label' => 'Notifications', 'href' => route('notifications.index')],

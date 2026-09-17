@@ -15,6 +15,7 @@ use App\Http\Controllers\Coordinator\Announcement\AnnouncementController as Coor
 use App\Http\Controllers\Coordinator\AuditLogController;
 use App\Http\Controllers\Coordinator\DashboardController as CoordinatorDashboardController;
 use App\Http\Controllers\Coordinator\DepartmentManagementController;
+use App\Http\Controllers\Coordinator\AcademicPeriodController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
 use App\Http\Controllers\Coordinator\EquipmentCategoryController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Coordinator\InventoryAlertController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorBorrowCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationController;
+use App\Http\Controllers\Coordinator\ReservationHistory\RequestHistoryController;
 use App\Http\Controllers\Coordinator\UserManagementController;
 use App\Http\Controllers\Coordinator\UserAccountRequestController;
 use App\Http\Controllers\Facilitator\DashboardController as FacilitatorDashboardController;
@@ -109,6 +111,8 @@ Route::middleware(['auth'])
 
 Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')->name('coordinator.')->group(function () {
         Route::get('/dashboard', [CoordinatorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/request-history', [RequestHistoryController::class, 'index'])->name('requesthistory.index');
+        Route::get('/request-history/{user}', [RequestHistoryController::class, 'show'])->name('requesthistory.show');
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
         Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
         Route::put('/inventory-alerts/chemicals/{chemical}', [InventoryAlertController::class, 'updateChemical'])->name('inventory-alerts.chemical.update');
@@ -124,6 +128,22 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
         Route::resource('users', UserManagementController::class)->withTrashed(['show']);
 
         Route::resource('departments', DepartmentManagementController::class);
+
+        Route::prefix('academic-periods')->name('academic-periods.')->group(function () {
+            Route::get('/', [AcademicPeriodController::class, 'index'])->name('index');
+            Route::get('/school-years/create', [AcademicPeriodController::class, 'createSchoolYear'])->name('school-years.create');
+            Route::post('/school-years', [AcademicPeriodController::class, 'storeSchoolYear'])->name('school-years.store');
+            Route::get('/school-years/{schoolYear}/edit', [AcademicPeriodController::class, 'editSchoolYear'])->name('school-years.edit');
+            Route::put('/school-years/{schoolYear}', [AcademicPeriodController::class, 'updateSchoolYear'])->name('school-years.update');
+            Route::delete('/school-years/{schoolYear}', [AcademicPeriodController::class, 'destroySchoolYear'])->name('school-years.destroy');
+            Route::post('/school-years/{schoolYear}/current', [AcademicPeriodController::class, 'setCurrentSchoolYear'])->name('school-years.current');
+            Route::get('/semesters/create', [AcademicPeriodController::class, 'createSemester'])->name('semesters.create');
+            Route::post('/semesters', [AcademicPeriodController::class, 'storeSemester'])->name('semesters.store');
+            Route::get('/semesters/{semester}/edit', [AcademicPeriodController::class, 'editSemester'])->name('semesters.edit');
+            Route::put('/semesters/{semester}', [AcademicPeriodController::class, 'updateSemester'])->name('semesters.update');
+            Route::delete('/semesters/{semester}', [AcademicPeriodController::class, 'destroySemester'])->name('semesters.destroy');
+            Route::post('/semesters/{semester}/current', [AcademicPeriodController::class, 'setCurrentSemester'])->name('semesters.current');
+        });
 
         Route::prefix('equipment')
             ->name('equipment.')
@@ -203,6 +223,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/{reservation}', [CoordinatorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [CoordinatorReservationController::class, 'approve'])->name('approve');
                 Route::post('/{reservation}/reject', [CoordinatorReservationController::class, 'reject'])->name('reject');
+                Route::patch('/{reservation}/reschedule', [CoordinatorReservationController::class, 'reschedule'])->name('reschedule');
             });
 
         Route::resource('announcements', CoordinatorAnnouncementController::class);
@@ -215,6 +236,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/{borrowTransaction}', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'approve'])->name('approve');
                 Route::post('/{borrowTransaction}/reject', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'reject'])->name('reject');
+                Route::patch('/{borrowTransaction}/reschedule', [\App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController::class, 'reschedule'])->name('reschedule');
             });
 
         Route::prefix('checkout')
@@ -359,6 +381,7 @@ Route::middleware(['auth', 'role:Student', 'audit'])
 
         Route::get('/my-account', [StudentMyAccountController::class, 'index'])->name('myaccount');
         Route::put('/my-account', [StudentMyAccountController::class, 'update'])->name('myaccount.update');
+        Route::put('/my-account/password', [StudentMyAccountController::class, 'updatePassword'])->name('myaccount.password.update');
     });
 
 Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])

@@ -107,6 +107,7 @@
                             type="search"
                             id="chemical-search"
                             name="search"
+                            data-barcode-search
                             value="{{ $search }}"
                             placeholder="Name, code, barcode, or location"
                             class="form-control admin-form-control"

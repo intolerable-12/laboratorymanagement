@@ -61,7 +61,7 @@ class FacilitatorCheckoutController extends Controller
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'numeric', 'gt:0'],
-            'condition_out' => ['nullable', 'in:Excellent,Good,Fair'],
+            'condition_out' => ['required', 'in:Excellent,Good,Fair,Damaged,Under Repair,Lost'],
         ]);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $data): array {
@@ -210,6 +210,7 @@ class FacilitatorCheckoutController extends Controller
                 'barcode' => $barcode,
                 'unit' => $itemType === 'Chemical' ? ($inventoryItem->unit ?? 'unit') : 'unit(s)',
                 'quantity' => $quantity,
+                'condition_out' => $data['condition_out'],
                 'scanned_at' => $now->toIso8601String(),
                 'scan_log_id' => $barcodeLog->id,
                 'complete' => $allCheckedOut,
@@ -241,6 +242,7 @@ class FacilitatorCheckoutController extends Controller
                     'barcode' => $result['barcode'],
                     'unit' => $result['unit'],
                     'quantity' => $result['quantity'],
+                    'condition_out' => $result['condition_out'],
                     'scanned_at' => $result['scanned_at'],
                 ],
                 'items' => $updatedTransaction->items->map(function (BorrowItem $item): array {

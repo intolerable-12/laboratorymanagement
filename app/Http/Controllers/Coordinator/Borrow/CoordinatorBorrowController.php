@@ -117,6 +117,37 @@ class CoordinatorBorrowController extends Controller
 			->with('status', 'Borrow request rejected successfully.');
 	}
 
+	public function reschedule(Request $request, BorrowTransaction $borrowTransaction)
+	{
+		$this->ensureCoordinator($request);
+
+		$data = $request->validate([
+			'borrowed_at' => ['required', 'date_format:Y-m-d\\TH:i'],
+			'due_at' => ['required', 'date_format:Y-m-d\\TH:i', 'after:borrowed_at'],
+		]);
+
+		DB::transaction(function () use ($borrowTransaction, $data) {
+			$transaction = BorrowTransaction::query()
+				->lockForUpdate()
+				->findOrFail($borrowTransaction->id);
+
+			if ($transaction->status !== 'Coordinator Approved') {
+				throw ValidationException::withMessages([
+					'status' => 'Only coordinator-approved borrow requests can be rescheduled before checkout.',
+				]);
+			}
+
+			$transaction->update([
+				'borrowed_at' => $data['borrowed_at'],
+				'due_at' => $data['due_at'],
+			]);
+		});
+
+		return redirect()
+			->route('coordinator.borrow.show', $borrowTransaction)
+			->with('status', 'Borrow request rescheduled successfully.');
+	}
+
 	private function guardForCoordinator(BorrowTransaction $borrowTransaction): void
 	{
 		if ($borrowTransaction->status !== 'Facilitator Approved') {

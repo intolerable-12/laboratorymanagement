@@ -48,8 +48,11 @@
 					'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
+                                $statusLabel = $borrowTransaction->status === 'Facilitator Approved'
+                                    ? 'Laboratory In-charge Approved'
+                                    : $borrowTransaction->status;
                             @endphp
-                            <span class="badge text-bg-{{ $statusTone }}">{{ $borrowTransaction->status }}</span>
+                            <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                         </div>
 
                         <div class="row g-3 mb-4">
