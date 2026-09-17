@@ -138,26 +138,25 @@
                                                 'chemicalItems' => $chemicalItems,
                                                 'resultsUrl' => route('facilitator.borrow.show', $borrowTransaction),
                                             ])
-
-                                            <div class="card border-0 bg-light mt-3 mb-0">
-                                                <div class="card-body p-3 p-xl-4">
-                                                    <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
-                                                    <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                                    <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
-                                                    @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                </div>
-                                            </div>
                                         </form>
 
-                                        <div class="mt-3 pt-3 border-top">
-                                            <h4 class="h5 fw-semibold text-dark mb-3">Approve Request</h4>
+                                        <div class="card border-0 bg-light mt-3 mb-0">
+                                            <div class="card-body p-3 p-xl-4">
+                                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-3 pt-3">
                                             <div class="d-flex flex-column flex-sm-row gap-2">
-                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
-                                                <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.borrow.reject', $borrowTransaction) }}" class="d-flex flex-fill">
+                                                 <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.borrow.reject', $borrowTransaction) }}" class="d-flex flex-fill">
                                                     @csrf
                                                     <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
                                                     <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
                                                 </form>
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
                                             </div>
                                         </div>
                                     </div>

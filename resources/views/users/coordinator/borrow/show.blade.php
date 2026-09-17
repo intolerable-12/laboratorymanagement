@@ -95,51 +95,49 @@
 
                     @if ($borrowTransaction->status === 'Facilitator Approved')
                         <div data-shared-remarks>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <form method="POST" action="{{ route('coordinator.borrow.approve', $borrowTransaction) }}" class="card border-0 bg-light h-100">
-                                    @csrf
-                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                <div class="card border-0 bg-light h-100">
                                     <div class="card-body p-3 p-xl-4">
-                                        <h4 class="h6 fw-semibold text-dark mb-2">Approve</h4>
-                                        <p class="small text-secondary mb-3">The requester will receive a final approval email. Adjust the final borrow period if needed.</p>
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-12">
-                                                <label class="form-label fw-semibold text-dark">Borrowed At</label>
-                                                <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
-                                                @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        <form id="borrow-approve-form" method="POST" action="{{ route('coordinator.borrow.approve', $borrowTransaction) }}">
+                                            @csrf
+                                            <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                            <div class="card-body p-3 p-xl-4">
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold text-dark">Borrowed At</label>
+                                                        <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                                                        @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold text-dark">Due At</label>
+                                                        <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
+                                                        @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="col-12">
-                                                <label class="form-label fw-semibold text-dark">Due At</label>
-                                                <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
-                                                @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </form>
+
+                                        <div class="card border-0 bg-light mt-3 mb-0">
+                                            <div class="card-body p-3 p-xl-4">
+                                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                         </div>
-                                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Approve this borrow request?');">Approve</button>
+
+                                        <div class="mt-3 pt-3">
+                                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                                 <form id="borrow-reject-form" method="POST" action="{{ route('coordinator.borrow.reject', $borrowTransaction) }}" class="d-flex flex-fill">
+                                                    @csrf
+                                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                                </form>
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </form>
+                                </div>
                             </div>
-                            <div class="col-12">
-                                <form method="POST" action="{{ route('coordinator.borrow.reject', $borrowTransaction) }}" class="card border-0 bg-light h-100">
-                                    @csrf
-                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                    <div class="card-body p-3 p-xl-4">
-                                        <h4 class="h6 fw-semibold text-dark mb-2">Reject</h4>
-                                        <p class="small text-secondary mb-3">A reason is required and will be emailed to the requester.</p>
-                                        <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <div class="card border-0 bg-light mt-3">
-                            <div class="card-body p-3 p-xl-4">
-                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
-                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
-                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            </div>
-                        </div>
-                        </div>
                     @endif
                 </div>
             </div>

@@ -38,11 +38,11 @@
                 <div class="table-responsive mb-3">
             <table class="table align-middle table-sm mb-0">
                 <thead>
-                    <tr class="text-secondary small text-uppercase">
-                        <th>Item</th>
-                        <th>Type</th>
-                        <th class="text-end">Quantity<span class="required-indicator text-danger" aria-hidden="true">*</span></th>
-                        <th class="text-end">Action</th>
+                    <tr>
+                        <th class="text-dark">Item</th>
+                        <th class="text-dark">Type</th>
+                        <th class="text-dark">Quantity<span class="required-indicator text-danger" aria-hidden="true">*</span></th>
+                        <th class="text-center text-dark">Action</th>
                     </tr>
                 </thead>
                 <tbody data-review-selected-items>

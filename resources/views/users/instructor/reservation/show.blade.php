@@ -126,40 +126,34 @@
                         </div>
 
                         @if ($reservation->status === 'Pending')
-                            <div data-shared-remarks>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <form method="POST" action="{{ route('instructor.reservations.approve', $reservation) }}" class="card border-0 bg-light h-100">
-                                        @csrf
+                             <div data-shared-remarks>
+                                <div class="card border-0 bg-light h-100">
+                                    <div class="card-body p-3 p-xl-4">
+                                        <form id="borrow-approve-form" method="POST" action="{{ route('instructor.reservations.approve', $reservation) }}" class="card border-0 bg-light h-100">
                                         <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                        <div class="card-body p-3 p-xl-4">
-                                            <h4 class="h5 fw-semibold text-dark mb-2">Approve Request</h4>
-                                            <p class="small text-secondary mb-3">Add an optional note before forwarding the request to the facilitator.</p>
-                                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('Approve this reservation request and forward it?');">Approve and Forward</button>
-                                        </div>
                                     </form>
-                                </div>
 
-                                <div class="col-12">
-                                    <form method="POST" action="{{ route('instructor.reservations.reject', $reservation) }}" class="card border-0 bg-light h-100">
-                                        @csrf
-                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                        <div class="card-body p-3 p-xl-4">
-                                            <h4 class="h5 fw-semibold text-dark mb-2">Reject Request</h4>
-                                            <p class="small text-secondary mb-3">A rejection reason is required so the student knows what to fix.</p>
-                                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this reservation request?');">Reject</button>
+                                        <div class="card border-0 bg-light mt-3 mb-0">
+                                            <div class="card-body p-3 p-xl-4">
+                                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                            </div>
                                         </div>
-                                    </form>
+
+                                        <div class="mt-3 pt-3">
+                                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                                 <form id="borrow-reject-form" method="POST" action="{{ route('instructor.reservations.reject', $reservation) }}" class="d-flex flex-fill">
+                                                    @csrf
+                                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                                </form>
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="card border-0 bg-light mt-3">
-                                <div class="card-body p-3 p-xl-4">
-                                    <label for="reservation-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
-                                    <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                    <textarea id="reservation-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
-                                    @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                </div>
-                            </div>
                             </div>
                         @endif
                     </div>

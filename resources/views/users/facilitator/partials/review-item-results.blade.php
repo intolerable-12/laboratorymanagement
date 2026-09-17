@@ -2,10 +2,10 @@
     <div class="table-responsive">
         <table class="table align-middle table-sm mb-0">
             <thead>
-                <tr class="text-secondary small text-uppercase">
-                    <th>{{ $itemType }}</th>
-                    <th>Available</th>
-                    <th class="text-end">Select</th>
+                <tr>
+                    <th class="text-dark">{{ $itemType }}</th>
+                    <th class="text-dark">Available</th>
+                    <th class="text-center text-dark">Select</th>
                 </tr>
             </thead>
             <tbody>

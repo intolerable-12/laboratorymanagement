@@ -88,56 +88,54 @@
 
                     @if ($reservation->status === 'Facilitator Approved')
                         <div data-shared-remarks>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <form method="POST" action="{{ route('coordinator.reservations.approve', $reservation) }}" class="card border-0 bg-light h-100">
-                                    @csrf
-                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                <div class="card border-0 bg-light h-100">
                                     <div class="card-body p-3 p-xl-4">
-                                        <h4 class="h6 fw-semibold text-dark mb-2">Approve</h4>
-                                        <p class="small text-secondary mb-3">The requester will receive a final approval email. Adjust the final schedule if needed.</p>
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-12">
-                                                <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                                                <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
-                                                @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        <form id="borrow-approve-form" method="POST" action="{{ route('coordinator.reservations.approve', $reservation) }}">
+                                            @csrf
+                                            <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                            <div class="card-body p-3 p-xl-4">
+                                                <div class="row g-3 mb-3">
+                                                     <div class="col-12">
+                                                        <label class="form-label fw-semibold text-dark">Reservation Date</label>
+                                                        <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
+                                                        @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label fw-semibold text-dark">Start Time</label>
+                                                        <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" class="form-control @error('start_time') is-invalid @enderror" required>
+                                                        @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label fw-semibold text-dark">End Time</label>
+                                                        <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" class="form-control @error('end_time') is-invalid @enderror" required>
+                                                        @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold text-dark">Start Time</label>
-                                                <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" class="form-control @error('start_time') is-invalid @enderror" required>
-                                                @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold text-dark">End Time</label>
-                                                <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" class="form-control @error('end_time') is-invalid @enderror" required>
-                                                @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </form>
+
+                                        <div class="card border-0 bg-light mt-3 mb-0">
+                                            <div class="card-body p-3 p-xl-4">
+                                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                         </div>
-                                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Approve this reservation request?');">Approve</button>
+
+                                        <div class="mt-3 pt-3">
+                                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                                 <form id="borrow-reject-form" method="POST" action="{{ route('coordinator.reservations.reject', $reservation) }}" class="d-flex flex-fill">
+                                                    @csrf
+                                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                                </form>
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </form>
+                                </div>
                             </div>
-                            <div class="col-12">
-                                <form method="POST" action="{{ route('coordinator.reservations.reject', $reservation) }}" class="card border-0 bg-light h-100">
-                                    @csrf
-                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                    <div class="card-body p-3 p-xl-4">
-                                        <h4 class="h6 fw-semibold text-dark mb-2">Reject</h4>
-                                        <p class="small text-secondary mb-3">A reason is required and will be emailed to the requester.</p>
-                                        <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this reservation request?');">Reject</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <div class="card border-0 bg-light mt-3">
-                            <div class="card-body p-3 p-xl-4">
-                                <label for="reservation-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
-                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                <textarea id="reservation-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
-                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            </div>
-                        </div>
-                        </div>
                     @endif
                 </div>
             </div>
