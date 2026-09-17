@@ -2213,13 +2213,15 @@ body.coordinator-page {
     color: var(--role-text) !important;
 }
 
-.facilitator-page .scanned-cart-scroll {
+.facilitator-page .scanned-cart-scroll,
+.coordinator-page .scanned-cart-scroll {
     max-height: 24rem;
     overflow-y: auto;
     scrollbar-gutter: stable;
 }
 
-.facilitator-page .scanned-cart-scroll > [data-scan-row]:last-child {
+.facilitator-page .scanned-cart-scroll > [data-scan-row]:last-child,
+.coordinator-page .scanned-cart-scroll > [data-scan-row]:last-child {
     border-bottom: 0 !important;
 }
 

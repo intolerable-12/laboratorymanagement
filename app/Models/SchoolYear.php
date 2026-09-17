@@ -35,4 +35,14 @@ class SchoolYear extends Model
             'end_date' => 'date',
         ];
     }
+
+    public function reservations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function laboratorySchedules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LaboratorySchedule::class);
+    }
 }

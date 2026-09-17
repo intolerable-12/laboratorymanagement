@@ -5,12 +5,32 @@
 @section('page-subtitle', 'Take the final coordinator action on laboratory in-charge-approved requests')
 
 @section('content')
+    @php
+        $statusTone = match ($reservation->status) {
+            'Pending' => 'warning',
+            'Instructor Approved' => 'info',
+            'Facilitator Approved' => 'primary',
+            'Coordinator Approved' => 'success',
+            'Rejected', 'Cancelled' => 'danger',
+            default => 'secondary',
+        };
+        $statusLabel = $reservation->status === 'Facilitator Approved'
+            ? 'Laboratory In-charge Approved'
+            : $reservation->status;
+    @endphp
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">{{ $reservation->reservation_no }}</h2>
             <p class="mb-0 text-secondary">Final review for {{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</p>
         </div>
-        <a href="{{ route('coordinator.reservations.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        <div class="d-flex flex-wrap gap-2">
+            @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction)
+                <a href="{{ route('coordinator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
+                    <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                </a>
+            @endif
+            <a href="{{ route('coordinator.reservations.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        </div>
     </div>
 
     @if (session('status'))
@@ -26,20 +46,6 @@
                             <h3 class="h5 fw-semibold mb-1 text-dark">Reservation Summary</h3>
                             <p class="mb-0 text-secondary">This request is ready for final coordinator review.</p>
                         </div>
-                        @php
-                            $statusTone = match ($reservation->status) {
-                                'Pending' => 'warning',
-                                'Instructor Approved' => 'info',
-                                'Facilitator Approved' => 'primary',
-                                'Coordinator Approved' => 'success',
-                                    'Rejected' => 'danger',
-									'Cancelled' => 'danger',
-                                default => 'secondary',
-                            };
-                            $statusLabel = $reservation->status === 'Facilitator Approved'
-                                ? 'Laboratory In-charge Approved'
-                                : $reservation->status;
-                        @endphp
                         <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                     </div>
 
@@ -137,6 +143,38 @@
                                 @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             </div>
                         </div>
+                        </div>
+                    @endif
+
+                    @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction?->status === 'Coordinator Approved')
+                        <div class="card border-0 bg-light mt-3">
+                            <div class="card-body p-3 p-xl-4">
+                                <h4 class="h6 fw-semibold text-dark mb-2">Reschedule reservation</h4>
+                                <p class="small text-secondary mb-3">Update the reservation schedule before any item has been checked out.</p>
+                                <form method="POST" action="{{ route('coordinator.reservations.reschedule', $reservation) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Reservation Date</label>
+                                            <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
+                                            @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark">Start Time</label>
+                                            <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" class="form-control @error('start_time') is-invalid @enderror" required>
+                                            @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark">End Time</label>
+                                            <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" class="form-control @error('end_time') is-invalid @enderror" required>
+                                            @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    @error('status')<div class="alert alert-danger small border-0">{{ $message }}</div>@enderror
+                                    <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Reschedule this reservation?');">Save new schedule</button>
+                                </form>
+                            </div>
                         </div>
                     @endif
                 </div>

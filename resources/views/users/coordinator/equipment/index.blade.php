@@ -107,6 +107,7 @@
                             type="search"
                             id="equipment-search"
                             name="search"
+                            data-barcode-search
                             value="{{ $search }}"
                             placeholder="Name, code, barcode, brand, model, or location"
                             class="form-control admin-form-control"

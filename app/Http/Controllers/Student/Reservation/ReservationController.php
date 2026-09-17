@@ -85,9 +85,8 @@ class ReservationController extends Controller
             ->whereIn('id', array_keys($oldChemicalSelections))
             ->get()
             ->keyBy('id');
-        $schoolYears = SchoolYear::orderByDesc('is_current')->orderByDesc('start_date')->get(['id', 'school_year', 'is_current']);
-        $semesters = Semester::orderBy('display_order')->get(['id', 'semester_name', 'display_order']);
-
+        $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
+        $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
 
@@ -104,8 +103,8 @@ class ReservationController extends Controller
             'laboratories',
             'equipmentItems',
             'chemicalItems',
-            'schoolYears',
-            'semesters',
+            'currentSchoolYear',
+            'currentSemester',
             'activeTab',
             'selectedLaboratoryId',
             'reservationMinDate',
@@ -131,7 +130,15 @@ class ReservationController extends Controller
         }
 
         $reservation = DB::transaction(function () use ($request, $data, $items, $notificationService) {
-            $schoolYear = SchoolYear::findOrFail($data['school_year_id']);
+            $schoolYear = SchoolYear::query()->where('is_current', true)->first();
+            $semester = Semester::query()->where('is_current', true)->first();
+
+            if (! $schoolYear || ! $semester) {
+                throw ValidationException::withMessages([
+                    'academic_period' => 'A current school year and semester must be configured before submitting a reservation.',
+                ]);
+            }
+
             $laboratory = Laboratory::query()->lockForUpdate()->findOrFail($data['laboratory_id']);
             $codeGenerator = app(SequentialCodeGenerator::class);
 
@@ -158,8 +165,8 @@ class ReservationController extends Controller
                 'expected_participants' => $data['expected_participants'],
                 'status' => 'Pending',
                 'remarks' => $data['remarks'] ?? null,
-                'school_year_id' => $data['school_year_id'],
-                'semester_id' => $data['semester_id'],
+                'school_year_id' => $schoolYear->id,
+                'semester_id' => $semester->id,
             ]);
 
             foreach ($items as $item) {
@@ -254,8 +261,6 @@ class ReservationController extends Controller
             'end_time' => ['required', 'date_format:H:i'],
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
-            'school_year_id' => ['required', 'exists:school_years,id'],
-            'semester_id' => ['required', 'exists:semesters,id'],
             'equipment_items' => ['nullable', 'array'],
             'chemical_items' => ['nullable', 'array'],
             'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],

@@ -7,12 +7,31 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MyAccountController extends Controller
 {
+	private const GENDERS = ['Male', 'Female', 'Unspecified'];
+
+	private const SUFFIXES = [
+		'Jr.',
+		'Sr.',
+		'I',
+		'II',
+		'III',
+		'IV',
+		'V',
+		'VI',
+		'VII',
+		'VIII',
+		'IX',
+		'X',
+	];
+
 	public function index(Request $request): View
 	{
 		$user = $this->authenticatedUser();
@@ -28,9 +47,9 @@ class MyAccountController extends Controller
 			'first_name' => ['required', 'string', 'max:100'],
 			'middle_name' => ['nullable', 'string', 'max:100'],
 			'last_name' => ['required', 'string', 'max:100'],
-			'suffix' => ['nullable', 'string', 'max:20'],
+			'suffix' => ['nullable', Rule::in(self::SUFFIXES)],
 			'contact_number' => ['nullable', 'string', 'max:25'],
-			'gender' => ['nullable', 'string', 'max:50'],
+			'gender' => ['nullable', Rule::in(self::GENDERS)],
 			'birth_date' => ['nullable', 'date'],
 			'profile_photo' => ['nullable', 'image', 'max:2048'],
 		]);
@@ -57,6 +76,26 @@ class MyAccountController extends Controller
 			->with('status', 'Profile updated.');
 	}
 
+	public function updatePassword(Request $request): RedirectResponse
+	{
+		$user = $this->authenticatedUser();
+
+		$validated = $request->validate([
+			'current_password' => ['required', 'current_password'],
+			'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
+		], [
+			'current_password.current_password' => 'The current password is incorrect.',
+			'password.regex' => 'The new password must be at least 8 characters long and include both letters and numbers.',
+		]);
+
+		$user->password = Hash::make($validated['password']);
+		$user->save();
+
+		return redirect()
+			->route('student.myaccount')
+			->with('status', 'Password updated.');
+	}
+
 	private function authenticatedUser(): User
 	{
 		$user = Auth::id() ? User::with(['role', 'department'])->find(Auth::id()) : null;
@@ -72,6 +111,8 @@ class MyAccountController extends Controller
 	{
 		return [
 			'user' => $user,
+			'genders' => self::GENDERS,
+			'suffixes' => self::SUFFIXES,
 			'displayName' => $this->displayName($user),
 			'roleName' => $user->role?->role_name ?? 'Student',
 			'email' => $user->email,

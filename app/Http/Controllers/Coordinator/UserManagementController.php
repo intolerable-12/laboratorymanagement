@@ -226,7 +226,7 @@ class UserManagementController extends Controller
             'last_name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\' .\- ]*$/u'],
             'suffix' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z.\-]+$/u'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'gender' => ['nullable', Rule::in(['Male', 'Female'])],
+            'gender' => ['nullable', Rule::in(['Male', 'Female', 'Unspecified'])],
             'email' => ['required', 'email', 'max:255', 'regex:/^[A-Za-z0-9._%+\-]+@lccdo\.edu\.ph$/i', $emailRule],
             'contact_number' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
             'role_id' => [

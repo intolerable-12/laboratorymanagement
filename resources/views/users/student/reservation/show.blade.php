@@ -41,8 +41,11 @@
                                     'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
+                                $statusLabel = $reservation->status === 'Facilitator Approved'
+                                    ? 'Laboratory In-charge Approved'
+                                    : $reservation->status;
                             @endphp
-                            <span class="badge text-bg-{{ $statusTone }}">{{ $reservation->status }}</span>
+                            <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                         </div>
 
                         @if (in_array($reservation->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
@@ -143,7 +146,7 @@
                                 <div class="activity-item">
                                     <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
                                         <div class="fw-semibold text-dark">{{ $log->action }}</div>
-                                        <span class="badge text-bg-light border text-secondary">{{ $log->role }}</span>
+                                        <span class="badge text-bg-light border text-secondary">{{ $log->role === 'Facilitator' ? 'Laboratory In-charge' : $log->role }}</span>
                                     </div>
                                     <div class="small text-secondary mb-1">By {{ $log->approvedBy?->first_name ?? 'System' }} {{ $log->approvedBy?->last_name ?? '' }}</div>
                                     <div class="small text-secondary">{{ $log->approved_at?->format('M d, Y h:i A') }}</div>

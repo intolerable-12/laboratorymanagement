@@ -13,6 +13,12 @@
             <div class="alert alert-success mb-4">{{ session('status') }}</div>
         @endif
 
+        @if ($errors->any())
+            <div class="alert alert-danger mb-4" role="alert">
+                Please correct the highlighted fields and try again.
+            </div>
+        @endif
+
 
 
         <section class="row g-4 mb-4">
@@ -61,7 +67,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-dark">Suffix</label>
-                                    <input type="text" name="suffix" class="form-control account-input" value="{{ old('suffix', $user->suffix) }}">
+                                    <select name="suffix" class="form-select account-input">
+                                        <option value="">No suffix</option>
+                                        @foreach ($suffixes as $suffix)
+                                            <option value="{{ $suffix }}" @selected(old('suffix', $user->suffix) === $suffix)>{{ $suffix }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-dark">Contact Number</label>
@@ -69,7 +80,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-dark">Gender</label>
-                                    <input type="text" name="gender" class="form-control account-input" value="{{ old('gender', $user->gender) }}">
+                                    <select name="gender" class="form-select account-input">
+                                        <option value="">Select gender</option>
+                                        @foreach ($genders as $gender)
+                                            <option value="{{ $gender }}" @selected(old('gender', $user->gender) === $gender)>{{ $gender }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">Birth Date</label>
@@ -93,20 +109,31 @@
             <div class="col-lg-6">
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
-                        <h3 class="h4 fw-semibold mb-4 text-dark">Change Password</h3>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark">Current Password</label>
-                            <input type="password" class="form-control account-input" placeholder="Enter current password">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark">New Password</label>
-                            <input type="password" class="form-control account-input" placeholder="Enter new password">
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold text-dark">Confirm New Password</label>
-                            <input type="password" class="form-control account-input" placeholder="Re-enter new password">
-                        </div>
-                        <button class="btn btn-primary w-100">Update Password</button>
+                        <form method="POST" action="{{ route('student.myaccount.password.update') }}">
+                            @csrf
+                            @method('PUT')
+
+                            <h3 class="h4 fw-semibold mb-4 text-dark">Change Password</h3>
+                            <div class="mb-3">
+                                <label for="current-password" class="form-label fw-semibold text-dark">Current Password</label>
+                                <input id="current-password" type="password" name="current_password" class="form-control account-input @error('current_password') is-invalid @enderror" placeholder="Enter current password" autocomplete="current-password" required>
+                                @error('current_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3">
+                                <label for="new-password" class="form-label fw-semibold text-dark">New Password</label>
+                                <input id="new-password" type="password" name="password" class="form-control account-input @error('password') is-invalid @enderror" placeholder="Enter new password" autocomplete="new-password" required>
+                                @error('password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-4">
+                                <label for="password-confirmation" class="form-label fw-semibold text-dark">Confirm New Password</label>
+                                <input id="password-confirmation" type="password" name="password_confirmation" class="form-control account-input" placeholder="Re-enter new password" autocomplete="new-password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                        </form>
                     </div>
                 </div>
             </div>

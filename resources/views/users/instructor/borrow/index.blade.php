@@ -74,6 +74,9 @@
 									'Cancelled' => 'danger',
 										default => 'secondary',
 									};
+									$statusLabel = $borrow->status === 'Facilitator Approved'
+										? 'Laboratory In-charge Approved'
+										: $borrow->status;
 								@endphp
 								<tr>
 									<td>
@@ -89,7 +92,7 @@
 										<div class="small text-secondary">Due {{ $borrow->due_at?->format('M d, Y h:i A') ?? '—' }}</div>
 									</td>
 									<td>
-										<span class="badge text-bg-{{ $statusTone }}">{{ $borrow->status }}</span>
+										<span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
 									</td>
 									<td class="text-center pe-4">
 										<a href="{{ route('instructor.borrow.show', $borrow) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>

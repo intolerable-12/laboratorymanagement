@@ -21,6 +21,7 @@
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
                 Please review the highlighted fields and selected item quantities.
+                @error('academic_period')<div class="mt-1">{{ $message }}</div>@enderror
             </div>
         @endif
 
@@ -89,30 +90,15 @@
                             @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold text-dark">School Year</label>
-                            <select name="school_year_id" class="form-select @error('school_year_id') is-invalid @enderror" required>
-                                <option value="">Select school year</option>
-                                @foreach ($schoolYears as $schoolYear)
-                                    <option value="{{ $schoolYear->id }}" @selected(old('school_year_id', $schoolYears->firstWhere('is_current', true)?->id) == $schoolYear->id)>
-                                        {{ $schoolYear->school_year }}{{ $schoolYear->is_current ? ' (Current)' : '' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('school_year_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold text-dark">Semester</label>
-                            <select name="semester_id" class="form-select @error('semester_id') is-invalid @enderror" required>
-                                <option value="">Select semester</option>
-                                @foreach ($semesters as $semester)
-                                    <option value="{{ $semester->id }}" @selected(old('semester_id') == $semester->id)>
-                                        {{ $semester->semester_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('semester_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        <div class="col-12">
+                            <div class="form-text">
+                                Academic period:
+                                @if ($currentSchoolYear && $currentSemester)
+                                    <strong>{{ $currentSchoolYear->school_year }} · {{ $currentSemester->semester_name }}</strong> (applied automatically)
+                                @else
+                                    <span class="text-danger">Not configured. Contact a coordinator before submitting.</span>
+                                @endif
+                            </div>
                         </div>
 
                         <div class="col-12">

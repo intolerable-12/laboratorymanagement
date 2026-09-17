@@ -66,9 +66,8 @@ class GuestReservationController extends Controller
         $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
         $selectedEquipmentItems = Equipment::whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
         $selectedChemicalItems = Chemical::whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
-        $schoolYears = SchoolYear::orderByDesc('is_current')->orderByDesc('start_date')->get(['id', 'school_year', 'is_current']);
-        $semesters = Semester::orderBy('display_order')->get(['id', 'semester_name', 'display_order']);
-
+        $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
+        $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
 
@@ -86,8 +85,8 @@ class GuestReservationController extends Controller
             'laboratories',
             'equipmentItems',
             'chemicalItems',
-            'schoolYears',
-            'semesters',
+            'currentSchoolYear',
+            'currentSemester',
             'activeTab',
             'selectedLaboratoryId',
             'reservationMinDate',
@@ -109,8 +108,6 @@ class GuestReservationController extends Controller
             'end_time' => ['required', 'date_format:H:i'],
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
-            'school_year_id' => ['required', 'exists:school_years,id'],
-            'semester_id' => ['required', 'exists:semesters,id'],
             'equipment_items' => ['nullable', 'array'],
             'chemical_items' => ['nullable', 'array'],
             'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
@@ -143,7 +140,15 @@ class GuestReservationController extends Controller
         $notificationService = app(RequestNotificationService::class);
         $reservation = DB::transaction(function () use ($data, $items, $notificationService) {
             $requester = app(GuestRequesterService::class)->resolve($data);
-            $schoolYear = SchoolYear::findOrFail($data['school_year_id']);
+            $schoolYear = SchoolYear::query()->where('is_current', true)->first();
+            $semester = Semester::query()->where('is_current', true)->first();
+
+            if (! $schoolYear || ! $semester) {
+                throw ValidationException::withMessages([
+                    'academic_period' => 'A current school year and semester must be configured before submitting a reservation.',
+                ]);
+            }
+
             $laboratory = Laboratory::query()->lockForUpdate()->findOrFail($data['laboratory_id']);
 
             if ($this->hasReservationTimeConflict((int) $data['laboratory_id'], $data['reservation_date'], $data['start_time'], $data['end_time'])) {
@@ -162,8 +167,8 @@ class GuestReservationController extends Controller
                 'expected_participants' => $data['expected_participants'],
                 'status' => 'Pending',
                 'remarks' => $data['remarks'] ?? null,
-                'school_year_id' => $data['school_year_id'],
-                'semester_id' => $data['semester_id'],
+                'school_year_id' => $schoolYear->id,
+                'semester_id' => $semester->id,
             ]);
 
             foreach ($items as $item) {
