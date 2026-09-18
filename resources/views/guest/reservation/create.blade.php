@@ -15,13 +15,17 @@
         </section>
 
         @if ($errors->any())
-            <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
-                Please review the highlighted fields and selected item quantities.
-                @error('academic_period')<div class="mt-1">{{ $message }}</div>@enderror
+            <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4" role="alert">
+                <div class="fw-semibold mb-1">Please correct the following before submitting:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
-        <form method="POST" action="{{ route('guest.reservations.store') }}">
+        <form method="POST" action="{{ route('guest.reservations.store') }}" novalidate>
             @csrf
 
             <div class="card section-card border-0 mb-4">
@@ -38,27 +42,27 @@
                         <div class="col-md-6">
                             <label for="guest-reservation-first-name" class="form-label fw-semibold">First name</label>
                             <input id="guest-reservation-first-name" type="text" name="first_name" value="{{ old('first_name') }}" class="form-control @error('first_name') is-invalid @enderror" required>
-                            @error('first_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('first_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-last-name" class="form-label fw-semibold">Last name</label>
                             <input id="guest-reservation-last-name" type="text" name="last_name" value="{{ old('last_name') }}" class="form-control @error('last_name') is-invalid @enderror" required>
-                            @error('last_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('last_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-middle-name" class="form-label fw-semibold">Middle name <span class="text-secondary fw-normal">(optional)</span></label>
                             <input id="guest-reservation-middle-name" type="text" name="middle_name" value="{{ old('middle_name') }}" class="form-control @error('middle_name') is-invalid @enderror">
-                            @error('middle_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('middle_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-suffix" class="form-label fw-semibold">Suffix <span class="text-secondary fw-normal">(optional)</span></label>
                             <input id="guest-reservation-suffix" type="text" name="suffix" value="{{ old('suffix') }}" class="form-control @error('suffix') is-invalid @enderror" placeholder="Jr., III, etc.">
-                            @error('suffix')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('suffix')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-student-id" class="form-label fw-semibold">Student ID</label>
                             <input id="guest-reservation-student-id" type="text" name="student_id" value="{{ old('student_id') }}" pattern="[SC][0-9]{2}-[0-9]{4}" maxlength="8" placeholder="SXX-XXXX or CXX-XXXX" class="form-control @error('student_id') is-invalid @enderror" required>
-                            @error('student_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-department" class="form-label fw-semibold">Department</label>
@@ -68,17 +72,17 @@
                                     <option value="{{ $department->id }}" @selected(old('department_id') == $department->id)>{{ $department->department_name }}</option>
                                 @endforeach
                             </select>
-                            @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('department_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-email" class="form-label fw-semibold">Email address</label>
                             <input id="guest-reservation-email" type="email" name="email" value="{{ old('email') }}" pattern="[^@\s]+@lccdo\.edu\.ph" placeholder="name@lccdo.edu.ph" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
-                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('email')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="guest-reservation-contact" class="form-label fw-semibold">Contact number</label>
                             <input id="guest-reservation-contact" type="tel" name="contact_number" value="{{ old('contact_number') }}" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" maxlength="13" placeholder="09XXXXXXXXX or +639XXXXXXXXX" class="form-control @error('contact_number') is-invalid @enderror" autocomplete="tel" required>
-                            @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('contact_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                     </div>
                 </div>
@@ -96,17 +100,17 @@
                                     <option value="{{ $laboratory->id }}" @selected(old('laboratory_id', $selectedLaboratoryId) == $laboratory->id)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
                                 @endforeach
                             </select>
-                            @error('laboratory_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-lg-8">
                             <label for="guest-experiment-title" class="form-label fw-semibold">Experiment / Activity Title</label>
                             <input id="guest-experiment-title" type="text" name="experiment_title" value="{{ old('experiment_title') }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity" required>
-                            @error('experiment_title')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('experiment_title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
                             <label for="guest-purpose" class="form-label fw-semibold">Purpose</label>
                             <textarea id="guest-purpose" name="purpose" rows="3" class="form-control @error('purpose') is-invalid @enderror" placeholder="Describe the purpose of the reservation" required>{{ old('purpose') }}</textarea>
-                            @error('purpose')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('purpose')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
                             <label for="guest-reservation-date" class="form-label fw-semibold">Reservation date</label>
@@ -129,7 +133,7 @@
                         <div class="col-md-4">
                             <label for="guest-participants" class="form-label fw-semibold">Expected participants</label>
                             <input id="guest-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
-                            @error('expected_participants')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
                             <div class="form-text">
