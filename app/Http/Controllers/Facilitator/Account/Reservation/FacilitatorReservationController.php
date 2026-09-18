@@ -50,7 +50,8 @@ class FacilitatorReservationController extends Controller
 	{
 		$this->ensureFacilitator($request);
 
-		$reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester']);
+		$reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester', 'borrowTransactions']);
+		$borrowTransaction = $reservation->borrowTransactions->sortByDesc('id')->first();
 		$equipmentItems = $this->availableItems($request, (int) $reservation->laboratory_id, 'Equipment');
 		$chemicalItems = $this->availableItems($request, (int) $reservation->laboratory_id, 'Chemical');
 
@@ -64,7 +65,7 @@ class FacilitatorReservationController extends Controller
 			]);
 		}
 
-		return view('users.facilitator.reservation.show', compact('reservation', 'equipmentItems', 'chemicalItems'));
+		return view('users.facilitator.reservation.show', compact('reservation', 'borrowTransaction', 'equipmentItems', 'chemicalItems'));
 	}
 
 	public function approve(Request $request, Reservation $reservation)

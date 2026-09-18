@@ -51,6 +51,11 @@
                             @endphp
                             <div class="d-flex align-items-center gap-3">
                                 <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
+                                @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction)
+                                    <a href="{{ route('facilitator.checkout.show', $borrowTransaction) }}" class="btn btn-success px-3">
+                                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                                    </a>
+                                @endif
                                 <a href="{{ route('facilitator.reservations.index') }}" class="btn btn-outline-secondary px-3">Back to Queue</a>
                             </div>
                         </div>
