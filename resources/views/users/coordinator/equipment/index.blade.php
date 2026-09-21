@@ -38,6 +38,10 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
+    @if ($errors->any())
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ $errors->first() }}</div>
+    @endif
+
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <div class="text-secondary">Manage equipment records and categories.</div>
@@ -333,8 +337,31 @@
                                     <td>{{ $equipment->category->category_name ?? '-' }}</td>
                                     <td>{{ $equipment->laboratory->laboratory_name ?? '-' }}</td>
                                     <td>
-                                        <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
-                                        <div class="small text-secondary">Available / total quantity</div>
+                                        @if (!$archived)
+                                            <form action="{{ route('coordinator.equipment.quantity.update', array_merge(['equipment' => $equipment], $listQuery)) }}" method="POST" class="d-flex align-items-center gap-1">
+                                                @csrf
+                                                @method('PATCH')
+                                                <label class="visually-hidden" for="quantity-{{ $equipment->id }}">Total quantity for {{ $equipment->equipment_name }}</label>
+                                                <input
+                                                    type="number"
+                                                    id="quantity-{{ $equipment->id }}"
+                                                    name="quantity"
+                                                    value="{{ $equipment->quantity }}"
+                                                    min="{{ max(0, $equipment->quantity - $equipment->available_quantity) }}"
+                                                    class="form-control form-control-sm text-center"
+                                                    style="width: 5.25rem;"
+                                                    aria-label="Total quantity"
+                                                    required
+                                                >
+                                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Save total quantity" aria-label="Save total quantity">
+                                                    <i class="fa-solid fa-check"></i>
+                                                </button>
+                                            </form>
+                                            <div class="small text-secondary mt-1">{{ $equipment->available_quantity }} available / {{ $equipment->quantity }} total</div>
+                                        @else
+                                            <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
+                                            <div class="small text-secondary">Available / total quantity</div>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge text-bg-{{ $archived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">

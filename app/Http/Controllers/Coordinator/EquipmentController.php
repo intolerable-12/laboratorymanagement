@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Picqer\Barcode\BarcodeGenerator;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 
@@ -203,7 +204,7 @@ class EquipmentController extends Controller
     public function update(Request $request, Equipment $equipment)
     {
         $data = $this->validateEquipment($request, $equipment);
-        $data['available_quantity'] = $data['quantity'];
+        $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
 
         if ((int) ($equipment->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
             $data['supplier_alert_sent_at'] = null;
@@ -220,6 +221,23 @@ class EquipmentController extends Controller
         $equipment->update($data);
 
         return redirect()->route('coordinator.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
+    }
+
+    public function updateQuantity(Request $request, Equipment $equipment)
+    {
+        $data = $request->validate([
+            'quantity' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $newQuantity = (int) $data['quantity'];
+        $equipment->update([
+            'quantity' => $newQuantity,
+            'available_quantity' => $this->availableQuantityAfterTotalChange($equipment, $newQuantity),
+        ]);
+
+        return redirect()
+            ->route('coordinator.equipment.index', $request->query())
+            ->with('status', 'Equipment quantity updated successfully.');
     }
 
     public function destroy(Equipment $equipment)
@@ -248,6 +266,22 @@ class EquipmentController extends Controller
             'description' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
         ]);
+    }
+
+    private function availableQuantityAfterTotalChange(Equipment $equipment, int $newQuantity): int
+    {
+        // Keep the units currently borrowed/unavailable out of the new total.
+        // Example: 42 available / 50 total means 8 unavailable; changing the
+        // total to 48 results in 40 available / 48 total.
+        $unavailableQuantity = max(0, (int) $equipment->quantity - (int) $equipment->available_quantity);
+
+        if ($newQuantity < $unavailableQuantity) {
+            throw ValidationException::withMessages([
+                'quantity' => "Total quantity cannot be less than {$unavailableQuantity} because that many units are currently unavailable.",
+            ]);
+        }
+
+        return $newQuantity - $unavailableQuantity;
     }
 
     private function generateEquipmentCode(Laboratory $laboratory): string
