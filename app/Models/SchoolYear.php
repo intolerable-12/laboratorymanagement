@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SchoolYear extends Model
 {
@@ -44,5 +45,15 @@ class SchoolYear extends Model
     public function laboratorySchedules(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(LaboratorySchedule::class);
+    }
+
+    public function equipmentInventoryPeriods(): HasMany
+    {
+        return $this->hasMany(EquipmentInventoryPeriod::class);
+    }
+
+    public function chemicalInventoryPeriods(): HasMany
+    {
+        return $this->hasMany(ChemicalInventoryPeriod::class);
     }
 }

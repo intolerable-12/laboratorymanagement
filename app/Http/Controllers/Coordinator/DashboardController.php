@@ -112,6 +112,7 @@ class DashboardController extends Controller
                 ['label' => 'School Year & Semester', 'href' => route('coordinator.academic-periods.index')],
                 ['label' => 'Laboratories', 'href' => route('coordinator.laboratories.index')],
                 ['label' => 'Equipment Management', 'href' => route('coordinator.equipment.index')],
+                ['label' => 'Reports', 'href' => route('coordinator.reports.index')],
                 ['label' => 'Chemical Inventory', 'href' => route('coordinator.chemicals.index')],
                 ['label' => 'Supplier Alert Settings', 'href' => route('coordinator.inventory-alerts.index')],
                 ['label' => 'Supplier Management', 'href' => route('coordinator.suppliers.index')],

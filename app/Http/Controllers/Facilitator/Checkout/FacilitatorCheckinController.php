@@ -10,6 +10,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\InventoryLog;
+use App\Services\ChemicalInventoryPeriodTracker;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -161,6 +162,13 @@ class FacilitatorCheckinController extends Controller
             ]);
 
             $now = now();
+            if ($itemType === 'Chemical' && abs($newUsed - $used) >= 0.005) {
+                app(ChemicalInventoryPeriodTracker::class)->recordUsage(
+                    chemical: $inventoryItem,
+                    usageDelta: round($newUsed - $used, 2),
+                    usedAt: $now,
+                );
+            }
             $itemName = $itemType === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name;
             $unit = $itemType === 'Chemical' ? ($inventoryItem->unit ?? 'unit') : 'unit(s)';
             $remarks = 'Barcode check-in for '.$transaction->borrow_no.' - '.$itemName.' for '.$this->borrowerName($transaction).'.';
@@ -369,6 +377,7 @@ class FacilitatorCheckinController extends Controller
             }
 
             $checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
+            $previousUsed = (float) ($borrowItem->quantity_used ?? 0);
             $used = $scan->item_type === 'Chemical'
                 ? ($remainingScans->isEmpty()
                     ? 0
@@ -384,6 +393,13 @@ class FacilitatorCheckinController extends Controller
             ]);
 
             $now = now();
+            if ($scan->item_type === 'Chemical' && abs($used - $previousUsed) >= 0.005) {
+                app(ChemicalInventoryPeriodTracker::class)->recordUsage(
+                    chemical: $inventoryItem,
+                    usageDelta: round($used - $previousUsed, 2),
+                    usedAt: $now,
+                );
+            }
             $scan->update([
                 'is_voided' => true,
                 'voided_by' => $request->user()->userNo,

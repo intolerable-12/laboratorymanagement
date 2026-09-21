@@ -29,6 +29,7 @@
 
         $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
         $isAcademicPeriods = request()->routeIs('coordinator.academic-periods.*');
+        $isReports = request()->routeIs('coordinator.reports.*');
 
         $isAnnouncementsIndex = request()->routeIs('coordinator.announcements.index');
         $isAnnouncementsGroup = request()->routeIs('coordinator.announcements.*');
@@ -290,7 +291,7 @@
                     <span class="sidebar-item__label">School Year & Semester</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2" href="#" title="Reports">
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReports ? 'active' : '' }}" href="{{ route('coordinator.reports.index') }}" title="Reports">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-chart-column"></i></span>
                     <span class="sidebar-item__label">Reports</span>
                 </a>

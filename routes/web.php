@@ -30,6 +30,8 @@ use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarC
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorBorrowCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationController;
 use App\Http\Controllers\Coordinator\ReservationHistory\RequestHistoryController;
+use App\Http\Controllers\Coordinator\Reports\ChemicalReportController;
+use App\Http\Controllers\Coordinator\Reports\EquipmentReportController;
 use App\Http\Controllers\Coordinator\UserManagementController;
 use App\Http\Controllers\Coordinator\UserAccountRequestController;
 use App\Http\Controllers\Facilitator\DashboardController as FacilitatorDashboardController;
@@ -119,6 +121,14 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
         Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', fn () => redirect()->route('coordinator.reports.equipment.index'))->name('index');
+            Route::get('/equipment', [EquipmentReportController::class, 'index'])->name('equipment.index');
+            Route::get('/equipment/export', [EquipmentReportController::class, 'export'])->name('equipment.export');
+            Route::get('/chemicals', [ChemicalReportController::class, 'index'])->name('chemicals.index');
+            Route::get('/chemicals/export', [ChemicalReportController::class, 'export'])->name('chemicals.export');
+        });
+
         Route::get('/users/archived', [UserManagementController::class, 'archived'])->name('users.archived');
         Route::get('/users/requests', [UserAccountRequestController::class, 'index'])->name('users.requests.index');
         Route::get('/users/requests/{accountRequest}', [UserAccountRequestController::class, 'show'])->name('users.requests.show');
@@ -153,6 +163,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/create', [EquipmentController::class, 'create'])->name('create');
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::patch('/{equipment}/quantity', [EquipmentController::class, 'updateQuantity'])->name('quantity.update');
                 Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
                 Route::post('/{equipment}/restore', [EquipmentController::class, 'restore'])->withTrashed()->name('restore');
