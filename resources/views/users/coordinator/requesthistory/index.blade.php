@@ -37,12 +37,12 @@
                 <table class="table align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Student / Guest</th>
-                            <th>Student ID</th>
-                            <th>Email</th>
-                            <th class="text-center">Reservations</th>
-                            <th class="text-center">Borrowing</th>
-                            <th class="text-center">Actions</th>
+                            <th class="text-dark">Student / Guest</th>
+                            <th class="text-dark">Student ID</th>
+                            <th class="text-dark">Email</th>
+                            <th class="text-dark">Reservations</th>
+                            <th class="text-dark">Borrowing</th>
+                            <th class="text-center text-dark">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -66,7 +66,7 @@
                                 <td class="text-center"><span class="badge text-bg-primary">{{ number_format($requester->borrow_transactions_count) }}</span></td>
                                 <td class="text-center">
                                     <a href="{{ route('coordinator.requesthistory.show', $requester) }}" class="btn btn-sm btn-outline-primary" title="View request history">
-                                        <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>View
+                                        <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>
                                     </a>
                                 </td>
                             </tr>

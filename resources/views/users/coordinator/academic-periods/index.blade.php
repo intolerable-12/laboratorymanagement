@@ -22,10 +22,9 @@
                 <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <div>
-                            <h3 class="h5 fw-semibold mb-1">School years</h3>
-                            <p class="mb-0 text-secondary">Define the academic year and its date range.</p>
+                            <h3 class="h5 fw-semibold mb-2  ">School years</h3>
                         </div>
-                        <a href="{{ route('coordinator.academic-periods.school-years.create') }}" class="btn btn-primary">
+                        <a href="{{ route('coordinator.academic-periods.school-years.create') }}" class="btn btn-primary mb-2">
                             <i class="fa-solid fa-plus me-1"></i>Add school year
                         </a>
                     </div>
@@ -35,9 +34,9 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-4">School year</th>
-                                    <th>Date range</th>
-                                    <th class="text-center pe-4">Actions</th>
+                                    <th class="text-dark ps-4">School year</th>
+                                    <th class="text-dark">Date range</th>
+                                    <th class="text-center text-dark pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -81,10 +80,9 @@
                 <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <div>
-                            <h3 class="h5 fw-semibold mb-1">Semesters</h3>
-                            <p class="mb-0 text-secondary">Set the active term for new reservations.</p>
+                            <h3 class="h5 fw-semibold mb-2">Semesters</h3>
                         </div>
-                        <a href="{{ route('coordinator.academic-periods.semesters.create') }}" class="btn btn-primary">
+                        <a href="{{ route('coordinator.academic-periods.semesters.create') }}" class="btn btn-primary mb-2">
                             <i class="fa-solid fa-plus me-1"></i>Add semester
                         </a>
                     </div>
@@ -94,9 +92,9 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-4">Semester</th>
-                                    <th class="text-center">Order</th>
-                                    <th class="text-center pe-4">Actions</th>
+                                    <th class="text-dark ps-4">Semester</th>
+                                    <th class="text-dark">Order</th>
+                                    <th class="text-center text-dark pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
