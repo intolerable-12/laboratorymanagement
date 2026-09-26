@@ -4,6 +4,12 @@ namespace App\Providers;
 
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\SchoolYear;
+use App\Models\Semester;
+use App\Observers\EquipmentObserver;
+use App\Observers\ChemicalObserver;
+use App\Observers\SchoolYearObserver;
+use App\Observers\SemesterObserver;
 use App\Services\RequestNotificationService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\Paginator;
@@ -31,6 +37,11 @@ class AppServiceProvider extends ServiceProvider
             'Equipment' => Equipment::class,
             'Chemical' => Chemical::class,
         ]);
+
+        Equipment::observe(EquipmentObserver::class);
+        Chemical::observe(ChemicalObserver::class);
+        SchoolYear::observe(SchoolYearObserver::class);
+        Semester::observe(SemesterObserver::class);
 
         View::composer('partials.notification-bell', function ($view) {
             $user = auth()->user();

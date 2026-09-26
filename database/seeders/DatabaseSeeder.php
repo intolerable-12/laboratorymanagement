@@ -29,6 +29,8 @@ class DatabaseSeeder extends Seeder
             ChemistryChemicalSeeder::class,
             BiologyChemicalSeeder::class,
             PhysicsChemicalSeeder::class,
+            EquipmentInventoryPeriodSeeder::class,
+            ChemicalInventoryPeriodSeeder::class,
 
         ]);
     }

@@ -56,7 +56,7 @@
                         <div class="mt-2 fw-semibold text-dark">Current equipment code: {{ $equipment->equipment_code }}</div>
                     @endif
                     <div class="mt-2 small text-secondary">
-                        Available quantity is saved automatically as the same value as quantity.
+                        Available quantity is kept separate from total quantity. When the total changes, units currently unavailable remain unavailable.
                     </div>
                 </div>
             </div>
@@ -119,15 +119,16 @@
             </div>
 
             <div class="col-md-6">
-                <label class="form-label" for="purchase_date">Purchase date</label>
+                <label class="form-label" for="purchase_date">Acquired date (purchase date)</label>
                 <input type="date" id="purchase_date" name="purchase_date" value="{{ old('purchase_date', optional($equipment?->purchase_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('purchase_date') is-invalid @enderror">
+                <div class="form-text">Enter the date when the equipment was purchased.</div>
                 @error('purchase_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
                 <label class="form-label" for="quantity">Quantity</label>
-                <input type="number" id="quantity" name="quantity" value="{{ old('quantity', $equipment->quantity ?? 0) }}" class="form-control admin-form-control @error('quantity') is-invalid @enderror" min="0" required>
-                <div class="form-text">Available quantity will match this value automatically.</div>
+                <input type="number" id="quantity" name="quantity" value="{{ old('quantity', $equipment->quantity ?? 0) }}" class="form-control admin-form-control @error('quantity') is-invalid @enderror" min="{{ isset($equipment) ? max(0, $equipment->quantity - $equipment->available_quantity) : 0 }}" required>
+                <div class="form-text">Total quantity. The available quantity will preserve units currently unavailable.</div>
                 @error('quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 

@@ -13,7 +13,7 @@
     @endif
 
     <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4">
-        New student and guest reservation requests automatically use the school year and semester marked <strong>Current</strong> below.
+        New reservations and equipment quantity changes use the school year and semester marked <strong>Current</strong> below. Use <strong>Edit period</strong> to change a school year's start and end dates.
     </div>
 
     <div class="row g-4">
@@ -57,7 +57,7 @@
                                                         <button type="submit" class="btn btn-sm btn-outline-success" title="Set current" aria-label="Set current"><i class="fa-solid fa-check"></i></button>
                                                     </form>
                                                 @endunless
-                                                <a href="{{ route('coordinator.academic-periods.school-years.edit', $schoolYear) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                                                <a href="{{ route('coordinator.academic-periods.school-years.edit', $schoolYear) }}" class="btn btn-sm btn-outline-primary" title="Edit school year period" aria-label="Edit school year period"><i class="fa-solid fa-pen-to-square"></i><span class="d-none d-lg-inline ms-1">Edit period</span></a>
                                                 <form method="POST" action="{{ route('coordinator.academic-periods.school-years.destroy', $schoolYear) }}">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" aria-label="Delete" onclick="return confirm('Delete this school year?');" @disabled($schoolYear->is_current)><i class="fa-solid fa-trash"></i></button>
