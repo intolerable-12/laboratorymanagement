@@ -87,12 +87,12 @@
                     <table class="table align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>Reservation</th>
-                                <th>Laboratory</th>
-                                <th>Schedule</th>
-                                <th>Items</th>
-                                <th>Status</th>
-                                <th class="text-center">Actions</th>
+                                <th class="text-dark">Reservation</th>
+                                <th class="text-dark">Laboratory</th>
+                                <th class="text-dark">Schedule</th>
+                                <th class="text-dark">Items</th>
+                                <th class="text-dark">Status</th>
+                                <th class="text-center text-dark">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,12 +142,12 @@
                     <table class="table align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>Borrow</th>
-                                <th>Laboratory</th>
-                                <th>Borrow Period</th>
-                                <th>Items</th>
-                                <th>Status</th>
-                                <th class="text-center">Actions</th>
+                                <th class="text-dark">Borrow</th>
+                                <th class="text-dark">Laboratory</th>
+                                <th class="text-dark">Borrow Period</th>
+                                <th class="text-dark">Items</th>
+                                <th class="text-dark">Status</th>
+                                <th class="text-center text-dark">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
