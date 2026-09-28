@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Facilitator\Borrow;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowEmailController;
 use App\Models\BorrowTransaction;
-use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
@@ -48,19 +47,18 @@ class FacilitatorBorrowController extends Controller
 
 		$borrowTransaction->load(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy']);
 		$equipmentItems = $this->availableItems($request, (int) $borrowTransaction->laboratory_id, 'Equipment');
-		$chemicalItems = $this->availableItems($request, (int) $borrowTransaction->laboratory_id, 'Chemical');
 
 		if ($request->ajax() && $request->query('fragment') === 'item-results') {
 			$itemType = ucfirst(strtolower((string) $request->query('item_type', 'Equipment')));
-			abort_unless(in_array($itemType, ['Equipment', 'Chemical'], true), 404);
+			abort_unless($itemType === 'Equipment', 404);
 
 			return view('users.facilitator.partials.review-item-results', [
-				'items' => $itemType === 'Equipment' ? $equipmentItems : $chemicalItems,
+				'items' => $equipmentItems,
 				'itemType' => $itemType,
 			]);
 		}
 
-		return view('users.facilitator.borrow.show', compact('borrowTransaction', 'equipmentItems', 'chemicalItems'));
+		return view('users.facilitator.borrow.show', compact('borrowTransaction', 'equipmentItems'));
 	}
 
 	public function approve(Request $request, BorrowTransaction $borrowTransaction)
@@ -73,7 +71,6 @@ class FacilitatorBorrowController extends Controller
 			'items' => ['nullable', 'array'],
 			'new_items' => ['nullable', 'array'],
 			'new_items.Equipment' => ['nullable', 'array'],
-			'new_items.Chemical' => ['nullable', 'array'],
 			'new_items.*.*.quantity' => ['required', 'numeric', 'gt:0'],
 			'remove_items' => ['nullable', 'array'],
 			'remove_items.*' => ['integer'],
@@ -92,6 +89,13 @@ class FacilitatorBorrowController extends Controller
 		}
 
 		$data = $request->validate($rules);
+
+		if (! empty($data['new_items']['Chemical'])) {
+			throw ValidationException::withMessages([
+				'new_items.Chemical' => 'Chemicals cannot be included in borrow requests. Request them through a reservation instead.',
+			]);
+		}
+
 		$keptItems = [];
 		$seenItems = [];
 
@@ -107,7 +111,7 @@ class FacilitatorBorrowController extends Controller
 		}
 
 		$newItems = [];
-		foreach (['Equipment', 'Chemical'] as $itemType) {
+		foreach (['Equipment'] as $itemType) {
 			foreach ((array) ($data['new_items'][$itemType] ?? []) as $itemId => $payload) {
 				$key = $itemType . ':' . $itemId;
 
@@ -125,7 +129,7 @@ class FacilitatorBorrowController extends Controller
 
 		if ($keptItems === [] && $newItems === []) {
 			throw ValidationException::withMessages([
-				'items' => 'Keep or add at least one equipment or chemical item before approving.',
+				'items' => 'Keep or add at least one equipment item before approving.',
 			]);
 		}
 
@@ -243,9 +247,9 @@ class FacilitatorBorrowController extends Controller
 	private function availableItems(Request $request, int $laboratoryId, string $itemType)
 	{
 		$search = trim((string) $request->query('search', ''));
-		$model = $itemType === 'Equipment' ? Equipment::query() : Chemical::query();
-		$nameColumn = $itemType === 'Equipment' ? 'equipment_name' : 'chemical_name';
-		$codeColumn = $itemType === 'Equipment' ? 'equipment_code' : 'chemical_code';
+		$model = Equipment::query();
+		$nameColumn = 'equipment_name';
+		$codeColumn = 'equipment_code';
 
 		$model->where('laboratory_id', $laboratoryId)
 			->where('status', 'Available')
@@ -265,11 +269,11 @@ class FacilitatorBorrowController extends Controller
 			throw ValidationException::withMessages([$errorKey => 'Equipment quantities must be a whole number of at least 1.']);
 		}
 
-		if ($itemType === 'Chemical' && (! is_numeric($quantity) || (float) $quantity < 0.01)) {
-			throw ValidationException::withMessages([$errorKey => 'Chemical quantities must be at least 0.01.']);
+		if ($itemType !== 'Equipment') {
+			throw ValidationException::withMessages([$errorKey => 'Chemicals cannot be included in borrow requests. Request them through a reservation instead.']);
 		}
 
-		$inventoryItem = $itemType === 'Equipment' ? Equipment::find($itemId) : Chemical::find($itemId);
+		$inventoryItem = Equipment::find($itemId);
 
 		if (! $inventoryItem || (int) $inventoryItem->laboratory_id !== $laboratoryId || $inventoryItem->status !== 'Available') {
 			throw ValidationException::withMessages([$errorKey => 'This item is not available in the request laboratory.']);

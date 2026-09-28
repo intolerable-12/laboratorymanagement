@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\BorrowTransaction;
 use App\Models\Announcement;
+use App\Models\Chemical;
+use App\Models\Equipment;
 use App\Models\Notification as UserNotification;
 use App\Mail\RequestReviewMail;
 use App\Models\Reservation;
@@ -138,6 +140,18 @@ class RequestNotificationService
         $notification->loadMissing('reference');
 
         $reference = $notification->reference;
+
+        if ($reference instanceof Equipment) {
+            return $user->role?->role_name === 'Coordinator'
+                ? route('coordinator.equipment.show', $reference)
+                : route('notifications.index');
+        }
+
+        if ($reference instanceof Chemical) {
+            return $user->role?->role_name === 'Coordinator'
+                ? route('coordinator.chemicals.show', $reference)
+                : route('notifications.index');
+        }
 
         if ($reference instanceof Reservation) {
             return match ($user->role?->role_name) {

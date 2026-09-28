@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Chemical extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const STATUSES = ['Active', 'Inactive', 'Expired', 'For Disposal'];
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +34,8 @@ class Chemical extends Model
         'expiration_date',
         'expiration_alert_days',
         'supplier_alert_sent_at',
+        'low_stock_supplier_alert_sent_at',
+        'low_stock_alert_sent_at',
         'received_date',
         'hazard_classification',
         'storage_location',
@@ -54,8 +59,29 @@ class Chemical extends Model
             'expiration_date' => 'date',
             'expiration_alert_days' => 'integer',
             'supplier_alert_sent_at' => 'datetime',
+            'low_stock_supplier_alert_sent_at' => 'datetime',
+            'low_stock_alert_sent_at' => 'datetime',
             'received_date' => 'date',
         ];
+    }
+
+    /**
+     * Scope chemicals that may be included in a user request.
+     */
+    public function scopeAvailableForRequest(Builder $query): Builder
+    {
+        $statusColumn = $query->qualifyColumn('status');
+        $quantityColumn = $query->qualifyColumn('quantity');
+        $expirationColumn = $query->qualifyColumn('expiration_date');
+
+        return $query
+            ->where($statusColumn, 'Active')
+            ->where($quantityColumn, '>', 0)
+            ->where(function (Builder $query) use ($expirationColumn): void {
+                $query
+                    ->whereNull($expirationColumn)
+                    ->orWhereDate($expirationColumn, '>', today());
+            });
     }
 
     /**

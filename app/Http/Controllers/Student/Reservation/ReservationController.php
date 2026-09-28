@@ -48,7 +48,7 @@ class ReservationController extends Controller
             ->where('status', 'Available')
             ->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')
-            ->where('status', 'Available')
+            ->availableForRequest()
             ->orderBy('chemical_name');
         $search = trim((string) $request->query('search', ''));
 
@@ -82,6 +82,7 @@ class ReservationController extends Controller
             ->get()
             ->keyBy('id');
         $selectedChemicalItems = Chemical::query()
+            ->availableForRequest()
             ->whereIn('id', array_keys($oldChemicalSelections))
             ->get()
             ->keyBy('id');
@@ -388,8 +389,13 @@ class ReservationController extends Controller
                 continue;
             }
 
-            if ($chemical->status !== 'Available') {
-                $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently available.';
+            if ($chemical->status === 'Expired' || $chemical->is_expired) {
+                $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical has expired and cannot be requested.';
+                continue;
+            }
+
+            if ($chemical->status !== 'Active') {
+                $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently active for requests.';
                 continue;
             }
 

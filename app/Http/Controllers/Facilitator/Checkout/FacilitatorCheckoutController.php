@@ -10,6 +10,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\InventoryLog;
+use App\Services\ChemicalInventoryPeriodTracker;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -40,7 +41,7 @@ class FacilitatorCheckoutController extends Controller
     {
         $this->ensureCheckoutStaff($request);
 
-        abort_unless(in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed', 'Borrowed'], true), 404);
+        abort_unless(in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Returned'], true), 404);
 
         $borrowTransaction->load(['borrower', 'laboratory', 'reservation', 'items.item', 'releasedBy', 'barcodeLogs.item']);
 
@@ -62,6 +63,7 @@ class FacilitatorCheckoutController extends Controller
             'barcode' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'condition_out' => ['required', 'in:Excellent,Good,Fair,Damaged,Under Repair,Lost'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $data): array {
@@ -80,6 +82,10 @@ class FacilitatorCheckoutController extends Controller
 
             $barcode = trim($data['barcode']);
             [$itemType, $inventoryItem] = $this->findScannedItem($transaction, $barcode);
+
+            if ($itemType === 'Chemical' && ! $transaction->reservation_id) {
+                $this->checkoutError('barcode', 'Chemicals may only be checked out for reservations.');
+            }
 
             $borrowItem = BorrowItem::query()
                 ->where('borrow_transaction_id', $transaction->id)
@@ -118,6 +124,22 @@ class FacilitatorCheckoutController extends Controller
                 $this->checkoutError('quantity', 'The inventory has only '.rtrim(rtrim(number_format($available, 2, '.', ''), '0'), '.').' available.');
             }
 
+            if ($itemType === 'Chemical' && $inventoryItem->is_expired) {
+                $this->checkoutError('barcode', 'This chemical has expired and cannot be checked out.');
+            }
+
+            if ($itemType === 'Chemical' && $inventoryItem->status !== 'Active') {
+                $this->checkoutError('barcode', 'This chemical is not active and cannot be checked out.');
+            }
+
+            $condition = $data['condition_out'];
+            $requiresRemarks = in_array($condition, ['Lost', 'Damaged'], true);
+            $operatorRemarks = $requiresRemarks ? trim((string) ($data['remarks'] ?? '')) : '';
+
+            if ($requiresRemarks && $operatorRemarks === '') {
+                $this->checkoutError('remarks', 'Remarks are required when the item is marked Lost or Damaged.');
+            }
+
             $before = $available;
             $after = round($before - $quantity, 2);
 
@@ -129,21 +151,29 @@ class FacilitatorCheckoutController extends Controller
             } else {
                 $inventoryItem->update([
                     'quantity' => $after,
-                    'status' => $after <= 0
-                        ? 'Unavailable'
-                        : ($after <= (float) $inventoryItem->minimum_stock ? 'Low Stock' : 'Available'),
+                    'status' => $after <= 0 ? 'Inactive' : 'Active',
                 ]);
+
+                app(ChemicalInventoryPeriodTracker::class)->recordUsage(
+                    chemical: $inventoryItem,
+                    usageDelta: $quantity,
+                    usedAt: now(),
+                );
             }
 
             $newCheckedOut = round($checkedOut + $quantity, 2);
             $borrowItem->update([
                 'quantity_checked_out' => $newCheckedOut,
-                'condition_out' => $data['condition_out'] ?? $borrowItem->condition_out ?? 'Good',
+                'condition_out' => $condition,
             ]);
 
             $now = now();
             $itemName = $itemType === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name;
             $remarks = 'Barcode checkout for '.$transaction->borrow_no.' — '.$itemName.' for '.$this->borrowerName($transaction).'.';
+
+            if ($operatorRemarks !== '') {
+                $remarks .= ' Remarks: '.$operatorRemarks;
+            }
 
             InventoryLog::create([
                 'item_type' => $itemType,
@@ -174,11 +204,19 @@ class FacilitatorCheckoutController extends Controller
             $allCheckedOut = $transaction->items()
                 ->whereRaw('quantity_checked_out + 0.001 < quantity_borrowed')
                 ->doesntExist();
+            $hasReturnableEquipment = $transaction->items()
+                ->where('item_type', 'Equipment')
+                ->exists();
 
             $transaction->update([
-                'status' => $allCheckedOut ? 'Borrowed' : 'Partially Borrowed',
+                'status' => $allCheckedOut
+                    ? ($hasReturnableEquipment ? 'Borrowed' : 'Returned')
+                    : 'Partially Borrowed',
                 'released_by' => $request->user()->userNo,
                 'checked_out_at' => $allCheckedOut ? $now : $transaction->checked_out_at,
+                'returned_at' => $allCheckedOut && ! $hasReturnableEquipment
+                    ? ($transaction->returned_at ?? $now)
+                    : null,
             ]);
 
             AuditLog::create([
@@ -248,6 +286,9 @@ class FacilitatorCheckoutController extends Controller
                 'items' => $updatedTransaction->items->map(function (BorrowItem $item): array {
                     $requested = (float) $item->quantity_borrowed;
                     $checkedOut = (float) ($item->quantity_checked_out ?? 0);
+                    $available = $item->item_type === 'Equipment'
+                        ? (float) ($item->item?->available_quantity ?? 0)
+                        : (float) ($item->item?->quantity ?? 0);
 
                     return [
                         'key' => $item->item_type.':'.$item->item_id,
@@ -255,6 +296,7 @@ class FacilitatorCheckoutController extends Controller
                         'checked_out' => $checkedOut,
                         'requested' => $requested,
                         'remaining' => max(0, round($requested - $checkedOut, 2)),
+                        'available' => max(0, $available),
                     ];
                 })->values(),
             ]);
@@ -274,7 +316,7 @@ class FacilitatorCheckoutController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($borrowTransaction->id);
 
-            if (! in_array($transaction->status, ['Coordinator Approved', 'Partially Borrowed', 'Borrowed'], true)) {
+            if (! in_array($transaction->status, ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Returned'], true)) {
                 $this->checkoutError('status', 'This borrow request can no longer be changed from the checkout cart.');
             }
 
@@ -322,10 +364,16 @@ class FacilitatorCheckoutController extends Controller
             } else {
                 $inventoryItem->update([
                     'quantity' => $after,
-                    'status' => $after <= 0
-                        ? 'Unavailable'
-                        : ($after <= (float) $inventoryItem->minimum_stock ? 'Low Stock' : 'Available'),
+                    'status' => in_array($inventoryItem->status, ['Expired', 'For Disposal'], true)
+                        ? $inventoryItem->status
+                        : ($after <= 0 ? 'Inactive' : 'Active'),
                 ]);
+
+                app(ChemicalInventoryPeriodTracker::class)->recordUsage(
+                    chemical: $inventoryItem,
+                    usageDelta: -$quantity,
+                    usedAt: now(),
+                );
             }
 
             $newCheckedOut = round((float) $borrowItem->quantity_checked_out - $quantity, 2);
@@ -359,10 +407,17 @@ class FacilitatorCheckoutController extends Controller
                 ->where('is_voided', false)
                 ->exists();
 
+            $hasReturnableEquipment = $transaction->items()
+                ->where('item_type', 'Equipment')
+                ->exists();
+
             $transaction->update([
-                'status' => $hasActiveScans ? 'Partially Borrowed' : 'Coordinator Approved',
+                'status' => $hasActiveScans
+                    ? ($hasReturnableEquipment ? 'Partially Borrowed' : 'Borrowed')
+                    : 'Coordinator Approved',
                 'released_by' => $hasActiveScans ? $transaction->released_by : null,
                 'checked_out_at' => $hasActiveScans ? $transaction->checked_out_at : null,
+                'returned_at' => null,
             ]);
 
             AuditLog::create([
@@ -440,6 +495,9 @@ class FacilitatorCheckoutController extends Controller
         return $borrowTransaction->items->map(function (BorrowItem $item): array {
             $requested = (float) $item->quantity_borrowed;
             $checkedOut = (float) ($item->quantity_checked_out ?? 0);
+            $available = $item->item_type === 'Equipment'
+                ? (float) ($item->item?->available_quantity ?? 0)
+                : (float) ($item->item?->quantity ?? 0);
 
             return [
                 'key' => $item->item_type.':'.$item->item_id,
@@ -447,6 +505,7 @@ class FacilitatorCheckoutController extends Controller
                 'checked_out' => $checkedOut,
                 'requested' => $requested,
                 'remaining' => max(0, round($requested - $checkedOut, 2)),
+                'available' => max(0, $available),
             ];
         })->values()->all();
     }

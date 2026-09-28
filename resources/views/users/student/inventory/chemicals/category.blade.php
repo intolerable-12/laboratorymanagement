@@ -45,7 +45,7 @@
 
                 <div class="d-flex flex-wrap gap-2">
                     <span class="inventory-chip"><i class="fa-solid fa-flask-vial"></i> {{ $chemicalCategory->available_chemical_count }} items</span>
-                    <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available only</span>
+                    <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Active only</span>
                 </div>
             </div>
         </section>

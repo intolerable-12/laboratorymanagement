@@ -21,7 +21,7 @@
 
     <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
         <span class="badge rounded-pill text-bg-primary" data-cart-summary>{{ $quantity }} {{ $unit }}</span>
-        <span class="small text-secondary">Available: {{ $isChemical ? $item->quantity . ' ' . $item->unit : $item->available_quantity . ' pcs' }}</span>
+        <span class="small text-secondary">{{ $isChemical ? 'In stock' : 'Available' }}: {{ $isChemical ? $item->quantity . ' ' . $item->unit : $item->available_quantity . ' pcs' }}</span>
     </div>
 
     <input type="hidden" name="{{ $isChemical ? 'chemical_items' : 'equipment_items' }}[{{ $item->id }}][quantity]" value="{{ $quantity }}" data-cart-field="quantity">

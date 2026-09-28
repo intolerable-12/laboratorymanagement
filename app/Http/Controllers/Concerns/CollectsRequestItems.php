@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 trait CollectsRequestItems
 {
-    protected function collectRequestedItems(Request $request, ?int $laboratoryId = null): array
+    protected function collectRequestedItems(Request $request, ?int $laboratoryId = null, bool $includeChemicals = true): array
     {
         $errors = [];
         $items = [];
@@ -64,6 +64,29 @@ trait CollectsRequestItems
             ];
         }
 
+        if (! $includeChemicals) {
+            $hasChemicalSelection = collect((array) $request->input('chemical_items', []))
+                ->contains(function ($payload): bool {
+                    if (! is_array($payload)) {
+                        return false;
+                    }
+
+                    $quantity = $payload['quantity'] ?? null;
+
+                    return $quantity !== null && $quantity !== '' && (! is_numeric($quantity) || (float) $quantity > 0);
+                });
+
+            if ($hasChemicalSelection) {
+                $errors['chemical_items'] = 'Chemicals can only be requested in reservations, not borrow requests.';
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            return $items;
+        }
+
         foreach ((array) $request->input('chemical_items', []) as $chemicalId => $payload) {
             $rawQuantity = $payload['quantity'] ?? null;
 
@@ -92,8 +115,13 @@ trait CollectsRequestItems
                 continue;
             }
 
-            if ($chemical->status !== 'Available') {
-                $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently available.';
+            if ($chemical->status === 'Expired' || $chemical->is_expired) {
+                $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical has expired and cannot be requested.';
+                continue;
+            }
+
+            if ($chemical->status !== 'Active') {
+                $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently active for requests.';
                 continue;
             }
 

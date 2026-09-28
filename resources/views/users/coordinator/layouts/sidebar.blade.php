@@ -40,9 +40,10 @@
         $isBorrowCalendar = request()->routeIs('coordinator.borrow.calendar');
         $isCheckoutGroup = request()->routeIs('coordinator.checkout.*');
         $isCheckinGroup = request()->routeIs('coordinator.checkin.*');
+        $isTransactionHistory = request()->routeIs('coordinator.transaction-history.*');
         $isReservationsGroup = request()->routeIs('coordinator.reservations.*');
         $isBorrowGroup = request()->routeIs('coordinator.borrow.*');
-        $isScanGroup = $isCheckoutGroup || $isCheckinGroup;
+        $isScanGroup = $isCheckoutGroup || $isCheckinGroup || $isTransactionHistory;
 
         $isReservationRequestActive = request()->routeIs(
             'coordinator.reservations.index',
@@ -132,9 +133,9 @@
                             </span>
                         </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.inventory-alerts.*') ? 'active' : '' }}"
-                            href="{{ route('coordinator.inventory-alerts.index') }}" title="Supplier Alerts">
+                            href="{{ route('coordinator.inventory-alerts.index') }}" title="Inventory Alert Settings">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-bell"></i></span>
-                            <span class="sidebar-item__label">Supplier Alerts</span>
+                            <span class="sidebar-item__label">Inventory Alert Settings</span>
                         </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.suppliers.*') ? 'active' : '' }}"
                             href="{{ route('coordinator.suppliers.index') }}" title="Suppliers">
@@ -244,6 +245,11 @@
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-rotate-left"></i></span>
                                 <span class="sidebar-item__label">Check In Items</span>
                             </span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isTransactionHistory ? 'active' : '' }}"
+                            href="{{ route('coordinator.transaction-history.index') }}" title="Transaction History">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                            <span class="sidebar-item__label">Transaction History</span>
                         </a>
                     </div>
                 </div>

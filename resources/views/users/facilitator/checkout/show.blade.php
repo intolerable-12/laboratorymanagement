@@ -11,12 +11,13 @@
 
 @php
     $checkoutRoutePrefix = $isCoordinator ? 'coordinator.checkout' : 'facilitator.checkout';
+    $checkinRoutePrefix = $isCoordinator ? 'coordinator.checkin' : 'facilitator.checkin';
 @endphp
 
 @section('content')
     @php
         $borrowerName = trim(collect([$borrowTransaction->borrower?->first_name, $borrowTransaction->borrower?->middle_name, $borrowTransaction->borrower?->last_name, $borrowTransaction->borrower?->suffix])->filter()->implode(' '));
-        $completed = $borrowTransaction->status === 'Borrowed';
+        $completed = in_array($borrowTransaction->status, ['Borrowed', 'Returned'], true);
         $totalRequested = $borrowTransaction->items->sum(fn ($item) => (float) $item->quantity_borrowed);
         $totalCheckedOut = $borrowTransaction->items->sum(fn ($item) => (float) ($item->quantity_checked_out ?? 0));
         $scanCount = $scanLogs->count();
@@ -115,6 +116,14 @@
                                 $logUnit = $log->item_type === 'Chemical' ? ' '.($log->item?->unit ?? 'unit') : ' unit(s)';
                                 $logBorrowItem = $borrowTransaction->items->first(fn ($borrowItem) => $borrowItem->item_type === $log->item_type && (int) $borrowItem->item_id === (int) $log->item_id);
                                 $logCondition = $logBorrowItem?->condition_out ?? 'Good';
+                                $logConditionBadgeClass = match ($logCondition) {
+                                    'Excellent' => 'text-bg-success',
+                                    'Good' => 'text-bg-primary',
+                                    'Fair' => 'text-bg-warning text-dark',
+                                    'Damaged' => 'equipment-condition-badge--damaged',
+                                    'Lost' => 'text-bg-danger',
+                                    default => 'text-bg-danger',
+                                };
                             @endphp
                             <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-scan-row data-scan-id="{{ $log->id }}" data-scan-condition="{{ $logCondition }}">
                                 <div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px;">
@@ -129,7 +138,7 @@
                                             @endif
                                         </span>
                                         <span class="badge rounded-pill text-bg-light border text-secondary">{{ $log->item_type }}</span>
-                                        <span class="badge rounded-pill text-bg-{{ in_array($logCondition, ['Damaged', 'Under Repair', 'Lost'], true) ? 'danger' : 'success' }}">{{ $logCondition }}</span>
+                                        <span class="badge rounded-pill {{ $logConditionBadgeClass }}">{{ $logCondition }}</span>
                                     </div>
                                     <div class="small text-secondary mt-1">
                                         <i class="fa-solid fa-barcode me-1"></i>{{ $log->barcode }}
@@ -170,10 +179,14 @@
                                 $requested = (float) $item->quantity_borrowed;
                                 $checkedOut = (float) ($item->quantity_checked_out ?? 0);
                                 $remaining = max(0, round($requested - $checkedOut, 2));
+                                $inventoryAvailable = $item->item_type === 'Equipment'
+                                    ? (float) ($item->item?->available_quantity ?? 0)
+                                    : (float) ($item->item?->quantity ?? 0);
+                                $maximumCheckout = min($remaining, max(0, $inventoryAvailable));
                                 $itemName = $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Item unavailable';
                                 $precision = $item->item_type === 'Chemical' ? 2 : 0;
                             @endphp
-                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checklist-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}">
+                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checklist-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}" data-item-maximum="{{ $maximumCheckout }}">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold text-dark">
                                         {{ $itemName }}
@@ -267,6 +280,8 @@
                         <span class="input-group-text bg-white" data-checkout-unit>unit(s)</span>
                     </div>
                     <div class="form-text">Enter the quantity using the item’s listed unit.</div>
+                    <div class="form-text text-primary fw-semibold" data-checkout-quantity-maximum>Maximum: —</div>
+                    <div class="invalid-feedback d-none" data-checkout-quantity-error role="alert"></div>
                     <div class="mt-3">
                         <label for="condition_out" class="form-label fw-semibold text-dark" data-checkout-condition-label>Equipment condition</label>
                         <select name="condition_out" id="condition_out" class="form-select" form="checkout-scan-form" required disabled>
@@ -274,6 +289,11 @@
                                 <option value="{{ $condition }}" @selected($condition === 'Good')>{{ $condition }}</option>
                             @endforeach
                         </select>
+                    </div>
+                    <div class="mt-3" data-checkout-remarks-wrapper>
+                        <label for="checkout-remarks" class="form-label fw-semibold text-dark">Remarks</label>
+                        <textarea name="remarks" id="checkout-remarks" class="form-control" rows="3" maxlength="1000" form="checkout-scan-form" disabled aria-describedby="checkout-remarks-error" placeholder="Explain the item condition"></textarea>
+                        <div class="invalid-feedback d-none" id="checkout-remarks-error" data-checkout-remarks-error role="alert">Remarks are required when the item is marked Lost or Damaged.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -293,7 +313,7 @@
                     </div>
                     <h2 class="h4 fw-semibold text-dark mb-2" id="checkout-complete-modal-title">Checkout complete</h2>
                     <p class="text-secondary mb-4">All items have been successfully scanned and checked out.</p>
-                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">Continue</button>
+                    <a href="{{ route($checkinRoutePrefix.'.index') }}" class="btn btn-success px-4">Proceed to Check-in</a>
                 </div>
             </div>
         </div>

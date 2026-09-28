@@ -68,60 +68,98 @@
         </div>
     </div>
 
+    @php
+        $activeFilterCount = collect($filters)
+            ->except('search')
+            ->filter(static fn ($value) => $value !== '' && $value !== null)
+            ->count();
+    @endphp
     <div class="section-card mb-4">
-        <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route('coordinator.audit-logs.index') }}" class="row g-3 align-items-end">
-                <div class="col-12 col-xl-4">
-                    <label for="search" class="form-label fw-medium mb-1">Search</label>
-                    <input type="search" id="search" name="search" value="{{ $filters['search'] }}"
-                        placeholder="Name, user ID, module, action, record, or IP" class="form-control admin-form-control">
+        <div class="card-body p-3 p-xl-4">
+            <form method="GET" action="{{ route('coordinator.audit-logs.index') }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end">
+                <div class="flex-grow-1">
+                    <label for="audit-log-search" class="form-label fw-medium mb-1">Search audit logs</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white admin-form-control" aria-hidden="true"><i class="fa-solid fa-magnifying-glass text-secondary"></i></span>
+                        <input type="search" id="audit-log-search" name="search" value="{{ $filters['search'] }}"
+                            placeholder="Name, user ID, module, action, record, or IP" class="form-control admin-form-control">
+                    </div>
                 </div>
 
-                <div class="col-6 col-md-3 col-xl-2">
-                    <label for="module" class="form-label fw-medium mb-1">Module</label>
-                    <select id="module" name="module" class="form-select admin-form-control">
-                        <option value="">All modules</option>
-                        @foreach ($modules as $module)
-                            <option value="{{ $module }}" @selected($filters['module'] === $module)>{{ $module }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-6 col-md-3 col-xl-2">
-                    <label for="action" class="form-label fw-medium mb-1">Action</label>
-                    <select id="action" name="action" class="form-select admin-form-control">
-                        <option value="">All actions</option>
-                        @foreach ($actions as $action)
-                            <option value="{{ $action }}" @selected($filters['action'] === $action)>{{ $action }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-6 col-md-3 col-xl-2">
-                    <label for="role_id" class="form-label fw-medium mb-1">Actor role</label>
-                    <select id="role_id" name="role_id" class="form-select admin-form-control">
-                        <option value="">All roles</option>
-                        @foreach ($roles as $role)
-                            <option value="{{ $role->id }}" @selected((string) $filters['role_id'] === (string) $role->id)>{{ $role->role_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-6 col-md-3 col-xl-2">
-                    <label for="date_from" class="form-label fw-medium mb-1">From</label>
-                    <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] }}" class="form-control admin-form-control">
-                </div>
-
-                <div class="col-6 col-md-3 col-xl-2">
-                    <label for="date_to" class="form-label fw-medium mb-1">To</label>
-                    <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] }}" class="form-control admin-form-control">
-                </div>
-
-                <div class="col-12 d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="fa-solid fa-filter me-2"></i>Apply filters
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-3">
+                        <i class="fa-solid fa-magnifying-glass me-2" aria-hidden="true"></i>Search
                     </button>
-                    <a href="{{ route('coordinator.audit-logs.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-toggle="modal" data-bs-target="#auditLogFiltersModal" aria-controls="auditLogFiltersModal">
+                        <i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>Filters
+                        @if ($activeFilterCount > 0)
+                            <span class="badge rounded-pill text-bg-primary ms-1">{{ $activeFilterCount }}</span>
+                        @endif
+                    </button>
+                </div>
+
+                <div class="modal fade" id="auditLogFiltersModal" tabindex="-1" aria-labelledby="auditLogFiltersModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                        <div class="modal-content border-0 shadow-lg rounded-4">
+                            <div class="modal-header px-4 pt-4 border-bottom">
+                                <div>
+                                    <h2 class="modal-title h5 fw-semibold mb-1" id="auditLogFiltersModalLabel">Audit log filters</h2>
+                                    <p class="text-secondary small mb-0">Refine the audit log using one or more filters.</p>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close filters"></button>
+                            </div>
+
+                            <div class="modal-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label for="audit-log-filter-module" class="form-label fw-medium">Module</label>
+                                        <select id="audit-log-filter-module" name="module" class="form-select admin-form-control">
+                                            <option value="">All modules</option>
+                                            @foreach ($modules as $module)
+                                                <option value="{{ $module }}" @selected($filters['module'] === $module)>{{ $module }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="audit-log-filter-action" class="form-label fw-medium">Action</label>
+                                        <select id="audit-log-filter-action" name="action" class="form-select admin-form-control">
+                                            <option value="">All actions</option>
+                                            @foreach ($actions as $action)
+                                                <option value="{{ $action }}" @selected($filters['action'] === $action)>{{ $action }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="audit-log-filter-role" class="form-label fw-medium">Actor role</label>
+                                        <select id="audit-log-filter-role" name="role_id" class="form-select admin-form-control">
+                                            <option value="">All roles</option>
+                                            @foreach ($roles as $role)
+                                                <option value="{{ $role->id }}" @selected((string) $filters['role_id'] === (string) $role->id)>{{ $role->role_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="audit-log-filter-date-from" class="form-label fw-medium">From</label>
+                                        <input type="date" id="audit-log-filter-date-from" name="date_from" value="{{ $filters['date_from'] }}" class="form-control admin-form-control">
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="audit-log-filter-date-to" class="form-label fw-medium">To</label>
+                                        <input type="date" id="audit-log-filter-date-to" name="date_to" value="{{ $filters['date_to'] }}" class="form-control admin-form-control">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer px-4 py-3 border-top">
+                                <a href="{{ route('coordinator.audit-logs.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>

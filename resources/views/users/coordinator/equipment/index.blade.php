@@ -158,6 +158,14 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
+                                        <label for="equipment-filter-low-stock" class="form-label fw-medium">Stock level</label>
+                                        <select id="equipment-filter-low-stock" name="low_stock" class="form-select admin-form-control">
+                                            <option value="">All stock levels</option>
+                                            <option value="1" @selected($lowStock === '1')>Low stock only</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
                                         <label for="equipment-filter-category" class="form-label fw-medium">Category</label>
                                         <select id="equipment-filter-category" name="category_id" class="form-select admin-form-control">
                                             <option value="">All categories</option>
@@ -312,6 +320,8 @@
                                 @php
                                     $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
                                     $canRestore = $restoreDeadline?->isFuture() ?? false;
+                                    $isLowStock = $equipment->low_stock_threshold !== null
+                                        && (int) $equipment->available_quantity <= (int) $equipment->low_stock_threshold;
                                 @endphp
                                 <tr>
                                     <td class="ps-3 pe-0">
@@ -364,9 +374,14 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <span class="badge text-bg-{{ $archived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">
-                                            {{ $archived ? 'Archived' : $equipment->status }}
-                                        </span>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <span class="badge text-bg-{{ $archived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">
+                                                {{ $archived ? 'Archived' : $equipment->status }}
+                                            </span>
+                                            @if (!$archived && $isLowStock)
+                                                <span class="badge text-bg-warning">Low Stock</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge text-bg-light border text-dark">{{ $equipment->condition }}</span>

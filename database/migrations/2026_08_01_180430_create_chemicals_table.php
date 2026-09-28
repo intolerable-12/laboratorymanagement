@@ -65,14 +65,13 @@ return new class extends Migration
             // Storage
             $table->string('storage_location')->nullable();
 
-            // Availability
+            // Lifecycle status
             $table->enum('status',[
-                'Available',
-                'Low Stock',
+                'Active',
+                'Inactive',
                 'Expired',
-                'Disposed',
-                'Unavailable'
-            ])->default('Available');
+                'For Disposal'
+            ])->default('Active');
 
             $table->string('image')->nullable();
 

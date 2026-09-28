@@ -19,7 +19,6 @@ import * as bootstrap from 'bootstrap';
         const cartCount = root.querySelector('#checkin-cart-count');
         const total = root.querySelector('#checkin-total');
         const returnedTotal = root.querySelector('#returned-total');
-        const usedTotal = root.querySelector('#used-total');
         const quantityModalElement = document.getElementById('checkin-quantity-modal');
         const quantityInput = document.getElementById('checkin-quantity');
         const submitButton = document.getElementById('submit-checkin-scan');
@@ -29,6 +28,11 @@ import * as bootstrap from 'bootstrap';
         const itemStateElement = document.querySelector('[data-checkin-item-state]');
         const unitElement = document.querySelector('[data-checkin-unit]');
         const conditionLabelElement = document.querySelector('[data-checkin-condition-label]');
+        const maximumElement = document.querySelector('[data-checkin-quantity-maximum]');
+        const quantityErrorElement = document.querySelector('[data-checkin-quantity-error]');
+        const remarksWrapper = document.querySelector('[data-checkin-remarks-wrapper]');
+        const remarksInput = document.querySelector('#checkin-remarks');
+        const remarksErrorElement = document.querySelector('[data-checkin-remarks-error]');
         const quantityModal = quantityModalElement
             ? bootstrap.Modal.getOrCreateInstance(quantityModalElement)
             : null;
@@ -38,6 +42,7 @@ import * as bootstrap from 'bootstrap';
         let requestInProgress = false;
         let scannerActive = false;
         let activeFilter = 'all';
+        let activeItemType = '';
 
         if (!input || !form || !startButton || !stopButton || !quantityInput || !conditionInput || !feedback || !cart || !removeUrlTemplate) {
             return;
@@ -66,11 +71,48 @@ import * as bootstrap from 'bootstrap';
         const hideQuantityField = () => {
             quantityModal?.hide();
             quantityInput.value = '';
+            quantityInput.max = '';
             quantityInput.disabled = true;
             conditionInput.disabled = true;
+            activeItemType = '';
+            remarksWrapper?.classList.add('d-none');
+            if (remarksInput) {
+                remarksInput.value = '';
+                remarksInput.disabled = true;
+                remarksInput.required = false;
+                remarksInput.setCustomValidity('');
+            }
+            remarksErrorElement?.classList.add('d-none');
+            quantityErrorElement?.classList.add('d-none');
+            quantityInput.classList.remove('is-invalid');
+            quantityInput.setCustomValidity('');
             if (submitButton) {
                 submitButton.disabled = true;
             }
+        };
+
+        const syncRemarksRequirement = () => {
+            const hasScannedItem = activeItemType !== '';
+            const requiresRemarks = hasScannedItem
+                && ['Lost', 'Damaged'].includes(conditionInput.value);
+
+            remarksWrapper?.classList.toggle('d-none', !hasScannedItem);
+
+            if (!remarksInput) {
+                return requiresRemarks;
+            }
+
+            remarksInput.disabled = !requiresRemarks;
+            remarksInput.required = requiresRemarks;
+
+            if (!requiresRemarks) {
+                remarksInput.value = '';
+                remarksInput.setCustomValidity('');
+                remarksErrorElement?.classList.add('d-none');
+                remarksInput.classList.remove('is-invalid');
+            }
+
+            return requiresRemarks;
         };
 
         const showQuantityField = () => {
@@ -78,12 +120,27 @@ import * as bootstrap from 'bootstrap';
             const item = [...root.querySelectorAll('[data-checkin-barcode]')]
                 .find((row) => row.dataset.checkinBarcode === barcode);
 
+            if (!item || item.dataset.itemType !== 'Equipment') {
+                hideQuantityField();
+                showFeedback('Only equipment can be checked in. Chemicals are consumed during reservations and are not returned.', 'danger');
+                input.value = '';
+                focusScanner();
+                return;
+            }
+
+            activeItemType = item?.dataset.itemType || '';
+            const maximum = Number(item?.dataset.itemMaximum ?? 0);
+
             if (itemNameElement) {
                 itemNameElement.textContent = item?.dataset.itemName || 'Scanned item';
             }
 
             if (unitElement) {
                 unitElement.textContent = item?.dataset.itemUnit || 'unit(s)';
+            }
+
+            if (maximumElement) {
+                maximumElement.textContent = 'Maximum: ' + formatQuantity(maximum, activeItemType) + ' ' + (item?.dataset.itemUnit || 'unit(s)');
             }
 
             const stateLabel = item?.dataset.itemStateLabel || 'Equipment condition';
@@ -101,10 +158,17 @@ import * as bootstrap from 'bootstrap';
             }
 
             quantityInput.value = '';
+            quantityInput.max = String(maximum);
+            quantityInput.classList.remove('is-invalid');
+            quantityErrorElement?.classList.add('d-none');
             quantityInput.setCustomValidity('');
             quantityInput.disabled = false;
             conditionInput.value = 'Good';
             conditionInput.disabled = false;
+            if (remarksInput) {
+                remarksInput.value = '';
+            }
+            syncRemarksRequirement();
             if (submitButton) {
                 submitButton.disabled = false;
             }
@@ -127,6 +191,15 @@ import * as bootstrap from 'bootstrap';
             if (submitButton) {
                 submitButton.disabled = true;
             }
+            activeItemType = '';
+            remarksWrapper?.classList.add('d-none');
+            if (remarksInput) {
+                remarksInput.value = '';
+                remarksInput.disabled = true;
+                remarksInput.required = false;
+                remarksInput.setCustomValidity('');
+            }
+            remarksErrorElement?.classList.add('d-none');
             focusScanner();
         });
 
@@ -156,7 +229,7 @@ import * as bootstrap from 'bootstrap';
         updateScannerControls();
 
         const manualField = (target) => target instanceof Element
-            && Boolean(target.closest('#checkin-quantity, #condition_in, #checkin-quantity-modal, [data-barcode-manual-field], [data-scan-filter]'));
+            && Boolean(target.closest('#checkin-quantity, #condition_in, #checkin-remarks, #checkin-quantity-modal, [data-barcode-manual-field], [data-scan-filter]'));
 
         document.addEventListener('click', (event) => {
             const clickedRemove = event.target instanceof Element && event.target.closest('[data-remove-checkin]');
@@ -203,6 +276,89 @@ import * as bootstrap from 'bootstrap';
             feedback.className = 'alert alert-' + type + ' border-0 small';
             feedback.textContent = message;
         };
+
+        const setQuantityError = (message) => {
+            quantityInput.classList.add('is-invalid');
+            quantityInput.setCustomValidity(message);
+            if (quantityErrorElement) {
+                quantityErrorElement.textContent = message;
+                quantityErrorElement.classList.remove('d-none');
+            }
+        };
+
+        const clearQuantityError = () => {
+            quantityInput.classList.remove('is-invalid');
+            quantityInput.setCustomValidity('');
+            quantityErrorElement?.classList.add('d-none');
+        };
+
+        const validateQuantity = (showError = true) => {
+            const rawQuantity = quantityInput.value.trim();
+            const maximum = Number(quantityInput.max);
+            const quantity = Number(rawQuantity);
+
+            if (rawQuantity === '') {
+                if (!showError) {
+                    clearQuantityError();
+                    return false;
+                }
+
+                setQuantityError('Enter the returned quantity before confirming.');
+            } else if (!Number.isFinite(quantity) || quantity <= 0) {
+                setQuantityError('Enter a returned quantity greater than zero.');
+            } else if (Number.isFinite(maximum) && quantity > maximum) {
+                setQuantityError('Quantity cannot exceed the maximum of ' + formatQuantity(maximum, activeItemType) + '.');
+            } else {
+                clearQuantityError();
+                return true;
+            }
+
+            if (!showError) {
+                return false;
+            }
+
+            quantityInput.reportValidity();
+            quantityInput.focus({ preventScroll: true });
+            return false;
+        };
+
+        const setRemarksError = (message) => {
+            remarksInput?.classList.add('is-invalid');
+            remarksInput?.setCustomValidity(message);
+            if (remarksErrorElement) {
+                remarksErrorElement.textContent = message;
+                remarksErrorElement.classList.remove('d-none');
+            }
+        };
+
+        const validateRemarks = () => {
+            if (!syncRemarksRequirement()) {
+                return true;
+            }
+
+            if (remarksInput?.value.trim() !== '') {
+                remarksInput.setCustomValidity('');
+                remarksInput.classList.remove('is-invalid');
+                remarksErrorElement?.classList.add('d-none');
+                return true;
+            }
+
+            const message = 'Remarks are required when the item is marked Lost or Damaged.';
+            setRemarksError(message);
+            remarksInput?.reportValidity();
+            remarksInput?.focus({ preventScroll: true });
+            return false;
+        };
+
+        quantityInput.addEventListener('input', () => validateQuantity(false));
+        conditionInput.addEventListener('change', syncRemarksRequirement);
+        remarksInput?.addEventListener('input', () => {
+            if (remarksInput.value.trim() !== '') {
+                remarksInput.classList.remove('is-invalid');
+                remarksInput.setCustomValidity('');
+                remarksErrorElement?.classList.add('d-none');
+            }
+        });
 
         const updateCartFilter = () => {
             const rows = [...cart.querySelectorAll('[data-checkin-row]')];
@@ -263,22 +419,6 @@ import * as bootstrap from 'bootstrap';
             });
         });
 
-        const validateQuantity = () => {
-            if (quantityInput.value.trim() !== '') {
-                quantityInput.setCustomValidity('');
-                return true;
-            }
-
-            const message = 'Enter the returned quantity before confirming.';
-            quantityInput.setCustomValidity(message);
-            showFeedback(message, 'danger');
-            quantityInput.reportValidity();
-            quantityInput.focus({ preventScroll: true });
-            return false;
-        };
-
-        quantityInput.addEventListener('input', () => quantityInput.setCustomValidity(''));
-
         const statusClass = (status) => {
             if (status === 'Returned') return 'text-bg-success';
             if (status === 'Partially Returned') return 'text-bg-warning';
@@ -295,7 +435,13 @@ import * as bootstrap from 'bootstrap';
             row.dataset.checkinId = scan.id;
             row.dataset.scanCondition = scan.condition_in || 'Good';
             const condition = row.dataset.scanCondition;
-            const conditionTone = ['Damaged', 'Under Repair', 'Lost'].includes(condition) ? 'danger' : 'success';
+            const conditionClass = ({
+                Excellent: 'text-bg-success',
+                Good: 'text-bg-primary',
+                Fair: 'text-bg-warning text-dark',
+                Damaged: 'equipment-condition-badge--damaged',
+                Lost: 'text-bg-danger',
+            }[condition] || 'text-bg-danger');
             row.innerHTML =
                 '<div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px;">' +
                     '<i class="fa-solid fa-' + (scan.item_type === 'Chemical' ? 'flask' : 'microscope') + '"></i>' +
@@ -304,7 +450,7 @@ import * as bootstrap from 'bootstrap';
                     '<div class="d-flex flex-wrap align-items-center gap-2">' +
                         '<span class="fw-semibold text-dark">' + escapeHtml(scan.item_name) + '</span>' +
                         '<span class="badge rounded-pill text-bg-light border text-secondary">' + escapeHtml(scan.item_type) + '</span>' +
-                        '<span class="badge rounded-pill text-bg-' + conditionTone + '">' + escapeHtml(condition) + '</span>' +
+                        '<span class="badge rounded-pill ' + conditionClass + '">' + escapeHtml(condition) + '</span>' +
                     '</div>' +
                     '<div class="small text-secondary mt-1"><i class="fa-solid fa-barcode me-1"></i>' + escapeHtml(scan.barcode) + ' · ' + escapeHtml(formatTime(scan.scanned_at)) + '</div>' +
                 '</div>' +
@@ -324,6 +470,7 @@ import * as bootstrap from 'bootstrap';
 
                 const precisionType = item.item_type;
                 const complete = item.outstanding <= 0;
+                row.dataset.itemMaximum = String(Math.max(0, Number(item.outstanding)));
                 row.querySelector('[data-progress-returned]').textContent = formatQuantity(item.returned, precisionType);
                 row.querySelector('[data-progress-used]').textContent = formatQuantity(item.used, precisionType);
                 row.querySelector('[data-progress-damaged]').textContent = formatQuantity(item.damaged, precisionType);
@@ -343,12 +490,10 @@ import * as bootstrap from 'bootstrap';
             const accounted = items.reduce((sum, item) => sum + Number(item.accounted), 0);
             const checkedOut = items.reduce((sum, item) => sum + Number(item.checked_out), 0);
             const returned = items.reduce((sum, item) => sum + Number(item.returned), 0);
-            const used = items.reduce((sum, item) => sum + Number(item.used), 0);
 
             total.dataset.accounted = accounted;
-            total.textContent = formatQuantity(accounted, 'Chemical') + ' / ' + formatQuantity(checkedOut, 'Chemical');
-            returnedTotal.textContent = formatQuantity(returned, 'Chemical');
-            usedTotal.textContent = formatQuantity(used, 'Chemical');
+            total.textContent = formatQuantity(accounted, 'Equipment') + ' / ' + formatQuantity(checkedOut, 'Equipment');
+            returnedTotal.textContent = formatQuantity(returned, 'Equipment');
         };
 
         const finishCheckin = () => {
@@ -389,7 +534,7 @@ import * as bootstrap from 'bootstrap';
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            if (!validateQuantity()) {
+            if (!validateQuantity() || !validateRemarks()) {
                 return;
             }
 
@@ -431,7 +576,10 @@ import * as bootstrap from 'bootstrap';
                 statusBadge.className = 'badge px-3 py-2 ' + statusClass(payload.status);
                 showFeedback(payload.message);
 
-                if (payload.complete) {
+                const allItemsComplete = payload.items?.length > 0
+                    && payload.items.every((item) => Number(item.outstanding) <= 0);
+
+                if (payload.complete && allItemsComplete) {
                     finishCheckin();
                 } else {
                     input.value = '';
@@ -442,6 +590,13 @@ import * as bootstrap from 'bootstrap';
                     focusScanner();
                 }
             } catch (error) {
+                if (error?.message) {
+                    if (error.message.toLowerCase().includes('quantity')) {
+                        setQuantityError(error.message);
+                    } else if (error.message.toLowerCase().includes('remarks')) {
+                        setRemarksError(error.message);
+                    }
+                }
                 showFeedback(error.message, 'danger');
                 startButton.disabled = false;
                 stopButton.disabled = false;

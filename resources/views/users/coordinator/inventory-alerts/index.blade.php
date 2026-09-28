@@ -1,7 +1,7 @@
-@extends('users.coordinator.layouts.app')
+@extends($layout)
 
-@section('title', 'Supplier Alert Settings')
-@section('page-title', 'Supplier Alert Settings')
+@section('title', 'Inventory Alert Settings')
+@section('page-title', 'Inventory Alert Settings')
 
 @php
     $tabQuery = request()->except('page', 'tab');
@@ -19,26 +19,28 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <div class="small text-uppercase text-secondary">Automated supplier notifications</div>
-            <div class="text-secondary">Configure when each equipment or chemical should prompt an email to its assigned supplier.</div>
+            <div class="small text-uppercase text-secondary">Inventory threshold controls</div>
+            <div class="text-secondary">Set when equipment and chemicals are marked low stock and when replenishment notifications are sent.</div>
         </div>
-        <a href="{{ route('coordinator.suppliers.index') }}" class="btn btn-outline-primary"><i class="fa-solid fa-address-book me-2"></i>Manage suppliers</a>
+        @if ($routePrefix === 'coordinator')
+            <a href="{{ route('coordinator.suppliers.index') }}" class="btn btn-outline-primary"><i class="fa-solid fa-address-book me-2"></i>Manage suppliers</a>
+        @endif
     </div>
 
-    <div class="alert alert-info border-0 rounded-4 mb-4"><strong>How it works:</strong> Equipment uses available units and chemicals use the expiration date. A configured item sends one automated email when its trigger is reached. The alert becomes eligible again after the condition clears or the setting changes.</div>
+    <div class="alert alert-info border-0 rounded-4 mb-4"><strong>How it works:</strong> Equipment uses available units, while chemicals use their current quantity. When stock reaches or falls below the saved threshold, the item is shown as low stock and the system sends an in-app notification and email to active Coordinators and Laboratory In-charges. Suppliers also receive the configured supplier alert.</div>
 
-    <div class="btn-group shadow-sm mb-4" role="tablist" aria-label="Supplier alert inventory type">
-        <a href="{{ route('coordinator.inventory-alerts.index', array_merge($tabQuery, ['tab' => 'equipment'])) }}" class="btn {{ $tab === 'equipment' ? 'btn-primary' : 'btn-outline-secondary' }} px-4" role="tab" aria-selected="{{ $tab === 'equipment' ? 'true' : 'false' }}">
+    <div class="btn-group shadow-sm mb-4" role="tablist" aria-label="Inventory alert type">
+        <a href="{{ route($routePrefix.'.inventory-alerts.index', array_merge($tabQuery, ['tab' => 'equipment'])) }}" class="btn {{ $tab === 'equipment' ? 'btn-primary' : 'btn-outline-secondary' }} px-4" role="tab" aria-selected="{{ $tab === 'equipment' ? 'true' : 'false' }}">
             <i class="fa-solid fa-microscope me-2"></i>Equipment
         </a>
-        <a href="{{ route('coordinator.inventory-alerts.index', array_merge($tabQuery, ['tab' => 'chemicals'])) }}" class="btn {{ $tab === 'chemicals' ? 'btn-primary' : 'btn-outline-secondary' }} px-4" role="tab" aria-selected="{{ $tab === 'chemicals' ? 'true' : 'false' }}">
+        <a href="{{ route($routePrefix.'.inventory-alerts.index', array_merge($tabQuery, ['tab' => 'chemicals'])) }}" class="btn {{ $tab === 'chemicals' ? 'btn-primary' : 'btn-outline-secondary' }} px-4" role="tab" aria-selected="{{ $tab === 'chemicals' ? 'true' : 'false' }}">
             <i class="fa-solid fa-flask me-2"></i>Chemical
         </a>
     </div>
 
     <div class="section-card mb-4">
         <div class="card-body p-3 p-xl-4">
-            <form method="GET" action="{{ route('coordinator.inventory-alerts.index') }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="supplier-alerts">
+            <form method="GET" action="{{ route($routePrefix.'.inventory-alerts.index') }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="supplier-alerts">
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 <div class="flex-grow-1">
                     <label for="supplier-alert-search" class="form-label fw-medium mb-1">Search {{ $tab === 'equipment' ? 'equipment' : 'chemicals' }}</label>
@@ -79,7 +81,7 @@
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label for="supplier-alert-filter-status" class="form-label fw-medium">Alert setting</label>
+                                        <label for="supplier-alert-filter-status" class="form-label fw-medium">{{ $tab === 'equipment' ? 'Supplier low-stock alert' : 'Expiration alert setting' }}</label>
                                         <select id="supplier-alert-filter-status" name="alert_status" class="form-select admin-form-control">
                                             <option value="">All settings</option>
                                             <option value="configured" @selected($alertStatus === 'configured')>Configured</option>
@@ -99,7 +101,7 @@
                                 </div>
                             </div>
                             <div class="modal-footer px-4 py-3 border-top">
-                                <a href="{{ route('coordinator.inventory-alerts.index', ['tab' => $tab]) }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
+                                <a href="{{ route($routePrefix.'.inventory-alerts.index', ['tab' => $tab]) }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
                             </div>
@@ -111,4 +113,54 @@
     </div>
 
     @include('users.coordinator.inventory-alerts._results')
+
+    @if ($tab === 'chemicals')
+        <script>
+            (() => {
+                document.addEventListener('click', (event) => {
+                    const trigger = event.target.closest('[data-chemical-threshold-trigger]');
+
+                    if (!trigger) {
+                        return;
+                    }
+
+                    const form = document.getElementById('chemicalThresholdForm');
+                    const item = document.querySelector('[data-chemical-threshold-item]');
+                    const stock = document.querySelector('[data-chemical-threshold-stock]');
+                    const unit = document.querySelector('[data-chemical-threshold-unit]');
+                    const input = document.getElementById('chemicalThresholdInput');
+
+                    if (!form || !item || !stock || !unit || !input) {
+                        return;
+                    }
+
+                    form.action = trigger.dataset.updateUrl;
+                    item.textContent = `${trigger.dataset.chemicalName} (${trigger.dataset.chemicalCode})`;
+                    stock.textContent = trigger.dataset.chemicalStock;
+                    unit.textContent = trigger.dataset.chemicalUnit;
+                    input.value = trigger.dataset.chemicalThreshold;
+                });
+
+                document.addEventListener('click', (event) => {
+                    const trigger = event.target.closest('[data-chemical-lead-trigger]');
+
+                    if (!trigger) {
+                        return;
+                    }
+
+                    const form = document.getElementById('chemicalLeadTimeForm');
+                    const item = document.querySelector('[data-chemical-lead-item]');
+                    const input = document.getElementById('chemicalLeadTimeInput');
+
+                    if (!form || !item || !input) {
+                        return;
+                    }
+
+                    form.action = trigger.dataset.updateUrl;
+                    item.textContent = `${trigger.dataset.chemicalName} (${trigger.dataset.chemicalCode})`;
+                    input.value = trigger.dataset.leadDays || '';
+                });
+            })();
+        </script>
+    @endif
 @endsection

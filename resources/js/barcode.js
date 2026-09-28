@@ -27,6 +27,11 @@ import * as bootstrap from 'bootstrap';
         const itemStateElement = document.querySelector('[data-checkout-item-state]');
         const unitElement = document.querySelector('[data-checkout-unit]');
         const conditionLabelElement = document.querySelector('[data-checkout-condition-label]');
+        const maximumElement = document.querySelector('[data-checkout-quantity-maximum]');
+        const quantityErrorElement = document.querySelector('[data-checkout-quantity-error]');
+        const remarksWrapper = document.querySelector('[data-checkout-remarks-wrapper]');
+        const remarksInput = document.querySelector('#checkout-remarks');
+        const remarksErrorElement = document.querySelector('[data-checkout-remarks-error]');
         const quantityModal = quantityModalElement
             ? bootstrap.Modal.getOrCreateInstance(quantityModalElement)
             : null;
@@ -36,6 +41,7 @@ import * as bootstrap from 'bootstrap';
         let requestInProgress = false;
         let scannerActive = false;
         let activeFilter = 'all';
+        let activeItemType = '';
 
         if (!input || !form || !startButton || !stopButton || !quantityInput || !conditionInput || !cart || !removeUrlTemplate) {
             return;
@@ -62,17 +68,56 @@ import * as bootstrap from 'bootstrap';
         const hideQuantityField = () => {
             quantityModal?.hide();
             quantityInput.value = '';
+            quantityInput.max = '';
             quantityInput.disabled = true;
             conditionInput.disabled = true;
+            activeItemType = '';
+            remarksWrapper?.classList.add('d-none');
+            if (remarksInput) {
+                remarksInput.value = '';
+                remarksInput.disabled = true;
+                remarksInput.required = false;
+                remarksInput.setCustomValidity('');
+            }
+            remarksErrorElement?.classList.add('d-none');
+            quantityErrorElement?.classList.add('d-none');
+            quantityInput.classList.remove('is-invalid');
+            quantityInput.setCustomValidity('');
             if (submitButton) {
                 submitButton.disabled = true;
             }
+        };
+
+        const syncRemarksRequirement = () => {
+            const hasScannedItem = activeItemType !== '';
+            const requiresRemarks = hasScannedItem
+                && ['Lost', 'Damaged'].includes(conditionInput.value);
+
+            remarksWrapper?.classList.toggle('d-none', !hasScannedItem);
+
+            if (!remarksInput) {
+                return requiresRemarks;
+            }
+
+            remarksInput.disabled = !requiresRemarks;
+            remarksInput.required = requiresRemarks;
+
+            if (!requiresRemarks) {
+                remarksInput.value = '';
+                remarksInput.setCustomValidity('');
+                remarksErrorElement?.classList.add('d-none');
+                remarksInput.classList.remove('is-invalid');
+            }
+
+            return requiresRemarks;
         };
 
         const showQuantityField = () => {
             const barcode = input.value.trim();
             const item = [...root.querySelectorAll('[data-checklist-barcode]')]
                 .find((row) => row.dataset.checklistBarcode === barcode);
+            activeItemType = item?.dataset.itemType || '';
+            const maximum = Number(item?.dataset.itemMaximum ?? 0);
 
             if (itemNameElement) {
                 itemNameElement.textContent = item?.dataset.itemName || 'Scanned item';
@@ -80,6 +125,10 @@ import * as bootstrap from 'bootstrap';
 
             if (unitElement) {
                 unitElement.textContent = item?.dataset.itemUnit || 'unit(s)';
+            }
+
+            if (maximumElement) {
+                maximumElement.textContent = 'Maximum: ' + formatQuantity(maximum, activeItemType) + ' ' + (item?.dataset.itemUnit || 'unit(s)');
             }
 
             const stateLabel = item?.dataset.itemStateLabel || 'Equipment condition';
@@ -97,10 +146,17 @@ import * as bootstrap from 'bootstrap';
             }
 
             quantityInput.value = '';
+            quantityInput.max = String(maximum);
+            quantityInput.classList.remove('is-invalid');
+            quantityErrorElement?.classList.add('d-none');
             quantityInput.setCustomValidity('');
             quantityInput.disabled = false;
             conditionInput.value = 'Good';
             conditionInput.disabled = false;
+            if (remarksInput) {
+                remarksInput.value = '';
+            }
+            syncRemarksRequirement();
             if (submitButton) {
                 submitButton.disabled = false;
             }
@@ -152,7 +208,7 @@ import * as bootstrap from 'bootstrap';
         updateScannerControls();
 
         const shouldKeepManualFocus = (target) => target instanceof Element
-            && Boolean(target.closest('#quantity, #condition_out, #checkout-quantity-modal, [data-barcode-manual-field], [data-scan-filter]'));
+            && Boolean(target.closest('#quantity, #condition_out, #checkout-remarks, #checkout-quantity-modal, [data-barcode-manual-field], [data-scan-filter]'));
 
         // HID scanners send keystrokes to the focused element. Restore the barcode
         // field after page controls are used, while leaving manual form fields usable.
@@ -191,23 +247,90 @@ import * as bootstrap from 'bootstrap';
             feedback.textContent = message;
         };
 
-        const validateQuantity = () => {
-            if (quantityInput.value.trim() !== '') {
-                quantityInput.setCustomValidity('');
+        const setQuantityError = (message) => {
+            quantityInput.classList.add('is-invalid');
+            quantityInput.setCustomValidity(message);
+            if (quantityErrorElement) {
+                quantityErrorElement.textContent = message;
+                quantityErrorElement.classList.remove('d-none');
+            }
+        };
+
+        const clearQuantityError = () => {
+            quantityInput.classList.remove('is-invalid');
+            quantityInput.setCustomValidity('');
+            quantityErrorElement?.classList.add('d-none');
+        };
+
+        const validateQuantity = (showError = true) => {
+            const rawQuantity = quantityInput.value.trim();
+            const maximum = Number(quantityInput.max);
+            const quantity = Number(rawQuantity);
+
+            if (rawQuantity === '') {
+                if (!showError) {
+                    clearQuantityError();
+                    return false;
+                }
+
+                setQuantityError('Enter a quantity before confirming.');
+            } else if (!Number.isFinite(quantity) || quantity <= 0) {
+                setQuantityError('Enter a quantity greater than zero.');
+            } else if (Number.isFinite(maximum) && quantity > maximum) {
+                setQuantityError('Quantity cannot exceed the maximum of ' + formatQuantity(maximum, activeItemType) + '.');
+            } else {
+                clearQuantityError();
                 return true;
             }
 
-            const message = 'Enter a quantity before confirming.';
-            quantityInput.setCustomValidity(message);
-            showFeedback(message, 'danger');
+            if (!showError) {
+                return false;
+            }
+
             quantityInput.reportValidity();
             quantityInput.focus({ preventScroll: true });
             return false;
         };
 
-        quantityInput.addEventListener('input', () => quantityInput.setCustomValidity(''));
+        const setRemarksError = (message) => {
+            remarksInput?.classList.add('is-invalid');
+            remarksInput?.setCustomValidity(message);
+            if (remarksErrorElement) {
+                remarksErrorElement.textContent = message;
+                remarksErrorElement.classList.remove('d-none');
+            }
+        };
 
-        const statusClass = (status) => status === 'Borrowed'
+        const validateRemarks = () => {
+            if (!syncRemarksRequirement()) {
+                return true;
+            }
+
+            if (remarksInput?.value.trim() !== '') {
+                remarksInput.setCustomValidity('');
+                remarksInput.classList.remove('is-invalid');
+                remarksErrorElement?.classList.add('d-none');
+                return true;
+            }
+
+            const message = 'Remarks are required when the item is marked Lost or Damaged.';
+            setRemarksError(message);
+            remarksInput?.reportValidity();
+            remarksInput?.focus({ preventScroll: true });
+            return false;
+        };
+
+        quantityInput.addEventListener('input', () => validateQuantity(false));
+        conditionInput.addEventListener('change', syncRemarksRequirement);
+        remarksInput?.addEventListener('input', () => {
+            if (remarksInput.value.trim() !== '') {
+                remarksInput.classList.remove('is-invalid');
+                remarksInput.setCustomValidity('');
+                remarksErrorElement?.classList.add('d-none');
+            }
+        });
+
+        const statusClass = (status) => ['Borrowed', 'Returned'].includes(status)
             ? 'text-bg-success'
             : (status === 'Partially Borrowed' ? 'text-bg-warning' : 'text-bg-primary');
 
@@ -223,9 +346,13 @@ import * as bootstrap from 'bootstrap';
             }
         };
 
-        const conditionTone = (condition) => ['Damaged', 'Under Repair', 'Lost'].includes(condition)
-            ? 'danger'
-            : 'success';
+        const conditionClass = (condition) => ({
+            Excellent: 'text-bg-success',
+            Good: 'text-bg-primary',
+            Fair: 'text-bg-warning text-dark',
+            Damaged: 'equipment-condition-badge--damaged',
+            Lost: 'text-bg-danger',
+        }[condition] || 'text-bg-danger');
 
         const updateCartFilter = () => {
             const rows = [...cart.querySelectorAll('[data-scan-row]')];
@@ -302,7 +429,7 @@ import * as bootstrap from 'bootstrap';
                     '<div class="d-flex flex-wrap align-items-center gap-2">' +
                         '<span class="fw-semibold text-dark">' + escapeHtml(scan.item_name) + '</span>' +
                         '<span class="badge rounded-pill text-bg-light border text-secondary">' + escapeHtml(scan.item_type) + '</span>' +
-                        '<span class="badge rounded-pill text-bg-' + conditionTone(row.dataset.scanCondition) + '">' + escapeHtml(row.dataset.scanCondition) + '</span>' +
+                        '<span class="badge rounded-pill ' + conditionClass(row.dataset.scanCondition) + '">' + escapeHtml(row.dataset.scanCondition) + '</span>' +
                     '</div>' +
                     '<div class="small text-secondary mt-1">' +
                         '<i class="fa-solid fa-barcode me-1"></i>' + escapeHtml(scan.barcode) +
@@ -333,6 +460,7 @@ import * as bootstrap from 'bootstrap';
                 const current = row.querySelector('[data-progress-current]');
                 const remaining = row.querySelector('[data-progress-remaining]');
                 const complete = item.remaining <= 0;
+                row.dataset.itemMaximum = String(Math.min(Number(item.remaining), Number(item.available ?? item.remaining)));
 
                 current.textContent = formatQuantity(item.checked_out, item.item_type) + ' / ' + formatQuantity(item.requested, item.item_type);
                 current.classList.toggle('text-success', complete);
@@ -389,7 +517,7 @@ import * as bootstrap from 'bootstrap';
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            if (!validateQuantity()) {
+            if (!validateQuantity() || !validateRemarks()) {
                 return;
             }
 
@@ -441,9 +569,16 @@ import * as bootstrap from 'bootstrap';
                     startButton.disabled = false;
                     stopButton.disabled = false;
                     startButton.innerHTML = '<i class="fa-solid fa-barcode me-1"></i> Start scanner';
-                    focusScanner();
+            focusScanner();
                 }
             } catch (error) {
+                if (error?.message) {
+                    if (error.message.toLowerCase().includes('quantity')) {
+                        setQuantityError(error.message);
+                    } else if (error.message.toLowerCase().includes('remarks')) {
+                        setRemarksError(error.message);
+                    }
+                }
                 showFeedback(error.message, 'danger');
                 startButton.disabled = false;
                 stopButton.disabled = false;

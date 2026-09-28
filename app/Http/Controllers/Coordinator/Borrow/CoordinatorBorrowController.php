@@ -60,6 +60,12 @@ class CoordinatorBorrowController extends Controller
 			'remarks' => ['nullable', 'string', 'max:1000'],
 		]);
 
+		if ($borrowTransaction->items()->where('item_type', 'Chemical')->exists()) {
+			throw ValidationException::withMessages([
+				'items' => 'Chemicals cannot be included in borrow requests. Request them through a reservation instead.',
+			]);
+		}
+
 		$notificationService = app(RequestNotificationService::class);
 
 		DB::transaction(function () use ($borrowTransaction, $data, $notificationService) {

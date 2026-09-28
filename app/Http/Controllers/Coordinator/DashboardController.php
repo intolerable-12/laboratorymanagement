@@ -46,7 +46,7 @@ class DashboardController extends Controller
         $reservationApprovals = Reservation::where('status', 'Facilitator Approved')->count();
         $borrowApprovals = BorrowTransaction::where('status', 'Facilitator Approved')->count();
         $expiringChemicals = Chemical::query()
-            ->whereIn('status', ['Available', 'Low Stock'])
+            ->where('status', 'Active')
             ->whereNotNull('expiration_date')
             ->whereDate('expiration_date', '>=', $today)
             ->whereDate('expiration_date', '<=', $today->copy()->addDays(30))
@@ -114,7 +114,7 @@ class DashboardController extends Controller
                 ['label' => 'Equipment Management', 'href' => route('coordinator.equipment.index')],
                 ['label' => 'Reports', 'href' => route('coordinator.reports.index')],
                 ['label' => 'Chemical Inventory', 'href' => route('coordinator.chemicals.index')],
-                ['label' => 'Supplier Alert Settings', 'href' => route('coordinator.inventory-alerts.index')],
+                ['label' => 'Inventory Alert Settings', 'href' => route('coordinator.inventory-alerts.index')],
                 ['label' => 'Supplier Management', 'href' => route('coordinator.suppliers.index')],
                 ['label' => 'Reservation Management', 'href' => route('coordinator.reservations.index')],
                 ['label' => 'Borrow Requests', 'href' => route('coordinator.borrow.index')],

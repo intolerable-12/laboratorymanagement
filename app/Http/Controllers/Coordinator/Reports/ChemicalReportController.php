@@ -20,6 +20,7 @@ class ChemicalReportController extends Controller
         $schoolYears = SchoolYear::query()
             ->orderByDesc('start_date')
             ->orderByDesc('id')
+            ->with('academicPeriods')
             ->get();
 
         return view('users.coordinator.reports.chemicals', [
@@ -46,6 +47,7 @@ class ChemicalReportController extends Controller
             ->whereIn('id', $data['school_year_ids'])
             ->orderBy('start_date')
             ->orderBy('id')
+            ->with('academicPeriods')
             ->get();
 
         if (! Chemical::query()->exists()) {

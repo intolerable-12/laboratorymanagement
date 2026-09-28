@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Borrow\StudentBorrowEmailController;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
-use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\SchoolYear;
@@ -165,7 +164,7 @@ class StudentBorrowController extends Controller
 	{
 		$this->ensureStudent($request);
 
-		$activeTab = $request->query('tab', 'equipment');
+        $activeTab = 'equipment';
 		$selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
 			'options' => ['min_range' => 1],
 		]) ?: null;
@@ -176,9 +175,6 @@ class StudentBorrowController extends Controller
 		$equipmentQuery = Equipment::query()
 			->where('status', 'Available')
 			->orderBy('equipment_name');
-		$chemicalQuery = Chemical::query()
-			->where('status', 'Available')
-			->orderBy('chemical_name');
 		$search = trim((string) $request->query('search', ''));
 
 		if ($search !== '') {
@@ -187,36 +183,21 @@ class StudentBorrowController extends Controller
 					->orWhere('equipment_code', 'like', '%' . $search . '%')
 					->orWhere('barcode', 'like', '%' . $search . '%');
 			});
-			$chemicalQuery->where(function ($query) use ($search) {
-				$query->where('chemical_name', 'like', '%' . $search . '%')
-					->orWhere('chemical_code', 'like', '%' . $search . '%')
-					->orWhere('barcode', 'like', '%' . $search . '%');
-			});
 		}
 
 		if ($selectedLaboratoryId) {
 			$equipmentQuery->where('laboratory_id', $selectedLaboratoryId);
-			$chemicalQuery->where('laboratory_id', $selectedLaboratoryId);
 		} else {
 			$equipmentQuery->whereRaw('1 = 0');
-			$chemicalQuery->whereRaw('1 = 0');
 		}
 
 		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
-		$chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
 		$oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
-		$oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
 		$selectedEquipmentItems = Equipment::query()
 			->whereIn('id', array_keys($oldEquipmentSelections))
 			->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
 			->get()
 			->keyBy('id');
-		$selectedChemicalItems = Chemical::query()
-			->whereIn('id', array_keys($oldChemicalSelections))
-			->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
-			->get()
-			->keyBy('id');
-
 		if ($request->ajax()) {
 			$fragment = $request->query('fragment', $activeTab);
 
@@ -224,23 +205,17 @@ class StudentBorrowController extends Controller
 				return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
 			}
 
-			if ($fragment === 'chemical') {
-				return view('users.student.borrow.partials.chemical-tab', compact('chemicalItems'));
-			}
 		}
 
 		return view('users.student.borrow.create', compact(
 			'laboratories',
 			'equipmentItems',
-			'chemicalItems',
 			'activeTab',
 			'selectedLaboratoryId',
 			'borrowDateMin',
 			'borrowDateMinLabel',
 			'oldEquipmentSelections',
-			'oldChemicalSelections',
-			'selectedEquipmentItems',
-			'selectedChemicalItems'
+			'selectedEquipmentItems'
 		));
 	}
 
@@ -255,7 +230,7 @@ class StudentBorrowController extends Controller
 
 		if ($items === []) {
 			throw ValidationException::withMessages([
-				'items' => 'Select at least one equipment or chemical item.',
+				'items' => 'Select at least one equipment item.',
 			]);
 		}
 
@@ -371,11 +346,8 @@ class StudentBorrowController extends Controller
 			'laboratory_id' => ['required', 'exists:laboratories,id'],
 			'remarks' => ['nullable', 'string', 'max:1000'],
 			'equipment_items' => ['nullable', 'array'],
-			'chemical_items' => ['nullable', 'array'],
 			'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
-			'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
 			'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
-			'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
 		]);
 
 		$borrowedAt = Carbon::parse($data['borrowed_at']);
@@ -447,53 +419,19 @@ class StudentBorrowController extends Controller
 			];
 		}
 
-		foreach ((array) $request->input('chemical_items', []) as $chemicalId => $payload) {
-			$rawQuantity = $payload['quantity'] ?? null;
+		$hasChemicalSelection = collect((array) $request->input('chemical_items', []))
+			->contains(function ($payload): bool {
+				if (! is_array($payload)) {
+					return false;
+				}
 
-			if ($rawQuantity === null || $rawQuantity === '') {
-				continue;
-			}
+				$quantity = $payload['quantity'] ?? null;
 
-			if (is_numeric($rawQuantity) && (float) $rawQuantity === 0.0) {
-				continue;
-			}
+				return $quantity !== null && $quantity !== '' && (! is_numeric($quantity) || (float) $quantity > 0);
+			});
 
-			if (! is_numeric($rawQuantity) || (float) $rawQuantity <= 0) {
-				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'Chemical quantities must be a positive number.';
-				continue;
-			}
-
-			$chemical = Chemical::find($chemicalId);
-
-			if (! $chemical) {
-				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'Selected chemical was not found.';
-				continue;
-			}
-
-			if ((int) $chemical->laboratory_id !== $laboratoryId) {
-				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical does not belong to the selected laboratory.';
-				continue;
-			}
-
-			if ($chemical->status !== 'Available') {
-				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently available.';
-				continue;
-			}
-
-			$quantity = (float) $rawQuantity;
-
-			if ($quantity > (float) $chemical->quantity) {
-				$errors['chemical_items.' . $chemicalId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
-				continue;
-			}
-
-			$items[] = [
-				'item_type' => 'Chemical',
-				'item_id' => $chemical->id,
-				'laboratory_id' => $chemical->laboratory_id,
-				'quantity' => $quantity,
-				'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
-			];
+		if ($hasChemicalSelection) {
+			$errors['chemical_items'] = 'Chemicals can only be requested in reservations, not borrow requests.';
 		}
 
 		if ($errors !== []) {

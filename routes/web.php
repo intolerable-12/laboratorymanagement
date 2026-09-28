@@ -42,6 +42,7 @@ use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowController;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowEmailController;
 use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckoutController;
 use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckinController;
+use App\Http\Controllers\Facilitator\Checkout\FacilitatorTransactionHistoryController;
 use App\Http\Controllers\Facilitator\Forum\LaboratoryInchargeForumController;
 use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardController;
 use App\Http\Controllers\Instructor\Reservation\ReservationController as InstructorReservationController;
@@ -118,6 +119,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
         Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
         Route::put('/inventory-alerts/chemicals/{chemical}', [InventoryAlertController::class, 'updateChemical'])->name('inventory-alerts.chemical.update');
+        Route::put('/inventory-alerts/chemicals/{chemical}/threshold', [InventoryAlertController::class, 'updateChemicalThreshold'])->name('inventory-alerts.chemical-threshold.update');
         Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
@@ -151,6 +153,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
             Route::post('/semesters', [AcademicPeriodController::class, 'storeSemester'])->name('semesters.store');
             Route::get('/semesters/{semester}/edit', [AcademicPeriodController::class, 'editSemester'])->name('semesters.edit');
             Route::put('/semesters/{semester}', [AcademicPeriodController::class, 'updateSemester'])->name('semesters.update');
+            Route::put('/semester-periods', [AcademicPeriodController::class, 'updateSemesterPeriods'])->name('semester-periods.update');
             Route::delete('/semesters/{semester}', [AcademicPeriodController::class, 'destroySemester'])->name('semesters.destroy');
             Route::post('/semesters/{semester}/current', [AcademicPeriodController::class, 'setCurrentSemester'])->name('semesters.current');
         });
@@ -259,6 +262,13 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckoutController::class, 'remove'])->name('remove');
             });
 
+        Route::prefix('transaction-history')
+            ->name('transaction-history.')
+            ->group(function () {
+                Route::get('/', [FacilitatorTransactionHistoryController::class, 'index'])->name('index');
+                Route::get('/{borrowTransaction}', [FacilitatorTransactionHistoryController::class, 'show'])->name('show');
+            });
+
         Route::prefix('checkin')
             ->name('checkin.')
             ->group(function () {
@@ -314,7 +324,7 @@ Route::middleware(['auth', 'role:Student', 'audit'])
             return view('users.student.inventory.index', [
                 'stats' => [
                     'equipment_available' => Equipment::withoutTrashed()->where('status', 'Available')->count(),
-                    'chemicals_available' => Chemical::withoutTrashed()->where('status', 'Available')->count(),
+                    'chemicals_available' => Chemical::withoutTrashed()->availableForRequest()->count(),
                     'equipment_categories' => EquipmentCategory::count(),
                     'chemical_categories' => ChemicalCategory::count(),
                 ],
@@ -400,6 +410,10 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
     ->name('facilitator.')
     ->group(function () {
         Route::get('/dashboard', [FacilitatorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
+        Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
+        Route::put('/inventory-alerts/chemicals/{chemical}', [InventoryAlertController::class, 'updateChemical'])->name('inventory-alerts.chemical.update');
+        Route::put('/inventory-alerts/chemicals/{chemical}/threshold', [InventoryAlertController::class, 'updateChemicalThreshold'])->name('inventory-alerts.chemical-threshold.update');
 
         Route::prefix('reservations')
             ->name('reservations.')
@@ -428,6 +442,13 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/{borrowTransaction}', [FacilitatorCheckoutController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/scan', [FacilitatorCheckoutController::class, 'scan'])->name('scan');
                 Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckoutController::class, 'remove'])->name('remove');
+            });
+
+        Route::prefix('transaction-history')
+            ->name('transaction-history.')
+            ->group(function () {
+                Route::get('/', [FacilitatorTransactionHistoryController::class, 'index'])->name('index');
+                Route::get('/{borrowTransaction}', [FacilitatorTransactionHistoryController::class, 'show'])->name('show');
             });
 
         Route::prefix('checkin')

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Equipment;
+use App\Models\SchoolYear;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
@@ -39,6 +40,7 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
             ->orderBy('purchase_date')
             ->orderBy('equipment_name')
             ->get()
+            ->filter(fn (Equipment $equipment): bool => $this->belongsToSelectedSchoolYear($equipment))
             ->groupBy('laboratory_id');
 
         $usedTitles = [];
@@ -64,6 +66,20 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
             })
             ->values()
             ->all();
+    }
+
+    private function belongsToSelectedSchoolYear(Equipment $equipment): bool
+    {
+        $acquisitionDate = $equipment->purchase_date?->copy()->startOfDay()
+            ?? $equipment->created_at?->copy()->startOfDay();
+
+        if (! $acquisitionDate) {
+            return true;
+        }
+
+        return $this->schoolYears->contains(function (SchoolYear $schoolYear) use ($acquisitionDate): bool {
+            return ! $schoolYear->end_date || $acquisitionDate->lte($schoolYear->end_date->copy()->endOfDay());
+        });
     }
 
     /**

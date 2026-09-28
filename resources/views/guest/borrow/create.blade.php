@@ -9,7 +9,7 @@
                 <div>
                     <div class="text-uppercase small text-primary fw-semibold mb-2">No account required</div>
                     <h1 class="h3 fw-semibold mb-2 text-dark">Create a Borrow Request</h1>
-                    <p class="mb-0 text-secondary">Provide your details, choose the items you need, and wait for the laboratory team to review your request.</p>
+                    <p class="mb-0 text-secondary">Provide your details, choose the equipment you need, and wait for the laboratory team to review your request.</p>
                 </div> 
             </div>
         </section>
@@ -91,6 +91,14 @@
             <div class="card section-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">
                     <h2 class="h4 fw-semibold mb-4 text-dark">Borrow details</h2>
+                    <div class="alert alert-info border-0 rounded-4 mb-4" role="note">
+                        <strong>Borrowing instructions:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Submit your borrow request at least 3 business days in advance.</li>
+                            <li>Laboratory hours are Monday-Friday, 7:30 AM-5:00 PM, and Saturday, 8:00 AM-12:00 NN.</li>
+                            <li>Sundays are unavailable.</li>
+                        </ul>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="guest-borrow-laboratory" class="form-label fw-semibold">Laboratory</label>
@@ -109,14 +117,12 @@
                             <input id="guest-borrowed-at" type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Guest borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
                             @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
-                            <div class="form-text">Submit at least 3 business days ahead. Monday-Friday: 7:30 AM-5:00 PM; Saturday: 8:00 AM-12:00 NN. Sundays are unavailable.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="guest-due-at" class="form-label fw-semibold">Return at</label>
                             <input id="guest-due-at" type="datetime-local" name="due_at" value="{{ old('due_at') }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" class="form-control @error('due_at') is-invalid @enderror" required>
                             @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
-                            <div class="form-text">Return at the same laboratory hours: Monday-Friday 7:30 AM-5:00 PM; Saturday 8:00 AM-12:00 NN. Sundays are unavailable.</div>
                         </div>
                         <div class="col-12">
                             <label for="guest-borrow-remarks" class="form-label fw-semibold">Remarks <span class="text-secondary fw-normal">(optional)</span></label>
@@ -136,10 +142,7 @@
                                     <h2 class="h4 fw-semibold mb-1 text-dark">Requested items</h2>
                                     <p class="mb-0 text-secondary">Click an item to enter its quantity, then add it to your request.</p>
                                 </div>
-                                <div class="d-inline-flex btn-group reservation-tab-switcher" role="tablist" aria-label="Requested items tabs">
-                                    <button type="button" class="btn btn-outline-primary {{ $activeTab === 'equipment' ? 'active' : '' }}" data-reservation-tab-button data-target="equipment" aria-pressed="{{ $activeTab === 'equipment' ? 'true' : 'false' }}">Equipment</button>
-                                    <button type="button" class="btn btn-outline-primary {{ $activeTab === 'chemical' ? 'active' : '' }}" data-reservation-tab-button data-target="chemical" aria-pressed="{{ $activeTab === 'chemical' ? 'true' : 'false' }}">Chemical</button>
-                                </div>
+                                <span class="badge rounded-pill text-bg-primary px-3 py-2">Equipment only</span>
                             </div>
 
                             @error('items')<div class="alert alert-danger border-0 rounded-4 mb-4">{{ $message }}</div>@enderror
@@ -148,17 +151,12 @@
                                 <div class="tab-pane fade {{ $activeTab === 'equipment' ? 'show active' : '' }}" id="guest-equipment-tab" data-reservation-tab-pane="equipment">
                                     @include('users.student.borrow.partials.equipment-tab', ['equipmentItems' => $equipmentItems])
                                 </div>
-                                <div class="tab-pane fade {{ $activeTab === 'chemical' ? 'show active' : '' }}" id="guest-chemical-tab" data-reservation-tab-pane="chemical">
-                                    @include('users.student.borrow.partials.chemical-tab', ['chemicalItems' => $chemicalItems])
-                                </div>
                             </div>
                         </div>
                         <div class="col-lg-4">
                             @include('users.student.partials.request-item-cart', [
                                 'oldEquipmentSelections' => $oldEquipmentSelections,
-                                'oldChemicalSelections' => $oldChemicalSelections,
                                 'selectedEquipmentItems' => $selectedEquipmentItems,
-                                'selectedChemicalItems' => $selectedChemicalItems,
                             ])
                         </div>
                     </div>

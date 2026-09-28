@@ -59,7 +59,7 @@ class PhysicsChemicalSeeder extends Seeder
                     'received_date' => $dates['received_date'],
                     'hazard_classification' => $item['hazard_classification'],
                     'storage_location' => $item['storage_location'],
-                    'status' => 'Available',
+                    'status' => 'Active',
                     'image' => null,
                     'description' => $item['chemical_name'] . ' - Physics Laboratory Chemical',
                     'remarks' => 'Store and handle according to chemical safety requirements.',

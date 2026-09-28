@@ -140,7 +140,7 @@
                                                 'requestKind' => 'borrow',
                                                 'requestItems' => $borrowTransaction->items,
                                                 'equipmentItems' => $equipmentItems,
-                                                'chemicalItems' => $chemicalItems,
+                                                'allowChemicals' => false,
                                                 'resultsUrl' => route('facilitator.borrow.show', $borrowTransaction),
                                             ])
                                         </form>

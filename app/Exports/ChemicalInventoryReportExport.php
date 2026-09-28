@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Chemical;
+use App\Models\SchoolYear;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
@@ -34,6 +35,7 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
             ->orderBy('received_date')
             ->orderBy('chemical_name')
             ->get()
+            ->filter(fn (Chemical $chemical): bool => $this->belongsToSelectedSchoolYear($chemical))
             ->groupBy('laboratory_id');
 
         $usedTitles = [];
@@ -59,6 +61,20 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
             })
             ->values()
             ->all();
+    }
+
+    private function belongsToSelectedSchoolYear(Chemical $chemical): bool
+    {
+        $acquisitionDate = $chemical->received_date?->copy()->startOfDay()
+            ?? $chemical->created_at?->copy()->startOfDay();
+
+        if (! $acquisitionDate) {
+            return true;
+        }
+
+        return $this->schoolYears->contains(function (SchoolYear $schoolYear) use ($acquisitionDate): bool {
+            return ! $schoolYear->end_date || $acquisitionDate->lte($schoolYear->end_date->copy()->endOfDay());
+        });
     }
 
     private function uniqueSheetTitle(string $name, array $usedTitles): string

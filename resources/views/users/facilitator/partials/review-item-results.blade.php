@@ -4,7 +4,7 @@
             <thead>
                 <tr>
                     <th class="text-dark">{{ $itemType }}</th>
-                    <th class="text-dark">Available</th>
+                    <th class="text-dark">{{ $itemType === 'Chemical' ? 'In stock' : 'Available' }}</th>
                     <th class="text-center text-dark">Select</th>
                 </tr>
             </thead>

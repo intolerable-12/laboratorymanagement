@@ -13,7 +13,7 @@
     @endif
 
     <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4">
-        New reservations and equipment quantity changes use the school year and semester marked <strong>Current</strong> below. Use <strong>Edit period</strong> to change a school year's start and end dates.
+        New reservations and inventory quantity changes use the school year and semester marked <strong>Current</strong> below. Use the semester academic-period section to set each semester's dates for every school year.
     </div>
 
     <div class="row g-4">
@@ -133,6 +133,69 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="section-card mt-4">
+        <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
+            <div>
+                <h3 class="h5 fw-semibold mb-1">Semester academic periods</h3>
+                <p class="mb-0 text-secondary">Set the exact date range for every semester in each school year. Report quantities stay blank until a semester has started.</p>
+            </div>
+        </div>
+        <div class="card-body px-4 px-xl-5">
+            @if ($schoolYears->isEmpty() || $semesters->isEmpty())
+                <div class="text-secondary">Add at least one school year and one semester before setting academic periods.</div>
+            @else
+                <form method="POST" action="{{ route('coordinator.academic-periods.semester-periods.update') }}">
+                    @csrf
+                    @method('PUT')
+
+                    @foreach ($schoolYears as $schoolYear)
+                        <div class="border rounded-3 p-3 p-xl-4 mb-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <div class="fw-semibold text-dark">{{ $schoolYear->school_year }}</div>
+                                <span class="small text-secondary">
+                                    {{ $schoolYear->start_date?->format('M d, Y') }} &ndash; {{ $schoolYear->end_date?->format('M d, Y') }}
+                                </span>
+                            </div>
+
+                            <div class="row g-3">
+                                @foreach ($semesters as $semester)
+                                    @php
+                                        $academicPeriod = $schoolYear->academicPeriods->firstWhere('semester_id', $semester->id);
+                                        $startKey = "periods.{$schoolYear->id}.{$semester->id}.start_date";
+                                        $endKey = "periods.{$schoolYear->id}.{$semester->id}.end_date";
+                                        $startDate = old($startKey, $academicPeriod?->start_date?->format('Y-m-d'));
+                                        $endDate = old($endKey, $academicPeriod?->end_date?->format('Y-m-d'));
+                                    @endphp
+                                    <div class="col-12 col-lg-6">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="fw-semibold text-dark mb-3">{{ $semester->semester_name }}</div>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-semibold text-secondary" for="period-start-{{ $schoolYear->id }}-{{ $semester->id }}">Start date</label>
+                                                    <input type="date" class="form-control @error($startKey) is-invalid @enderror" id="period-start-{{ $schoolYear->id }}-{{ $semester->id }}" name="periods[{{ $schoolYear->id }}][{{ $semester->id }}][start_date]" value="{{ $startDate }}" min="{{ $schoolYear->start_date?->format('Y-m-d') }}" max="{{ $schoolYear->end_date?->format('Y-m-d') }}" required>
+                                                    @error($startKey)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small fw-semibold text-secondary" for="period-end-{{ $schoolYear->id }}-{{ $semester->id }}">End date</label>
+                                                    <input type="date" class="form-control @error($endKey) is-invalid @enderror" id="period-end-{{ $schoolYear->id }}-{{ $semester->id }}" name="periods[{{ $schoolYear->id }}][{{ $semester->id }}][end_date]" value="{{ $endDate }}" min="{{ $schoolYear->start_date?->format('Y-m-d') }}" max="{{ $schoolYear->end_date?->format('Y-m-d') }}" required>
+                                                    @error($endKey)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calendar-check me-1"></i>Save semester periods</button>
+                    </div>
+                </form>
+            @endif
         </div>
     </div>
 @endsection

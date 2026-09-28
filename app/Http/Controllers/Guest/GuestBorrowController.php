@@ -7,7 +7,6 @@ use App\Http\Controllers\Concerns\ValidatesBorrowSchedule;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
-use App\Models\Chemical;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\Laboratory;
@@ -27,7 +26,7 @@ class GuestBorrowController extends Controller
 
     public function create(Request $request)
     {
-        $activeTab = $request->query('tab', 'equipment');
+        $activeTab = 'equipment';
         $selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]) ?: null;
@@ -38,7 +37,6 @@ class GuestBorrowController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $equipmentQuery = Equipment::query()->where('status', 'Available')->orderBy('equipment_name');
-        $chemicalQuery = Chemical::query()->where('status', 'Available')->orderBy('chemical_name');
 
         if ($search !== '') {
             $equipmentQuery->where(function ($query) use ($search) {
@@ -46,37 +44,22 @@ class GuestBorrowController extends Controller
                     ->orWhere('equipment_code', 'like', '%' . $search . '%')
                     ->orWhere('barcode', 'like', '%' . $search . '%');
             });
-            $chemicalQuery->where(function ($query) use ($search) {
-                $query->where('chemical_name', 'like', '%' . $search . '%')
-                    ->orWhere('chemical_code', 'like', '%' . $search . '%')
-                    ->orWhere('barcode', 'like', '%' . $search . '%');
-            });
         }
 
         if ($selectedLaboratoryId) {
             $equipmentQuery->where('laboratory_id', $selectedLaboratoryId);
-            $chemicalQuery->where('laboratory_id', $selectedLaboratoryId);
         } else {
             $equipmentQuery->whereRaw('1 = 0');
-            $chemicalQuery->whereRaw('1 = 0');
         }
 
         $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
-        $chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
-        $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
         $selectedEquipmentItems = Equipment::query()
             ->whereIn('id', array_keys($oldEquipmentSelections))
             ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
             ->get()
             ->keyBy('id');
-        $selectedChemicalItems = Chemical::query()
-            ->whereIn('id', array_keys($oldChemicalSelections))
-            ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
-            ->get()
-            ->keyBy('id');
-
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
 
@@ -84,24 +67,18 @@ class GuestBorrowController extends Controller
                 return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
             }
 
-            if ($fragment === 'chemical') {
-                return view('users.student.borrow.partials.chemical-tab', compact('chemicalItems'));
-            }
         }
 
         return view('guest.borrow.create', compact(
             'departments',
             'laboratories',
             'equipmentItems',
-            'chemicalItems',
             'activeTab',
             'selectedLaboratoryId',
             'borrowDateMin',
             'borrowDateMinLabel',
             'oldEquipmentSelections',
-            'oldChemicalSelections',
-            'selectedEquipmentItems',
-            'selectedChemicalItems'
+            'selectedEquipmentItems'
         ));
     }
 
@@ -113,18 +90,15 @@ class GuestBorrowController extends Controller
             'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
             'remarks' => ['nullable', 'string', 'max:1000'],
             'equipment_items' => ['nullable', 'array'],
-            'chemical_items' => ['nullable', 'array'],
             'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
-            'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
             'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
-            'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
         ]));
 
         $this->ensureBorrowDates($data);
-        $items = $this->collectRequestedItems($request, (int) $data['laboratory_id']);
+        $items = $this->collectRequestedItems($request, (int) $data['laboratory_id'], false);
 
         if ($items === []) {
-            throw ValidationException::withMessages(['items' => 'Select at least one equipment or chemical item.']);
+            throw ValidationException::withMessages(['items' => 'Select at least one equipment item.']);
         }
 
         $laboratoryId = (int) $data['laboratory_id'];

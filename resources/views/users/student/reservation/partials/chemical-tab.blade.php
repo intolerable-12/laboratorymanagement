@@ -2,7 +2,7 @@
     @if ($selectedLaboratoryId)
         <div class="row g-3 align-items-end mb-4">
             <div class="col-md-6">
-                <h4 class="h5 fw-semibold mb-1 text-dark">Available Chemicals</h4>
+                <h4 class="h5 fw-semibold mb-1 text-dark">Chemicals in stock</h4>
                 <p class="mb-0 text-secondary">Click a row to enter the quantity and add the chemical to your reservation.</p>
             </div>
             <div class="col-md-6">
@@ -51,7 +51,7 @@
                     <tr>
                         <th class="text-dark">Chemical</th>
                         <th class="text-dark">Laboratory</th>
-                        <th class="text-dark">Available</th>
+                        <th class="text-dark">In stock</th>
                         <th class="text-center text-dark">Select</th>
                     </tr>
                 </thead>
@@ -70,13 +70,15 @@
                             <td>{{ $chemical->laboratory?->laboratory_name ?? '—' }}</td>
                             <td>
                                 <div class="fw-semibold text-dark">{{ $chemical->quantity }} {{ $chemical->unit }}</div>
-                                <div class="small text-{{ $chemical->is_expired ? 'danger' : 'secondary' }}">{{ $chemical->is_expired ? 'Expired' : $chemical->status }}</div>
+                                @if ($chemical->is_expired)
+                                    <div class="small text-danger">Expired</div>
+                                @endif
                             </td>
                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-picker-row-action>Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></button></td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center text-secondary py-4">No available chemicals found.</td>
+                        <td colspan="4" class="text-center text-secondary py-4">No chemicals in stock were found.</td>
                         </tr>
                     @endforelse
                 </tbody>
