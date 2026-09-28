@@ -7,10 +7,8 @@ use App\Models\AuditLog;
 use App\Models\BarcodeLog;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
-use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\InventoryLog;
-use App\Services\ChemicalInventoryPeriodTracker;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -25,6 +23,7 @@ class FacilitatorCheckinController extends Controller
         $this->ensureCheckoutStaff($request);
 
         $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'reservation', 'items.item', 'receivedBy'])
+            ->whereHas('items', fn ($query) => $query->where('item_type', 'Equipment'))
             ->whereIn('status', ['Borrowed', 'Partially Returned', 'Overdue'])
             ->orderByRaw("CASE WHEN status = 'Overdue' THEN 0 WHEN status = 'Partially Returned' THEN 1 ELSE 2 END")
             ->orderBy('due_at')
@@ -50,6 +49,7 @@ class FacilitatorCheckinController extends Controller
             'borrowTransaction' => $borrowTransaction,
             'scanLogs' => $borrowTransaction->barcodeLogs
                 ->where('action', 'Return')
+                ->where('item_type', 'Equipment')
                 ->where('is_voided', false)
                 ->sortByDesc('scanned_at')
                 ->values(),
@@ -67,6 +67,7 @@ class FacilitatorCheckinController extends Controller
             'barcode' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'condition_in' => ['required', 'in:Excellent,Good,Fair,Damaged,Under Repair,Lost'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $data): array {
@@ -103,53 +104,48 @@ class FacilitatorCheckinController extends Controller
                 $this->checkinError('barcode', 'The returned quantity for this item has already been recorded.');
             }
 
-            $quantity = $this->checkinQuantity(
-                $itemType,
-                $data['quantity'] ?? null,
-                $outstanding,
-                $itemType === 'Chemical' ? ($inventoryItem->unit ?? null) : null,
-            );
+            $quantity = $this->checkinQuantity('Equipment', $data['quantity'] ?? null, $outstanding);
 
             if ($quantity > $outstanding) {
                 $this->checkinError('quantity', 'The check-in quantity exceeds the remaining quantity for this item.');
             }
 
             $condition = $data['condition_in'];
+            $requiresRemarks = in_array($condition, ['Lost', 'Damaged'], true);
+            $operatorRemarks = $requiresRemarks ? trim((string) ($data['remarks'] ?? '')) : '';
+
+            if ($requiresRemarks && $operatorRemarks === '') {
+                $this->checkinError('remarks', 'Remarks are required when the item is marked Lost or Damaged.');
+            }
+
             $isUsableReturn = in_array($condition, ['Excellent', 'Good', 'Fair'], true);
             $newReturned = $returned + ($isUsableReturn ? $quantity : 0);
             $newLost = $lost + ($condition === 'Lost' ? $quantity : 0);
             $newDamaged = $damaged + (in_array($condition, ['Damaged', 'Under Repair'], true) ? $quantity : 0);
-            $newUsed = $itemType === 'Chemical'
-                ? max(0, round($checkedOut - $newReturned - $newLost - $newDamaged, 2))
-                : $used;
+            $newUsed = 0;
 
-            $inventoryItem = ($itemType === 'Equipment' ? Equipment::query() : Chemical::query())
+            $inventoryItem = Equipment::query()
                 ->lockForUpdate()
                 ->findOrFail($inventoryItem->id);
 
-            $before = $itemType === 'Equipment'
-                ? (float) $inventoryItem->available_quantity
-                : (float) $inventoryItem->quantity;
+            $before = (float) $inventoryItem->available_quantity;
             $after = $isUsableReturn ? round($before + $quantity, 2) : $before;
 
-            if ($itemType === 'Equipment') {
-                $after = min((float) $inventoryItem->quantity, $after);
-                $inventoryItem->update([
-                    'available_quantity' => (int) $after,
-                    'condition' => $condition === 'Lost' ? $inventoryItem->condition : $condition,
-                    'status' => $isUsableReturn
-                        ? ($after > 0 ? 'Available' : 'Borrowed')
-                        : (in_array($condition, ['Damaged', 'Under Repair'], true)
-                            ? 'Maintenance'
-                            : ($after > 0 ? 'Available' : 'Unavailable')),
-                ]);
-            } elseif ($isUsableReturn) {
-                $inventoryItem->update([
-                    'quantity' => $after,
-                    'status' => $after <= 0
-                        ? 'Unavailable'
-                        : ($after <= (float) $inventoryItem->minimum_stock ? 'Low Stock' : 'Available'),
-                ]);
+            $after = min((float) $inventoryItem->quantity, $after);
+            $inventoryItem->update([
+                'available_quantity' => (int) $after,
+                'condition' => $condition === 'Lost' ? $inventoryItem->condition : $condition,
+                'status' => $isUsableReturn
+                    ? ($after > 0 ? 'Available' : 'Borrowed')
+                    : (in_array($condition, ['Damaged', 'Under Repair'], true)
+                        ? 'Maintenance'
+                        : ($after > 0 ? 'Available' : 'Unavailable')),
+            ]);
+
+            $checkinRemark = 'Check-in: '.$quantity.' '.$this->unitLabel($itemType, $inventoryItem).' tagged '.$condition.'.';
+
+            if ($operatorRemarks !== '') {
+                $checkinRemark .= ' Remarks: '.$operatorRemarks;
             }
 
             $borrowItem->update([
@@ -158,20 +154,17 @@ class FacilitatorCheckinController extends Controller
                 'quantity_lost' => $newLost,
                 'quantity_damaged' => $newDamaged,
                 'condition_in' => $condition,
-                'remarks' => $this->appendRemark($borrowItem->remarks, 'Check-in: '.$quantity.' '.$this->unitLabel($itemType, $inventoryItem).' tagged '.$condition.'.'),
+                'remarks' => $this->appendRemark($borrowItem->remarks, $checkinRemark),
             ]);
 
             $now = now();
-            if ($itemType === 'Chemical' && abs($newUsed - $used) >= 0.005) {
-                app(ChemicalInventoryPeriodTracker::class)->recordUsage(
-                    chemical: $inventoryItem,
-                    usageDelta: round($newUsed - $used, 2),
-                    usedAt: $now,
-                );
-            }
-            $itemName = $itemType === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name;
-            $unit = $itemType === 'Chemical' ? ($inventoryItem->unit ?? 'unit') : 'unit(s)';
+            $itemName = $inventoryItem->equipment_name;
+            $unit = 'unit(s)';
             $remarks = 'Barcode check-in for '.$transaction->borrow_no.' - '.$itemName.' for '.$this->borrowerName($transaction).'.';
+
+            if ($operatorRemarks !== '') {
+                $remarks .= ' Remarks: '.$operatorRemarks;
+            }
 
             InventoryLog::create([
                 'item_type' => $itemType,
@@ -327,8 +320,12 @@ class FacilitatorCheckinController extends Controller
             }
 
             $quantity = (float) $scan->quantity;
-            $inventoryQuery = $scan->item_type === 'Equipment' ? Equipment::query() : Chemical::query();
-            $inventoryItem = $inventoryQuery->lockForUpdate()->find($scan->item_id);
+
+            if ($scan->item_type !== 'Equipment') {
+                $this->checkinError('scan', 'Chemicals are consumed during reservations and cannot be checked in.');
+            }
+
+            $inventoryItem = Equipment::query()->lockForUpdate()->find($scan->item_id);
 
             if (! $inventoryItem) {
                 $this->checkinError('scan', 'The inventory item for this check-in line could not be found.');
@@ -356,33 +353,18 @@ class FacilitatorCheckinController extends Controller
                 ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
             $remainingCondition = $remainingScans->first()?->condition_in;
 
-            $before = $scan->item_type === 'Equipment'
-                ? (float) $inventoryItem->available_quantity
-                : (float) $inventoryItem->quantity;
+            $before = (float) $inventoryItem->available_quantity;
             $isUsableReturn = in_array($scan->condition_in, ['Excellent', 'Good', 'Fair'], true);
             $after = $isUsableReturn ? max(0, round($before - $quantity, 2)) : $before;
 
-            if ($scan->item_type === 'Equipment' && $isUsableReturn) {
+            if ($isUsableReturn) {
                 $inventoryItem->update([
                     'available_quantity' => (int) $after,
                     'status' => $after > 0 ? 'Available' : 'Borrowed',
                 ]);
-            } elseif ($scan->item_type === 'Chemical' && $isUsableReturn) {
-                $inventoryItem->update([
-                    'quantity' => $after,
-                    'status' => $after <= 0
-                        ? 'Unavailable'
-                        : ($after <= (float) $inventoryItem->minimum_stock ? 'Low Stock' : 'Available'),
-                ]);
             }
 
-            $checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
-            $previousUsed = (float) ($borrowItem->quantity_used ?? 0);
-            $used = $scan->item_type === 'Chemical'
-                ? ($remainingScans->isEmpty()
-                    ? 0
-                    : max(0, round($checkedOut - $remainingReturned - $remainingLost - $remainingDamaged, 2)))
-                : 0;
+            $used = 0;
 
             $borrowItem->update([
                 'quantity_returned' => max(0, $remainingReturned),
@@ -393,13 +375,6 @@ class FacilitatorCheckinController extends Controller
             ]);
 
             $now = now();
-            if ($scan->item_type === 'Chemical' && abs($used - $previousUsed) >= 0.005) {
-                app(ChemicalInventoryPeriodTracker::class)->recordUsage(
-                    chemical: $inventoryItem,
-                    usageDelta: round($used - $previousUsed, 2),
-                    usedAt: $now,
-                );
-            }
             $scan->update([
                 'is_voided' => true,
                 'voided_by' => $request->user()->userNo,
@@ -440,7 +415,7 @@ class FacilitatorCheckinController extends Controller
 
             return [
                 'scan_id' => $scan->id,
-                'item_name' => $scan->item_type === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name,
+                'item_name' => $inventoryItem->equipment_name,
             ];
         });
 
@@ -476,16 +451,7 @@ class FacilitatorCheckinController extends Controller
             $this->checkinError('barcode', 'Equipment "'.$equipment->equipment_name.'" is not part of this student’s borrowed request.');
         }
 
-        $chemical = Chemical::query()->where('barcode', $barcode)->first();
-        if ($chemical) {
-            if ($transaction->items()->where('item_type', 'Chemical')->where('item_id', $chemical->id)->exists()) {
-                return ['Chemical', $chemical];
-            }
-
-            $this->checkinError('barcode', 'Chemical "'.$chemical->chemical_name.'" is not part of this student’s borrowed request.');
-        }
-
-        $this->checkinError('barcode', 'The scanned item could not be found in inventory.');
+        $this->checkinError('barcode', 'Only equipment can be checked in. Chemicals are consumed during reservations and are not returned.');
     }
 
     private function checkinQuantity(string $itemType, mixed $rawQuantity, float $outstanding, ?string $unit = null): float|int
@@ -512,7 +478,7 @@ class FacilitatorCheckinController extends Controller
         $complete = true;
         $hasAccountedQuantity = false;
 
-        foreach ($transaction->items()->get() as $item) {
+        foreach ($transaction->items()->where('item_type', 'Equipment')->get() as $item) {
             $checkedOut = (float) ($item->quantity_checked_out ?? 0);
             $accounted = (float) $item->quantity_returned
                 + (float) ($item->quantity_used ?? 0)
@@ -527,7 +493,9 @@ class FacilitatorCheckinController extends Controller
 
     private function progressItems(BorrowTransaction $transaction): array
     {
-        return $transaction->items->map(function (BorrowItem $item): array {
+        return $transaction->items
+            ->where('item_type', 'Equipment')
+            ->map(function (BorrowItem $item): array {
             $checkedOut = (float) ($item->quantity_checked_out ?? 0);
             $returned = (float) $item->quantity_returned;
             $used = (float) ($item->quantity_used ?? 0);
@@ -538,9 +506,9 @@ class FacilitatorCheckinController extends Controller
             return [
                 'key' => $item->item_type.':'.$item->item_id,
                 'item_type' => $item->item_type,
-                'item_name' => $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Item unavailable',
+                'item_name' => $item->item?->equipment_name ?? 'Item unavailable',
                 'barcode' => $item->item?->barcode,
-                'unit' => $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)',
+                'unit' => 'unit(s)',
                 'checked_out' => $checkedOut,
                 'returned' => $returned,
                 'used' => $used,
@@ -549,12 +517,12 @@ class FacilitatorCheckinController extends Controller
                 'accounted' => $accounted,
                 'outstanding' => max(0, round($checkedOut - $accounted, 2)),
             ];
-        })->values()->all();
+            })->values()->all();
     }
 
     private function unitLabel(string $itemType, mixed $inventoryItem): string
     {
-        return $itemType === 'Chemical' ? ($inventoryItem?->unit ?? 'the chemical unit') : 'unit(s)';
+        return 'unit(s)';
     }
 
     private function appendRemark(?string $existing, string $remark): string

@@ -28,7 +28,7 @@ class ChemicalController extends Controller
             ->withCount([
                 'chemicals as available_chemical_count' => fn ($query) => $query
                     ->withoutTrashed()
-                    ->where('status', 'Available'),
+                    ->availableForRequest(),
             ])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -43,14 +43,14 @@ class ChemicalController extends Controller
 
         $stats = [
             'categories' => ChemicalCategory::count(),
-            'available_items' => Chemical::withoutTrashed()->where('status', 'Available')->count(),
+            'available_items' => Chemical::withoutTrashed()->availableForRequest()->count(),
             'laboratories' => Chemical::withoutTrashed()
-                ->where('status', 'Available')
+                ->availableForRequest()
                 ->distinct()
                 ->count('laboratory_id'),
         ];
         $featuredImages = Chemical::withoutTrashed()
-            ->where('status', 'Available')
+            ->availableForRequest()
             ->whereNotNull('image')
             ->orderByDesc('created_at')
             ->get(['category_id', 'image'])
@@ -81,7 +81,7 @@ class ChemicalController extends Controller
         $chemicalCategory->loadCount([
             'chemicals as available_chemical_count' => fn ($query) => $query
                 ->withoutTrashed()
-                ->where('status', 'Available'),
+                ->availableForRequest(),
         ]);
 
         $chemicals = $chemicalCategory->chemicals()
@@ -89,7 +89,7 @@ class ChemicalController extends Controller
             ->leftJoin('laboratories', 'chemicals.laboratory_id', '=', 'laboratories.id')
             ->select('chemicals.*')
             ->withoutTrashed()
-            ->where('chemicals.status', 'Available')
+            ->availableForRequest()
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('chemicals.chemical_name', 'like', '%' . $search . '%')
@@ -109,7 +109,7 @@ class ChemicalController extends Controller
 
     public function show(Chemical $chemical): View
     {
-        abort_unless(! $chemical->trashed() && $chemical->status === 'Available', 404);
+        abort_unless(! $chemical->trashed() && Chemical::query()->availableForRequest()->whereKey($chemical->id)->exists(), 404);
 
         $chemical->load(['category', 'laboratory']);
 

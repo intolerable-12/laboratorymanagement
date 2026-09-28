@@ -7,8 +7,16 @@
 @php
     $isArchived = $chemical->trashed();
     $isExpired = $chemical->is_expired;
+    $isLowStock = (float) $chemical->quantity <= (float) $chemical->minimum_stock;
     $restoreDeadline = $chemical->deleted_at?->copy()->addYears(5);
     $canRestore = $restoreDeadline?->isFuture() ?? false;
+    $statusLabel = $isArchived ? 'Archived' : ($chemical->status === 'For Disposal' ? 'For Disposal' : ($isExpired ? 'Expired' : $chemical->status));
+    $statusTone = match ($statusLabel) {
+        'Active' => 'success',
+        'Expired' => 'danger',
+        'For Disposal' => 'warning text-dark',
+        default => 'secondary',
+    };
 @endphp
 
 @section('content')
@@ -23,11 +31,7 @@
             <i class="fa-solid fa-arrow-left"></i>
             {{ $isArchived ? 'Back to archived' : 'Back to list' }}
         </a>
-        @if ($isExpired)
-            <span class="badge rounded-pill text-bg-danger px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Expired</span>
-        @else
-            <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
-        @endif
+        <span class="badge rounded-pill text-bg-{{ $statusTone }} px-3 py-2"><i class="fa-solid fa-circle-info me-1"></i> {{ $statusLabel }}</span>
     </div>
 
     <div class="row g-4">
@@ -69,9 +73,12 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-4">
-                        <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($isExpired || $chemical->status === 'Expired' ? 'danger' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : ($isExpired ? 'Expired' : $chemical->status) }}</span>
+                        <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                         @if ($isExpired)
                             <span class="badge text-bg-danger">Expired</span>
+                        @endif
+                        @if (!$isArchived && $isLowStock)
+                            <span class="badge text-bg-warning">Below minimum stock</span>
                         @endif
                         <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $chemical->chemical_code }}</span>

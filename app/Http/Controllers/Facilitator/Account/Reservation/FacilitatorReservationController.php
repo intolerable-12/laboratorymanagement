@@ -275,7 +275,8 @@ class FacilitatorReservationController extends Controller
 		$codeColumn = $itemType === 'Equipment' ? 'equipment_code' : 'chemical_code';
 
 		$model->where('laboratory_id', $laboratoryId)
-			->where('status', 'Available')
+			->when($itemType === 'Chemical', fn ($query) => $query->availableForRequest())
+			->when($itemType === 'Equipment', fn ($query) => $query->where('status', 'Available'))
 			->when($search !== '', fn ($query) => $query->where(function ($query) use ($search, $nameColumn, $codeColumn) {
 				$query->where($nameColumn, 'like', '%' . $search . '%')
 					->orWhere($codeColumn, 'like', '%' . $search . '%')
@@ -298,8 +299,20 @@ class FacilitatorReservationController extends Controller
 
 		$inventoryItem = $itemType === 'Equipment' ? Equipment::find($itemId) : Chemical::find($itemId);
 
-		if (! $inventoryItem || (int) $inventoryItem->laboratory_id !== $laboratoryId || $inventoryItem->status !== 'Available') {
+		if (! $inventoryItem || (int) $inventoryItem->laboratory_id !== $laboratoryId) {
 			throw ValidationException::withMessages([$errorKey => 'This item is not available in the request laboratory.']);
+		}
+
+		if ($itemType === 'Chemical' && $inventoryItem->is_expired) {
+			throw ValidationException::withMessages([$errorKey => 'This chemical has expired and cannot be requested.']);
+		}
+
+		if ($itemType === 'Chemical' && $inventoryItem->status !== 'Active') {
+			throw ValidationException::withMessages([$errorKey => 'This chemical is not currently active for requests.']);
+		}
+
+		if ($itemType === 'Equipment' && $inventoryItem->status !== 'Available') {
+			throw ValidationException::withMessages([$errorKey => 'This equipment is not currently available.']);
 		}
 
 		$availableQuantity = $itemType === 'Equipment' ? (float) $inventoryItem->available_quantity : (float) $inventoryItem->quantity;

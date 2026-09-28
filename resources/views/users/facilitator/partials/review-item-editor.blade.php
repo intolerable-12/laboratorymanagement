@@ -1,5 +1,6 @@
 @php
     $quantityField = $requestKind === 'borrow' ? 'quantity_borrowed' : 'quantity';
+    $allowChemicals = $allowChemicals ?? true;
     $activeReviewTab = 'equipment';
 @endphp
 
@@ -15,14 +16,16 @@
                     <div class="d-flex justify-content-start justify-content-lg-end">
                         <div class="btn-group" role="tablist" aria-label="Item type to add">
                             <button type="button" class="btn btn-outline-primary active" data-review-tab-button data-target="equipment" aria-pressed="true">Equipment</button>
-                            <button type="button" class="btn btn-outline-primary" data-review-tab-button data-target="chemical" aria-pressed="false">Chemical</button>
+                            @if ($allowChemicals)
+                                <button type="button" class="btn btn-outline-primary" data-review-tab-button data-target="chemical" aria-pressed="false">Chemical</button>
+                            @endif
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2 min-w-0">
                         <div class="small text-uppercase text-secondary text-nowrap">Add an item</div>
                         <div class="input-group flex-grow-1">
                             <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i></span>
-                            <input type="search" class="form-control" data-review-item-search placeholder="Search items" aria-label="Search equipment or chemicals by name, code, or barcode" autocomplete="off">
+                            <input type="search" class="form-control" data-review-item-search placeholder="Search items" aria-label="Search {{ $allowChemicals ? 'equipment or chemicals' : 'equipment' }} by name, code, or barcode" autocomplete="off">
                         </div>
                     </div>
                 </div>
@@ -107,6 +110,7 @@
                 <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $equipmentItems, 'itemType' => 'Equipment'])</div>
             </div>
 
+            @if ($allowChemicals)
             <div data-review-tab-pane="chemical" class="d-none">
                 <div data-review-item-selection class="card border mb-3 d-none">
                     <div class="card-body p-3">
@@ -124,6 +128,7 @@
                 </div>
                 <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $chemicalItems, 'itemType' => 'Chemical'])</div>
             </div>
+            @endif
                 </div>
             </div>
         </div>

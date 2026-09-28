@@ -20,6 +20,7 @@ class EquipmentReportController extends Controller
         $schoolYears = SchoolYear::query()
             ->orderByDesc('start_date')
             ->orderByDesc('id')
+            ->with('academicPeriods')
             ->get();
         $semesters = $this->reportSemesters();
 
@@ -47,6 +48,7 @@ class EquipmentReportController extends Controller
             ->whereIn('id', $data['school_year_ids'])
             ->orderBy('start_date')
             ->orderBy('id')
+            ->with('academicPeriods')
             ->get();
         $equipmentExists = Equipment::query()->exists();
 

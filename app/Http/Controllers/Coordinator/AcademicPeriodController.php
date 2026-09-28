@@ -3,20 +3,33 @@
 namespace App\Http\Controllers\Coordinator;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicPeriod;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Services\AcademicPeriodResolver;
+use App\Services\ChemicalInventoryPeriodTracker;
+use App\Services\EquipmentInventoryPeriodTracker;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AcademicPeriodController extends Controller
 {
     public function index()
     {
-        return view('users.coordinator.academic-periods.index', [
-            'schoolYears' => SchoolYear::query()->orderByDesc('is_current')->orderByDesc('start_date')->get(),
-            'semesters' => Semester::query()->orderBy('display_order')->orderBy('semester_name')->get(),
-        ]);
+        $schoolYears = SchoolYear::query()
+            ->orderByDesc('is_current')
+            ->orderByDesc('start_date')
+            ->get();
+        $semesters = $this->semesters();
+
+        $this->ensureAcademicPeriods($schoolYears, $semesters);
+        $schoolYears->load('academicPeriods');
+
+        return view('users.coordinator.academic-periods.index', compact('schoolYears', 'semesters'));
     }
 
     public function createSchoolYear()
@@ -27,6 +40,7 @@ class AcademicPeriodController extends Controller
     public function storeSchoolYear(Request $request)
     {
         $schoolYear = SchoolYear::create($this->validateSchoolYear($request));
+        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters());
 
         return redirect()->route('coordinator.academic-periods.index')
             ->with('status', 'School year created successfully.');
@@ -40,6 +54,7 @@ class AcademicPeriodController extends Controller
     public function updateSchoolYear(Request $request, SchoolYear $schoolYear)
     {
         $schoolYear->update($this->validateSchoolYear($request, $schoolYear));
+        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters());
 
         return redirect()->route('coordinator.academic-periods.index')
             ->with('status', 'School year updated successfully.');
@@ -80,6 +95,7 @@ class AcademicPeriodController extends Controller
     public function storeSemester(Request $request)
     {
         Semester::create($this->validateSemester($request));
+        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters());
 
         return redirect()->route('coordinator.academic-periods.index')
             ->with('status', 'Semester created successfully.');
@@ -93,6 +109,7 @@ class AcademicPeriodController extends Controller
     public function updateSemester(Request $request, Semester $semester)
     {
         $semester->update($this->validateSemester($request, $semester));
+        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters());
 
         return redirect()->route('coordinator.academic-periods.index')
             ->with('status', 'Semester updated successfully.');
@@ -125,6 +142,88 @@ class AcademicPeriodController extends Controller
             ->with('status', $semester->semester_name.' is now the current semester.');
     }
 
+    public function updateSemesterPeriods(Request $request)
+    {
+        $data = $request->validate([
+            'periods' => ['required', 'array'],
+            'periods.*' => ['required', 'array'],
+            'periods.*.*' => ['required', 'array'],
+            'periods.*.*.start_date' => ['required', 'date'],
+            'periods.*.*.end_date' => ['required', 'date'],
+        ]);
+
+        $schoolYears = SchoolYear::query()
+            ->whereIn('id', array_keys($data['periods']))
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get()
+            ->keyBy('id');
+        $semesters = $this->semesters();
+
+        DB::transaction(function () use ($data, $schoolYears, $semesters): void {
+            foreach ($data['periods'] as $schoolYearId => $semesterPeriods) {
+                $schoolYear = $schoolYears->get((int) $schoolYearId);
+
+                if (! $schoolYear) {
+                    continue;
+                }
+
+                $previousEnd = null;
+
+                foreach ($semesters as $semester) {
+                    $period = $semesterPeriods[$semester->id] ?? null;
+
+                    if (! is_array($period)) {
+                        throw ValidationException::withMessages([
+                            "periods.{$schoolYear->id}.{$semester->id}.start_date" => "Set the dates for {$semester->semester_name}.",
+                        ]);
+                    }
+
+                    $start = Carbon::parse($period['start_date'])->startOfDay();
+                    $end = Carbon::parse($period['end_date'])->endOfDay();
+
+                    if ($end->lt($start)) {
+                        throw ValidationException::withMessages([
+                            "periods.{$schoolYear->id}.{$semester->id}.end_date" => 'The end date must be on or after the start date.',
+                        ]);
+                    }
+
+                    if ($start->lt($schoolYear->start_date->copy()->startOfDay())
+                        || $end->gt($schoolYear->end_date->copy()->endOfDay())) {
+                        throw ValidationException::withMessages([
+                            "periods.{$schoolYear->id}.{$semester->id}.start_date" => "The {$semester->semester_name} dates must stay within the {$schoolYear->school_year} school year.",
+                        ]);
+                    }
+
+                    if ($previousEnd && ! $start->gt($previousEnd)) {
+                        throw ValidationException::withMessages([
+                            "periods.{$schoolYear->id}.{$semester->id}.start_date" => 'Semester periods must be in display order and must not overlap.',
+                        ]);
+                    }
+
+                    AcademicPeriod::query()->updateOrCreate(
+                        [
+                            'school_year_id' => $schoolYear->id,
+                            'semester_id' => $semester->id,
+                        ],
+                        [
+                            'start_date' => $start->toDateString(),
+                            'end_date' => $end->toDateString(),
+                        ],
+                    );
+
+                    $previousEnd = $end;
+                }
+
+                app(EquipmentInventoryPeriodTracker::class)->initializeForSchoolYear($schoolYear);
+                app(ChemicalInventoryPeriodTracker::class)->initializeForSchoolYear($schoolYear);
+            }
+        });
+
+        return redirect()->route('coordinator.academic-periods.index')
+            ->with('status', 'Semester academic periods updated successfully.');
+    }
+
     private function validateSchoolYear(Request $request, ?SchoolYear $schoolYear = null): array
     {
         return $request->validate([
@@ -140,6 +239,33 @@ class AcademicPeriodController extends Controller
             'semester_name' => ['required', 'string', 'max:30', Rule::unique('semesters', 'semester_name')->ignore($semester?->id)],
             'display_order' => ['required', 'integer', 'min:1', 'max:255'],
         ]);
+    }
+
+    private function semesters(): Collection
+    {
+        return Semester::query()->orderBy('display_order')->orderBy('id')->get();
+    }
+
+    private function ensureAcademicPeriods(Collection $schoolYears, Collection $semesters): void
+    {
+        $resolver = app(AcademicPeriodResolver::class);
+
+        foreach ($schoolYears as $schoolYear) {
+            foreach ($semesters as $semesterIndex => $semester) {
+                $range = $resolver->semesterRange($schoolYear, $semesterIndex, $semesters->count(), $semester->id);
+
+                AcademicPeriod::query()->firstOrCreate(
+                    [
+                        'school_year_id' => $schoolYear->id,
+                        'semester_id' => $semester->id,
+                    ],
+                    [
+                        'start_date' => $range['start']->toDateString(),
+                        'end_date' => $range['end']->toDateString(),
+                    ],
+                );
+            }
+        }
     }
 
     private function periodError(string $message)

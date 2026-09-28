@@ -48,6 +48,11 @@ body.role-page {
     margin-block-end: 0.75rem;
 }
 
+.equipment-condition-badge--damaged {
+    background-color: #fd7e14;
+    color: #fff;
+}
+
 body.coordinator-page {
     padding: 0.85rem;
 }

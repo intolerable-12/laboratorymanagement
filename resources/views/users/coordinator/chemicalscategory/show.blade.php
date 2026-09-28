@@ -94,7 +94,16 @@
                                         </td>
                                         <td>{{ $chemical->laboratory->laboratory_name ?? '—' }}</td>
                                         <td>
-                                            <span class="badge text-bg-{{ $chemical->is_expired || $chemical->status === 'Expired' ? 'danger' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : 'secondary')) }}">{{ $chemical->is_expired ? 'Expired' : $chemical->status }}</span>
+                                            @php
+                                                $statusLabel = $chemical->status === 'For Disposal' ? 'For Disposal' : ($chemical->is_expired ? 'Expired' : $chemical->status);
+                                                $statusTone = match ($statusLabel) {
+                                                    'Active' => 'success',
+                                                    'Expired' => 'danger',
+                                                    'For Disposal' => 'warning text-dark',
+                                                    default => 'secondary',
+                                                };
+                                            @endphp
+                                            <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                                         </td>
                                         <td class="text-end pe-4">
                                             <a href="{{ route('coordinator.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-secondary">View</a>

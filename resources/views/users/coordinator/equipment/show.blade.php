@@ -8,6 +8,8 @@
     $isArchived = $equipment->trashed();
     $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
     $canRestore = $restoreDeadline?->isFuture() ?? false;
+    $isLowStock = $equipment->low_stock_threshold !== null
+        && (int) $equipment->available_quantity <= (int) $equipment->low_stock_threshold;
 @endphp
 
 @section('content')
@@ -65,6 +67,9 @@
 
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : $equipment->status }}</span>
+                        @if (!$isArchived && $isLowStock)
+                            <span class="badge text-bg-warning">Low Stock</span>
+                        @endif
                         <span class="badge text-bg-light border text-dark">{{ $equipment->condition }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $equipment->equipment_code }}</span>
                     </div>
@@ -121,7 +126,8 @@
                         </div>
                         <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Quantity</div>
-                            <div class="fw-semibold text-dark">{{ $equipment->quantity }}</div>
+                            <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} available / {{ $equipment->quantity }} total</div>
+                            <div class="small text-secondary">Low-stock threshold: {{ $equipment->low_stock_threshold ?? 'Not configured' }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Storage location</div>

@@ -46,6 +46,13 @@ class DashboardController extends Controller
         $equipmentInLaboratory = (int) Equipment::sum('available_quantity');
         $borrowedEquipment = $this->outstandingQuantity($activeBorrowItems, 'Equipment');
         $totalChemicalRecords = Chemical::count();
+        $lowStockEquipment = Equipment::query()
+            ->whereNotNull('low_stock_threshold')
+            ->whereColumn('available_quantity', '<=', 'low_stock_threshold')
+            ->count();
+        $lowStockChemicals = Chemical::query()
+            ->whereColumn('quantity', '<=', 'minimum_stock')
+            ->count();
         $chemicalQuantityInLaboratory = $this->chemicalQuantityBreakdown(Chemical::query()->get(['quantity', 'unit']));
         $borrowedChemicalQuantity = $this->borrowedChemicalQuantityBreakdown($activeBorrowItems);
 
@@ -65,6 +72,7 @@ class DashboardController extends Controller
             ],
             'operationalStats' => [
                 ['label' => 'Ready for checkout', 'value' => number_format($checkoutBorrows->count()), 'note' => 'Scheduled requests ready now'],
+                ['label' => 'Low stock items', 'value' => number_format($lowStockEquipment + $lowStockChemicals), 'note' => 'Equipment and chemicals at or below threshold'],
             ],
         ]);
     }

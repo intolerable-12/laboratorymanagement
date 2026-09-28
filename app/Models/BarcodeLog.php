@@ -58,6 +58,14 @@ class BarcodeLog extends Model
     }
 
     /**
+     * Get the borrow transaction associated with this scan.
+     */
+    public function borrowTransaction(): BelongsTo
+    {
+        return $this->belongsTo(BorrowTransaction::class);
+    }
+
+    /**
      * Get the parent scanned item (Equipment or Chemical).
      */
     public function item(): MorphTo

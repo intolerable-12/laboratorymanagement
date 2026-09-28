@@ -21,6 +21,7 @@
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Laboratory In-charge';
 
         $isDashboard = request()->routeIs('facilitator.dashboard');
+        $isInventoryAlerts = request()->routeIs('facilitator.inventory-alerts.*');
         $isReservationsGroup = request()->routeIs('facilitator.reservations.*');
         $isReservationsIndex = request()->routeIs('facilitator.reservations.index');
         $isReservationsCalendar = request()->routeIs('facilitator.reservations.calendar');
@@ -29,6 +30,7 @@
         $isBorrowCalendar = request()->routeIs('facilitator.borrow.calendar');
         $isCheckoutGroup = request()->routeIs('facilitator.checkout.*');
         $isCheckinGroup = request()->routeIs('facilitator.checkin.*');
+        $isTransactionHistory = request()->routeIs('facilitator.transaction-history.*');
         $isForumGroup = request()->routeIs('facilitator.forum.*');
         $isMyAccount = request()->routeIs('facilitator.myaccount');
 
@@ -47,7 +49,7 @@
 
         $isFacilitatorReservationGroup = $isReservationsCalendar || $isReservationRequestActive;
         $isFacilitatorBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive;
-        $isFacilitatorScanGroup = $isCheckoutGroup || $isCheckinGroup;
+        $isFacilitatorScanGroup = $isCheckoutGroup || $isCheckinGroup || $isTransactionHistory;
 
         $pendingReservationRequests = \App\Models\Reservation::where('status', 'Instructor Approved')->count();
         $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Instructor Approved')->count();
@@ -61,6 +63,12 @@
                     href="{{ route('facilitator.dashboard') }}" title="Dashboard">
                     <span class="sidebar-item__icon"><i class="fa-solid fa-gauge-high"></i></span>
                     <span class="sidebar-item__label">Dashboard</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isInventoryAlerts ? 'active' : '' }}"
+                    href="{{ route('facilitator.inventory-alerts.index') }}" title="Inventory Alert Settings">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-bell"></i></span>
+                    <span class="sidebar-item__label">Inventory Alert Settings</span>
                 </a>
 
                 <button
@@ -156,6 +164,11 @@
                                 <span class="sidebar-item__icon"><i class="fa-solid fa-rotate-left"></i></span>
                                 <span class="sidebar-item__label">Check In Items</span>
                             </span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isTransactionHistory ? 'active' : '' }}"
+                            href="{{ route('facilitator.transaction-history.index') }}" title="Transaction History">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                            <span class="sidebar-item__label">Transaction History</span>
                         </a>
                     </div>
                 </div>

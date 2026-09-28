@@ -31,6 +31,15 @@
             <div class="card section-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">
                     <h3 class="h4 fw-semibold mb-4 text-dark">Reservation Details</h3>
+                    <div class="alert alert-info border-0 rounded-4 mb-4" role="note">
+                        <strong>Reservation instructions:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Submit your reservation at least 3 days in advance.</li>
+                            <li>Laboratory hours are Monday-Friday, 7:30 AM-5:00 PM, and Saturday, 8:00 AM-12:00 NN.</li>
+                            <li>Sundays are unavailable.</li>
+                            <li>The academic period is applied automatically.</li>
+                        </ul>
+                    </div>
 
                     <div class="row g-3">
                         <div class="col-lg-4">
@@ -63,7 +72,6 @@
                             <input type="date" id="reservation-date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" aria-describedby="reservation-date-feedback" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div id="reservation-date-feedback" class="invalid-feedback" data-date-validation-message hidden></div>
-                            <div class="form-text">At least 3 business days in advance. Sundays are unavailable; Saturdays are available.</div>
                         </div>
 
                         <div class="col-md-4">
@@ -78,10 +86,6 @@
                             <input type="time" id="reservation-end-time" name="end_time" value="{{ old('end_time') }}" min="07:30" max="17:00" step="60" class="form-control @error('end_time') is-invalid @enderror" aria-describedby="reservation-end-time-feedback" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div id="reservation-end-time-feedback" class="invalid-feedback" data-time-validation-message="end_time" hidden></div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="form-text">Laboratory hours: Monday-Friday 7:30 AM-5:00 PM; Saturday 8:00 AM-12:00 NN.</div>
                         </div>
 
                         <div class="col-md-4">

@@ -8,7 +8,7 @@
     @include('users.coordinator.reports._tabs')
 
     @php
-        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->pluck('id')->all()))
+        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->where('is_current', true)->pluck('id')->all()))
             ->map(fn ($id) => (int) $id)
             ->all();
         $oldSignatories = old('signatories', []);
@@ -37,6 +37,7 @@
         <div class="small">
             Beginning and ending quantities are tracked per chemical, school year, and semester. Chemical usage recorded during check-in is totaled in the period remarks, for example <strong>Used: 24.8 g.</strong>
             Quantity changes are assigned to the school year and semester marked <strong>Current</strong> by the coordinator. Existing chemicals receive a baseline from the current inventory, while periods before receipt remain blank.
+            Semester date ranges are configured per school year in the academic-period control.
         </div>
     </div>
 
@@ -51,7 +52,7 @@
                     <div class="card-body px-4 px-xl-5">
                         @forelse ($schoolYears as $schoolYear)
                             <div class="form-check border rounded-3 p-3 mb-2">
-                                <input class="form-check-input ms-0 me-2" type="checkbox" name="school_year_ids[]" value="{{ $schoolYear->id }}" id="chemical-school-year-{{ $schoolYear->id }}" @checked(in_array((int) $schoolYear->id, $selectedSchoolYears, true))>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="school_year_ids[]" value="{{ $schoolYear->id }}" id="chemical-school-year-{{ $schoolYear->id }}" data-school-year-checkbox="{{ $schoolYear->id }}" @checked(in_array((int) $schoolYear->id, $selectedSchoolYears, true))>
                                 <label class="form-check-label fw-semibold text-dark" for="chemical-school-year-{{ $schoolYear->id }}">
                                     {{ $schoolYear->school_year }}
                                     @if ($schoolYear->is_current)
@@ -76,7 +77,7 @@
                     <div class="card-body px-4 px-xl-5">
                         @forelse ($schoolYears as $schoolYear)
                             @php $yearSignatories = $oldSignatories[$schoolYear->id] ?? []; @endphp
-                            <div class="border rounded-3 p-3 mb-3">
+                            <div class="border rounded-3 p-3 mb-3 {{ in_array((int) $schoolYear->id, $selectedSchoolYears, true) ? '' : 'd-none' }}" data-school-year-certification="{{ $schoolYear->id }}">
                                 <div class="fw-semibold text-dark mb-3">{{ $schoolYear->school_year }}</div>
                                 <div class="row g-3">
                                     @foreach (['prepared_by' => 'Prepared by', 'checked_by' => 'Checked by', 'verified_by' => 'Verified by', 'approved_by' => 'Approved by'] as $field => $label)
@@ -99,4 +100,33 @@
             </div>
         </div>
     </form>
+
+    <script>
+        (() => {
+            const form = document.querySelector('form[action="{{ route('coordinator.reports.chemicals.export') }}"]');
+
+            if (!form) {
+                return;
+            }
+
+            const syncCertificationFields = (schoolYearId) => {
+                const checkbox = form.querySelector(`[data-school-year-checkbox="${schoolYearId}"]`);
+                const certification = form.querySelector(`[data-school-year-certification="${schoolYearId}"]`);
+
+                if (!checkbox || !certification) {
+                    return;
+                }
+
+                certification.classList.toggle('d-none', !checkbox.checked);
+                certification.querySelectorAll('input').forEach((input) => {
+                    input.disabled = !checkbox.checked;
+                });
+            };
+
+            form.querySelectorAll('[data-school-year-checkbox]').forEach((checkbox) => {
+                checkbox.addEventListener('change', () => syncCertificationFields(checkbox.dataset.schoolYearCheckbox));
+                syncCertificationFields(checkbox.dataset.schoolYearCheckbox);
+            });
+        })();
+    </script>
 @endsection

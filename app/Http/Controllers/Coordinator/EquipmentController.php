@@ -64,6 +64,7 @@ class EquipmentController extends Controller
         $categoryId = $request->query('category_id', '');
         $laboratoryId = $request->query('laboratory_id', '');
         $condition = $request->query('condition', '');
+        $lowStock = in_array((string) $request->query('low_stock', ''), ['1', 'true', 'yes'], true) ? '1' : '';
         $sort = $request->query('sort', 'item');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
 
@@ -100,7 +101,10 @@ class EquipmentController extends Controller
             ->when($status !== '', fn($query) => $query->where('equipment.status', $status))
             ->when($categoryId !== '', fn($query) => $query->where('equipment.category_id', $categoryId))
             ->when($laboratoryId !== '', fn($query) => $query->where('equipment.laboratory_id', $laboratoryId))
-            ->when($condition !== '', fn($query) => $query->where('equipment.condition', $condition));
+            ->when($condition !== '', fn($query) => $query->where('equipment.condition', $condition))
+            ->when($lowStock === '1', fn($query) => $query
+                ->whereNotNull('equipment.low_stock_threshold')
+                ->whereColumn('equipment.available_quantity', '<=', 'equipment.low_stock_threshold'));
 
         $equipmentItems = $equipmentQuery
             ->when($sort === 'category', fn($query) => $query->orderBy('equipment_categories.category_name', $direction))
@@ -131,6 +135,7 @@ class EquipmentController extends Controller
             'category_id' => $categoryId,
             'laboratory_id' => $laboratoryId,
             'condition' => $condition,
+            'low_stock' => $lowStock,
         ], static fn($value) => $value !== '' && $value !== null);
 
         return view('users.coordinator.equipment.index', compact(
@@ -145,6 +150,7 @@ class EquipmentController extends Controller
             'categoryId',
             'laboratoryId',
             'condition',
+            'lowStock',
             'sort',
             'direction',
             'archived',

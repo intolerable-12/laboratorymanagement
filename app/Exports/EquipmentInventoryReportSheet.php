@@ -73,12 +73,20 @@ class EquipmentInventoryReportSheet implements Export, FromArray, WithColumnWidt
 
             foreach ($this->schoolYears as $schoolYear) {
                 foreach ($this->semesters as $semesterIndex => $semester) {
-                    $range = $this->semesterRange($schoolYear, $semesterIndex);
-                    $acquiredAfterPeriod = $equipment->purchase_date
-                        && $equipment->purchase_date->greaterThan($range['end']);
+                    $range = $this->semesterRange($schoolYear, $semesterIndex, $semester->id ?? null);
+                    $acquisitionDate = $equipment->purchase_date?->copy()->startOfDay()
+                        ?? $equipment->created_at?->copy()->startOfDay();
+                    $periodHasStarted = ! now()->startOfDay()->lt($range['start']->copy()->startOfDay());
+                    $acquiredAfterPeriod = $acquisitionDate
+                        && $acquisitionDate->greaterThan($range['end']);
+                    $notYetAcquired = $acquisitionDate
+                        && $acquisitionDate->isFuture();
                     $period = $periods->get($schoolYear->id.'-'.$semester->id);
 
-                    if ($period) {
+                    if (! $periodHasStarted || $acquiredAfterPeriod || $notYetAcquired) {
+                        $row[] = null;
+                        $row[] = null;
+                    } elseif ($period) {
                         $row[] = $period->beginning_quantity;
                         $row[] = $period->ending_quantity;
                     } else {
@@ -481,17 +489,15 @@ class EquipmentInventoryReportSheet implements Export, FromArray, WithColumnWidt
     }
 
     /**
-     * The application has no semester start/end columns. Split the configured school-year
-     * date range evenly across the configured semesters so the workbook remains auditable.
-     *
      * @return array{start: Carbon, end: Carbon}
      */
-    private function semesterRange(SchoolYear $schoolYear, int $semesterIndex): array
+    private function semesterRange(SchoolYear $schoolYear, int $semesterIndex, ?int $semesterId = null): array
     {
         return app(AcademicPeriodResolver::class)->semesterRange(
             $schoolYear,
             $semesterIndex,
             $this->semesters->count(),
+            $semesterId,
         );
     }
 

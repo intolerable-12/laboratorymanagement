@@ -66,6 +66,7 @@ class ChemicalController extends Controller
         $categoryId = $request->query('category_id', '');
         $laboratoryId = $request->query('laboratory_id', '');
         $hazard = $request->query('hazard_classification', '');
+        $lowStock = in_array((string) $request->query('low_stock', ''), ['1', 'true', 'yes'], true) ? '1' : '';
         $sort = $request->query('sort', 'item');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
 
@@ -96,10 +97,33 @@ class ChemicalController extends Controller
                         ->orWhere('chemicals.storage_location', 'like', '%' . $search . '%');
                 });
             })
-            ->when($status !== '', fn($query) => $query->where('chemicals.status', $status))
+            ->when($status !== '', function ($query) use ($status) {
+                if ($status === 'Expired') {
+                    return $query->where(function ($statusQuery) {
+                        $statusQuery->where('chemicals.status', 'Expired')
+                            ->orWhere(function ($dateQuery) {
+                                $dateQuery->whereNotNull('chemicals.expiration_date')
+                                    ->whereDate('chemicals.expiration_date', '<', today())
+                                    ->where('chemicals.status', '!=', 'For Disposal');
+                            });
+                    });
+                }
+
+                if ($status === 'Active') {
+                    return $query
+                        ->where('chemicals.status', 'Active')
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('chemicals.expiration_date')
+                                ->orWhereDate('chemicals.expiration_date', '>', today());
+                        });
+                }
+
+                return $query->where('chemicals.status', $status);
+            })
             ->when($categoryId !== '', fn($query) => $query->where('chemicals.category_id', $categoryId))
             ->when($laboratoryId !== '', fn($query) => $query->where('chemicals.laboratory_id', $laboratoryId))
-            ->when($hazard !== '', fn($query) => $query->where('chemicals.hazard_classification', $hazard));
+            ->when($hazard !== '', fn($query) => $query->where('chemicals.hazard_classification', $hazard))
+            ->when($lowStock === '1', fn($query) => $query->whereColumn('chemicals.quantity', '<=', 'chemicals.minimum_stock'));
 
         $chemicals = $chemicalsQuery
             ->when($sort === 'category', fn($query) => $query->orderBy('chemical_categories.category_name', $direction))
@@ -114,14 +138,23 @@ class ChemicalController extends Controller
 
         $categories = ChemicalCategory::orderBy('category_name')->get(['id', 'category_name']);
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
-        $statuses = ['Available', 'Low Stock', 'Expired', 'Disposed', 'Unavailable'];
+        $statuses = Chemical::STATUSES;
         $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
 
         $stats = [
             'total' => Chemical::withoutTrashed()->count(),
-            'available' => Chemical::withoutTrashed()->where('status', 'Available')->count(),
-            'low_stock' => Chemical::withoutTrashed()->where('status', 'Low Stock')->count(),
-            'expired' => Chemical::withoutTrashed()->whereNotNull('expiration_date')->whereDate('expiration_date', '<', now())->count(),
+            'active' => Chemical::withoutTrashed()->where('status', 'Active')->count(),
+            'inactive' => Chemical::withoutTrashed()->where('status', 'Inactive')->count(),
+            'low_stock' => Chemical::withoutTrashed()->whereColumn('quantity', '<=', 'minimum_stock')->count(),
+            'expired' => Chemical::withoutTrashed()->where(function ($query) {
+                $query->where('status', 'Expired')
+                    ->orWhere(function ($dateQuery) {
+                        $dateQuery->whereNotNull('expiration_date')
+                            ->whereDate('expiration_date', '<', today())
+                            ->where('status', '!=', 'For Disposal');
+                    });
+            })->count(),
+            'for_disposal' => Chemical::withoutTrashed()->where('status', 'For Disposal')->count(),
             'archived' => Chemical::onlyTrashed()->count(),
         ];
 
@@ -131,6 +164,7 @@ class ChemicalController extends Controller
             'category_id' => $categoryId,
             'laboratory_id' => $laboratoryId,
             'hazard_classification' => $hazard,
+            'low_stock' => $lowStock,
         ], static fn($value) => $value !== '' && $value !== null);
 
         return view('users.coordinator.chemicals.index', compact(
@@ -145,6 +179,7 @@ class ChemicalController extends Controller
             'categoryId',
             'laboratoryId',
             'hazard',
+            'lowStock',
             'sort',
             'direction',
             'archived',
@@ -168,7 +203,6 @@ class ChemicalController extends Controller
         $data = $this->validateChemical($request);
         $data['chemical_code'] = $this->generateChemicalCode();
         $data['barcode'] = $this->generateBarcodeValue();
-        $data['minimum_stock'] = 15;
         $data['supplier_alert_sent_at'] = null;
 
         if ($request->hasFile('image')) {
@@ -205,11 +239,19 @@ class ChemicalController extends Controller
     public function update(Request $request, Chemical $chemical)
     {
         $data = $this->validateChemical($request, $chemical);
-        $data['minimum_stock'] = 15;
+
+        if ((float) $chemical->minimum_stock !== (float) $data['minimum_stock']) {
+            $data['low_stock_supplier_alert_sent_at'] = null;
+            $data['low_stock_alert_sent_at'] = null;
+        }
 
         if (optional($chemical->expiration_date)->toDateString() !== ($data['expiration_date'] ?? null)
             || (int) ($chemical->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
             $data['supplier_alert_sent_at'] = null;
+        }
+
+        if ((int) ($chemical->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
+            $data['low_stock_supplier_alert_sent_at'] = null;
         }
 
         if ($request->hasFile('image')) {
@@ -241,6 +283,7 @@ class ChemicalController extends Controller
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
             'quantity' => ['required', 'numeric', 'min:0'],
             'unit' => ['required', Rule::in($this->unitOptions($chemical))],
+            'minimum_stock' => ['required', 'numeric', 'min:0'],
             'manufactured_date' => ['nullable', 'date'],
             'expiration_date' => ['nullable', 'date'],
             'received_date' => ['nullable', 'date'],
@@ -259,7 +302,7 @@ class ChemicalController extends Controller
                 ])
             ],
             'storage_location' => ['nullable', Rule::in($this->storageLocations($chemical))],
-            'status' => ['required', Rule::in(['Available', 'Low Stock', 'Expired', 'Disposed', 'Unavailable'])],
+            'status' => ['required', Rule::in(Chemical::STATUSES)],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'description' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
@@ -278,6 +321,9 @@ class ChemicalController extends Controller
             'quantity.min' => 'Quantity cannot be less than 0.',
             'unit.required' => 'Please select a unit of measurement.',
             'unit.in' => 'The selected unit is invalid.',
+            'minimum_stock.required' => 'Please enter the low-stock threshold.',
+            'minimum_stock.numeric' => 'The low-stock threshold must be a valid number.',
+            'minimum_stock.min' => 'The low-stock threshold cannot be less than 0.',
             'manufactured_date.date' => 'Manufactured date must be a valid date.',
             'received_date.date' => 'Received date must be a valid date.',
             'expiration_date.date' => 'Expiration date must be a valid date.',

@@ -11,16 +11,17 @@
 
 @php
     $checkinRoutePrefix = $isCoordinator ? 'coordinator.checkin' : 'facilitator.checkin';
+    $transactionHistoryRoute = $isCoordinator ? 'coordinator.transaction-history.index' : 'facilitator.transaction-history.index';
 @endphp
 
 @section('content')
     @php
         $borrowerName = trim(collect([$borrowTransaction->borrower?->first_name, $borrowTransaction->borrower?->middle_name, $borrowTransaction->borrower?->last_name, $borrowTransaction->borrower?->suffix])->filter()->implode(' '));
         $completed = $borrowTransaction->status === 'Returned';
-        $totalCheckedOut = $borrowTransaction->items->sum(fn ($item) => (float) ($item->quantity_checked_out ?? 0));
-        $totalReturned = $borrowTransaction->items->sum(fn ($item) => (float) $item->quantity_returned);
-        $totalUsed = $borrowTransaction->items->where('item_type', 'Chemical')->sum(fn ($item) => (float) ($item->quantity_used ?? 0));
-        $totalAccounted = $borrowTransaction->items->sum(fn ($item) => (float) $item->quantity_returned + (float) ($item->quantity_used ?? 0) + (float) $item->quantity_lost + (float) $item->quantity_damaged);
+        $returnableItems = $borrowTransaction->items->where('item_type', 'Equipment');
+        $totalCheckedOut = $returnableItems->sum(fn ($item) => (float) ($item->quantity_checked_out ?? 0));
+        $totalReturned = $returnableItems->sum(fn ($item) => (float) $item->quantity_returned);
+        $totalAccounted = $returnableItems->sum(fn ($item) => (float) $item->quantity_returned + (float) ($item->quantity_used ?? 0) + (float) $item->quantity_lost + (float) $item->quantity_damaged);
         $scanCount = $scanLogs->count();
         $scanConditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Lost'];
     @endphp
@@ -69,7 +70,7 @@
                     <div class="col-sm-4 col-lg-3">
                         <div class="text-uppercase small fw-semibold text-secondary mb-1">Return progress</div>
                         <div id="checkin-total" class="fw-semibold text-dark" data-accounted="{{ $totalAccounted }}" data-checked-out="{{ $totalCheckedOut }}">{{ number_format($totalAccounted, 2) }} / {{ number_format($totalCheckedOut, 2) }}</div>
-                        <div class="small text-secondary">Returned <span id="returned-total">{{ number_format($totalReturned, 2) }}</span> · Used <span id="used-total">{{ number_format($totalUsed, 2) }}</span></div>
+                        <div class="small text-secondary">Returned <span id="returned-total">{{ number_format($totalReturned, 2) }}</span></div>
                     </div>
                 </div>
             </div>
@@ -104,6 +105,15 @@
                             @php
                                 $logItemName = $log->item?->equipment_name ?? $log->item?->chemical_name ?? 'Item unavailable';
                                 $logUnit = $log->item_type === 'Chemical' ? ($log->item?->unit ?? 'unit') : 'unit(s)';
+                                $logCondition = $log->condition_in ?? 'Good';
+                                $logConditionBadgeClass = match ($logCondition) {
+                                    'Excellent' => 'text-bg-success',
+                                    'Good' => 'text-bg-primary',
+                                    'Fair' => 'text-bg-warning text-dark',
+                                    'Damaged' => 'equipment-condition-badge--damaged',
+                                    'Lost' => 'text-bg-danger',
+                                    default => 'text-bg-danger',
+                                };
                             @endphp
                             <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checkin-row data-checkin-id="{{ $log->id }}" data-scan-condition="{{ $log->condition_in ?? 'Good' }}">
                                 <div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px;">
@@ -118,7 +128,7 @@
                                             @endif
                                         </span>
                                         <span class="badge rounded-pill text-bg-light border text-secondary">{{ $log->item_type }}</span>
-                                        <span class="badge rounded-pill text-bg-{{ in_array($log->condition_in, ['Damaged', 'Under Repair', 'Lost'], true) ? 'danger' : 'success' }}">{{ $log->condition_in ?? 'Good' }}</span>
+                                        <span class="badge rounded-pill {{ $logConditionBadgeClass }}">{{ $logCondition }}</span>
                                     </div>
                                     <div class="small text-secondary mt-1"><i class="fa-solid fa-barcode me-1"></i>{{ $log->barcode }} · {{ $log->scanned_at?->format('M d, Y h:i A') ?? '—' }}</div>
                                 </div>
@@ -134,7 +144,7 @@
                             <div id="empty-checkin-cart" class="text-center py-5">
                                 <div class="rounded-circle bg-light text-secondary d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;"><i class="fa-solid fa-rotate-left fa-lg"></i></div>
                                 <h3 class="h5 fw-semibold text-dark">Cart is empty</h3>
-                                <p class="small text-secondary mb-0">Scanned returned equipment and chemicals will appear here.</p>
+                                <p class="small text-secondary mb-0">Scanned returned equipment will appear here.</p>
                             </div>
                         @endforelse
                         </div>
@@ -144,7 +154,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-0 p-4 pb-0">
                         <h2 class="h5 fw-semibold text-dark mb-1">Return checklist</h2>
-                        <p class="small text-secondary mb-0">Chemicals show returned and used quantities in their own unit.</p>
+                        <p class="small text-secondary mb-0">Only equipment is checked in. Chemicals used in reservations are not returned.</p>
                     </div>
                     <div class="card-body p-4">
                         @foreach ($borrowTransaction->items as $item)
@@ -155,16 +165,21 @@
                                 $lost = (float) $item->quantity_lost;
                                 $damaged = (float) $item->quantity_damaged;
                                 $accounted = $returned + $used + $lost + $damaged;
+                                $outstanding = max(0, round($checkedOut - $accounted, 2));
                                 $precision = $item->item_type === 'Chemical' ? 2 : 0;
                                 $itemName = $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Item unavailable';
                                 $unit = $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)';
                             @endphp
-                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checkin-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checkin-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}">
+                            @if ($item->item_type === 'Equipment')
+                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checkin-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="Equipment" data-checkin-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="unit(s)" data-item-maximum="{{ $outstanding }}">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold text-dark">
                                         {{ $itemName }}
                                         @if ($item->item_type === 'Chemical' && $item->item?->is_expired)
                                             <span class="badge text-bg-danger ms-1">Expired</span>
+                                        @endif
+                                        @if ($item->item_type === 'Chemical')
+                                            <span class="badge rounded-pill text-bg-secondary ms-1">Consumed — no check-in required</span>
                                         @endif
                                     </div>
                                     <div class="small text-secondary">{{ $item->item_type }} · {{ $item->item?->barcode ?? 'Barcode unavailable' }} · {{ $unit }}</div>
@@ -172,9 +187,18 @@
                                 </div>
                                 <div class="text-end">
                                     <div data-progress-accounted class="fw-semibold {{ $accounted + 0.001 >= $checkedOut ? 'text-success' : 'text-dark' }}">{{ number_format($accounted, $precision) }} / {{ number_format($checkedOut, $precision) }}</div>
-                                    <div data-progress-outstanding class="small text-{{ $accounted + 0.001 >= $checkedOut ? 'success' : 'secondary' }}">{{ $accounted + 0.001 >= $checkedOut ? 'Complete' : number_format(max(0, $checkedOut - $accounted), $precision).' remaining' }}</div>
+                                    <div data-progress-outstanding class="small text-{{ $accounted + 0.001 >= $checkedOut ? 'success' : 'secondary' }}">{{ $accounted + 0.001 >= $checkedOut ? 'Complete' : number_format($outstanding, $precision).' remaining' }}</div>
                                 </div>
                             </div>
+                            @else
+                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold text-dark">{{ $itemName }} <span class="badge rounded-pill text-bg-secondary ms-1">Consumed — no check-in required</span></div>
+                                    <div class="small text-secondary">{{ $item->item_type }} · {{ $unit }}</div>
+                                </div>
+                                <div class="text-end"><div class="fw-semibold text-secondary">{{ number_format($checkedOut, $precision) }} {{ $unit }}</div><div class="small text-secondary">Used during reservation</div></div>
+                            </div>
+                            @endif
                         @endforeach
                     </div>
                 </div>
@@ -187,7 +211,7 @@
                             <span class="rounded-3 bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width: 42px; height: 42px;"><i class="fa-solid fa-barcode"></i></span>
                             <div><h2 class="h4 fw-semibold text-dark mb-0">Scan return</h2><div class="small text-secondary">POS check-in station</div></div>
                         </div>
-                        <p class="text-secondary small mb-4">Scan the barcode, enter the returned chemical quantity in its attached unit, then choose the received condition.</p>
+                        <p class="text-secondary small mb-4">Scan an equipment barcode, enter the returned quantity, then choose its received condition.</p>
                         @if ($completed)
                             <div class="alert alert-success small border-0"><i class="fa-solid fa-circle-check me-1"></i>All borrowed items are accounted for.</div>
                         @endif
@@ -225,12 +249,14 @@
                         <div class="small text-secondary mt-2" data-checkin-item-state-label>Equipment condition</div>
                         <div class="fw-semibold text-dark" data-checkin-item-state>Unknown</div>
                     </div>
-                    <label for="checkin-quantity" class="form-label fw-semibold text-dark">Returned quantity</label>
+                    <label for="checkin-quantity" class="form-label fw-semibold text-dark">Returned equipment quantity</label>
                     <div class="input-group input-group-lg">
                         <input type="number" name="quantity" id="checkin-quantity" class="form-control" min="0.01" step="0.01" required disabled form="checkin-scan-form" placeholder="Enter returned quantity">
                         <span class="input-group-text bg-white" data-checkin-unit>unit(s)</span>
                     </div>
                     <div class="form-text">Enter the returned quantity using the item’s listed unit.</div>
+                    <div class="form-text text-primary fw-semibold" data-checkin-quantity-maximum>Maximum: —</div>
+                    <div class="invalid-feedback d-none" data-checkin-quantity-error role="alert"></div>
                     <div class="mt-3">
                         <label for="condition_in" class="form-label fw-semibold text-dark" data-checkin-condition-label>Equipment condition</label>
                         <select name="condition_in" id="condition_in" class="form-select" form="checkin-scan-form" required disabled>
@@ -238,6 +264,11 @@
                                 <option value="{{ $condition }}" @selected($condition === 'Good')>{{ $condition }}</option>
                             @endforeach
                         </select>
+                    </div>
+                    <div class="mt-3" data-checkin-remarks-wrapper>
+                        <label for="checkin-remarks" class="form-label fw-semibold text-dark">Remarks</label>
+                        <textarea name="remarks" id="checkin-remarks" class="form-control" rows="3" maxlength="1000" form="checkin-scan-form" disabled aria-describedby="checkin-remarks-error" placeholder="Explain the item condition"></textarea>
+                        <div class="invalid-feedback d-none" id="checkin-remarks-error" data-checkin-remarks-error role="alert">Remarks are required when the item is marked Lost or Damaged.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -257,7 +288,7 @@
                     </div>
                     <h2 class="h4 fw-semibold text-dark mb-2" id="checkin-complete-modal-title">Check-in complete</h2>
                     <p class="text-secondary mb-4">All items have been successfully scanned and checked in.</p>
-                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">Continue</button>
+                    <a href="{{ route($transactionHistoryRoute) }}" class="btn btn-success px-4">View Transaction History</a>
                 </div>
             </div>
         </div>

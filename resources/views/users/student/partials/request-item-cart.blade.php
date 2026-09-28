@@ -1,4 +1,6 @@
 @php
+    $selectedChemicalItems = $selectedChemicalItems ?? collect();
+    $oldChemicalSelections = $oldChemicalSelections ?? [];
     $hasSelectedItems = $selectedEquipmentItems->isNotEmpty() || $selectedChemicalItems->isNotEmpty();
 @endphp
 

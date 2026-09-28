@@ -54,4 +54,9 @@ class Semester extends Model
     {
         return $this->hasMany(ChemicalInventoryPeriod::class);
     }
+
+    public function academicPeriods(): HasMany
+    {
+        return $this->hasMany(AcademicPeriod::class);
+    }
 }

@@ -8,7 +8,7 @@
     @include('users.coordinator.reports._tabs')
 
     @php
-        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->pluck('id')->all()))
+        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->where('is_current', true)->pluck('id')->all()))
             ->map(fn ($id) => (int) $id)
             ->all();
         $oldSignatories = old('signatories', []);
@@ -37,7 +37,7 @@
         <div class="small">
             Beginning and ending quantities are tracked for each equipment item, school year, and semester. Changes made to an equipment total are recorded in the school year and semester marked <strong>Current</strong> by the coordinator, and appear in that school-year group's remarks.
             Existing equipment receives its current total as the starting baseline, while periods before an item was acquired remain blank.
-            Semester date ranges are split evenly from each school year's configured start and end dates.
+            Semester date ranges are configured per school year in the academic-period control.
         </div>
     </div>
 
@@ -58,6 +58,7 @@
                                     name="school_year_ids[]"
                                     value="{{ $schoolYear->id }}"
                                     id="school-year-{{ $schoolYear->id }}"
+                                    data-school-year-checkbox="{{ $schoolYear->id }}"
                                     @checked(in_array((int) $schoolYear->id, $selectedSchoolYears, true))
                                 >
                                 <label class="form-check-label fw-semibold text-dark" for="school-year-{{ $schoolYear->id }}">
@@ -88,7 +89,7 @@
                             @php
                                 $yearSignatories = $oldSignatories[$schoolYear->id] ?? [];
                             @endphp
-                            <div class="border rounded-3 p-3 mb-3">
+                            <div class="border rounded-3 p-3 mb-3 {{ in_array((int) $schoolYear->id, $selectedSchoolYears, true) ? '' : 'd-none' }}" data-school-year-certification="{{ $schoolYear->id }}">
                                 <div class="fw-semibold text-dark mb-3">{{ $schoolYear->school_year }}</div>
                                 <div class="row g-3">
                                     @foreach ([
@@ -126,4 +127,33 @@
             </div>
         </div>
     </form>
+
+    <script>
+        (() => {
+            const form = document.querySelector('form[action="{{ route('coordinator.reports.equipment.export') }}"]');
+
+            if (!form) {
+                return;
+            }
+
+            const syncCertificationFields = (schoolYearId) => {
+                const checkbox = form.querySelector(`[data-school-year-checkbox="${schoolYearId}"]`);
+                const certification = form.querySelector(`[data-school-year-certification="${schoolYearId}"]`);
+
+                if (!checkbox || !certification) {
+                    return;
+                }
+
+                certification.classList.toggle('d-none', !checkbox.checked);
+                certification.querySelectorAll('input').forEach((input) => {
+                    input.disabled = !checkbox.checked;
+                });
+            };
+
+            form.querySelectorAll('[data-school-year-checkbox]').forEach((checkbox) => {
+                checkbox.addEventListener('change', () => syncCertificationFields(checkbox.dataset.schoolYearCheckbox));
+                syncCertificationFields(checkbox.dataset.schoolYearCheckbox);
+            });
+        })();
+    </script>
 @endsection

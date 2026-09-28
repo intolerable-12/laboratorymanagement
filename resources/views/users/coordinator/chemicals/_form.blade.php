@@ -1,6 +1,6 @@
 @php
     $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
-    $statuses = ['Available', 'Low Stock', 'Expired', 'Disposed', 'Unavailable'];
+    $statuses = \App\Models\Chemical::STATUSES;
     $unitOptions = $unitOptions ?? ['ml', 'cc', 'liter', 'kg', 'g'];
     $storageLocations = $storageLocations ?? ['Cabinet 1', 'Cabinet 2', 'Flammable storage', 'Freezers', 'Racks', 'Shelf A', 'Shelf B', 'Cold room', 'Other'];
     $imageUrl = !empty($chemical?->image) ? asset('storage/' . $chemical->image) : null;
@@ -106,6 +106,13 @@
                 </div>
             </div>
 
+            <div class="col-md-6">
+                <label class="form-label" for="minimum_stock">Low-stock threshold</label>
+                <input type="number" id="minimum_stock" name="minimum_stock" value="{{ old('minimum_stock', $chemical->minimum_stock ?? 15) }}" class="form-control admin-form-control @error('minimum_stock') is-invalid @enderror" min="0" step="0.01" required>
+                <div class="form-text">The chemical is marked low stock when its quantity reaches or falls below this value.</div>
+                @error('minimum_stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
             <div class="col-md-4">
                 <label class="form-label" for="manufactured_date">Manufactured date</label>
                 <input type="date" id="manufactured_date" name="manufactured_date" value="{{ $manufacturedDate }}" class="form-control admin-form-control @error('manufactured_date') is-invalid @enderror">
@@ -138,7 +145,7 @@
                 <label class="form-label" for="status">Status</label>
                 <select id="status" name="status" class="form-select admin-form-control @error('status') is-invalid @enderror" required>
                     @foreach ($statuses as $status)
-                        <option value="{{ $status }}" @selected(old('status', $chemical->status ?? 'Available') === $status)>{{ $status }}</option>
+                        <option value="{{ $status }}" @selected(old('status', $chemical->status ?? 'Active') === $status)>{{ $status }}</option>
                     @endforeach
                 </select>
                 @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -154,8 +161,6 @@
                 </select>
                 @error('storage_location') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
-
-            <input type="hidden" name="minimum_stock" value="15">
 
             <div class="col-12">
                 <div class="alert alert-info border-0 rounded-4 mb-0">

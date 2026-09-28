@@ -37,7 +37,7 @@ class GuestReservationController extends Controller
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->orderBy('equipment_name');
-        $chemicalQuery = Chemical::with('laboratory')->where('status', 'Available')->orderBy('chemical_name');
+        $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->orderBy('chemical_name');
 
         if ($search !== '') {
             $equipmentQuery->where(function ($query) use ($search) {
@@ -65,7 +65,10 @@ class GuestReservationController extends Controller
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
         $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
         $selectedEquipmentItems = Equipment::whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
-        $selectedChemicalItems = Chemical::whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
+        $selectedChemicalItems = Chemical::availableForRequest()
+            ->whereIn('id', array_keys($oldChemicalSelections))
+            ->get()
+            ->keyBy('id');
         $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
         $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
         if ($request->ajax()) {

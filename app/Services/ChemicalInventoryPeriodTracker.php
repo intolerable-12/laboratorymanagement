@@ -130,9 +130,9 @@ class ChemicalInventoryPeriodTracker
         int $semesterCount,
         ?float $initialQuantity = null,
     ): ChemicalInventoryPeriod {
-        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount);
-        $acquiredAfterPeriod = $chemical->received_date
-            && $chemical->received_date->greaterThan($range['end']);
+        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount, $semester->id);
+        $acquisitionDate = $chemical->received_date?->copy() ?? $chemical->created_at?->copy();
+        $acquiredAfterPeriod = $acquisitionDate && $acquisitionDate->greaterThan($range['end']);
         $quantity = $initialQuantity ?? ($acquiredAfterPeriod ? null : (float) $chemical->quantity);
 
         return ChemicalInventoryPeriod::query()->firstOrCreate(

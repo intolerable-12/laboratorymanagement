@@ -66,12 +66,20 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
 
             foreach ($this->schoolYears as $schoolYear) {
                 foreach ($this->semesters as $semesterIndex => $semester) {
-                    $range = $this->semesterRange($schoolYear, $semesterIndex);
-                    $acquiredAfterPeriod = $chemical->received_date
-                        && $chemical->received_date->greaterThan($range['end']);
+                    $range = $this->semesterRange($schoolYear, $semesterIndex, $semester->id ?? null);
+                    $acquisitionDate = $chemical->received_date?->copy()->startOfDay()
+                        ?? $chemical->created_at?->copy()->startOfDay();
+                    $periodHasStarted = ! now()->startOfDay()->lt($range['start']->copy()->startOfDay());
+                    $acquiredAfterPeriod = $acquisitionDate
+                        && $acquisitionDate->greaterThan($range['end']);
+                    $notYetAcquired = $acquisitionDate
+                        && $acquisitionDate->isFuture();
                     $period = $periods->get($schoolYear->id.'-'.$semester->id);
 
-                    if ($period) {
+                    if (! $periodHasStarted || $acquiredAfterPeriod || $notYetAcquired) {
+                        $row[] = null;
+                        $row[] = null;
+                    } elseif ($period) {
                         $row[] = $period->beginning_quantity === null ? null : (float) $period->beginning_quantity;
                         $row[] = $period->ending_quantity === null ? null : (float) $period->ending_quantity;
                     } else {
@@ -357,9 +365,14 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
         return Coordinate::stringFromColumnIndex($this->schoolYearEndColumn((int) $yearIndex));
     }
 
-    private function semesterRange(SchoolYear $schoolYear, int $semesterIndex): array
+    private function semesterRange(SchoolYear $schoolYear, int $semesterIndex, ?int $semesterId = null): array
     {
-        return app(AcademicPeriodResolver::class)->semesterRange($schoolYear, $semesterIndex, $this->semesters->count());
+        return app(AcademicPeriodResolver::class)->semesterRange(
+            $schoolYear,
+            $semesterIndex,
+            $this->semesters->count(),
+            $semesterId,
+        );
     }
 
     private function semesterLabel(object $semester): string

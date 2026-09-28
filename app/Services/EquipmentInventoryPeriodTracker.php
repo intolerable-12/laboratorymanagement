@@ -100,9 +100,9 @@ class EquipmentInventoryPeriodTracker
         int $semesterCount,
         ?int $initialQuantity = null,
     ): EquipmentInventoryPeriod {
-        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount);
-        $acquiredAfterPeriod = $equipment->purchase_date
-            && $equipment->purchase_date->greaterThan($range['end']);
+        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount, $semester->id);
+        $acquisitionDate = $equipment->purchase_date?->copy() ?? $equipment->created_at?->copy();
+        $acquiredAfterPeriod = $acquisitionDate && $acquisitionDate->greaterThan($range['end']);
         $quantity = $initialQuantity ?? ($acquiredAfterPeriod ? null : (int) $equipment->quantity);
 
         return EquipmentInventoryPeriod::query()->firstOrCreate(

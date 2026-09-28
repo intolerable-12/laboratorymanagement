@@ -54,7 +54,7 @@
 
     {{-- Metrics Section --}}
     <div class="row g-3 g-xl-4 mb-4">
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-2">
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2">Total chemicals</div>
@@ -63,30 +63,48 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-2">
             <div class="card metric-card h-100">
                 <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Available</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['available'] }}</div>
+                    <div class="small text-uppercase text-secondary mb-2">Active</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['active'] }}</div>
                     <div class="small text-secondary">Ready for use</div>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-2">
             <div class="card metric-card h-100">
                 <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Low stock</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['low_stock'] }}</div>
-                    <div class="small text-secondary">Needs replenishment</div>
+                    <div class="small text-uppercase text-secondary mb-2">Inactive</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['inactive'] }}</div>
+                    <div class="small text-secondary">Not available for requests</div>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-2">
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2">Expired</div>
                     <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['expired'] }}</div>
-                    <div class="small text-secondary">Needs review or disposal</div>
+                    <div class="small text-secondary">Needs review</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-2">
+            <div class="card metric-card h-100">
+                <div class="card-body">
+                    <div class="small text-uppercase text-secondary mb-2">For disposal</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['for_disposal'] }}</div>
+                    <div class="small text-secondary">Awaiting disposal</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-2">
+            <div class="card metric-card h-100">
+                <div class="card-body">
+                    <div class="small text-uppercase text-secondary mb-2">Low stock quantity</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['low_stock'] }}</div>
+                    <div class="small text-secondary">Needs replenishment</div>
                 </div>
             </div>
         </div>
@@ -150,6 +168,14 @@
                                             @foreach ($statuses as $option)
                                                 <option value="{{ $option }}" @selected($status === $option)>{{ $option }}</option>
                                             @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label for="chemical-filter-low-stock" class="form-label fw-medium">Stock level</label>
+                                        <select id="chemical-filter-low-stock" name="low_stock" class="form-select admin-form-control">
+                                            <option value="">All stock levels</option>
+                                            <option value="1" @selected($lowStock === '1')>Low stock only</option>
                                         </select>
                                     </div>
 
@@ -309,6 +335,14 @@
                                 $restoreDeadline = $chemical->deleted_at?->copy()->addYears(5);
                                 $canRestore = $restoreDeadline?->isFuture() ?? false;
                                 $isExpired = $chemical->is_expired;
+                                $isLowStock = (float) $chemical->quantity <= (float) $chemical->minimum_stock;
+                                $statusLabel = $archived ? 'Archived' : ($chemical->status === 'For Disposal' ? 'For Disposal' : ($isExpired ? 'Expired' : $chemical->status));
+                                $statusTone = match ($statusLabel) {
+                                    'Active' => 'success',
+                                    'Expired' => 'danger',
+                                    'For Disposal' => 'warning text-dark',
+                                    default => 'secondary',
+                                };
                             @endphp
                             <tr>
                                 <td class="ps-3 pe-0">
@@ -327,9 +361,6 @@
                                             <div class="fw-semibold text-dark">{{ $chemical->chemical_name }}</div>
                                             <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                 <span>{{ $chemical->chemical_code }}</span>
-                                                @if ($isExpired)
-                                                    <span class="badge text-bg-danger">Expired</span>
-                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -339,10 +370,13 @@
                                 <td>
                                     <div class="fw-semibold text-dark">{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</div>
                                     <div class="small text-secondary">Minimum {{ number_format((float) $chemical->minimum_stock, 2) }} {{ $chemical->unit }}</div>
+                                    @if (!$archived && $isLowStock)
+                                        <span class="badge text-bg-warning mt-1">Below minimum stock</span>
+                                    @endif
                                 </td>
                                 <td>
-                                    <span class="badge text-bg-{{ $archived ? 'secondary' : ($isExpired || $chemical->status === 'Expired' ? 'danger' : ($chemical->status === 'Available' ? 'success' : ($chemical->status === 'Low Stock' ? 'warning' : 'secondary'))) }}">
-                                        {{ $archived ? 'Archived' : ($isExpired ? 'Expired' : $chemical->status) }}
+                                    <span class="badge text-bg-{{ $statusTone }}">
+                                        {{ $statusLabel }}
                                     </span>
                                 </td>
                                 <td>

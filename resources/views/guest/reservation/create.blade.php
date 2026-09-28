@@ -91,6 +91,15 @@
             <div class="card section-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">
                     <h2 class="h4 fw-semibold mb-4 text-dark">Reservation details</h2>
+                    <div class="alert alert-info border-0 rounded-4 mb-4" role="note">
+                        <strong>Reservation instructions:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Submit your reservation at least 3 days in advance.</li>
+                            <li>Laboratory hours are Monday-Friday, 7:30 AM-5:00 PM, and Saturday, 8:00 AM-12:00 NN.</li>
+                            <li>Sundays are unavailable.</li>
+                            <li>The academic period is applied automatically.</li>
+                        </ul>
+                    </div>
                     <div class="row g-3">
                         <div class="col-lg-4">
                             <label for="guest-reservation-laboratory" class="form-label fw-semibold">Laboratory</label>
@@ -117,7 +126,6 @@
                             <input id="guest-reservation-date" type="date" name="reservation_date" value="{{ old('reservation_date') }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" aria-describedby="guest-reservation-date-feedback" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div id="guest-reservation-date-feedback" class="invalid-feedback" data-date-validation-message hidden></div>
-                            <div class="form-text">At least 3 business days in advance. Sundays are unavailable.</div>
                         </div>
                         <div class="col-md-4">
                             <label for="guest-start-time" class="form-label fw-semibold">Start time</label>
@@ -129,7 +137,6 @@
                             <input id="guest-end-time" type="time" name="end_time" value="{{ old('end_time') }}" min="07:30" max="17:00" step="60" class="form-control @error('end_time') is-invalid @enderror" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-12"><div class="form-text">Laboratory hours: Monday-Friday 7:30 AM-5:00 PM; Saturday 8:00 AM-12:00 NN.</div></div>
                         <div class="col-md-4">
                             <label for="guest-participants" class="form-label fw-semibold">Expected participants</label>
                             <input id="guest-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>

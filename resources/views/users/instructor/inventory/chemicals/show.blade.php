@@ -18,7 +18,7 @@
             @if ($chemical->is_expired)
                 <span class="badge rounded-pill text-bg-danger px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Expired</span>
             @else
-                <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+                <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Active now</span>
             @endif
         </div>
 

@@ -13,6 +13,12 @@ class InventoryAlertController extends Controller
 {
     public function index(Request $request)
     {
+        $routePrefix = $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? 'facilitator'
+            : 'coordinator';
+        $layout = $routePrefix === 'facilitator'
+            ? 'users.facilitator.layouts.app'
+            : 'users.coordinator.layouts.app';
         $tab = in_array($request->query('tab', 'equipment'), ['equipment', 'chemicals'], true)
             ? $request->query('tab', 'equipment')
             : 'equipment';
@@ -85,7 +91,9 @@ class InventoryAlertController extends Controller
             'supplierId',
             'alertStatus',
             'expirationStatus',
-            'filters'
+            'filters',
+            'routePrefix',
+            'layout'
         );
 
         if ($request->ajax()) {
@@ -104,9 +112,32 @@ class InventoryAlertController extends Controller
         $equipment->update([
             'low_stock_threshold' => $data['low_stock_threshold'] ?? null,
             'supplier_alert_sent_at' => null,
+            'low_stock_alert_sent_at' => null,
         ]);
 
-        return back()->with('status', 'Equipment supplier alert setting updated.');
+        return back()->with('status', 'Equipment low-stock threshold updated.');
+    }
+
+    public function updateChemicalThreshold(Request $request, Chemical $chemical)
+    {
+        $data = $request->validate([
+            'minimum_stock' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $thresholdChanged = (float) $chemical->minimum_stock !== (float) $data['minimum_stock'];
+
+        $updates = [
+            'minimum_stock' => $data['minimum_stock'],
+        ];
+
+        if ($thresholdChanged) {
+            $updates['low_stock_supplier_alert_sent_at'] = null;
+            $updates['low_stock_alert_sent_at'] = null;
+        }
+
+        $chemical->update($updates);
+
+        return back()->with('status', 'Chemical low-stock threshold updated.');
     }
 
     public function updateChemical(Request $request, Chemical $chemical)
