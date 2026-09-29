@@ -31,7 +31,12 @@
             <i class="fa-solid fa-arrow-left"></i>
             {{ $isArchived ? 'Back to archived' : 'Back to list' }}
         </a>
-        <span class="badge rounded-pill text-bg-{{ $statusTone }} px-3 py-2"><i class="fa-solid fa-circle-info me-1"></i> {{ $statusLabel }}</span>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('coordinator.chemicals.traceability', $chemical) }}" class="btn btn-sm btn-outline-info">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i>Traceability
+            </a>
+            <span class="badge rounded-pill text-bg-{{ $statusTone }} px-3 py-2"><i class="fa-solid fa-circle-info me-1"></i> {{ $statusLabel }}</span>
+        </div>
     </div>
 
     <div class="row g-4">

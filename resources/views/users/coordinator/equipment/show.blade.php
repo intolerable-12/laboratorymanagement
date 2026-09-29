@@ -24,7 +24,12 @@
             <i class="fa-solid fa-arrow-left"></i>
             {{ $isArchived ? 'Back to archived' : 'Back to list' }}
         </a>
-        <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('coordinator.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i>Traceability
+            </a>
+            <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+        </div>
     </div>
 
     <div class="row g-4">

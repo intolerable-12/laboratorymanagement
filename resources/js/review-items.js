@@ -1,3 +1,5 @@
+import * as bootstrap from 'bootstrap';
+
 const escapeReviewHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -30,6 +32,22 @@ const initializeReviewItemEditor = (root) => {
     const debounceTimers = new Map();
     const requests = new Map();
     const searchInput = root.querySelector('[data-review-item-search]');
+    const modalElement = root.querySelector('[data-review-item-modal]');
+
+    if (!modalElement) {
+        return;
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const modalQuantity = modalElement.querySelector('[data-review-selection-quantity]');
+    const modalUnit = modalElement.querySelector('[data-review-selection-unit]');
+    const modalUnitGroup = modalElement.querySelector('[data-review-unit-group]');
+    const modalError = modalElement.querySelector('[data-review-selection-error]');
+    const modalName = modalElement.querySelector('[data-review-selection-name]');
+    const modalCode = modalElement.querySelector('[data-review-selection-code]');
+    const modalType = modalElement.querySelector('[data-review-modal-type]');
+    const modalAvailability = modalElement.querySelector('[data-review-item-availability]');
+    let activeItem = null;
 
     const itemKey = (itemType, itemId) => itemType + ':' + itemId;
     const getSelected = (itemType, itemId) => Array.from(selectedList.querySelectorAll('[data-review-selected-item]'))
@@ -59,42 +77,39 @@ const initializeReviewItemEditor = (root) => {
     };
 
     const hideSelections = () => {
-        root.querySelectorAll('[data-review-item-selection]').forEach((panel) => {
-            panel.classList.add('d-none');
-            panel.removeAttribute('data-item-type');
-            panel.removeAttribute('data-item-id');
-            panel.removeAttribute('data-item-name');
-            panel.removeAttribute('data-item-code');
-            panel.removeAttribute('data-item-available');
-            panel.removeAttribute('data-item-unit');
-            panel.querySelector('[data-review-selection-error]')?.classList.add('d-none');
-        });
-        root.querySelectorAll('[data-review-available-item].is-picking').forEach((row) => row.classList.remove('is-picking'));
+        modal.hide();
+        activeItem = null;
+        modalError?.classList.add('d-none');
     };
 
     const openSelection = (row) => {
-        const panel = row.closest('[data-review-tab-pane]')?.querySelector('[data-review-item-selection]');
+        activeItem = {
+            itemType: row.dataset.itemType,
+            itemId: row.dataset.itemId,
+            itemName: row.dataset.itemName,
+            itemCode: row.dataset.itemCode,
+            itemAvailable: row.dataset.itemAvailable,
+            itemUnit: row.dataset.itemUnit || '',
+        };
+        const isChemical = activeItem.itemType === 'Chemical';
 
-        if (!panel) {
-            return;
+        modalType.textContent = 'Add ' + activeItem.itemType.toLowerCase();
+        modalName.textContent = activeItem.itemName;
+        modalCode.textContent = activeItem.itemCode;
+        modalAvailability.textContent = (isChemical ? 'In stock: ' : 'Available: ')
+            + activeItem.itemAvailable + ' ' + (isChemical ? activeItem.itemUnit : 'pcs');
+        modalQuantity.min = isChemical ? '0.01' : '1';
+        modalQuantity.max = activeItem.itemAvailable;
+        modalQuantity.step = isChemical ? '0.01' : '1';
+        modalQuantity.value = '';
+        modalUnitGroup?.classList.toggle('d-none', !isChemical);
+        if (modalUnit) {
+            modalUnit.value = activeItem.itemUnit;
         }
+        modalError?.classList.add('d-none');
 
-        hideSelections();
-        panel.dataset.itemType = row.dataset.itemType;
-        panel.dataset.itemId = row.dataset.itemId;
-        panel.dataset.itemName = row.dataset.itemName;
-        panel.dataset.itemCode = row.dataset.itemCode;
-        panel.dataset.itemAvailable = row.dataset.itemAvailable;
-        panel.dataset.itemUnit = row.dataset.itemUnit || '';
-        panel.classList.remove('d-none');
-        panel.querySelector('[data-review-selection-name]').textContent = row.dataset.itemName + ' (' + row.dataset.itemCode + ')';
-        panel.querySelector('[data-review-selection-quantity]').value = '';
-        const unitField = panel.querySelector('[data-review-selection-unit]');
-        if (unitField) {
-            unitField.value = row.dataset.itemUnit || '';
-        }
-        row.classList.add('is-picking');
-        window.setTimeout(() => panel.querySelector('[data-review-selection-quantity]')?.focus(), 0);
+        modal.show();
+        modalElement.addEventListener('shown.bs.modal', () => modalQuantity.focus(), { once: true });
     };
 
     const createSelectedRow = (item, quantity, unit, existingId = null) => {
@@ -125,11 +140,10 @@ const initializeReviewItemEditor = (root) => {
         return row;
     };
 
-    const showSelectionError = (panel, message) => {
-        const error = panel.querySelector('[data-review-selection-error]');
-        if (error) {
-            error.textContent = message;
-            error.classList.remove('d-none');
+    const showSelectionError = (message) => {
+        if (modalError) {
+            modalError.textContent = message;
+            modalError.classList.remove('d-none');
         }
     };
 
@@ -232,30 +246,21 @@ const initializeReviewItemEditor = (root) => {
 
         const addButton = event.target.closest('[data-review-add]');
         if (addButton && root.contains(addButton)) {
-            const panel = addButton.closest('[data-review-item-selection]');
-            const item = panel ? {
-                itemType: panel.dataset.itemType,
-                itemId: panel.dataset.itemId,
-                itemName: panel.dataset.itemName,
-                itemCode: panel.dataset.itemCode,
-                itemAvailable: panel.dataset.itemAvailable,
-                itemUnit: panel.dataset.itemUnit || '',
-            } : null;
-            const quantityField = panel?.querySelector('[data-review-selection-quantity]');
-            const quantity = Number(quantityField?.value);
+            const item = activeItem;
+            const quantity = Number(modalQuantity?.value);
             const available = Number(item?.itemAvailable);
-            const unit = panel?.querySelector('[data-review-selection-unit]')?.value.trim() || item?.itemUnit || '';
+            const unit = modalUnit?.value.trim() || item?.itemUnit || '';
             const isChemical = item?.itemType === 'Chemical';
 
             if (!item || !Number.isFinite(quantity) || quantity <= 0 || quantity > available || (!isChemical && !Number.isInteger(quantity)) || (isChemical && unit === '')) {
-                showSelectionError(panel, quantity > available ? 'Quantity cannot exceed ' + (item?.itemAvailable || 'the available amount') + '.' : (isChemical && unit === '' ? 'Enter a unit for this chemical.' : 'Enter a valid quantity.'));
-                quantityField?.focus();
+                showSelectionError(quantity > available ? 'Quantity cannot exceed ' + (item?.itemAvailable || 'the available amount') + '.' : (isChemical && unit === '' ? 'Enter a unit for this chemical.' : 'Enter a valid quantity.'));
+                modalQuantity?.focus();
                 return;
             }
 
             const key = itemKey(item.itemType, item.itemId);
             if (getSelected(item.itemType, item.itemId)) {
-                showSelectionError(panel, 'This item is already selected.');
+                showSelectionError('This item is already selected.');
                 return;
             }
 
@@ -268,12 +273,6 @@ const initializeReviewItemEditor = (root) => {
             selectedList.querySelector('[data-review-no-items]')?.remove();
             selectedList.append(createSelectedRow(item, quantity, unit, restoredExistingId || null));
             syncResults();
-            hideSelections();
-            return;
-        }
-
-        const cancelButton = event.target.closest('[data-review-cancel]');
-        if (cancelButton && root.contains(cancelButton)) {
             hideSelections();
             return;
         }

@@ -26,6 +26,7 @@ use App\Http\Controllers\Coordinator\ChemicalMultipleItemsBarcodeController;
 use App\Http\Controllers\Coordinator\LaboratoryController;
 use App\Http\Controllers\Coordinator\SupplierController;
 use App\Http\Controllers\Coordinator\InventoryAlertController;
+use App\Http\Controllers\Coordinator\InventoryTraceabilityController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorBorrowCalendarController;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationController;
@@ -122,6 +123,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
         Route::put('/inventory-alerts/chemicals/{chemical}/threshold', [InventoryAlertController::class, 'updateChemicalThreshold'])->name('inventory-alerts.chemical-threshold.update');
         Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/inventory/traceability', [InventoryTraceabilityController::class, 'index'])->name('inventory-traceability.index');
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', fn () => redirect()->route('coordinator.reports.equipment.index'))->name('index');
@@ -167,6 +169,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::patch('/{equipment}/quantity', [EquipmentController::class, 'updateQuantity'])->name('quantity.update');
+                Route::get('/{equipment}/traceability', [InventoryTraceabilityController::class, 'equipment'])->withTrashed()->name('traceability');
                 Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
                 Route::post('/{equipment}/restore', [EquipmentController::class, 'restore'])->withTrashed()->name('restore');
@@ -209,6 +212,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::get('/{chemical}/traceability', [InventoryTraceabilityController::class, 'chemical'])->withTrashed()->name('traceability');
                 Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->withTrashed()->name('barcode-print');
                 Route::post('/{chemical}/restore', [ChemicalController::class, 'restore'])->withTrashed()->name('restore');

@@ -1,3 +1,5 @@
+import * as bootstrap from 'bootstrap';
+
 const escapeHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -25,15 +27,29 @@ const initializeItemPicker = (root) => {
     const cartEmpty = cart?.querySelector('[data-cart-empty]');
     const cartCount = cart?.querySelector('[data-cart-count]');
     const clearButton = cart?.querySelector('[data-cart-clear]');
+    const modalElement = root.querySelector('[data-picker-modal]');
 
-    if (!cart || !cartList) {
+    if (!cart || !cartList || !modalElement) {
         return;
     }
 
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const quantityField = modalElement.querySelector('[data-picker-quantity]');
+    const unitField = modalElement.querySelector('[data-picker-unit]');
+    const unitGroup = modalElement.querySelector('[data-picker-unit-group]');
+    const remarksField = modalElement.querySelector('[data-picker-remarks]');
+    const error = modalElement.querySelector('[data-picker-error]');
+    const itemName = modalElement.querySelector('[data-picker-selection-name]');
+    const itemCode = modalElement.querySelector('[data-picker-selection-code]');
+    const itemType = modalElement.querySelector('[data-picker-modal-type]');
+    const availability = modalElement.querySelector('[data-picker-availability]');
+    const addLabel = modalElement.querySelector('[data-picker-add-label]');
+    let activeItem = null;
+
     root.dataset.itemPickerInitialized = 'true';
 
-    const getEntry = (itemType, itemId) => Array.from(cartList.querySelectorAll('[data-cart-entry]'))
-        .find((entry) => entry.dataset.itemType === itemType && entry.dataset.itemId === itemId);
+    const getEntry = (type, id) => Array.from(cartList.querySelectorAll('[data-cart-entry]'))
+        .find((entry) => entry.dataset.itemType === type && entry.dataset.itemId === id);
 
     const syncRows = () => {
         root.querySelectorAll('[data-picker-item]').forEach((row) => {
@@ -64,59 +80,50 @@ const initializeItemPicker = (root) => {
         syncRows();
     };
 
-    const hideSelections = () => {
-        root.querySelectorAll('[data-picker-selection]').forEach((panel) => {
-            panel.classList.add('d-none');
-            panel.removeAttribute('data-item-id');
-            panel.removeAttribute('data-item-type');
-            panel.removeAttribute('data-item-name');
-            panel.removeAttribute('data-item-code');
-            panel.removeAttribute('data-item-available');
-            panel.removeAttribute('data-item-unit');
-            panel.querySelector('[data-picker-error]')?.classList.add('d-none');
-        });
-        root.querySelectorAll('[data-picker-item].is-picking').forEach((row) => row.classList.remove('is-picking'));
-    };
-
-    const openSelection = (row) => {
-        const panel = row.closest('[data-reservation-tab-pane]')?.querySelector('[data-picker-selection]');
-
-        if (!panel) {
+    const setError = (message = '') => {
+        if (!error) {
             return;
         }
 
-        hideSelections();
+        error.textContent = message;
+        error.classList.toggle('d-none', !message);
+    };
 
-        panel.dataset.itemId = row.dataset.itemId;
-        panel.dataset.itemType = row.dataset.itemType;
-        panel.dataset.itemName = row.dataset.itemName;
-        panel.dataset.itemCode = row.dataset.itemCode;
-        panel.dataset.itemAvailable = row.dataset.itemAvailable;
-        panel.dataset.itemUnit = row.dataset.itemUnit || '';
-        panel.classList.remove('d-none');
-        row.classList.add('is-picking');
+    const openSelection = (row) => {
+        activeItem = {
+            itemType: row.dataset.itemType,
+            itemId: row.dataset.itemId,
+            itemName: row.dataset.itemName,
+            itemCode: row.dataset.itemCode,
+            itemAvailable: row.dataset.itemAvailable,
+            itemUnit: row.dataset.itemUnit || '',
+        };
 
-        const existingEntry = getEntry(row.dataset.itemType, row.dataset.itemId);
-        const quantityField = panel.querySelector('[data-picker-quantity]');
-        const unitField = panel.querySelector('[data-picker-unit]');
-        const remarksField = panel.querySelector('[data-picker-remarks]');
+        const existingEntry = getEntry(activeItem.itemType, activeItem.itemId);
         const existingQuantity = existingEntry?.querySelector('[data-cart-field="quantity"]')?.value;
         const existingUnit = existingEntry?.querySelector('[data-cart-field="unit"]')?.value;
         const existingRemarks = existingEntry?.querySelector('[data-cart-field="remarks"]')?.value;
+        const isChemical = activeItem.itemType === 'Chemical';
+        const displayUnit = isChemical ? (existingUnit || activeItem.itemUnit) : 'pcs';
 
-        panel.querySelector('[data-picker-selection-name]').textContent = `${row.dataset.itemName} (${row.dataset.itemCode})`;
-        quantityField.min = row.dataset.itemType === 'Chemical' ? '0.01' : '1';
-        quantityField.max = row.dataset.itemAvailable;
-        quantityField.step = row.dataset.itemType === 'Chemical' ? '0.01' : '1';
+        itemType.textContent = `Selected ${activeItem.itemType.toLowerCase()}`;
+        itemName.textContent = activeItem.itemName;
+        itemCode.textContent = activeItem.itemCode;
+        availability.textContent = `${isChemical ? 'In stock' : 'Available'}: ${formatQuantity(activeItem.itemAvailable, activeItem.itemType)} ${displayUnit}`;
+        quantityField.min = isChemical ? '0.01' : '1';
+        quantityField.max = activeItem.itemAvailable;
+        quantityField.step = isChemical ? '0.01' : '1';
         quantityField.value = existingQuantity || '';
+        unitGroup?.classList.toggle('d-none', !isChemical);
         if (unitField) {
-            unitField.value = existingUnit || row.dataset.itemUnit || '';
+            unitField.value = existingUnit || activeItem.itemUnit || '';
         }
-        if (remarksField) {
-            remarksField.value = existingRemarks || '';
-        }
+        remarksField.value = existingRemarks || '';
+        addLabel.textContent = existingEntry ? 'Update item' : 'Add to request';
+        setError();
 
-        window.setTimeout(() => quantityField.focus(), 0);
+        modal.show();
+        modalElement.addEventListener('shown.bs.modal', () => quantityField.focus(), { once: true });
     };
 
     const createEntry = (item, quantity, unit, remarks) => {
@@ -154,16 +161,21 @@ const initializeItemPicker = (root) => {
         return entry;
     };
 
-    const updateEntry = (entry, quantity, unit, remarks, itemType) => {
+    const updateEntry = (entry, quantity, unit, remarks, type) => {
         entry.querySelector('[data-cart-field="quantity"]').value = quantity;
         entry.querySelector('[data-cart-field="remarks"]').value = remarks;
-        entry.querySelector('[data-cart-summary]').textContent = `${formatQuantity(quantity, itemType)} ${itemType === 'Chemical' ? unit : 'pcs'}`;
+        entry.querySelector('[data-cart-summary]').textContent = `${formatQuantity(quantity, type)} ${type === 'Chemical' ? unit : 'pcs'}`;
 
-        const unitField = entry.querySelector('[data-cart-field="unit"]');
-        if (unitField) {
-            unitField.value = unit;
+        const unitInput = entry.querySelector('[data-cart-field="unit"]');
+        if (unitInput) {
+            unitInput.value = unit;
         }
-        entry.dataset.itemUnit = itemType === 'Chemical' ? unit : 'pcs';
+        entry.dataset.itemUnit = type === 'Chemical' ? unit : 'pcs';
+    };
+
+    const closeModal = () => {
+        modal.hide();
+        activeItem = null;
     };
 
     root.addEventListener('click', (event) => {
@@ -177,49 +189,33 @@ const initializeItemPicker = (root) => {
 
         const addButton = event.target.closest('[data-picker-add]');
         if (addButton && root.contains(addButton)) {
-            const panel = addButton.closest('[data-picker-selection]');
-            const quantityField = panel?.querySelector('[data-picker-quantity]');
-            const error = panel?.querySelector('[data-picker-error]');
-            const item = panel ? {
-                itemType: panel.dataset.itemType,
-                itemId: panel.dataset.itemId,
-                itemName: panel.dataset.itemName,
-                itemCode: panel.dataset.itemCode,
-                itemAvailable: panel.dataset.itemAvailable,
-                itemUnit: panel.dataset.itemUnit || '',
-            } : null;
-            const quantity = Number(quantityField?.value);
-            const available = Number(item?.itemAvailable);
-            const isChemical = item?.itemType === 'Chemical';
-            const unitField = panel?.querySelector('[data-picker-unit]');
-            const remarksField = panel?.querySelector('[data-picker-remarks]');
-            const unit = unitField?.value.trim() || item?.itemUnit || '';
-            const remarks = remarksField?.value.trim() || '';
-
-            if (!item || !Number.isFinite(quantity) || quantity <= 0 || quantity > available || (!isChemical && !Number.isInteger(quantity)) || (isChemical && unit === '')) {
-                if (error) {
-                    error.textContent = quantity > available ? `Quantity cannot exceed ${item?.itemAvailable || 'the available amount'}.` : (isChemical && unit === '' ? 'Enter the unit for this chemical.' : 'Enter a valid quantity.');
-                    error.classList.remove('d-none');
-                }
-                quantityField?.focus();
+            if (!activeItem) {
                 return;
             }
 
-            const existingEntry = getEntry(item.itemType, item.itemId);
+            const quantity = Number(quantityField.value);
+            const available = Number(activeItem.itemAvailable);
+            const isChemical = activeItem.itemType === 'Chemical';
+            const unit = unitField?.value.trim() || activeItem.itemUnit || '';
+            const remarks = remarksField.value.trim();
+
+            if (!Number.isFinite(quantity) || quantity <= 0 || quantity > available || (!isChemical && !Number.isInteger(quantity)) || (isChemical && unit === '')) {
+                setError(quantity > available
+                    ? `Quantity cannot exceed ${activeItem.itemAvailable || 'the available amount'}.`
+                    : (isChemical && unit === '' ? 'Enter the unit for this chemical.' : 'Enter a valid quantity.'));
+                quantityField.focus();
+                return;
+            }
+
+            const existingEntry = getEntry(activeItem.itemType, activeItem.itemId);
             if (existingEntry) {
-                updateEntry(existingEntry, quantity, unit, remarks, item.itemType);
+                updateEntry(existingEntry, quantity, unit, remarks, activeItem.itemType);
             } else {
-                cartList.append(createEntry(item, quantity, unit, remarks));
+                cartList.append(createEntry(activeItem, quantity, unit, remarks));
             }
 
             syncCart();
-            hideSelections();
-            return;
-        }
-
-        const cancelButton = event.target.closest('[data-picker-cancel]');
-        if (cancelButton && root.contains(cancelButton)) {
-            hideSelections();
+            closeModal();
             return;
         }
 
@@ -237,9 +233,13 @@ const initializeItemPicker = (root) => {
         }
     });
 
-    root.addEventListener('request-items-content-replaced', syncCart);
+    root.addEventListener('request-items-content-replaced', () => {
+        closeModal();
+        syncCart();
+    });
 
     root.addEventListener('request-items-laboratory-changed', () => {
+        closeModal();
         cartList.replaceChildren();
         syncCart();
     });

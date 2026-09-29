@@ -106,6 +106,11 @@ class DashboardController extends Controller
                 ],
             ],
             'maintenance' => $maintenance,
+            'inventoryLogs' => InventoryLog::with(['performedBy', 'item'])
+                ->latest('performed_at')
+                ->latest('id')
+                ->limit(8)
+                ->get(),
             'activityLogs' => $this->recentActivity(),
             'managementModules' => [
                 ['label' => 'User Management', 'href' => route('coordinator.users.index')],

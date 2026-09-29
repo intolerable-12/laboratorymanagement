@@ -32,6 +32,7 @@ import * as bootstrap from 'bootstrap';
         const remarksWrapper = document.querySelector('[data-checkout-remarks-wrapper]');
         const remarksInput = document.querySelector('#checkout-remarks');
         const remarksErrorElement = document.querySelector('[data-checkout-remarks-error]');
+        const stateOptions = conditionInput ? [...conditionInput.options] : [];
         const quantityModal = quantityModalElement
             ? bootstrap.Modal.getOrCreateInstance(quantityModalElement)
             : null;
@@ -90,10 +91,10 @@ import * as bootstrap from 'bootstrap';
 
         const syncRemarksRequirement = () => {
             const hasScannedItem = activeItemType !== '';
-            const requiresRemarks = hasScannedItem
+            const requiresRemarks = activeItemType === 'Equipment'
                 && ['Lost', 'Damaged'].includes(conditionInput.value);
 
-            remarksWrapper?.classList.toggle('d-none', !hasScannedItem);
+            remarksWrapper?.classList.toggle('d-none', activeItemType !== 'Equipment');
 
             if (!remarksInput) {
                 return requiresRemarks;
@@ -110,6 +111,20 @@ import * as bootstrap from 'bootstrap';
             }
 
             return requiresRemarks;
+        };
+
+        const configureStateOptions = (item) => {
+            const stateType = activeItemType === 'Chemical' ? 'Chemical' : 'Equipment';
+
+            stateOptions.forEach((option) => {
+                const isAvailable = option.dataset.checkoutStateType === stateType;
+                option.hidden = !isAvailable;
+                option.disabled = !isAvailable;
+            });
+
+            conditionInput.value = stateType === 'Chemical'
+                ? (item?.dataset.itemState || 'Active')
+                : 'Good';
         };
 
         const showQuantityField = () => {
@@ -131,7 +146,8 @@ import * as bootstrap from 'bootstrap';
                 maximumElement.textContent = 'Maximum: ' + formatQuantity(maximum, activeItemType) + ' ' + (item?.dataset.itemUnit || 'unit(s)');
             }
 
-            const stateLabel = item?.dataset.itemStateLabel || 'Equipment condition';
+            const stateLabel = item?.dataset.itemStateLabel
+                || (activeItemType === 'Chemical' ? 'Status' : 'Equipment condition');
 
             if (itemStateLabelElement) {
                 itemStateLabelElement.textContent = stateLabel;
@@ -151,7 +167,7 @@ import * as bootstrap from 'bootstrap';
             quantityErrorElement?.classList.add('d-none');
             quantityInput.setCustomValidity('');
             quantityInput.disabled = false;
-            conditionInput.value = 'Good';
+            configureStateOptions(item);
             conditionInput.disabled = false;
             if (remarksInput) {
                 remarksInput.value = '';
@@ -352,6 +368,10 @@ import * as bootstrap from 'bootstrap';
             Fair: 'text-bg-warning text-dark',
             Damaged: 'equipment-condition-badge--damaged',
             Lost: 'text-bg-danger',
+            Active: 'text-bg-success',
+            Inactive: 'text-bg-secondary',
+            Expired: 'text-bg-danger',
+            'For Disposal': 'text-bg-warning text-dark',
         }[condition] || 'text-bg-danger');
 
         const updateCartFilter = () => {

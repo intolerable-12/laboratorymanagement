@@ -15,11 +15,14 @@ use App\Services\RequestNotificationService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class FacilitatorCheckoutController extends Controller
 {
+    private const EQUIPMENT_CONDITIONS = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Lost'];
+
     public function index(Request $request): View
     {
         $this->ensureCheckoutStaff($request);
@@ -62,7 +65,7 @@ class FacilitatorCheckoutController extends Controller
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'numeric', 'gt:0'],
-            'condition_out' => ['required', 'in:Excellent,Good,Fair,Damaged,Under Repair,Lost'],
+            'condition_out' => ['required', Rule::in(array_merge(self::EQUIPMENT_CONDITIONS, Chemical::STATUSES))],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -133,7 +136,15 @@ class FacilitatorCheckoutController extends Controller
             }
 
             $condition = $data['condition_out'];
-            $requiresRemarks = in_array($condition, ['Lost', 'Damaged'], true);
+            $allowedStates = $itemType === 'Chemical' ? Chemical::STATUSES : self::EQUIPMENT_CONDITIONS;
+
+            if (! in_array($condition, $allowedStates, true)) {
+                $this->checkoutError('condition_out', $itemType === 'Chemical'
+                    ? 'Select a valid chemical status.'
+                    : 'Select a valid equipment condition.');
+            }
+
+            $requiresRemarks = $itemType === 'Equipment' && in_array($condition, ['Lost', 'Damaged'], true);
             $operatorRemarks = $requiresRemarks ? trim((string) ($data['remarks'] ?? '')) : '';
 
             if ($requiresRemarks && $operatorRemarks === '') {

@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Laboratory;
 use App\Models\Supplier;
+use App\Services\InventoryTraceabilityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -181,7 +182,14 @@ class EquipmentController extends Controller
             $data['image'] = $request->file('image')->store('equipment', 'public');
         }
 
-        Equipment::create($data);
+        $equipment = Equipment::create($data);
+
+        app(InventoryTraceabilityLogger::class)->recordInitialStock(
+            item: $equipment,
+            quantity: $equipment->available_quantity,
+            performedBy: (int) $request->user()->userNo,
+            remarks: 'Equipment added to inventory by the coordinator.',
+        );
 
         return redirect()->route('coordinator.equipment.index')->with('status', 'Equipment created successfully.');
     }
@@ -210,6 +218,7 @@ class EquipmentController extends Controller
     public function update(Request $request, Equipment $equipment)
     {
         $data = $this->validateEquipment($request, $equipment);
+        $previousAvailableQuantity = (int) $equipment->available_quantity;
         $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
 
         if ((int) ($equipment->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
@@ -226,6 +235,14 @@ class EquipmentController extends Controller
 
         $equipment->update($data);
 
+        app(InventoryTraceabilityLogger::class)->record(
+            item: $equipment,
+            quantityBefore: $previousAvailableQuantity,
+            quantityAfter: (int) $equipment->available_quantity,
+            performedBy: (int) $request->user()->userNo,
+            remarks: 'Equipment quantity updated by the coordinator.',
+        );
+
         return redirect()->route('coordinator.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
     }
 
@@ -236,10 +253,19 @@ class EquipmentController extends Controller
         ]);
 
         $newQuantity = (int) $data['quantity'];
+        $previousAvailableQuantity = (int) $equipment->available_quantity;
         $equipment->update([
             'quantity' => $newQuantity,
             'available_quantity' => $this->availableQuantityAfterTotalChange($equipment, $newQuantity),
         ]);
+
+        app(InventoryTraceabilityLogger::class)->record(
+            item: $equipment,
+            quantityBefore: $previousAvailableQuantity,
+            quantityAfter: (int) $equipment->available_quantity,
+            performedBy: (int) $request->user()->userNo,
+            remarks: 'Equipment quantity updated by the coordinator.',
+        );
 
         return redirect()
             ->route('coordinator.equipment.index', $request->query())
