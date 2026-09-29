@@ -11,6 +11,18 @@ class InventoryLog extends Model
 {
     use HasFactory;
 
+    public const ACTIONS = [
+        'Borrow',
+        'Return',
+        'Purchase',
+        'Adjustment',
+        'Damage',
+        'Lost',
+        'Maintenance',
+        'Stock In',
+        'Stock Out',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -56,6 +68,31 @@ class InventoryLog extends Model
      */
     public function performedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'performed_by', 'userNo');
+        return $this->belongsTo(User::class, 'performed_by', 'userNo')->withTrashed();
+    }
+
+    public function movementLabel(): string
+    {
+        return match ($this->action) {
+            'Return', 'Purchase', 'Stock In' => 'Added',
+            'Borrow', 'Damage', 'Lost', 'Stock Out' => 'Deducted',
+            'Adjustment' => (float) $this->quantity_changed >= 0 ? 'Added' : 'Deducted',
+            default => $this->action,
+        };
+    }
+
+    public function movementTone(): string
+    {
+        return $this->movementLabel() === 'Added' ? 'success' : ($this->movementLabel() === 'Deducted' ? 'danger' : 'secondary');
+    }
+
+    public function sourceLabel(): string
+    {
+        return match ($this->action) {
+            'Borrow' => 'Student request',
+            'Return' => 'Student return',
+            'Stock In', 'Stock Out' => 'Coordinator update',
+            default => 'Inventory action',
+        };
     }
 }

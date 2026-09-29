@@ -116,6 +116,79 @@
         </div>
     </div>
 
+    <div class="card admin-card mb-4">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                <div>
+                    <h3 class="h5 fw-semibold mb-1">Inventory traceability</h3>
+                    <p class="mb-0 text-secondary">Recent additions, deductions, and returns for equipment and chemicals.</p>
+                </div>
+                <a href="{{ route('coordinator.inventory-traceability.index') }}" class="btn btn-sm btn-outline-primary">
+                    View all <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Date</th>
+                            <th>Item</th>
+                            <th>Movement</th>
+                            <th>Quantity</th>
+                            <th>Recorded by</th>
+                            <th class="pe-4">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($inventoryLogs as $log)
+                            @php
+                                $logItem = $log->item;
+                                $logName = $logItem
+                                    ? ($log->item_type === 'Equipment' ? $logItem->equipment_name : $logItem->chemical_name)
+                                    : $log->item_type . ' #' . $log->item_id;
+                                $logUnit = $logItem && $log->item_type === 'Chemical' ? $logItem->unit : ($log->item_type === 'Equipment' ? 'unit(s)' : '');
+                                $changed = (float) $log->quantity_changed;
+                                $actor = $log->performedBy
+                                    ? trim(collect([$log->performedBy->first_name, $log->performedBy->middle_name, $log->performedBy->last_name, $log->performedBy->suffix])->filter()->implode(' '))
+                                    : 'System';
+                                $traceabilityUrl = $log->item_type === 'Equipment'
+                                    ? route('coordinator.equipment.traceability', $log->item_id)
+                                    : route('coordinator.chemicals.traceability', $log->item_id);
+                            @endphp
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-semibold text-dark">{{ $log->performed_at?->format('M j, Y') ?? '-' }}</div>
+                                    <div class="small text-secondary">{{ $log->performed_at?->format('h:i A') ?? '' }}</div>
+                                </td>
+                                <td>
+                                    <a href="{{ $traceabilityUrl }}" class="text-decoration-none">
+                                        <div class="fw-semibold text-dark">{{ $logName }}</div>
+                                        <div class="small text-secondary">{{ $log->item_type }}</div>
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge text-bg-{{ $log->movementTone() }}">{{ $log->movementLabel() }}</span>
+                                    <div class="small text-secondary mt-1">{{ $log->sourceLabel() }}</div>
+                                </td>
+                                <td class="{{ $changed > 0 ? 'text-success' : ($changed < 0 ? 'text-danger' : 'text-secondary') }}">
+                                    <span class="fw-semibold">{{ $changed > 0 ? '+' : '' }}{{ $log->item_type === 'Equipment' ? number_format($changed, 0) : number_format($changed, 2) }}</span> {{ $logUnit }}
+                                </td>
+                                <td>{{ $actor }}</td>
+                                <td class="pe-4 small text-secondary">{{ $log->remarks ?: 'No additional details.' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary py-4">No inventory movements have been recorded yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card admin-card h-100">

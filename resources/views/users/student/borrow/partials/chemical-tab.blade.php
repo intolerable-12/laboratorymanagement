@@ -14,36 +14,6 @@
         <div class="col-12"><span class="text-secondary small">Page {{ $chemicalItems->currentPage() }} of {{ $chemicalItems->lastPage() }}</span></div>
     </div>
 
-    <div class="request-item-selection card border-0 bg-light mb-3 d-none" data-picker-selection>
-        <div class="card-body p-3">
-            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                <div>
-                    <div class="small text-uppercase text-secondary">Selected chemical</div>
-                    <div class="fw-semibold text-dark" data-picker-selection-name>Choose a chemical row</div>
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-picker-cancel>Cancel</button>
-            </div>
-            <div class="row g-2 align-items-end">
-                <div class="col-sm-4">
-                    <label class="form-label small fw-semibold text-dark">Quantity</label>
-                    <input type="number" min="0.01" step="0.01" class="form-control" data-picker-quantity placeholder="Enter quantity">
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label small fw-semibold text-dark">Unit</label>
-                    <input type="text" class="form-control" data-picker-unit placeholder="Unit">
-                </div>
-                <div class="col-sm-5">
-                    <label class="form-label small fw-semibold text-dark">Item note <span class="text-secondary fw-normal">(optional)</span></label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" data-picker-remarks placeholder="Optional note">
-                        <button type="button" class="btn btn-primary" data-picker-add><i class="fa-solid fa-cart-plus me-1" aria-hidden="true"></i>Add</button>
-                    </div>
-                </div>
-            </div>
-            <div class="small text-danger mt-2 d-none" data-picker-error></div>
-        </div>
-    </div>
-
     <div class="table-responsive">
         <table class="table align-middle text-guest">
             <thead>

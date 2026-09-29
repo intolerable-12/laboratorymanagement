@@ -22,6 +22,7 @@
         $totalCheckedOut = $borrowTransaction->items->sum(fn ($item) => (float) ($item->quantity_checked_out ?? 0));
         $scanCount = $scanLogs->count();
         $scanConditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Lost'];
+        $chemicalStatuses = \App\Models\Chemical::STATUSES;
     @endphp
 
     <div class="account-page" data-barcode-checkout>
@@ -122,6 +123,10 @@
                                     'Fair' => 'text-bg-warning text-dark',
                                     'Damaged' => 'equipment-condition-badge--damaged',
                                     'Lost' => 'text-bg-danger',
+                                    'Active' => 'text-bg-success',
+                                    'Inactive' => 'text-bg-secondary',
+                                    'Expired' => 'text-bg-danger',
+                                    'For Disposal' => 'text-bg-warning text-dark',
                                     default => 'text-bg-danger',
                                 };
                             @endphp
@@ -186,7 +191,7 @@
                                 $itemName = $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Item unavailable';
                                 $precision = $item->item_type === 'Chemical' ? 2 : 0;
                             @endphp
-                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checklist-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}" data-item-maximum="{{ $maximumCheckout }}">
+                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checklist-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}" data-item-maximum="{{ $maximumCheckout }}" data-item-state-label="{{ $item->item_type === 'Chemical' ? 'Status' : 'Equipment condition' }}" data-item-state="{{ $item->item_type === 'Chemical' ? ($item->item?->status ?? 'Active') : 'Good' }}">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold text-dark">
                                         {{ $itemName }}
@@ -285,8 +290,11 @@
                     <div class="mt-3">
                         <label for="condition_out" class="form-label fw-semibold text-dark" data-checkout-condition-label>Equipment condition</label>
                         <select name="condition_out" id="condition_out" class="form-select" form="checkout-scan-form" required disabled>
-                            @foreach (['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Lost'] as $condition)
-                                <option value="{{ $condition }}" @selected($condition === 'Good')>{{ $condition }}</option>
+                            @foreach ($scanConditions as $condition)
+                                <option value="{{ $condition }}" data-checkout-state-type="Equipment" @selected($condition === 'Good')>{{ $condition }}</option>
+                            @endforeach
+                            @foreach ($chemicalStatuses as $status)
+                                <option value="{{ $status }}" data-checkout-state-type="Chemical" @selected($status === 'Active')>{{ $status }}</option>
                             @endforeach
                         </select>
                     </div>

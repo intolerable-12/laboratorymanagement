@@ -94,38 +94,11 @@
             <div class="col-lg-5">
                 <div class="border-start ps-lg-4 h-100">
             <div data-review-tab-pane="equipment">
-                <div data-review-item-selection class="card border mb-3 d-none">
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
-                            <div class="small fw-semibold text-dark" data-review-selection-name></div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-review-cancel>Cancel</button>
-                        </div>
-                        <div class="input-group">
-                            <input type="number" min="1" step="1" class="form-control" data-review-selection-quantity placeholder="Quantity">
-                            <button type="button" class="btn btn-primary" data-review-add>Add</button>
-                        </div>
-                        <div class="small text-danger mt-2 d-none" data-review-selection-error></div>
-                    </div>
-                </div>
                 <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $equipmentItems, 'itemType' => 'Equipment'])</div>
             </div>
 
             @if ($allowChemicals)
             <div data-review-tab-pane="chemical" class="d-none">
-                <div data-review-item-selection class="card border mb-3 d-none">
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
-                            <div class="small fw-semibold text-dark" data-review-selection-name></div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-review-cancel>Cancel</button>
-                        </div>
-                        <div class="row g-2">
-                            <div class="col-sm-5"><input type="number" min="0.01" step="0.01" class="form-control" data-review-selection-quantity placeholder="Quantity"></div>
-                            <div class="col-sm-4"><input type="text" class="form-control" data-review-selection-unit placeholder="Unit"></div>
-                            <div class="col-sm-3"><button type="button" class="btn btn-primary w-100" data-review-add>Add</button></div>
-                        </div>
-                        <div class="small text-danger mt-2 d-none" data-review-selection-error></div>
-                    </div>
-                </div>
                 <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $chemicalItems, 'itemType' => 'Chemical'])</div>
             </div>
             @endif
@@ -133,4 +106,36 @@
             </div>
         </div>
     </div>
+<div class="modal fade" data-review-item-modal tabindex="-1" aria-labelledby="review-item-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <div>
+                    <div class="small text-uppercase text-secondary" data-review-modal-type>Selected item</div>
+                    <h5 class="modal-title fw-semibold text-dark" id="review-item-modal-title" data-review-selection-name>Choose an item</h5>
+                    <div class="small text-secondary" data-review-selection-code></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border rounded-3 py-2 mb-3" data-review-item-availability></div>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold text-dark" for="review-item-modal-quantity">Quantity</label>
+                        <input id="review-item-modal-quantity" type="number" class="form-control" data-review-selection-quantity placeholder="Enter quantity">
+                    </div>
+                    <div class="col-sm-6 d-none" data-review-unit-group>
+                        <label class="form-label fw-semibold text-dark" for="review-item-modal-unit">Unit</label>
+                        <input id="review-item-modal-unit" type="text" class="form-control" data-review-selection-unit placeholder="Unit">
+                    </div>
+                </div>
+                <div class="small text-danger mt-3 d-none" data-review-selection-error></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" data-review-add><i class="fa-solid fa-cart-plus me-1" aria-hidden="true"></i>Add item</button>
+            </div>
+        </div>
+    </div>
+</div>
 </section>

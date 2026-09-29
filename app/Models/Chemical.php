@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Chemical extends Model
@@ -119,5 +120,10 @@ class Chemical extends Model
     public function inventoryPeriods(): HasMany
     {
         return $this->hasMany(ChemicalInventoryPeriod::class);
+    }
+
+    public function inventoryLogs(): MorphMany
+    {
+        return $this->morphMany(InventoryLog::class, 'item', 'item_type', 'item_id');
     }
 }

@@ -398,6 +398,11 @@
                                             title="View" aria-label="View">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
+                                        <a href="{{ route('coordinator.chemicals.traceability', $chemical) }}"
+                                            class="btn btn-sm btn-outline-info"
+                                            title="Traceability" aria-label="Traceability">
+                                            <i class="fa-solid fa-clock-rotate-left"></i>
+                                        </a>
                                         <a href="{{ route('coordinator.chemicals.barcode-print', $chemical) }}"
                                             class="btn btn-sm btn-outline-dark"
                                             title="Print barcode" aria-label="Print barcode" target="_blank" rel="noopener noreferrer">

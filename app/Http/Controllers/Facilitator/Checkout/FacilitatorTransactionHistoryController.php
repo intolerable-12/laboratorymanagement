@@ -7,6 +7,7 @@ use App\Models\BarcodeLog;
 use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -97,15 +98,18 @@ class FacilitatorTransactionHistoryController extends Controller
     private function filteredQuery(Request $request, array $filters): Builder
     {
         $search = $filters['search'];
+        $checkoutStaffUserNos = User::query()
+            ->whereHas('role', fn (Builder $query) => $query->whereIn('role_name', ['Laboratory In-charge', 'Coordinator']))
+            ->pluck('userNo');
 
         return BarcodeLog::query()
-            ->where(function (Builder $query) use ($request): void {
+            ->where(function (Builder $query) use ($checkoutStaffUserNos): void {
                 $query
-                    ->where('user_no', $request->user()->userNo)
-                    ->orWhere(function (Builder $removalQuery) use ($request): void {
+                    ->whereIn('user_no', $checkoutStaffUserNos)
+                    ->orWhere(function (Builder $removalQuery) use ($checkoutStaffUserNos): void {
                         $removalQuery
                             ->where('is_voided', true)
-                            ->where('voided_by', $request->user()->userNo);
+                            ->whereIn('voided_by', $checkoutStaffUserNos);
                     });
             })
             ->whereIn('action', ['Borrow', 'Return'])

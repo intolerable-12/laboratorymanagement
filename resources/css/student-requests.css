@@ -19,11 +19,6 @@
     border-color: var(--role-accent-deep);
 }
 
-.request-item-selection {
-    border: 1px solid rgba(255, 79, 154, 0.2) !important;
-    background: linear-gradient(135deg, #fff7fb 0%, #f3f6ff 100%) !important;
-}
-
 .request-items-cart {
     position: sticky;
     top: 1rem;

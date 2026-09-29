@@ -7,6 +7,7 @@ use App\Models\Chemical;
 use App\Models\ChemicalCategory;
 use App\Models\Laboratory;
 use App\Models\Supplier;
+use App\Services\InventoryTraceabilityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -209,7 +210,14 @@ class ChemicalController extends Controller
             $data['image'] = $request->file('image')->store('chemicals', 'public');
         }
 
-        Chemical::create($data);
+        $chemical = Chemical::create($data);
+
+        app(InventoryTraceabilityLogger::class)->recordInitialStock(
+            item: $chemical,
+            quantity: $chemical->quantity,
+            performedBy: (int) $request->user()->userNo,
+            remarks: 'Chemical added to inventory by the coordinator.',
+        );
 
         return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical created successfully.');
     }
@@ -239,6 +247,7 @@ class ChemicalController extends Controller
     public function update(Request $request, Chemical $chemical)
     {
         $data = $this->validateChemical($request, $chemical);
+        $previousQuantity = (float) $chemical->quantity;
 
         if ((float) $chemical->minimum_stock !== (float) $data['minimum_stock']) {
             $data['low_stock_supplier_alert_sent_at'] = null;
@@ -263,6 +272,14 @@ class ChemicalController extends Controller
         }
 
         $chemical->update($data);
+
+        app(InventoryTraceabilityLogger::class)->record(
+            item: $chemical,
+            quantityBefore: $previousQuantity,
+            quantityAfter: (float) $chemical->quantity,
+            performedBy: (int) $request->user()->userNo,
+            remarks: 'Chemical quantity updated by the coordinator.',
+        );
 
         return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', 'Chemical updated successfully.');
     }

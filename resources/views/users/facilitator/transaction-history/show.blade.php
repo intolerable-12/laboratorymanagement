@@ -116,8 +116,20 @@
                                             <div class="small text-secondary">{{ $activityAt?->format('h:i:s A') ?? '—' }}</div>
                                         </td>
                                         <td>
-                                            <div class="fw-medium text-dark">{{ $itemName }}</div>
-                                            <div class="small text-secondary">{{ $log->item_type }} · {{ $log->barcode }} · × {{ number_format((float) $log->quantity, $log->item_type === 'Chemical' ? 2 : 0) }}</div>
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                <div class="fw-medium text-dark">{{ $itemName }}</div>
+                                                <span class="badge rounded-pill text-bg-light border text-secondary">
+                                                    &times; {{ number_format((float) $log->quantity, $log->item_type === 'Chemical' ? 2 : 0) }} {{ $log->item_type === 'Chemical' ? ($item?->unit ?? 'unit') : 'unit(s)' }}
+                                                </span>
+                                            </div>
+                                            <div class="small text-secondary">
+                                                {{ $log->barcode }}
+                                            </div>
+                                            @if ($log->item_type === 'Chemical')
+                                                <span class="badge rounded-pill {{ $item?->is_expired ? 'text-bg-danger' : ($item?->expiration_date ? 'text-bg-success' : 'text-bg-secondary') }} mt-2">
+                                                    Expiration: {{ $item?->expiration_date?->format('M d, Y') ?? 'Not set' }}
+                                                </span>
+                                            @endif
                                         </td>
                                         <td><span class="badge {{ $transactionClass }}">{{ $transactionLabel }}</span></td>
                                         <td>
