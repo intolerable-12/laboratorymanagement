@@ -58,7 +58,7 @@
                         </div>
                         <span class="small text-secondary">{{ $logs->firstItem() ?? 0 }}–{{ $logs->lastItem() ?? 0 }} of {{ number_format($logs->total()) }}</span>
                     </div>
-                    <div class="btn-group shadow-sm mt-4" role="group" aria-label="Transaction item type tabs">
+                    <div class="btn-group shadow-sm mt-4 mb-3" role="group" aria-label="Transaction item type tabs">
                         @foreach ($itemTabs as $itemTab)
                             @php
                                 $tabUrl = route($historyShowRoute, array_merge(
