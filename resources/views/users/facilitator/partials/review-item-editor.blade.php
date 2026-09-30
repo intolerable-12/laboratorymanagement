@@ -128,6 +128,12 @@
                         <label class="form-label fw-semibold text-dark" for="review-item-modal-unit">Unit</label>
                         <input id="review-item-modal-unit" type="text" class="form-control" data-review-selection-unit placeholder="Unit">
                     </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-dark" for="review-item-modal-remarks">
+                            Item note <span class="text-secondary fw-normal">(optional)</span>
+                        </label>
+                        <textarea id="review-item-modal-remarks" rows="2" class="form-control" data-review-selection-remarks placeholder="Add a note for the requester"></textarea>
+                    </div>
                 </div>
                 <div class="small text-danger mt-3 d-none" data-review-selection-error></div>
             </div>

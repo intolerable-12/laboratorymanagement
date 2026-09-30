@@ -114,7 +114,7 @@
                         @forelse ($scanLogs as $log)
                             @php
                                 $logItemName = $log->item?->equipment_name ?? $log->item?->chemical_name ?? 'Item unavailable';
-                                $logUnit = $log->item_type === 'Chemical' ? ' '.($log->item?->unit ?? 'unit') : ' unit(s)';
+                                $logUnit = $log->item_type === 'Chemical' ? ($log->item?->unit ?? 'unit') : 'unit(s)';
                                 $logBorrowItem = $borrowTransaction->items->first(fn ($borrowItem) => $borrowItem->item_type === $log->item_type && (int) $borrowItem->item_id === (int) $log->item_id);
                                 $logCondition = $logBorrowItem?->condition_out ?? 'Good';
                                 $logConditionBadgeClass = match ($logCondition) {
@@ -152,8 +152,10 @@
                                 </div>
                                 <div class="d-flex align-items-center gap-3 flex-shrink-0">
                                     <div class="text-end">
-                                        <div class="fw-semibold text-dark">× {{ number_format((float) $log->quantity, $log->item_type === 'Chemical' ? 2 : 0) }}</div>
-                                        <div class="small text-secondary">{{ $logUnit }}</div>
+                                        <div class="fw-semibold text-dark">× {{ number_format((float) $log->quantity, $log->item_type === 'Chemical' ? 2 : 0) }}@if ($log->item_type === 'Chemical') {{ $logUnit }}@endif</div>
+                                        @if ($log->item_type !== 'Chemical')
+                                            <div class="small text-secondary">{{ $logUnit }}</div>
+                                        @endif
                                     </div>
                                     <button type="button" class="btn btn-sm btn-link text-danger p-1 remove-scan" data-remove-scan="{{ $log->id }}" title="Remove this scan" aria-label="Remove {{ $logItemName }} from cart">
                                         <i class="fa-solid fa-trash-can"></i>
@@ -190,6 +192,7 @@
                                 $maximumCheckout = min($remaining, max(0, $inventoryAvailable));
                                 $itemName = $item->item?->equipment_name ?? $item->item?->chemical_name ?? 'Item unavailable';
                                 $precision = $item->item_type === 'Chemical' ? 2 : 0;
+                                $unit = $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)';
                             @endphp
                             <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checklist-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="{{ $item->item_type }}" data-checklist-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="{{ $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)' }}" data-item-maximum="{{ $maximumCheckout }}" data-item-state-label="{{ $item->item_type === 'Chemical' ? 'Status' : 'Equipment condition' }}" data-item-state="{{ $item->item_type === 'Chemical' ? ($item->item?->status ?? 'Active') : 'Good' }}">
                                 <div class="flex-grow-1">
@@ -202,8 +205,8 @@
                                     <div class="small text-secondary">{{ $item->item_type }} · {{ $item->item?->barcode ?? 'Barcode unavailable' }}</div>
                                 </div>
                                 <div class="text-end">
-                                    <div data-progress-current class="fw-semibold {{ $remaining <= 0 ? 'text-success' : 'text-dark' }}">{{ number_format($checkedOut, $precision) }} / {{ number_format($requested, $precision) }}</div>
-                                    <div data-progress-remaining class="small text-{{ $remaining <= 0 ? 'success' : 'secondary' }}">{{ $remaining <= 0 ? 'Complete' : number_format($remaining, $precision).' remaining' }}</div>
+                                    <div data-progress-current class="fw-semibold {{ $remaining <= 0 ? 'text-success' : 'text-dark' }}">{{ number_format($checkedOut, $precision) }} / {{ number_format($requested, $precision) }}@if ($item->item_type === 'Chemical') {{ $unit }}@endif</div>
+                                    <div data-progress-remaining class="small text-{{ $remaining <= 0 ? 'success' : 'secondary' }}">{{ $remaining <= 0 ? 'Complete' : number_format($remaining, $precision).($item->item_type === 'Chemical' ? ' '.$unit : '').' remaining' }}</div>
                                 </div>
                             </div>
                         @endforeach

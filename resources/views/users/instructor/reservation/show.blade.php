@@ -129,7 +129,7 @@
                         </div>
 
                         @if ($reservation->status === 'Pending')
-                             <div data-shared-remarks>
+                            <div data-shared-remarks>
                                 <div class="card border-0 bg-light h-100">
                                     <div class="card-body p-3 p-xl-4">
                                         <form id="borrow-approve-form" method="POST" action="{{ route('instructor.reservations.approve', $reservation) }}" class="card border-0 bg-light h-100">

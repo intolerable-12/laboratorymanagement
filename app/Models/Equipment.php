@@ -36,6 +36,7 @@ class Equipment extends Model
         'model',
         'serial_number',
         'purchase_date',
+        'manufacturing_date',
         'quantity',
         'available_quantity',
         'low_stock_threshold',
@@ -58,6 +59,7 @@ class Equipment extends Model
     {
         return [
             'purchase_date' => 'date',
+            'manufacturing_date' => 'date',
             'quantity' => 'integer',
             'available_quantity' => 'integer',
             'low_stock_threshold' => 'integer',

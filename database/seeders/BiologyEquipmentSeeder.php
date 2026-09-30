@@ -314,6 +314,7 @@ class BiologyEquipmentSeeder extends Seeder
                     'model' => null,
                     'serial_number' => null,
                     'purchase_date' => now()->subYear(),
+                    'manufacturing_date' => now()->subYear(),
                     'quantity' => $item['quantity'],
                     'available_quantity' => $item['quantity'],
                     'condition' => 'Excellent',

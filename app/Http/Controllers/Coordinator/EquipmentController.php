@@ -281,7 +281,7 @@ class EquipmentController extends Controller
 
     private function validateEquipment(Request $request, ?Equipment $equipment = null): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'equipment_name' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'exists:equipment_categories,id'],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
@@ -290,6 +290,7 @@ class EquipmentController extends Controller
             'model' => ['nullable', 'string', 'max:150'],
             'serial_number' => ['nullable', 'string', 'max:150'],
             'purchase_date' => ['nullable', 'date'],
+            'manufacturing_date' => ['nullable', 'date'],
             'quantity' => ['required', 'integer', 'min:0'],
             'condition' => ['required', Rule::in(['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'])],
             'status' => ['required', Rule::in(['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'])],
@@ -298,6 +299,16 @@ class EquipmentController extends Controller
             'description' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
         ]);
+
+        if (! empty($data['manufacturing_date'])
+            && ! empty($data['purchase_date'])
+            && strtotime($data['manufacturing_date']) > strtotime($data['purchase_date'])) {
+            throw ValidationException::withMessages([
+                'manufacturing_date' => 'The manufacturing date must be on or before the acquired date.',
+            ]);
+        }
+
+        return $data;
     }
 
     private function availableQuantityAfterTotalChange(Equipment $equipment, int $newQuantity): int

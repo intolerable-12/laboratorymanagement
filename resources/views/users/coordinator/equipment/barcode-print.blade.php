@@ -244,6 +244,7 @@
 
                                 <div class="barcode-print-label__code text-center">{{ $equipment->barcode }}</div>
                                 <div class="barcode-print-label__meta">
+                                    <span>Manufactured: {{ $equipment->manufacturing_date?->format('d-M-Y') ?? 'N/A' }}</span>
                                     <span>Acquired date: {{ $equipment->purchase_date?->format('d-M-Y') ?? 'N/A' }}</span>
                                     <span>Loc: {{ $equipment->storage_location ?? 'N/A' }}</span>
                                 </div>
@@ -262,6 +263,7 @@
 
                                 <div class="barcode-print-label__code text-center">{{ $equipment->barcode }}</div>
                                 <div class="barcode-print-label__meta">
+                                    <span>Manufactured: {{ $equipment->manufacturing_date?->format('d-M-Y') ?? 'N/A' }}</span>
                                     <span>Acquired date: {{ $equipment->purchase_date?->format('d-M-Y') ?? 'N/A' }}</span>
                                     <span>Loc: {{ $equipment->storage_location ?? 'N/A' }}</span>
                                 </div>

@@ -130,7 +130,7 @@
                                             <div class="card-body p-3 p-xl-4">
                                                 <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
                                                 <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror"  data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
                                                 @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                         </div>
