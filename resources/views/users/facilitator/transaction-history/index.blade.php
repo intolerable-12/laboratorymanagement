@@ -60,7 +60,7 @@
             @empty
                 <section class="section-card">
                     <div class="card-body text-center text-secondary py-5">
-                        <i class="fa-solid fa-clock-rotate-left fa-2x mb-3 d-block opacity-50"></i>
+                        <i class="mb-3 d-block opacity-50"></i>
                         No borrowing requests match your transaction history search.
                     </div>
                 </section>
