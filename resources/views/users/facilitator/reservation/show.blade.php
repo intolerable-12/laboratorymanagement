@@ -130,19 +130,19 @@
                                             <div class="card-body p-3 p-xl-4">
                                                 <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
                                                 <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror"  data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
                                                 @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
                                         </div>
 
-                                        <div class="mt-3 pt-3">
-                                            <div class="d-flex flex-column flex-sm-row gap-2">
-                                                 <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.reservations.reject', $reservation) }}" class="d-flex flex-fill">
+                                        <div>
+                                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                                                <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.reservations.reject', $reservation) }}" class="d-inline-block">
                                                     @csrf
                                                     <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                                    <button type="submit" class="btn btn-danger" style="min-width: 100px;" onclick="return confirm('Reject this borrow request?');">Reject</button>
                                                 </form>
-                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success" style="min-width: 100px;" onclick="return confirm('Approve this borrow request and forward it?');">Approve and forward</button>
                                             </div>
                                         </div>
                                     </div>

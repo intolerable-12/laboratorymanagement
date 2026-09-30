@@ -129,7 +129,7 @@
                         </div>
 
                         @if ($reservation->status === 'Pending')
-                             <div data-shared-remarks>
+                            <div data-shared-remarks>
                                 <div class="card border-0 bg-light h-100">
                                     <div class="card-body p-3 p-xl-4">
                                         <form id="borrow-approve-form" method="POST" action="{{ route('instructor.reservations.approve', $reservation) }}" class="card border-0 bg-light h-100">
@@ -145,14 +145,14 @@
                                             </div>
                                         </div>
 
-                                        <div class="mt-3 pt-3">
-                                            <div class="d-flex flex-column flex-sm-row gap-2">
-                                                 <form id="borrow-reject-form" method="POST" action="{{ route('instructor.reservations.reject', $reservation) }}" class="d-flex flex-fill">
+                                        <div>
+                                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                                                <form id="borrow-reject-form" method="POST" action="{{ route('instructor.reservations.reject', $reservation) }}" class="d-inline-block">
                                                     @csrf
                                                     <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                                    <button type="submit" class="btn btn-danger" style="min-width: 100px;" onclick="return confirm('Reject this borrow request?');">Reject</button>
                                                 </form>
-                                                <button type="submit" form="borrow-approve-form" class="btn btn-success flex-fill" onclick="return confirm('Approve this borrow request and forward it?');">Approve and Forward</button>
+                                                <button type="submit" form="borrow-approve-form" class="btn btn-success" style="min-width: 100px;" onclick="return confirm('Approve this borrow request and forward it?');">Approve and forward</button>
                                             </div>
                                         </div>
                                     </div>

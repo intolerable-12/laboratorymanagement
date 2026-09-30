@@ -22,8 +22,10 @@
         $isLaboratoriesIndex = request()->routeIs('coordinator.laboratories.index');
         $isLaboratoriesGroup = request()->routeIs('coordinator.laboratories.*');
 
-        $isEquipmentGroup = request()->routeIs('coordinator.equipment.*', 'coordinator.equipment.categories.*');
-        $isChemicalGroup = request()->routeIs('coordinator.chemicals.*', 'coordinator.chemical.categories.*');
+        $isEquipmentGroup = request()->routeIs('coordinator.equipment.*', 'coordinator.equipment.categories.*')
+        && ! request()->routeIs('coordinator.equipment.traceability');
+        $isChemicalGroup = request()->routeIs('coordinator.chemicals.*', 'coordinator.chemical.categories.*')
+        && ! request()->routeIs('coordinator.chemicals.traceability');
         $isSupplierGroup = request()->routeIs('coordinator.suppliers.*', 'coordinator.inventory-alerts.*');
         $isTraceability = request()->routeIs('coordinator.inventory-traceability.*', 'coordinator.equipment.traceability', 'coordinator.chemicals.traceability');
         $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isSupplierGroup || $isTraceability;

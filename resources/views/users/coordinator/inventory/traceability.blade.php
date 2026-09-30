@@ -45,22 +45,22 @@
     <div class="card admin-card">
         <div class="card-header bg-white border-0 pt-4 px-4">
             <h3 class="h5 fw-semibold mb-1">Traceability history</h3>
-            <p class="mb-0 text-secondary">Student requests appear as deductions when the item is checked out. Returns and coordinator stock changes are recorded here too.</p>
+            <p class="mb-3 text-secondary">Student requests appear as deductions when the item is checked out. Returns and coordinator stock changes are recorded here too.</p>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4">Date</th>
+                            <th class="text-dark ps-4">Date</th>
                             @if (! $itemName)
-                                <th>Item</th>
+                                <th class="text-dark">Item</th>
                             @endif
-                            <th>Movement</th>
-                            <th>Quantity change</th>
-                            <th>Balance after</th>
-                            <th>Recorded by</th>
-                            <th class="pe-4">Details</th>
+                            <th class="text-dark">Movement</th>
+                            <th class="text-dark">Quantity change</th>
+                            <th class="text-dark">Balance after</th>
+                            <th class="text-dark">Recorded by</th>
+                            <th class="text-dark pe-4">Details</th>
                         </tr>
                     </thead>
                     <tbody>
