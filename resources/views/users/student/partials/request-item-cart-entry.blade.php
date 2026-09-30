@@ -13,6 +13,9 @@
             <div class="small text-uppercase text-secondary">{{ $itemType }}</div>
             <div class="fw-semibold text-dark text-truncate" data-cart-item-name>{{ $isChemical ? $item->chemical_name : $item->equipment_name }}</div>
             <div class="small text-secondary">{{ $isChemical ? $item->chemical_code : $item->equipment_code }}</div>
+            <span class="badge rounded-pill {{ $isChemical ? ($item->is_expired ? 'text-bg-danger' : ($item->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary')) : 'text-bg-warning text-dark' }} mt-1">
+                <i class="{{ $isChemical ? 'fa-solid fa-calendar-xmark' : 'fa-regular fa-calendar' }} me-1" aria-hidden="true"></i>{{ $isChemical ? 'Expiration: ' . ($item->expiration_date?->format('M d, Y') ?? 'Not set') : 'Manufacturing: ' . ($item->manufacturing_date?->format('M d, Y') ?? 'Not set') }}
+            </span>
         </div>
         <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0" data-cart-remove aria-label="Remove {{ $isChemical ? $item->chemical_name : $item->equipment_name }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>

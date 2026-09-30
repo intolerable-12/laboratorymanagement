@@ -134,8 +134,10 @@
                                 </div>
                                 <div class="d-flex align-items-center gap-3 flex-shrink-0">
                                     <div class="text-end">
-                                        <div class="fw-semibold text-dark">× {{ number_format((float) $log->quantity, $log->item_type === 'Chemical' ? 2 : 0) }}</div>
-                                        <div class="small text-secondary">{{ $logUnit }}</div>
+                                        <div class="fw-semibold text-dark">× {{ number_format((float) $log->quantity, $log->item_type === 'Chemical' ? 2 : 0) }}@if ($log->item_type === 'Chemical') {{ $logUnit }}@endif</div>
+                                        @if ($log->item_type !== 'Chemical')
+                                            <div class="small text-secondary">{{ $logUnit }}</div>
+                                        @endif
                                     </div>
                                     <button type="button" class="btn btn-sm btn-link text-danger p-1" data-remove-checkin="{{ $log->id }}" title="Remove this scan" aria-label="Remove {{ $logItemName }} from cart"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>

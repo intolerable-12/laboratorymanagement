@@ -361,6 +361,10 @@ Route::middleware(['auth', 'role:Student', 'audit'])
                 Route::get('/calendar', [StudentReservationCalendarController::class, 'index'])->name('calendar');
                 Route::get('/', [StudentReservationController::class, 'index'])->name('index');
                 Route::get('/create', [StudentReservationController::class, 'create'])->name('create');
+                Route::post('/create/details', [StudentReservationController::class, 'details'])->name('details');
+                Route::get('/create/items', [StudentReservationController::class, 'items'])->name('items');
+                Route::post('/create/items', [StudentReservationController::class, 'itemsStore'])->name('items.store');
+                Route::get('/create/review', [StudentReservationController::class, 'review'])->name('review');
                 Route::patch('/{reservation}/cancel', [StudentReservationController::class, 'cancel'])->name('cancel');
                 Route::post('/', [StudentReservationController::class, 'store'])->name('store');
                 Route::get('/{reservation}', [StudentReservationController::class, 'show'])->name('show');

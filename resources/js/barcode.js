@@ -458,8 +458,8 @@ import * as bootstrap from 'bootstrap';
                 '</div>' +
                 '<div class="d-flex align-items-center gap-3 flex-shrink-0">' +
                     '<div class="text-end">' +
-                        '<div class="fw-semibold text-dark">× ' + formatQuantity(scan.quantity, scan.item_type) + '</div>' +
-                        '<div class="small text-secondary">' + escapeHtml(scan.unit) + '</div>' +
+                        '<div class="fw-semibold text-dark">× ' + formatQuantity(scan.quantity, scan.item_type) + (scan.item_type === 'Chemical' ? ' ' + escapeHtml(scan.unit) : '') + '</div>' +
+                        (scan.item_type === 'Chemical' ? '' : '<div class="small text-secondary">' + escapeHtml(scan.unit) + '</div>') +
                     '</div>' +
                     '<button type="button" class="btn btn-sm btn-link text-danger p-1 remove-scan" data-remove-scan="' + escapeHtml(scan.id) + '" title="Remove this scan" aria-label="Remove scan">' +
                         '<i class="fa-solid fa-trash-can"></i>' +
@@ -482,10 +482,12 @@ import * as bootstrap from 'bootstrap';
                 const complete = item.remaining <= 0;
                 row.dataset.itemMaximum = String(Math.min(Number(item.remaining), Number(item.available ?? item.remaining)));
 
-                current.textContent = formatQuantity(item.checked_out, item.item_type) + ' / ' + formatQuantity(item.requested, item.item_type);
+                const unit = item.item_type === 'Chemical' ? (row.dataset.itemUnit || 'unit') : '';
+
+                current.textContent = formatQuantity(item.checked_out, item.item_type) + ' / ' + formatQuantity(item.requested, item.item_type) + (unit ? ' ' + unit : '');
                 current.classList.toggle('text-success', complete);
                 current.classList.toggle('text-dark', !complete);
-                remaining.textContent = complete ? 'Complete' : formatQuantity(item.remaining, item.item_type) + ' remaining';
+                remaining.textContent = complete ? 'Complete' : formatQuantity(item.remaining, item.item_type) + (unit ? ' ' + unit : '') + ' remaining';
                 remaining.classList.toggle('text-success', complete);
                 remaining.classList.toggle('text-secondary', !complete);
             });

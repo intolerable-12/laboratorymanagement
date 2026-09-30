@@ -81,6 +81,7 @@ class FacilitatorReservationController extends Controller
 			'new_items.Chemical' => ['nullable', 'array'],
 			'new_items.*.*.quantity' => ['required', 'numeric', 'gt:0'],
 			'new_items.*.*.unit' => ['nullable', 'string', 'max:20'],
+			'new_items.*.*.remarks' => ['nullable', 'string', 'max:500'],
 			'remove_items' => ['nullable', 'array'],
 			'remove_items.*' => ['integer'],
 		];
@@ -133,7 +134,13 @@ class FacilitatorReservationController extends Controller
 				}
 
 				$seenItems[$key] = true;
-				$newItems[] = ['item_type' => $itemType, 'item_id' => $inventoryItem->id, 'quantity' => $payload['quantity'], 'unit' => $unit];
+				$newItems[] = [
+					'item_type' => $itemType,
+					'item_id' => $inventoryItem->id,
+					'quantity' => $payload['quantity'],
+					'unit' => $unit,
+					'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
+				];
 			}
 		}
 
@@ -160,6 +167,7 @@ class FacilitatorReservationController extends Controller
 					'item_id' => $selectedItem['item_id'],
 					'quantity' => $selectedItem['quantity'],
 					'unit' => $selectedItem['unit'],
+					'remarks' => $selectedItem['remarks'],
 				]);
 			}
 

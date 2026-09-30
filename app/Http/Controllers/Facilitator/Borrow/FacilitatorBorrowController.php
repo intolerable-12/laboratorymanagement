@@ -72,6 +72,7 @@ class FacilitatorBorrowController extends Controller
 			'new_items' => ['nullable', 'array'],
 			'new_items.Equipment' => ['nullable', 'array'],
 			'new_items.*.*.quantity' => ['required', 'numeric', 'gt:0'],
+			'new_items.*.*.remarks' => ['nullable', 'string', 'max:500'],
 			'remove_items' => ['nullable', 'array'],
 			'remove_items.*' => ['integer'],
 		];
@@ -123,7 +124,12 @@ class FacilitatorBorrowController extends Controller
 
 				$inventoryItem = $this->validateReviewItem($itemType, (int) $itemId, (int) $borrowTransaction->laboratory_id, $payload['quantity'] ?? null, 'new_items.' . $itemType . '.' . $itemId . '.quantity');
 				$seenItems[$key] = true;
-				$newItems[] = ['item_type' => $itemType, 'item_id' => $inventoryItem->id, 'quantity' => $payload['quantity'], 'remarks' => null];
+				$newItems[] = [
+					'item_type' => $itemType,
+					'item_id' => $inventoryItem->id,
+					'quantity' => $payload['quantity'],
+					'remarks' => trim((string) ($payload['remarks'] ?? '')) ?: null,
+				];
 			}
 		}
 
