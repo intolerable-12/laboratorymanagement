@@ -170,7 +170,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                     <h2 class="h5 fw-semibold mb-1">System activity</h2>
-                    <p class="mb-0 text-secondary">Newest entries appear first. Expand a row to inspect its request details.</p>
+                    <p class="mb-3 text-secondary">Newest entries appear first. Expand a row to inspect its request details.</p>
                 </div>
                 <span class="small text-secondary">{{ $logs->firstItem() ?? 0 }}–{{ $logs->lastItem() ?? 0 }} of {{ number_format($logs->total()) }}</span>
             </div>

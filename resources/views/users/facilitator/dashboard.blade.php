@@ -15,14 +15,25 @@
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                 <div>
                     <h2 class="h3 fw-semibold mb-2 text-dark">Laboratory In-charge Dashboard</h2>
-                    <p class="mb-0 text-secondary">Welcome back, {{ trim((auth()->user()?->first_name ?? '').' '.(auth()->user()?->last_name ?? '')) ?: 'Laboratory In-charge' }}. Monitor equipment operations and check out approved requests.</p>
+                    <p class="mb-0 text-secondary">
+                        Welcome back, {{ trim((auth()->user()?->first_name ?? '').' '.(auth()->user()?->last_name ?? '')) ?: 'Laboratory In-charge' }}. Monitor equipment operations and check out approved requests.
+                    </p>
                 </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('facilitator.inventory-alerts.index') }}" class="btn btn-light border px-3 px-lg-4"><i class="fa-solid fa-bell me-1"></i> Inventory Alert Settings</a>
-                    <a href="{{ route('facilitator.checkout.index') }}" class="btn btn-light border px-3 px-lg-4"><i class="fa-solid fa-barcode me-1"></i> Open Checkout</a>
+
+                <div class="d-flex flex-nowrap align-items-center gap-1">
+                    <a href="{{ route('facilitator.inventory-alerts.index') }}"
+                    class="btn btn-light border px-3 px-lg-4">
+                        <i class="fa-solid fa-bell me-1"></i> Inventory Alert Settings
+                    </a>
+
+                    <a href="{{ route('facilitator.checkout.index') }}"
+                    class="btn btn-light border px-3 px-lg-4">
+                        <i class="fa-solid fa-barcode me-1"></i> Open Checkout
+                    </a>
                 </div>
             </div>
         </section>
+    </div>
 
         @include('partials.announcement-feed', [
             'announcements' => $announcements,
