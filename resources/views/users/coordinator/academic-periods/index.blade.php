@@ -190,7 +190,7 @@
                     @endforeach
 
                     <div class="d-flex justify-content-end mt-3">
-                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calendar-check me-1"></i>Save semester periods</button>
+                        <button type="submit" class="mb-3 btn btn-primary"><i class="fa-solid fa-calendar-check me-1"></i>Save semester periods</button>
                     </div>
                 </form>
             @endif

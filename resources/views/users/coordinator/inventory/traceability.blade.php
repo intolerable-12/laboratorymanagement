@@ -52,15 +52,15 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4">Date</th>
+                            <th class="text-dark ps-4">Date</th>
                             @if (! $itemName)
-                                <th>Item</th>
+                                <th class="text-dark">Item</th>
                             @endif
-                            <th>Movement</th>
-                            <th>Quantity change</th>
-                            <th>Balance after</th>
-                            <th>Recorded by</th>
-                            <th class="pe-4">Details</th>
+                            <th class="text-dark">Movement</th>
+                            <th class="text-dark">Quantity change</th>
+                            <th class="text-dark">Balance after</th>
+                            <th class="text-dark">Recorded by</th>
+                            <th class="text-dark pe-4">Details</th>
                         </tr>
                     </thead>
                     <tbody>

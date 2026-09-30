@@ -46,8 +46,8 @@
             <div class="col-xl-5">
                 <div class="section-card h-100">
                     <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
-                        <h3 class="h5 fw-semibold mb-1">School years to include</h3>
-                        <p class="mb-0 text-secondary">Select one or more school years for the horizontal report groups.</p>
+                        <h3 class="h5 fw-semibold mb-2">School years to include</h3>
+                        <p class="mb-3 text-secondary">Select one or more school years for the horizontal report groups.</p>
                     </div>
                     <div class="card-body px-4 px-xl-5">
                         @forelse ($schoolYears as $schoolYear)
@@ -81,8 +81,8 @@
             <div class="col-xl-7">
                 <div class="section-card h-100">
                     <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
-                        <h3 class="h5 fw-semibold mb-1">Certification names</h3>
-                        <p class="mb-0 text-secondary">Optional names printed at the bottom of each selected school-year group. Leave any field blank for manual completion in Excel.</p>
+                        <h3 class="h5 fw-semibold mb-2">Certification names</h3>
+                        <p class="mb-3 text-secondary">Optional names printed at the bottom of each selected school-year group. Leave any field blank for manual completion in Excel.</p>
                     </div>
                     <div class="card-body px-4 px-xl-5">
                         @forelse ($schoolYears as $schoolYear)
