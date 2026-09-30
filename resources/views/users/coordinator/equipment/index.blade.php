@@ -27,6 +27,14 @@
 
         return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
     };
+
+    $onEquipment  = request()->routeIs('coordinator.equipment.index',
+                                       'coordinator.equipment.archived',
+                                       'coordinator.equipment.show',
+                                       'coordinator.equipment.create',
+                                       'coordinator.equipment.edit');
+    $onCategories = request()->routeIs('coordinator.equipment.categories.*');
+
 @endphp
 
 @section('content')
@@ -46,14 +54,16 @@
         <div>
             <div class="text-secondary">Manage equipment records and categories.</div>
         </div>
-        <div class="btn-group shadow-sm" role="group" aria-label="Equipment management navigation">
-            <a href="{{ route('coordinator.equipment.index', $tabQuery) }}" class="btn btn-primary">
-                <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
-            </a>
-            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
-            </a>
-        </div>
+        <div class="btn-group shadow-sm" role="group">
+    <a href="{{ route('coordinator.equipment.index', $tabQuery) }}"
+       class="btn {{ $onEquipment ? 'btn-primary' : 'btn-outline-secondary' }}">
+        <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
+    </a>
+    <a href="{{ route('coordinator.equipment.categories.index') }}"
+       class="btn {{ $onCategories ? 'btn-primary' : 'btn-outline-secondary' }}">
+        <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
+    </a>
+</div>
     </div>
 
     {{-- Metrics Cards --}}
