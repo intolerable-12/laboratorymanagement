@@ -22,6 +22,9 @@ class ReservationController extends Controller
 {
     use ValidatesReservationSchedule;
 
+    private const DRAFT_DETAILS = 'student.reservation.draft.details';
+    private const DRAFT_ITEMS = 'student.reservation.draft.items';
+
     public function index(Request $request)
     {
         $this->ensureStudent($request);
@@ -38,19 +41,56 @@ class ReservationController extends Controller
     {
         $this->ensureStudent($request);
 
-        $activeTab = $request->query('tab', 'equipment');
         $reservationMinDate = $this->minimumReservationDate()->format('Y-m-d');
-        $selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1],
-        ]) ?: null;
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
+        $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
+        $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
+
+        return view('users.student.reservation.create', compact(
+            'laboratories',
+            'currentSchoolYear',
+            'currentSemester',
+            'reservationMinDate'
+        ));
+    }
+
+    public function details(Request $request)
+    {
+        $this->ensureStudent($request);
+
+        $data = $this->validateReservationDetails($request);
+        $previousDetails = $request->session()->get(self::DRAFT_DETAILS, []);
+
+        $request->session()->put(self::DRAFT_DETAILS, $data);
+
+        if ((int) ($previousDetails['laboratory_id'] ?? 0) !== (int) $data['laboratory_id']) {
+            $request->session()->forget(self::DRAFT_ITEMS);
+        }
+
+        return redirect()->route('student.reservations.items');
+    }
+
+    public function items(Request $request)
+    {
+        $this->ensureStudent($request);
+
+        if (! $request->session()->has(self::DRAFT_DETAILS)) {
+            return redirect()->route('student.reservations.create');
+        }
+
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        $activeTab = $request->query('tab', 'equipment');
+        $selectedLaboratoryId = (int) $details['laboratory_id'];
+        $laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+        $search = trim((string) $request->query('search', ''));
         $equipmentQuery = Equipment::with('laboratory')
             ->where('status', 'Available')
+            ->where('laboratory_id', $selectedLaboratoryId)
             ->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')
             ->availableForRequest()
+            ->where('laboratory_id', $selectedLaboratoryId)
             ->orderBy('chemical_name');
-        $search = trim((string) $request->query('search', ''));
 
         if ($search !== '') {
             $equipmentQuery->where(function ($query) use ($search) {
@@ -65,29 +105,18 @@ class ReservationController extends Controller
             });
         }
 
-        if ($selectedLaboratoryId) {
-            $equipmentQuery->where('laboratory_id', $selectedLaboratoryId);
-            $chemicalQuery->where('laboratory_id', $selectedLaboratoryId);
-        } else {
-            $equipmentQuery->whereRaw('1 = 0');
-            $chemicalQuery->whereRaw('1 = 0');
-        }
-
         $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
         $chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
-        $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
-        $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
-        $selectedEquipmentItems = Equipment::query()
-            ->whereIn('id', array_keys($oldEquipmentSelections))
-            ->get()
-            ->keyBy('id');
-        $selectedChemicalItems = Chemical::query()
-            ->availableForRequest()
-            ->whereIn('id', array_keys($oldChemicalSelections))
-            ->get()
-            ->keyBy('id');
-        $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
-        $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
+        $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+        $oldEquipmentSelections = $request->session()->hasOldInput('equipment_items')
+            ? (array) $request->session()->getOldInput('equipment_items', [])
+            : $this->draftItemSelections($draftItems, 'Equipment');
+        $oldChemicalSelections = $request->session()->hasOldInput('chemical_items')
+            ? (array) $request->session()->getOldInput('chemical_items', [])
+            : $this->draftItemSelections($draftItems, 'Chemical');
+        $selectedEquipmentItems = Equipment::query()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+        $selectedChemicalItems = Chemical::query()->availableForRequest()->whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
+
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
 
@@ -100,28 +129,89 @@ class ReservationController extends Controller
             }
         }
 
-        return view('users.student.reservation.create', compact(
-            'laboratories',
-            'equipmentItems',
-            'chemicalItems',
-            'currentSchoolYear',
-            'currentSemester',
-            'activeTab',
-            'selectedLaboratoryId',
-            'reservationMinDate',
-            'oldEquipmentSelections',
-            'oldChemicalSelections',
-            'selectedEquipmentItems',
-            'selectedChemicalItems'
+        return view('users.student.reservation.items', compact(
+            'details', 'laboratory', 'equipmentItems', 'chemicalItems', 'activeTab', 'selectedLaboratoryId',
+            'oldEquipmentSelections', 'oldChemicalSelections', 'selectedEquipmentItems', 'selectedChemicalItems'
         ));
+    }
+
+    public function itemsStore(Request $request)
+    {
+        $this->ensureStudent($request);
+
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        if (! $details) {
+            return redirect()->route('student.reservations.create');
+        }
+
+        $request->validate([
+            'equipment_items' => ['nullable', 'array'],
+            'chemical_items' => ['nullable', 'array'],
+            'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
+            'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
+            'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
+            'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $items = $this->collectRequestedItems($request, (int) $details['laboratory_id']);
+
+        if ($items === []) {
+            throw ValidationException::withMessages([
+                'items' => 'Select at least one equipment or chemical item.',
+            ]);
+        }
+
+        $request->session()->put(self::DRAFT_ITEMS, $items);
+
+        return redirect()->route('student.reservations.review');
+    }
+
+    public function review(Request $request)
+    {
+        $this->ensureStudent($request);
+
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        $items = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+
+        if (! $details) {
+            return redirect()->route('student.reservations.create');
+        }
+
+        if ($items === []) {
+            return redirect()->route('student.reservations.items');
+        }
+
+        $laboratory = Laboratory::findOrFail($details['laboratory_id']);
+        $equipment = Equipment::whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
+        $chemicals = Chemical::whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
+        $requestedItems = collect($items)->map(function (array $item) use ($equipment, $chemicals) {
+            $item['item'] = $item['item_type'] === 'Equipment'
+                ? $equipment->get($item['item_id'])
+                : $chemicals->get($item['item_id']);
+
+            return $item;
+        })->filter(fn (array $item) => $item['item'] !== null)->values();
+
+        return view('users.student.reservation.review', compact('details', 'laboratory', 'requestedItems'));
     }
 
     public function store(Request $request)
     {
         $this->ensureStudent($request);
 
-        $data = $this->validateReservation($request);
-        $items = $this->collectRequestedItems($request, (int) $data['laboratory_id']);
+        $data = $request->session()->get(self::DRAFT_DETAILS);
+        $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+
+        if (! $data) {
+            return redirect()->route('student.reservations.create');
+        }
+
+        if ($draftItems === []) {
+            return redirect()->route('student.reservations.items');
+        }
+
+        $itemsRequest = Request::create('/', 'POST', $this->draftItemsInput($draftItems));
+        $items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id']);
         $notificationService = app(RequestNotificationService::class);
 
         if ($items === []) {
@@ -194,6 +284,8 @@ class ReservationController extends Controller
 
         $reservation->loadMissing('laboratory');
 
+        $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
+
         $notificationService->emailRoleUsers(
             'Instructor',
             'Reservation',
@@ -251,7 +343,7 @@ class ReservationController extends Controller
             ->with('status', 'Reservation request cancelled successfully.');
     }
 
-    private function validateReservation(Request $request): array
+    private function validateReservationDetails(Request $request): array
     {
         $data = $request->validate([
             'laboratory_id' => ['required', 'exists:laboratories,id'],
@@ -262,12 +354,6 @@ class ReservationController extends Controller
             'end_time' => ['required', 'date_format:H:i'],
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
-            'equipment_items' => ['nullable', 'array'],
-            'chemical_items' => ['nullable', 'array'],
-            'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
-            'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
-            'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
-            'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
         ]);
 
         if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
@@ -305,6 +391,27 @@ class ReservationController extends Controller
         }
 
         return $data;
+    }
+
+    private function draftItemSelections(array $items, string $type): array
+    {
+        return collect($items)
+            ->where('item_type', $type)
+            ->mapWithKeys(fn (array $item) => [
+                $item['item_id'] => [
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'],
+                    'remarks' => $item['remarks'],
+                ],
+            ])->all();
+    }
+
+    private function draftItemsInput(array $items): array
+    {
+        return [
+            'equipment_items' => $this->draftItemSelections($items, 'Equipment'),
+            'chemical_items' => $this->draftItemSelections($items, 'Chemical'),
+        ];
     }
 
     private function collectRequestedItems(Request $request, int $laboratoryId): array

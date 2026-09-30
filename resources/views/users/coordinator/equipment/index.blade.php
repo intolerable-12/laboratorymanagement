@@ -341,6 +341,9 @@
                                                 <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                     <span>{{ $equipment->equipment_code }}</span>
                                                 </div>
+                                                <span class="badge rounded-pill text-bg-warning text-dark mt-1">
+                                                    <i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $equipment->manufacturing_date?->format('M d, Y') ?? 'Not set' }}
+                                                </span>
                                             </div>
                                         </div>
                                     </td>

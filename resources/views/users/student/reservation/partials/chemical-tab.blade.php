@@ -36,6 +36,9 @@
                                     @endif
                                 </div>
                                 <div class="small text-secondary">{{ $chemical->chemical_code }}</div>
+                                <span class="badge rounded-pill {{ $chemical->is_expired ? 'text-bg-danger' : ($chemical->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-1">
+                                    <i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $chemical->expiration_date?->format('M d, Y') ?? 'Not set' }}
+                                </span>
                             </td>
                             <td>{{ $chemical->laboratory?->laboratory_name ?? '—' }}</td>
                             <td>

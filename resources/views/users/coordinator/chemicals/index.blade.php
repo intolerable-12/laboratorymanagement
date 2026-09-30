@@ -362,6 +362,9 @@
                                             <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                 <span>{{ $chemical->chemical_code }}</span>
                                             </div>
+                                            <span class="badge rounded-pill {{ $isExpired ? 'text-bg-danger' : ($chemical->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-1">
+                                                <i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $chemical->expiration_date?->format('M d, Y') ?? 'Not set' }}
+                                            </span>
                                         </div>
                                     </div>
                                 </td>

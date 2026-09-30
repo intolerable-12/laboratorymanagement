@@ -42,6 +42,7 @@ const initializeReviewItemEditor = (root) => {
     const modalQuantity = modalElement.querySelector('[data-review-selection-quantity]');
     const modalUnit = modalElement.querySelector('[data-review-selection-unit]');
     const modalUnitGroup = modalElement.querySelector('[data-review-unit-group]');
+    const modalRemarks = modalElement.querySelector('[data-review-selection-remarks]');
     const modalError = modalElement.querySelector('[data-review-selection-error]');
     const modalName = modalElement.querySelector('[data-review-selection-name]');
     const modalCode = modalElement.querySelector('[data-review-selection-code]');
@@ -106,13 +107,16 @@ const initializeReviewItemEditor = (root) => {
         if (modalUnit) {
             modalUnit.value = activeItem.itemUnit;
         }
+        if (modalRemarks) {
+            modalRemarks.value = '';
+        }
         modalError?.classList.add('d-none');
 
         modal.show();
         modalElement.addEventListener('shown.bs.modal', () => modalQuantity.focus(), { once: true });
     };
 
-    const createSelectedRow = (item, quantity, unit, existingId = null) => {
+    const createSelectedRow = (item, quantity, unit, remarks, existingId = null) => {
         const row = document.createElement('tr');
         const isChemical = item.itemType === 'Chemical';
         const quantityStep = isChemical ? '0.01' : '1';
@@ -123,6 +127,12 @@ const initializeReviewItemEditor = (root) => {
         const unitField = isChemical && !existingId
             ? '<input type="hidden" name="new_items[Chemical][' + item.itemId + '][unit]" value="' + escapeReviewHtml(unit) + '" data-review-new-unit>'
             : '';
+        const remarksField = !existingId
+            ? '<input type="hidden" name="new_items[' + item.itemType + '][' + item.itemId + '][remarks]" value="' + escapeReviewHtml(remarks) + '" data-review-new-remarks>'
+            : '';
+        const noteDisplay = !existingId && String(remarks ?? '').trim() !== ''
+            ? '<div class="small text-secondary mt-1"><i class="fa-regular fa-note-sticky me-1" aria-hidden="true"></i>Note: ' + escapeReviewHtml(remarks) + '</div>'
+            : '';
 
         row.dataset.reviewSelectedItem = '';
         row.dataset.itemType = item.itemType;
@@ -132,9 +142,10 @@ const initializeReviewItemEditor = (root) => {
             row.dataset.existingItemId = existingId;
         }
 
-        row.innerHTML = '<td><div class="fw-semibold text-dark">' + escapeReviewHtml(item.itemName) + '</div><div class="small text-secondary">' + escapeReviewHtml(item.itemCode) + '</div></td>'
+        row.innerHTML = '<td><div class="fw-semibold text-dark">' + escapeReviewHtml(item.itemName) + '</div><div class="small text-secondary">' + escapeReviewHtml(item.itemCode) + '</div>'
+            + noteDisplay + '</td>'
             + '<td class="small text-secondary">' + escapeReviewHtml(item.itemType) + '</td>'
-            + '<td style="max-width: 150px;"><input type="number" step="' + quantityStep + '" min="' + quantityMin + '" max="' + escapeReviewHtml(item.itemAvailable) + '" name="' + quantityName + '" value="' + escapeReviewHtml(quantity) + '" class="form-control form-control-sm text-end" required>' + unitField + '</td>'
+            + '<td style="max-width: 150px;"><input type="number" step="' + quantityStep + '" min="' + quantityMin + '" max="' + escapeReviewHtml(item.itemAvailable) + '" name="' + quantityName + '" value="' + escapeReviewHtml(quantity) + '" class="form-control form-control-sm text-end" required>' + unitField + remarksField + '</td>'
             + '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-review-remove aria-label="Remove ' + escapeReviewHtml(item.itemName) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>';
 
         return row;
@@ -250,6 +261,7 @@ const initializeReviewItemEditor = (root) => {
             const quantity = Number(modalQuantity?.value);
             const available = Number(item?.itemAvailable);
             const unit = modalUnit?.value.trim() || item?.itemUnit || '';
+            const remarks = modalRemarks?.value.trim() || '';
             const isChemical = item?.itemType === 'Chemical';
 
             if (!item || !Number.isFinite(quantity) || quantity <= 0 || quantity > available || (!isChemical && !Number.isInteger(quantity)) || (isChemical && unit === '')) {
@@ -271,7 +283,7 @@ const initializeReviewItemEditor = (root) => {
             }
 
             selectedList.querySelector('[data-review-no-items]')?.remove();
-            selectedList.append(createSelectedRow(item, quantity, unit, restoredExistingId || null));
+            selectedList.append(createSelectedRow(item, quantity, unit, remarks, restoredExistingId || null));
             syncResults();
             hideSelections();
             return;

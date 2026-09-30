@@ -22,6 +22,8 @@
     $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
     $statuses = ['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'];
     $imageUrl = !empty($equipment?->image) ? asset('storage/' . $equipment->image) : null;
+    $manufacturingDate = old('manufacturing_date', optional($equipment?->manufacturing_date)->format('Y-m-d'));
+    $purchaseDate = old('purchase_date', optional($equipment?->purchase_date)->format('Y-m-d'));
 @endphp
 
 <div class="row g-4 mb-4">
@@ -119,8 +121,15 @@
             </div>
 
             <div class="col-md-6">
+                <label class="form-label" for="manufacturing_date">Manufacturing date</label>
+                <input type="date" id="manufacturing_date" name="manufacturing_date" value="{{ $manufacturingDate }}" class="form-control admin-form-control @error('manufacturing_date') is-invalid @enderror">
+                <div class="form-text">Enter the date when the equipment was manufactured.</div>
+                @error('manufacturing_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
                 <label class="form-label" for="purchase_date">Acquired date (purchase date)</label>
-                <input type="date" id="purchase_date" name="purchase_date" value="{{ old('purchase_date', optional($equipment?->purchase_date)->format('Y-m-d')) }}" class="form-control admin-form-control @error('purchase_date') is-invalid @enderror">
+                <input type="date" id="purchase_date" name="purchase_date" value="{{ $purchaseDate }}" @if ($manufacturingDate) min="{{ $manufacturingDate }}" @endif class="form-control admin-form-control @error('purchase_date') is-invalid @enderror">
                 <div class="form-text">Enter the date when the equipment was purchased.</div>
                 @error('purchase_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>

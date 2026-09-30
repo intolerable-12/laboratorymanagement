@@ -126,6 +126,10 @@
                             <div class="fw-semibold text-dark">{{ $equipment->serial_number ?? '-' }}</div>
                         </div>
                         <div class="col-md-6">
+                            <div class="small text-uppercase text-secondary mb-1">Manufacturing date</div>
+                            <div class="fw-semibold text-dark">{{ $equipment->manufacturing_date?->format('F j, Y') ?? '-' }}</div>
+                        </div>
+                        <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Acquired date (purchase date)</div>
                             <div class="fw-semibold text-dark">{{ $equipment->purchase_date?->format('F j, Y') ?? '-' }}</div>
                         </div>

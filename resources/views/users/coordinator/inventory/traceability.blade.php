@@ -7,6 +7,7 @@
     $itemCode = $item
         ? ($itemType === 'Equipment' ? $item->equipment_code : $item->chemical_code)
         : null;
+    $itemBarcode = $item?->barcode;
     $itemUnit = $itemType === 'Chemical' ? ($item?->unit ?? '') : 'unit(s)';
 @endphp
 
@@ -22,7 +23,12 @@
                     <i class="fa-solid fa-arrow-left me-2"></i>Back to {{ $backLabel }}
                 </a>
                 <h2 class="h4 fw-semibold mb-1 text-dark">{{ $itemName }}</h2>
-                <p class="mb-0 text-secondary">{{ $itemCode }} - {{ $itemType }}</p>
+                <p class="mb-0 text-secondary"><i class="fa-solid fa-barcode me-1" aria-hidden="true"></i>{{ $itemBarcode ?: 'Barcode not set' }} · {{ $itemCode }} - {{ $itemType }}</p>
+                @if ($itemType === 'Equipment')
+                    <span class="badge rounded-pill text-bg-warning text-dark mt-2"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $item?->manufacturing_date?->format('M d, Y') ?? 'Not set' }}</span>
+                @elseif ($itemType === 'Chemical')
+                    <span class="badge rounded-pill {{ $item?->is_expired ? 'text-bg-danger' : ($item?->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-2"><i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $item?->expiration_date?->format('M d, Y') ?? 'Not set' }}</span>
+                @endif
             @else
                 <h2 class="h4 fw-semibold mb-1 text-dark">Inventory movements</h2>
                 <p class="mb-0 text-secondary">The date, quantity, and account responsible for each stock movement.</p>

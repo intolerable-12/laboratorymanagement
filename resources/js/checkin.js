@@ -455,7 +455,7 @@ import * as bootstrap from 'bootstrap';
                     '<div class="small text-secondary mt-1"><i class="fa-solid fa-barcode me-1"></i>' + escapeHtml(scan.barcode) + ' · ' + escapeHtml(formatTime(scan.scanned_at)) + '</div>' +
                 '</div>' +
                 '<div class="d-flex align-items-center gap-3 flex-shrink-0">' +
-                    '<div class="text-end"><div class="fw-semibold text-dark">× ' + formatQuantity(scan.quantity, scan.item_type) + '</div><div class="small text-secondary">' + escapeHtml(scan.unit) + '</div></div>' +
+                    '<div class="text-end"><div class="fw-semibold text-dark">× ' + formatQuantity(scan.quantity, scan.item_type) + (scan.item_type === 'Chemical' ? ' ' + escapeHtml(scan.unit) : '') + '</div>' + (scan.item_type === 'Chemical' ? '' : '<div class="small text-secondary">' + escapeHtml(scan.unit) + '</div>') + '</div>' +
                     '<button type="button" class="btn btn-sm btn-link text-danger p-1" data-remove-checkin="' + escapeHtml(scan.id) + '" title="Remove this scan" aria-label="Remove scan"><i class="fa-solid fa-trash-can"></i></button>' +
                 '</div>';
             cart.prepend(row);
