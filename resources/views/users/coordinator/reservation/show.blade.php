@@ -51,7 +51,7 @@
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Student</div><div class="fw-semibold text-dark">{{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</div><div class="small text-secondary">{{ $reservation->user?->userID }}</div></div></div>
-                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->user?->email ?? 'â€”' }}</div><div class="small text-secondary">{{ $reservation->user?->contact_number ?? 'No contact number' }} Â· {{ $reservation->user?->department?->department_name ?? 'No department' }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->user?->email ?? 'â€”' }}</div><div class="small text-secondary">{{ $reservation->user?->contact_number ?? 'No contact number' }} {{ $reservation->user?->department?->department_name ?? 'No department' }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Laboratory</div><div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? 'â€”' }}</div><div class="small text-secondary">{{ $reservation->laboratory?->laboratory_code }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Schedule</div><div class="fw-semibold text-dark">{{ $reservation->reservation_date?->format('M d, Y') }}</div><div class="small text-secondary">{{ substr((string) $reservation->start_time, 0, 5) }} - {{ substr((string) $reservation->end_time, 0, 5) }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Participants</div><div class="fw-semibold text-dark">{{ $reservation->expected_participants }}</div><div class="small text-secondary">{{ $reservation->schoolYear?->school_year }} | {{ $reservation->semester?->semester_name }}</div></div></div>
@@ -81,16 +81,11 @@
                                             <td>{{ $item->item_type }}</td>
                                             <td>
                                                 <div class="fw-semibold text-dark">{{ $item->item?->equipment_name ?? $item->item?->chemical_name ?? '—' }}</div>
-                                                <div class="small text-secondary">{{ $item->item?->equipment_code ?? $item->item?->chemical_code ?? '' }}</div>
-                                                @if ($item->item_type === 'Equipment')
-                                                    <span class="badge rounded-pill text-bg-warning text-dark mt-1"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $item->item?->manufacturing_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                @else
-                                                    <span class="badge rounded-pill {{ $item->item?->is_expired ? 'text-bg-danger' : ($item->item?->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-1"><i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $item->item?->expiration_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                @endif
+                                                <div class="small text-secondary">{{ $item->item?->equipment_code ?? $item->item?->chemical_code ?? '' }}</div> 
                                             </td>
                                             <td>{{ $item->quantity }}</td>
-                                            <td>{{ $item->unit ?? 'â€”' }}</td>
-                                            <td>{{ $item->remarks ?? 'â€”' }}</td>
+                                            <td>{{ $item->unit ?? '-' }}</td>
+                                            <td>{{ $item->remarks ?? '-' }}</td>
                                         </tr>
                                     @empty
                                         <tr><td colspan="5" class="text-center text-secondary py-4">No items were attached to this reservation.</td></tr>

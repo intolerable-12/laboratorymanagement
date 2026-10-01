@@ -62,8 +62,8 @@
                 </div>
             </div>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
-                <a href="{{ route('student.reservations.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Reservation Details</a>
-                <button type="submit" class="btn btn-primary px-4">Next: Review Request <i class="fa-solid fa-arrow-right ms-1"></i></button>
+                <a href="{{ route('student.reservations.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i>Reservation Details</a>
+                <button type="submit" class="btn btn-primary px-4">Review Request <i class="fa-solid fa-arrow-right ms-1"></i></button>
             </div>
         </form>
     </div>

@@ -43,7 +43,7 @@
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-4">
-                            <label class="form-label fw-semibold text-dark">Laboratory</label>
+                            <label class="form-label fw-semibold text-dark">Laboratory <span class="text-danger">*</span></label>
                             <select name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
                                 @foreach ($laboratories as $laboratory)
@@ -53,7 +53,7 @@
                             @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-lg-8">
-                            <label class="form-label fw-semibold text-dark">Experiment / Activity Title</label>
+                            <label class="form-label fw-semibold text-dark">Experiment / Activity Title <span class="text-danger">*</span></label>
                             <input type="text" name="experiment_title" value="{{ old('experiment_title', $details['experiment_title'] ?? '') }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity" required>
                             @error('experiment_title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
@@ -102,7 +102,7 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex justify-content-end"><button type="submit" class="btn btn-primary px-4">Next: Requested Items <i class="fa-solid fa-arrow-right ms-1"></i></button></div>
+            <div class="d-flex justify-content-end"><button type="submit" class="btn btn-primary px-4">Requested Items <i class="fa-solid fa-arrow-right ms-1"></i></button></div>
         </form>
     </div>
 
