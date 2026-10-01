@@ -135,7 +135,7 @@
                                             </div>
                                         </div>
 
-                                        <div>
+                                         <div>
                                             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
                                                 <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.reservations.reject', $reservation) }}" class="d-inline-block">
                                                     @csrf
