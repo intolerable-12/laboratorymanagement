@@ -18,13 +18,14 @@
             </div>
         </section>
 
+        @include('shared.request-steps', ['currentStep' => 1, 'requestType' => 'Borrow'])
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
                 Please review the highlighted fields and selected item quantities.
             </div>
         @endif
 
-        <form method="POST" action="{{ route('student.borrow.store') }}" novalidate>
+        <form id="borrow-request-form" method="POST" action="{{ route('student.borrow.details') }}" novalidate>
             @csrf
 
             <div class="card section-card border-0 mb-4">
@@ -77,41 +78,9 @@
                 </div>
             </div>
 
-            <div class="card section-card border-0 mb-4" data-reservation-tabs>
-                <div class="card-body p-4 p-xl-5">
-                    <div class="row g-4 align-items-start" data-item-picker>
-                        <div class="col-lg-8">
-                            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-                                <div>
-                                    <h3 class="h4 fw-semibold mb-1 text-dark">Requested Items</h3>
-                                    <p class="mb-0 text-secondary">Click an item to enter its quantity, then add it to your request.</p>
-                                </div>
-                                <span class="badge rounded-pill text-bg-primary px-3 py-2">Equipment only</span>
-                            </div>
-
-                            @error('items')<div class="alert alert-danger border-0 rounded-4 mb-4">{{ $message }}</div>@enderror
-
-                            <div class="tab-content">
-                                <div class="tab-pane fade {{ $activeTab === 'equipment' ? 'show active' : '' }}" id="equipment-tab" data-reservation-tab-pane="equipment">
-                                    @include('users.student.borrow.partials.equipment-tab', ['equipmentItems' => $equipmentItems])
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <div class="col-lg-4">
-                            @include('users.student.partials.request-item-cart', [
-                                'oldEquipmentSelections' => $oldEquipmentSelections,
-                                'selectedEquipmentItems' => $selectedEquipmentItems,
-                            ])
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
                 <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
-                <button type="submit" class="btn btn-primary px-4">Submit Borrow Request</button>
+                <button type="submit" class="btn btn-primary px-4">Next: Requested Items <i class="fa-solid fa-arrow-right ms-1"></i></button>
             </div>
         </form>
     </div>

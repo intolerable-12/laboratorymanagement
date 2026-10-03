@@ -62,9 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBarcodeSize();
     });
 
-    if (document.querySelector('[data-reservation-calendar-shell]')) {
+    if (document.querySelector('[data-reservation-calendar-shell], [data-traceability-calendar-shell]')) {
         import('./calendar')
-            .then(({ initializeCalendars }) => initializeCalendars())
+            .then(({ initializeCalendars, initializeTraceabilityCalendars }) => {
+                initializeCalendars();
+                initializeTraceabilityCalendars();
+            })
             .catch((error) => console.error('Unable to initialize calendars.', error));
     }
 

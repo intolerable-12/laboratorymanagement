@@ -24,10 +24,14 @@ class GuestBorrowController extends Controller
 {
     use CollectsRequestItems, ValidatesBorrowSchedule;
 
+    private const DRAFT_DETAILS = 'guest.borrow.draft.details';
+    private const DRAFT_ITEMS = 'guest.borrow.draft.items';
+
     public function create(Request $request)
     {
+        $details = $request->session()->get(self::DRAFT_DETAILS, []);
         $activeTab = 'equipment';
-        $selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
+        $selectedLaboratoryId = filter_var(old('laboratory_id', $details['laboratory_id'] ?? $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]) ?: null;
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
@@ -82,25 +86,141 @@ class GuestBorrowController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function details(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
             'remarks' => ['nullable', 'string', 'max:1000'],
+        ]));
+
+        $previousDetails = $request->session()->get(self::DRAFT_DETAILS, []);
+        $request->session()->put(self::DRAFT_DETAILS, $data);
+
+        if ((int) ($previousDetails['laboratory_id'] ?? 0) !== (int) $data['laboratory_id']) {
+            $request->session()->forget(self::DRAFT_ITEMS);
+        }
+
+        $this->ensureBorrowDates($data);
+
+        return redirect()->route('guest.borrow.items');
+    }
+
+    public function items(Request $request)
+    {
+        if (! $request->session()->has(self::DRAFT_DETAILS)) {
+            return redirect()->route('guest.borrow.create');
+        }
+
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        $selectedLaboratoryId = (int) $details['laboratory_id'];
+        $laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+        $search = trim((string) $request->query('search', ''));
+        $equipmentQuery = Equipment::query()->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
+
+        if ($search !== '') {
+            $equipmentQuery->where(function ($query) use ($search) {
+                $query->where('equipment_name', 'like', '%' . $search . '%')
+                    ->orWhere('equipment_code', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', 'like', '%' . $search . '%');
+            });
+        }
+
+        $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
+        $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+        $oldEquipmentSelections = $request->session()->hasOldInput('equipment_items')
+            ? (array) $request->session()->getOldInput('equipment_items', [])
+            : collect($draftItems)->mapWithKeys(fn (array $item) => [
+                (string) $item['item_id'] => [
+                    'quantity' => $item['quantity'],
+                    'remarks' => $item['remarks'] ?? null,
+                ],
+            ])->all();
+        $selectedEquipmentItems = Equipment::query()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+
+        if ($request->ajax()) {
+            return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
+        }
+
+        return view('guest.borrow.items', compact('details', 'laboratory', 'equipmentItems', 'oldEquipmentSelections', 'selectedEquipmentItems'));
+    }
+
+    public function itemsStore(Request $request)
+    {
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        if (! $details) {
+            return redirect()->route('guest.borrow.create');
+        }
+
+        $request->validate([
             'equipment_items' => ['nullable', 'array'],
             'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
             'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
-        ]));
+        ]);
 
-        $this->ensureBorrowDates($data);
-        $items = $this->collectRequestedItems($request, (int) $data['laboratory_id'], false);
+        $items = $this->collectRequestedItems($request, (int) $details['laboratory_id'], false);
 
         if ($items === []) {
             throw ValidationException::withMessages(['items' => 'Select at least one equipment item.']);
         }
 
+        $request->session()->put(self::DRAFT_ITEMS, $items);
+
+        return redirect()->route('guest.borrow.review');
+    }
+
+    public function review(Request $request)
+    {
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        $items = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+
+        if (! $details) {
+            return redirect()->route('guest.borrow.create');
+        }
+
+        if ($items === []) {
+            return redirect()->route('guest.borrow.items');
+        }
+
+        $laboratory = Laboratory::findOrFail($details['laboratory_id']);
+        $equipment = Equipment::whereIn('id', collect($items)->pluck('item_id'))->get()->keyBy('id');
+        $requestedItems = collect($items)->map(function (array $item) use ($equipment) {
+            $item['item'] = $equipment->get($item['item_id']);
+            return $item;
+        })->filter(fn (array $item) => $item['item'] !== null)->values();
+
+        return view('guest.borrow.review', compact('details', 'laboratory', 'requestedItems'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->session()->get(self::DRAFT_DETAILS);
+        $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+
+        if (! $data) {
+            return redirect()->route('guest.borrow.create');
+        }
+
+        if ($draftItems === []) {
+            return redirect()->route('guest.borrow.items');
+        }
+
+        $itemsRequest = Request::create('/', 'POST', [
+            'equipment_items' => collect($draftItems)->mapWithKeys(fn (array $item) => [
+                (string) $item['item_id'] => [
+                    'quantity' => $item['quantity'],
+                    'remarks' => $item['remarks'] ?? null,
+                ],
+            ])->all(),
+        ]);
+        $items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id'], false);
+
+        if ($items === []) {
+            throw ValidationException::withMessages(['items' => 'Select at least one equipment item.']);
+        }
+
+        $this->ensureBorrowDates($data);
         $laboratoryId = (int) $data['laboratory_id'];
         $notificationService = app(RequestNotificationService::class);
 
@@ -148,6 +268,8 @@ class GuestBorrowController extends Controller
 
             return $borrowTransaction;
         });
+
+        $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
         $borrowTransaction->load(['borrower', 'laboratory']);
         $notificationService->emailRoleUsers(

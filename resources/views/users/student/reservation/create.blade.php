@@ -16,12 +16,7 @@
             </div>
         </section>
 
-        <div class="d-flex align-items-center gap-2 mb-4 small text-secondary">
-            <span class="badge rounded-pill bg-primary">1</span> Reservation Details <span class="mx-1">—</span>
-            <span class="badge rounded-pill text-bg-light border">2</span> Requested Items <span class="mx-1">—</span>
-            <span class="badge rounded-pill text-bg-light border">3</span> Review & Submit
-        </div>
-
+        @include('shared.request-steps', ['currentStep' => 1, 'requestType' => 'Reservation'])
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">Please review the highlighted fields before continuing.</div>
         @endif
