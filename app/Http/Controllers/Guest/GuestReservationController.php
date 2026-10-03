@@ -26,11 +26,15 @@ class GuestReservationController extends Controller
 {
     use CollectsRequestItems, ValidatesReservationSchedule;
 
+    private const DRAFT_DETAILS = 'guest.reservation.draft.details';
+    private const DRAFT_ITEMS = 'guest.reservation.draft.items';
+
     public function create(Request $request)
     {
+        $details = $request->session()->get(self::DRAFT_DETAILS, []);
         $activeTab = $request->query('tab', 'equipment');
         $reservationMinDate = $this->minimumReservationDate()->format('Y-m-d');
-        $selectedLaboratoryId = filter_var(old('laboratory_id', $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
+        $selectedLaboratoryId = filter_var(old('laboratory_id', $details['laboratory_id'] ?? $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]) ?: null;
         $search = trim((string) $request->query('search', ''));
@@ -100,7 +104,7 @@ class GuestReservationController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function details(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
             'laboratory_id' => ['required', 'exists:laboratories,id'],
@@ -111,12 +115,6 @@ class GuestReservationController extends Controller
             'end_time' => ['required', 'date_format:H:i'],
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
-            'equipment_items' => ['nullable', 'array'],
-            'chemical_items' => ['nullable', 'array'],
-            'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
-            'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
-            'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
-            'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
         ]));
 
         if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
@@ -134,10 +132,159 @@ class GuestReservationController extends Controller
             throw ValidationException::withMessages(['reservation_date' => 'Reservation dates must be at least 3 business days in advance.']);
         }
 
-        $items = $this->collectRequestedItems($request, (int) $data['laboratory_id']);
+        $previousDetails = $request->session()->get(self::DRAFT_DETAILS, []);
+        $request->session()->put(self::DRAFT_DETAILS, $data);
+
+        if ((int) ($previousDetails['laboratory_id'] ?? 0) !== (int) $data['laboratory_id']) {
+            $request->session()->forget(self::DRAFT_ITEMS);
+        }
+
+        return redirect()->route('guest.reservations.items');
+    }
+
+    public function items(Request $request)
+    {
+        if (! $request->session()->has(self::DRAFT_DETAILS)) {
+            return redirect()->route('guest.reservations.create');
+        }
+
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        $activeTab = $request->query('tab', 'equipment');
+        $selectedLaboratoryId = (int) $details['laboratory_id'];
+        $laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+        $search = trim((string) $request->query('search', ''));
+        $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
+        $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->where('laboratory_id', $selectedLaboratoryId)->orderBy('chemical_name');
+
+        if ($search !== '') {
+            $equipmentQuery->where(function ($query) use ($search) {
+                $query->where('equipment_name', 'like', '%' . $search . '%')
+                    ->orWhere('equipment_code', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', 'like', '%' . $search . '%');
+            });
+            $chemicalQuery->where(function ($query) use ($search) {
+                $query->where('chemical_name', 'like', '%' . $search . '%')
+                    ->orWhere('chemical_code', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', 'like', '%' . $search . '%');
+            });
+        }
+
+        $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
+        $chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
+        $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+        $oldEquipmentSelections = $request->session()->hasOldInput('equipment_items')
+            ? (array) $request->session()->getOldInput('equipment_items', [])
+            : collect($draftItems)->where('item_type', 'Equipment')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'remarks' => $item['remarks'] ?? null]])->all();
+        $oldChemicalSelections = $request->session()->hasOldInput('chemical_items')
+            ? (array) $request->session()->getOldInput('chemical_items', [])
+            : collect($draftItems)->where('item_type', 'Chemical')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all();
+        $selectedEquipmentItems = Equipment::whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+        $selectedChemicalItems = Chemical::availableForRequest()->whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
+
+        if ($request->ajax()) {
+            $fragment = $request->query('fragment', $activeTab);
+
+            if ($fragment === 'equipment') {
+                return view('users.student.reservation.partials.equipment-tab', compact('equipmentItems', 'selectedLaboratoryId'));
+            }
+
+            if ($fragment === 'chemical') {
+                return view('users.student.reservation.partials.chemical-tab', compact('chemicalItems', 'selectedLaboratoryId'));
+            }
+        }
+
+        return view('guest.reservation.items', compact('details', 'laboratory', 'equipmentItems', 'chemicalItems', 'activeTab', 'selectedLaboratoryId', 'oldEquipmentSelections', 'oldChemicalSelections', 'selectedEquipmentItems', 'selectedChemicalItems'));
+    }
+
+    public function itemsStore(Request $request)
+    {
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        if (! $details) {
+            return redirect()->route('guest.reservations.create');
+        }
+
+        $request->validate([
+            'equipment_items' => ['nullable', 'array'],
+            'chemical_items' => ['nullable', 'array'],
+            'equipment_items.*.quantity' => ['nullable', 'integer', 'min:0'],
+            'chemical_items.*.quantity' => ['nullable', 'numeric', 'min:0'],
+            'equipment_items.*.remarks' => ['nullable', 'string', 'max:500'],
+            'chemical_items.*.remarks' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $items = $this->collectRequestedItems($request, (int) $details['laboratory_id']);
 
         if ($items === []) {
             throw ValidationException::withMessages(['items' => 'Select at least one equipment or chemical item.']);
+        }
+
+        $request->session()->put(self::DRAFT_ITEMS, $items);
+
+        return redirect()->route('guest.reservations.review');
+    }
+
+    public function review(Request $request)
+    {
+        $details = $request->session()->get(self::DRAFT_DETAILS);
+        $items = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+
+        if (! $details) {
+            return redirect()->route('guest.reservations.create');
+        }
+
+        if ($items === []) {
+            return redirect()->route('guest.reservations.items');
+        }
+
+        $laboratory = Laboratory::findOrFail($details['laboratory_id']);
+        $equipment = Equipment::whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
+        $chemicals = Chemical::whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
+        $requestedItems = collect($items)->map(function (array $item) use ($equipment, $chemicals) {
+            $item['item'] = $item['item_type'] === 'Equipment'
+                ? $equipment->get($item['item_id'])
+                : $chemicals->get($item['item_id']);
+            return $item;
+        })->filter(fn (array $item) => $item['item'] !== null)->values();
+
+        return view('guest.reservation.review', compact('details', 'laboratory', 'requestedItems'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->session()->get(self::DRAFT_DETAILS);
+        $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
+
+        if (! $data) {
+            return redirect()->route('guest.reservations.create');
+        }
+
+        if ($draftItems === []) {
+            return redirect()->route('guest.reservations.items');
+        }
+
+        $itemsRequest = Request::create('/', 'POST', [
+            'equipment_items' => collect($draftItems)->where('item_type', 'Equipment')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all(),
+            'chemical_items' => collect($draftItems)->where('item_type', 'Chemical')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all(),
+        ]);
+        $items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id']);
+
+        if ($items === []) {
+            throw ValidationException::withMessages(['items' => 'Select at least one equipment or chemical item.']);
+        }
+
+        if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
+            throw ValidationException::withMessages(['end_time' => 'The end time must be after the start time.']);
+        }
+
+        $this->ensureReservationHours($data['reservation_date'], $data['start_time'], $data['end_time']);
+        $reservationDate = Carbon::parse($data['reservation_date'])->startOfDay();
+
+        if ($reservationDate->isSunday()) {
+            throw ValidationException::withMessages(['reservation_date' => 'Reservation dates cannot fall on Sunday.']);
+        }
+
+        if ($reservationDate->lt($this->minimumReservationDate())) {
+            throw ValidationException::withMessages(['reservation_date' => 'Reservation dates must be at least 3 business days in advance.']);
         }
 
         $notificationService = app(RequestNotificationService::class);
@@ -195,6 +342,8 @@ class GuestReservationController extends Controller
 
             return $reservation;
         });
+
+        $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
         $reservation->load(['user', 'laboratory']);
         $notificationService->emailRoleUsers(

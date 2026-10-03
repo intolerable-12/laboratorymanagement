@@ -1,8 +1,6 @@
-@extends('users.student.layouts.app')
+@extends('guest.layouts.app')
 
 @section('title', 'Requested Items')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
 
 @section('content')
     <div class="account-page">
@@ -12,11 +10,11 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">Create a Reservation Request</h2>
                     <p class="mb-0 text-secondary">Step 2 of 3: select the equipment and chemicals you need.</p>
                 </div>
-                <a href="{{ route('student.reservations.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route('login') }}" class="btn btn-outline-secondary px-4">Back to sign in</a>
             </div>
         </section>
 
-        @include('shared.request-steps', ['currentStep' => 2, 'requestType' => 'Reservation', 'stepRoutes' => [1 => route('student.reservations.create')]])
+        @include('shared.request-steps', ['currentStep' => 2, 'requestType' => 'Reservation', 'stepRoutes' => [1 => route('guest.reservations.create')]])
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
                 Please review the selected item quantities.
@@ -24,7 +22,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('student.reservations.items.store') }}">
+        <form method="POST" action="{{ route('guest.reservations.items.store') }}">
             @csrf
             <div class="card section-card border-0 mb-4" data-reservation-tabs>
                 <div class="card-body p-4 p-xl-5">
@@ -57,7 +55,7 @@
                 </div>
             </div>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
-                <a href="{{ route('student.reservations.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Reservation Details</a>
+                <a href="{{ route('guest.reservations.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Reservation Details</a>
                 <button type="submit" class="btn btn-primary px-4">Next: Review Request <i class="fa-solid fa-arrow-right ms-1"></i></button>
             </div>
         </form>

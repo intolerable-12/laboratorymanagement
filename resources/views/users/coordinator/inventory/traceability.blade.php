@@ -48,6 +48,9 @@
         </div>
     </div>
 
+    @if ($itemName)
+        @include('users.coordinator.inventory.partials.item-traceability')
+    @else
     <div class="card admin-card">
         <div class="card-header bg-white border-0 pt-4 px-4">
             <h3 class="h5 fw-semibold mb-1">Traceability history</h3>
@@ -121,4 +124,5 @@
     <div class="mt-4">
         {{ $logs->links('pagination::bootstrap-5') }}
     </div>
+    @endif
 @endsection
