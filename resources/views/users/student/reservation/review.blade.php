@@ -34,7 +34,10 @@
                             <dt class="col-sm-4 text-secondary">Experiment / Activity</dt><dd class="col-sm-8 text-dark">{{ $details['experiment_title'] }}</dd>
                             <dt class="col-sm-4 text-secondary">Purpose</dt><dd class="col-sm-8 text-dark">{{ $details['purpose'] }}</dd>
                             <dt class="col-sm-4 text-secondary">Date</dt><dd class="col-sm-8 text-dark">{{ \Illuminate\Support\Carbon::parse($details['reservation_date'])->format('M d, Y') }}</dd>
-                            <dt class="col-sm-4 text-secondary">Time</dt><dd class="col-sm-8 text-dark">{{ substr($details['start_time'], 0, 5) }} - {{ substr($details['end_time'], 0, 5) }}</dd>
+                            <dt class="col-sm-4 text-secondary">Time</dt>
+                                <dd class="col-sm-8 text-dark">
+                                    {{ \Illuminate\Support\Carbon::parse($details['start_time'])->format('g:i A') }} - {{ \Illuminate\Support\Carbon::parse($details['end_time'])->format('g:i A') }}
+                                </dd>
                             <dt class="col-sm-4 text-secondary">Participants</dt><dd class="col-sm-8 text-dark">{{ $details['expected_participants'] }}</dd>
                             @if (!empty($details['remarks']))<dt class="col-sm-4 text-secondary">Remarks</dt><dd class="col-sm-8 text-dark">{{ $details['remarks'] }}</dd>@endif
                         </dl>
@@ -59,11 +62,6 @@
                                                 <div class="small text-uppercase text-secondary">{{ $requestedItem['item_type'] }}</div>
                                                 <div class="fw-semibold text-dark">{{ $requestedItem['item_type'] === 'Equipment' ? $item->equipment_name : $item->chemical_name }}</div>
                                                 <div class="small text-secondary">{{ $requestedItem['item_type'] === 'Equipment' ? $item->equipment_code : $item->chemical_code }}</div>
-                                                @if ($requestedItem['item_type'] === 'Equipment')
-                                                    <span class="badge rounded-pill text-bg-warning text-dark mt-1"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $item->manufacturing_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                @else
-                                                    <span class="badge rounded-pill {{ $item->is_expired ? 'text-bg-danger' : ($item->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-1"><i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $item->expiration_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                @endif
                                             </td>
                                             <td>{{ $requestedItem['quantity'] }}</td><td>{{ $requestedItem['unit'] }}</td>
                                         </tr>
@@ -78,10 +76,10 @@
         </div>
 
         <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mt-4">
-            <a href="{{ route('student.reservations.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Requested Items</a>
-            <form id="reservation-request-form" method="POST" action="{{ route('student.reservations.store') }}">
+            <a href="{{ route('student.reservations.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Requested Items</a>
+            <form method="POST" action="{{ route('student.reservations.store') }}">
                 @csrf
-                <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#reservationRequestSubmitModal">Submit Reservation Request <i class="fa-solid fa-check ms-1"></i></button>
+                <button type="submit" class="btn btn-primary px-4" onclick="return confirm('Submit this reservation request?');">Submit Request <i class="fa-solid fa-check ms-1"></i></button>
             </form>
         </div>
     </div>

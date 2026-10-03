@@ -29,9 +29,6 @@
                         <td>
                             <div class="fw-semibold text-dark">{{ $equipment->equipment_name }}</div>
                             <div class="small text-secondary">{{ $equipment->equipment_code }}</div>
-                            <span class="badge rounded-pill text-bg-warning text-dark mt-1">
-                                <i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $equipment->manufacturing_date?->format('M d, Y') ?? 'Not set' }}
-                            </span>
                         </td>
                         <td>
                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
