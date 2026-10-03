@@ -1,6 +1,7 @@
 import * as bootstrap from 'bootstrap';
 import { Calendar } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 
 const setTextContent = (element, value, fallback = '-') => {
@@ -233,5 +234,197 @@ export const initializeCalendars = () => {
 
         calendar.render();
         calendarElement.dataset.reservationCalendarInitialized = 'true';
+    });
+};
+
+const setTraceabilityDateInput = (input, value) => {
+    if (input) {
+        input.value = value;
+    }
+};
+
+export const initializeTraceabilityCalendars = () => {
+    const shells = document.querySelectorAll('[data-traceability-calendar-shell]');
+
+    shells.forEach((shell) => {
+        const calendarElement = shell.querySelector('[data-traceability-calendar]');
+        const eventsElement = shell.querySelector('[data-traceability-calendar-events]');
+        const rangeForm = shell.querySelector('[data-traceability-range-form]');
+        const monthInput = shell.querySelector('[data-traceability-month]');
+        const fromInput = shell.querySelector('[data-traceability-from]');
+        const toInput = shell.querySelector('[data-traceability-to]');
+
+        if (!calendarElement || !eventsElement || calendarElement.dataset.traceabilityCalendarInitialized === 'true') {
+            return;
+        }
+
+        let events = [];
+
+        try {
+            events = JSON.parse(eventsElement.textContent || '[]');
+        } catch (error) {
+            events = [];
+        }
+
+        const eventDates = new Set(
+            events
+                .map((event) => (event.start || '').slice(0, 10))
+                .filter(Boolean),
+        );
+
+        const navigateToDate = (dateString) => {
+            const baseUrl = shell.dataset.traceabilityCalendarDetailsUrl;
+
+            if (!baseUrl || !dateString) {
+                return;
+            }
+
+            const url = new URL(baseUrl, window.location.href);
+            url.searchParams.set('date', dateString);
+            url.searchParams.set('month', dateString.slice(0, 7));
+            url.searchParams.delete('from');
+            url.searchParams.delete('to');
+            window.location.assign(url.toString());
+        };
+
+        const calendar = new Calendar(calendarElement, {
+            plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+            initialView: 'dayGridMonth',
+            initialDate: shell.dataset.traceabilityCalendarInitialDate || undefined,
+            timeZone: 'UTC',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay',
+            },
+            views: {
+                dayGridMonth: {
+                    dayMaxEventRows: 3,
+                },
+                timeGridWeek: {
+                    slotMinTime: '00:00:00',
+                    slotMaxTime: '24:00:00',
+                },
+                timeGridDay: {
+                    slotMinTime: '00:00:00',
+                    slotMaxTime: '24:00:00',
+                },
+            },
+            height: 'auto',
+            expandRows: true,
+            nowIndicator: true,
+            navLinks: false,
+            selectable: true,
+            selectMirror: true,
+            editable: false,
+            dayMaxEventRows: true,
+            events,
+            eventDisplay: 'block',
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short',
+            },
+            eventContent(info) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'reservation-calendar-event';
+
+                if (info.timeText) {
+                    const time = document.createElement('div');
+                    time.className = 'reservation-calendar-event__time';
+                    time.textContent = info.timeText;
+                    wrapper.appendChild(time);
+                }
+
+                const marquee = document.createElement('div');
+                marquee.className = 'reservation-calendar-event__marquee';
+
+                const track = document.createElement('div');
+                track.className = 'reservation-calendar-event__track';
+
+                const title = info.event.title || '';
+                const first = document.createElement('span');
+                first.textContent = title;
+                const second = document.createElement('span');
+                second.setAttribute('aria-hidden', 'true');
+                second.textContent = title;
+
+                track.append(first, second);
+                marquee.appendChild(track);
+                wrapper.appendChild(marquee);
+
+                return { domNodes: [wrapper] };
+            },
+            dayCellDidMount(info) {
+                if (info.view.type !== 'dayGridMonth' || info.isOther) {
+                    return;
+                }
+
+                const dateString = info.date.toISOString().slice(0, 10);
+
+                if (eventDates.has(dateString)) {
+                    return;
+                }
+
+                const dayFrame = info.el.querySelector('.fc-daygrid-day-frame');
+
+                if (!dayFrame) {
+                    return;
+                }
+
+                const emptyState = document.createElement('div');
+                emptyState.className = 'traceability-calendar-no-records';
+                emptyState.textContent = 'No records';
+                dayFrame.appendChild(emptyState);
+            },
+            dateClick(info) {
+                navigateToDate(info.dateStr.slice(0, 10));
+            },
+            select(info) {
+                const startDate = info.startStr.slice(0, 10);
+                let endDate = info.endStr.slice(0, 10);
+
+                if (info.allDay) {
+                    const exclusiveEnd = new Date(info.endStr.slice(0, 10) + 'T00:00:00Z');
+                    exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() - 1);
+                    endDate = exclusiveEnd.toISOString().slice(0, 10);
+                }
+
+                setTraceabilityDateInput(fromInput, startDate);
+                setTraceabilityDateInput(toInput, endDate);
+
+                if (monthInput) {
+                    monthInput.value = startDate.slice(0, 7);
+                }
+
+                rangeForm?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            },
+            datesSet(info) {
+                if (monthInput && !fromInput?.value && !toInput?.value) {
+                    monthInput.value = info.view.currentStart.toISOString().slice(0, 7);
+                }
+            },
+            eventClick(info) {
+                info.jsEvent.preventDefault();
+
+                const baseUrl = shell.dataset.traceabilityCalendarDetailsUrl;
+                const dateString = info.event.startStr.slice(0, 10);
+
+                if (!baseUrl || !dateString) {
+                    return;
+                }
+
+                const url = new URL(baseUrl, window.location.href);
+                url.searchParams.set('date', dateString);
+                url.searchParams.set('month', dateString.slice(0, 7));
+                window.location.assign(url.toString());
+            },
+            eventDidMount(info) {
+                info.el.classList.add('reservation-calendar__event');
+            },
+        });
+
+        calendar.render();
+        calendarElement.dataset.traceabilityCalendarInitialized = 'true';
     });
 };

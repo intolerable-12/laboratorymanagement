@@ -96,8 +96,17 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->
 
 Route::prefix('guest')->name('guest.')->group(function () {
     Route::get('/borrow', [GuestBorrowController::class, 'create'])->name('borrow.create');
+    Route::post('/borrow/details', [GuestBorrowController::class, 'details'])->name('borrow.details');
+    Route::get('/borrow/items', [GuestBorrowController::class, 'items'])->name('borrow.items');
+    Route::post('/borrow/items', [GuestBorrowController::class, 'itemsStore'])->name('borrow.items.store');
+    Route::get('/borrow/review', [GuestBorrowController::class, 'review'])->name('borrow.review');
     Route::post('/borrow', [GuestBorrowController::class, 'store'])->name('borrow.store');
+
     Route::get('/reservations', [GuestReservationController::class, 'create'])->name('reservations.create');
+    Route::post('/reservations/details', [GuestReservationController::class, 'details'])->name('reservations.details');
+    Route::get('/reservations/items', [GuestReservationController::class, 'items'])->name('reservations.items');
+    Route::post('/reservations/items', [GuestReservationController::class, 'itemsStore'])->name('reservations.items.store');
+    Route::get('/reservations/review', [GuestReservationController::class, 'review'])->name('reservations.review');
     Route::post('/reservations', [GuestReservationController::class, 'store'])->name('reservations.store');
 });
 
@@ -169,6 +178,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::patch('/{equipment}/quantity', [EquipmentController::class, 'updateQuantity'])->name('quantity.update');
+                Route::get('/{equipment}/traceability/details', [InventoryTraceabilityController::class, 'equipmentDetails'])->withTrashed()->name('traceability.details');
                 Route::get('/{equipment}/traceability', [InventoryTraceabilityController::class, 'equipment'])->withTrashed()->name('traceability');
                 Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
@@ -212,6 +222,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::get('/{chemical}/traceability/details', [InventoryTraceabilityController::class, 'chemicalDetails'])->withTrashed()->name('traceability.details');
                 Route::get('/{chemical}/traceability', [InventoryTraceabilityController::class, 'chemical'])->withTrashed()->name('traceability');
                 Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->withTrashed()->name('barcode-print');
@@ -375,6 +386,10 @@ Route::middleware(['auth', 'role:Student', 'audit'])
             ->group(function () {
                 Route::get('/', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'index'])->name('index');
                 Route::get('/create', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'create'])->name('create');
+                Route::post('/create/details', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'details'])->name('details');
+                Route::get('/create/items', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'items'])->name('items');
+                Route::post('/create/items', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'itemsStore'])->name('items.store');
+                Route::get('/create/review', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'review'])->name('review');
                 Route::get('/calendar', [StudentBorrowCalendarController::class, 'index'])->name('calendar');
                 Route::patch('/{borrowTransaction}/cancel', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'cancel'])->name('cancel');
                 Route::post('/', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'store'])->name('store');
