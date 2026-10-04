@@ -1,12 +1,14 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @section('title', 'Chemical Management')
 @section('page-title', 'Chemical Management')
 
 @php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $isReadOnly = $routePrefix === 'facilitator';
     $tabQuery = request()->except('page');
     $listQuery = request()->query();
-    $tableRoute = $archived ? 'coordinator.chemicals.archived' : 'coordinator.chemicals.index';
+    $tableRoute = $archived ? $routePrefix.'.chemicals.archived' : $routePrefix.'.chemicals.index';
     $currentSort = $sort ?? request()->query('sort', 'item');
     $currentDirection = $direction ?? request()->query('direction', 'asc');
     $sortQuery = request()->except('page', 'sort', 'direction');
@@ -43,10 +45,10 @@
             <div class="text-secondary">Manage chemical records and categories.</div>
         </div>
         <div class="btn-group shadow-sm" role="group" aria-label="Chemical management navigation">
-            <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}" class="btn btn-primary">
+            <a href="{{ route($routePrefix.'.chemicals.index', $tabQuery) }}" class="btn btn-primary">
                 <i class="fa-solid fa-flask me-2"></i>Chemical
             </a>
-            <a href="{{ route('coordinator.chemical.categories.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route($routePrefix.'.chemical.categories.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-tags me-2"></i>Chemical Category
             </a>
         </div>
@@ -212,7 +214,7 @@
                             </div>
 
                             <div class="modal-footer px-4 py-3 border-top">
-                                <a href="{{ $archived ? route('coordinator.chemicals.archived') : route('coordinator.chemicals.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
+                                <a href="{{ $archived ? route($routePrefix.'.chemicals.archived') : route($routePrefix.'.chemicals.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
                             </div>
@@ -226,7 +228,7 @@
    
 
     <div data-live-search-results="chemicals" data-barcode-selection="chemicals" data-barcode-storage-key="labcentral.bulk-barcode.chemicals">
-        <form id="chemical-bulk-print-form" method="GET" action="{{ route('coordinator.chemicals.barcode-print-multiple') }}" target="_blank"></form>
+        <form id="chemical-bulk-print-form" method="GET" action="{{ route($routePrefix.'.chemicals.barcode-print-multiple') }}" target="_blank"></form>
         {{-- Chemical Switcher Bar (Placed directly on top of the table) --}}
         <div class="d-flex justify-content-between align-items-center mb-3">
             {{-- Left side: Active / Archived switcher --}}
@@ -234,14 +236,14 @@
                 role="group"
                 aria-label="Chemical view switcher">
 
-                <a href="{{ route('coordinator.chemicals.index', $tabQuery) }}"
+                <a href="{{ route($routePrefix.'.chemicals.index', $tabQuery) }}"
                 class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
                     <i class="fa-solid fa-boxes-stacked me-2"></i>
                     Active chemical
                     <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2"></span>
                 </a>
 
-                <a href="{{ route('coordinator.chemicals.archived', $tabQuery) }}"
+                <a href="{{ route($routePrefix.'.chemicals.archived', $tabQuery) }}"
                 class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
                     <i class="fa-solid fa-box-archive me-2"></i>
                     Archived chemical
@@ -254,8 +256,8 @@
                 <button type="submit" form="chemical-bulk-print-form" class="btn btn-outline-dark px-4" data-barcode-submit disabled>
                     <i class="fa-solid fa-print me-2"></i>Print selected (<span data-barcode-count>0</span>)
                 </button>
-                @if (! $archived)
-                    <a href="{{ route('coordinator.chemicals.create') }}"
+                @if (! $archived && ! $isReadOnly)
+                    <a href="{{ route($routePrefix.'.chemicals.create') }}"
                     class="btn btn-primary px-4">
                         <i class="fa-solid fa-plus me-2"></i>
                         Add chemical
@@ -396,23 +398,23 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group action-buttons" role="group" aria-label="Chemical actions">
                                         <!-- View Icon -->
-                                        <a href="{{ route('coordinator.chemicals.show', array_merge(['chemical' => $chemical], $listQuery)) }}"
+                                        <a href="{{ route($routePrefix.'.chemicals.show', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                             class="btn btn-sm btn-outline-secondary"
                                             title="View" aria-label="View">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('coordinator.chemicals.traceability', $chemical) }}"
+                                        <a href="{{ route($routePrefix.'.chemicals.traceability', $chemical) }}"
                                             class="btn btn-sm btn-outline-info"
                                             title="Traceability" aria-label="Traceability">
                                             <i class="fa-solid fa-clock-rotate-left"></i>
                                         </a>
-                                        <a href="{{ route('coordinator.chemicals.barcode-print', $chemical) }}"
+                                        <a href="{{ route($routePrefix.'.chemicals.barcode-print', $chemical) }}"
                                             class="btn btn-sm btn-outline-dark"
                                             title="Print barcode" aria-label="Print barcode" target="_blank" rel="noopener noreferrer">
                                             <i class="fa-solid fa-print"></i>
                                         </a>
 
-                                        @if ($archived)
+                                        @if (!$isReadOnly && $archived)
                                             @if ($canRestore)
                                                 <!-- Restore Icon -->
                                                 <form action="{{ route('coordinator.chemicals.restore', $chemical) }}" method="POST" class="d-inline">
@@ -430,7 +432,7 @@
                                                     <i class="fa-solid fa-ban"></i>
                                                 </button>
                                             @endif
-                                        @else
+                                        @elseif (!$isReadOnly)
                                             <!-- Edit Icon -->
                                             <a href="{{ route('coordinator.chemicals.edit', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                                 class="btn btn-sm btn-outline-primary"

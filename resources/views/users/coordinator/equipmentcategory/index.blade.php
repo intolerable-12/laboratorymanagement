@@ -1,4 +1,9 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $isReadOnly = $routePrefix === 'facilitator';
+@endphp
 
 @section('title', 'Equipment Categories')
 @section('page-title', 'Equipment Categories')
@@ -18,10 +23,10 @@
             <div class="text-secondary">Manage equipment records and categories.</div>
         </div>
         <div class="btn-group shadow-sm" role="group" aria-label="Equipment management navigation">
-            <a href="{{ route('coordinator.equipment.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route($routePrefix.'.equipment.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
             </a>
-            <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-primary">
+            <a href="{{ route($routePrefix.'.equipment.categories.index') }}" class="btn btn-primary">
                 <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
             </a>
         </div>
@@ -59,7 +64,7 @@
 
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route('coordinator.equipment.categories.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($routePrefix.'.equipment.categories.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-6">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input
@@ -83,7 +88,7 @@
 
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
-                    <a href="{{ route('coordinator.equipment.categories.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                    <a href="{{ route($routePrefix.'.equipment.categories.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
             </form>
         </div>
@@ -96,7 +101,9 @@
                     <h3 class="h5 fw-semibold mb-3">Category list</h3>
                 </div>
 
-                <a href="{{ route('coordinator.equipment.categories.create') }}" class="btn btn-primary mb-3 px-4">Add category</a>
+                @if (!$isReadOnly)
+                    <a href="{{ route('coordinator.equipment.categories.create') }}" class="btn btn-primary mb-3 px-4">Add category</a>
+                @endif
             </div>
         </div>
 
@@ -122,13 +129,14 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
                                             <!-- View Icon -->
-                                            <a href="{{ route('coordinator.equipment.categories.show', $category) }}"
+                                            <a href="{{ route($routePrefix.'.equipment.categories.show', $category) }}"
                                                 class="btn btn-sm btn-outline-secondary"
                                                 title="View" aria-label="View">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
 
                                             <!-- Edit Icon -->
+                                            @if (!$isReadOnly)
                                             <a href="{{ route('coordinator.equipment.categories.edit', $category) }}"
                                                 class="btn btn-sm btn-outline-primary"
                                                 title="Edit" aria-label="Edit">
@@ -145,6 +153,7 @@
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
                                             </form>
+                                            @endif
                                     </div>
                                 </td>
                             </tr>

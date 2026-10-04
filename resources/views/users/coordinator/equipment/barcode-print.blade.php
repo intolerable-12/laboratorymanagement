@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+@php($routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator')
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -181,7 +182,7 @@
                         <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
                     </div>
                 @else
-                <form method="GET" action="{{ route('coordinator.equipment.barcode-print', $equipment) }}" class="row g-2 align-items-end">
+                <form method="GET" action="{{ route($routePrefix.'.equipment.barcode-print', $equipment) }}" class="row g-2 align-items-end">
                     <div class="col-sm-7 col-md-5 col-lg-4">
                         <label for="count" class="form-label fw-medium mb-1">Labels to print</label>
                         <input
@@ -274,7 +275,7 @@
             </div>
 
             <div class="mt-3 no-print">
-                <a href="{{ isset($items) ? route('coordinator.equipment.index') : route('coordinator.equipment.show', $equipment) }}" class="btn btn-outline-secondary">Back</a>
+                <a href="{{ isset($items) ? route($routePrefix.'.equipment.index') : route($routePrefix.'.equipment.show', $equipment) }}" class="btn btn-outline-secondary">Back</a>
             </div>
         </div>
     </div>

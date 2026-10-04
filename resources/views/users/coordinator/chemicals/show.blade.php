@@ -1,10 +1,11 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @section('title', 'View Chemical')
 @section('page-title', 'View Chemical')
 @section('page-subtitle', 'Review the selected chemical, its image, and inventory details')
 
 @php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     $isArchived = $chemical->trashed();
     $isExpired = $chemical->is_expired;
     $isLowStock = (float) $chemical->quantity <= (float) $chemical->minimum_stock;
@@ -27,12 +28,12 @@
     @endif
 
     <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
-        <a href="{{ $isArchived ? route('coordinator.chemicals.archived', request()->query()) : route('coordinator.chemicals.index', request()->query()) }}" class="inventory-back-link">
+        <a href="{{ $isArchived ? route($routePrefix.'.chemicals.archived', request()->query()) : route($routePrefix.'.chemicals.index', request()->query()) }}" class="inventory-back-link">
             <i class="fa-solid fa-arrow-left"></i>
             {{ $isArchived ? 'Back to archived' : 'Back to list' }}
         </a>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('coordinator.chemicals.traceability', $chemical) }}" class="btn btn-sm btn-outline-info">
+            <a href="{{ route($routePrefix.'.chemicals.traceability', $chemical) }}" class="btn btn-sm btn-outline-info">
                 <i class="fa-solid fa-clock-rotate-left me-1"></i>Traceability
             </a>
             <span class="badge rounded-pill text-bg-{{ $statusTone }} px-3 py-2"><i class="fa-solid fa-circle-info me-1"></i> {{ $statusLabel }}</span>

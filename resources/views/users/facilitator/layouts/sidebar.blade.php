@@ -21,7 +21,14 @@
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Laboratory In-charge';
 
         $isDashboard = request()->routeIs('facilitator.dashboard');
+        $isEquipmentGroup = request()->routeIs('facilitator.equipment.*', 'facilitator.equipment.categories.*')
+            && ! request()->routeIs('facilitator.equipment.traceability*');
+        $isChemicalGroup = request()->routeIs('facilitator.chemicals.*', 'facilitator.chemical.categories.*')
+            && ! request()->routeIs('facilitator.chemicals.traceability*');
         $isInventoryAlerts = request()->routeIs('facilitator.inventory-alerts.*');
+        $isSupplierGroup = request()->routeIs('facilitator.suppliers.*');
+        $isTraceability = request()->routeIs('facilitator.inventory-traceability.*', 'facilitator.equipment.traceability*', 'facilitator.chemicals.traceability*');
+        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isInventoryAlerts || $isSupplierGroup || $isTraceability;
         $isReservationsGroup = request()->routeIs('facilitator.reservations.*');
         $isReservationsIndex = request()->routeIs('facilitator.reservations.index');
         $isReservationsCalendar = request()->routeIs('facilitator.reservations.calendar');
@@ -65,11 +72,46 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isInventoryAlerts ? 'active' : '' }}"
-                    href="{{ route('facilitator.inventory-alerts.index') }}" title="Inventory Alert Settings">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-bell"></i></span>
-                    <span class="sidebar-item__label">Inventory Alert Settings</span>
-                </a>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#facilitatorInventoryMenu"
+                    aria-expanded="{{ $isInventoryGroup ? 'true' : 'false' }}" aria-controls="facilitatorInventoryMenu"
+                    title="Inventory">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-layer-group"></i></span>
+                        <span class="sidebar-item__label">Inventory</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isInventoryGroup ? 'show' : '' }}" id="facilitatorInventoryMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentGroup ? 'active' : '' }}"
+                            href="{{ route('facilitator.equipment.index') }}" title="Equipment">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-microscope"></i></span>
+                            <span class="sidebar-item__label">Equipment</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isChemicalGroup ? 'active' : '' }}"
+                            href="{{ route('facilitator.chemicals.index') }}" title="Chemical">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
+                            <span class="sidebar-item__label">Chemical</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isInventoryAlerts ? 'active' : '' }}"
+                            href="{{ route('facilitator.inventory-alerts.index') }}" title="Inventory Alert Settings">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-bell"></i></span>
+                            <span class="sidebar-item__label">Inventory Alert Settings</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isTraceability ? 'active' : '' }}"
+                            href="{{ route('facilitator.inventory-traceability.index') }}" title="Traceability">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                            <span class="sidebar-item__label">Traceability</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isSupplierGroup ? 'active' : '' }}"
+                            href="{{ route('facilitator.suppliers.index') }}" title="Suppliers">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-truck-field"></i></span>
+                            <span class="sidebar-item__label">Suppliers</span>
+                        </a>
+                    </div>
+                </div>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"

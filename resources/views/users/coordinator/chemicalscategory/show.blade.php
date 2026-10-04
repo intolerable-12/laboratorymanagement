@@ -1,4 +1,9 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $isReadOnly = $routePrefix === 'facilitator';
+@endphp
 
 @section('title', 'View Chemical Category')
 @section('page-title', 'View Chemical Category')
@@ -25,8 +30,10 @@
             </div>
 
             <div class="col-lg-4 d-flex justify-content-lg-end gap-2 flex-wrap">
-                <a href="{{ route('coordinator.chemical.categories.edit', $chemicalCategory) }}" class="btn btn-primary px-4">Edit category</a>
-                <a href="{{ route('coordinator.chemical.categories.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
+                @if (!$isReadOnly)
+                    <a href="{{ route('coordinator.chemical.categories.edit', $chemicalCategory) }}" class="btn btn-primary px-4">Edit category</a>
+                @endif
+                <a href="{{ route($routePrefix.'.chemical.categories.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
             </div>
         </div>
     </div>
@@ -106,7 +113,7 @@
                                             <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <a href="{{ route('coordinator.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                                            <a href="{{ route($routePrefix.'.chemicals.show', $chemical) }}" class="btn btn-sm btn-outline-secondary">View</a>
                                         </td>
                                     </tr>
                                 @empty

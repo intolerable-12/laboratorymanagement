@@ -433,10 +433,49 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
     ->name('facilitator.')
     ->group(function () {
         Route::get('/dashboard', [FacilitatorDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/inventory/traceability', [InventoryTraceabilityController::class, 'index'])->name('inventory-traceability.index');
+
+        Route::prefix('equipment')
+            ->name('equipment.')
+            ->group(function () {
+                Route::get('/', [EquipmentController::class, 'index'])->name('index');
+                Route::get('/archived', [EquipmentController::class, 'archived'])->name('archived');
+                Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::get('/{equipment}/traceability/details', [InventoryTraceabilityController::class, 'equipmentDetails'])->withTrashed()->name('traceability.details');
+                Route::get('/{equipment}/traceability', [InventoryTraceabilityController::class, 'equipment'])->withTrashed()->name('traceability');
+                Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
+                Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
+            });
+
+        Route::prefix('equipment-categories')
+            ->name('equipment.categories.')
+            ->group(function () {
+                Route::get('/', [EquipmentCategoryController::class, 'index'])->name('index');
+                Route::get('/{equipmentCategory}', [EquipmentCategoryController::class, 'show'])->name('show');
+            });
+
+        Route::prefix('chemicals')
+            ->name('chemicals.')
+            ->group(function () {
+                Route::get('/', [ChemicalController::class, 'index'])->name('index');
+                Route::get('/archived', [ChemicalController::class, 'archived'])->name('archived');
+                Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::get('/{chemical}/traceability/details', [InventoryTraceabilityController::class, 'chemicalDetails'])->withTrashed()->name('traceability.details');
+                Route::get('/{chemical}/traceability', [InventoryTraceabilityController::class, 'chemical'])->withTrashed()->name('traceability');
+                Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');
+                Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->withTrashed()->name('barcode-print');
+            });
+
+        Route::prefix('chemical-categories')
+            ->name('chemical.categories.')
+            ->group(function () {
+                Route::get('/', [ChemicalCategoryController::class, 'index'])->name('index');
+                Route::get('/{chemicalCategory}', [ChemicalCategoryController::class, 'show'])->name('show');
+            });
+
+        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
-        Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
-        Route::put('/inventory-alerts/chemicals/{chemical}', [InventoryAlertController::class, 'updateChemical'])->name('inventory-alerts.chemical.update');
-        Route::put('/inventory-alerts/chemicals/{chemical}/threshold', [InventoryAlertController::class, 'updateChemicalThreshold'])->name('inventory-alerts.chemical-threshold.update');
 
         Route::prefix('reservations')
             ->name('reservations.')

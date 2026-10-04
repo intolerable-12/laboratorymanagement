@@ -1,12 +1,14 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @section('title', 'Equipment Management')
 @section('page-title', 'Equipment Management')
 
 @php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $isReadOnly = $routePrefix === 'facilitator';
     $tabQuery = request()->except('page');
     $listQuery = request()->query();
-    $tableRoute = $archived ? 'coordinator.equipment.archived' : 'coordinator.equipment.index';
+    $tableRoute = $archived ? $routePrefix.'.equipment.archived' : $routePrefix.'.equipment.index';
     $currentSort = $sort ?? request()->query('sort', 'item');
     $currentDirection = $direction ?? request()->query('direction', 'asc');
     $sortQuery = request()->except('page', 'sort', 'direction');
@@ -28,12 +30,12 @@
         return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
     };
 
-    $onEquipment  = request()->routeIs('coordinator.equipment.index',
-                                       'coordinator.equipment.archived',
-                                       'coordinator.equipment.show',
-                                       'coordinator.equipment.create',
-                                       'coordinator.equipment.edit');
-    $onCategories = request()->routeIs('coordinator.equipment.categories.*');
+    $onEquipment  = request()->routeIs($routePrefix.'.equipment.index',
+                                       $routePrefix.'.equipment.archived',
+                                       $routePrefix.'.equipment.show',
+                                       $routePrefix.'.equipment.create',
+                                       $routePrefix.'.equipment.edit');
+    $onCategories = request()->routeIs($routePrefix.'.equipment.categories.*');
 
 @endphp
 
@@ -55,11 +57,11 @@
             <div class="text-secondary">Manage equipment records and categories.</div>
         </div>
         <div class="btn-group shadow-sm" role="group">
-    <a href="{{ route('coordinator.equipment.index', $tabQuery) }}"
+    <a href="{{ route($routePrefix.'.equipment.index', $tabQuery) }}"
        class="btn {{ $onEquipment ? 'btn-primary' : 'btn-outline-secondary' }}">
         <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
     </a>
-    <a href="{{ route('coordinator.equipment.categories.index') }}"
+    <a href="{{ route($routePrefix.'.equipment.categories.index') }}"
        class="btn {{ $onCategories ? 'btn-primary' : 'btn-outline-secondary' }}">
         <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
     </a>
@@ -208,7 +210,7 @@
                             </div>
 
                             <div class="modal-footer px-4 py-3 border-top">
-                                <a href="{{ $archived ? route('coordinator.equipment.archived') : route('coordinator.equipment.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
+                                <a href="{{ $archived ? route($routePrefix.'.equipment.archived') : route($routePrefix.'.equipment.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
                             </div>
@@ -220,7 +222,7 @@
     </div>
 
     <div data-live-search-results="equipment" data-barcode-selection="equipment" data-barcode-storage-key="labcentral.bulk-barcode.equipment">
-        <form id="equipment-bulk-print-form" method="GET" action="{{ route('coordinator.equipment.barcode-print-multiple') }}" target="_blank"></form>
+        <form id="equipment-bulk-print-form" method="GET" action="{{ route($routePrefix.'.equipment.barcode-print-multiple') }}" target="_blank"></form>
         {{-- Equipment Switcher Bar (Placed directly on top of the table) --}}
         <div class="d-flex justify-content-between align-items-center mb-3">
 
@@ -229,14 +231,14 @@
                 role="group"
                 aria-label="Chemical view switcher">
 
-                <a href="{{ route('coordinator.equipment.index', $tabQuery) }}"
+                <a href="{{ route($routePrefix.'.equipment.index', $tabQuery) }}"
                 class="btn {{ $archived ? 'btn-outline-secondary' : 'btn-primary' }} px-4 py-2">
                     <i class="fa-solid fa-boxes-stacked me-2"></i>
                     Active equipment
                     <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2"></span>
                 </a>
 
-                <a href="{{ route('coordinator.equipment.archived', $tabQuery) }}"
+                <a href="{{ route($routePrefix.'.equipment.archived', $tabQuery) }}"
                 class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
                     <i class="fa-solid fa-box-archive me-2"></i>
                     Archived equipement
@@ -249,8 +251,8 @@
                 <button type="submit" form="equipment-bulk-print-form" class="btn btn-outline-dark px-4" data-barcode-submit disabled>
                     <i class="fa-solid fa-print me-2"></i>Print selected (<span data-barcode-count>0</span>)
                 </button>
-                @if (! $archived)
-                    <a href="{{ route('coordinator.equipment.create') }}"
+                @if (! $archived && ! $isReadOnly)
+                    <a href="{{ route($routePrefix.'.equipment.create') }}"
                     class="btn btn-primary px-4">
                         <i class="fa-solid fa-plus me-2"></i>
                         Add equipment
@@ -360,7 +362,7 @@
                                     <td>{{ $equipment->category->category_name ?? '-' }}</td>
                                     <td>{{ $equipment->laboratory->laboratory_name ?? '-' }}</td>
                                     <td>
-                                        @if (!$archived)
+                                        @if (!$archived && !$isReadOnly)
                                             <form action="{{ route('coordinator.equipment.quantity.update', array_merge(['equipment' => $equipment], $listQuery)) }}" method="POST" class="d-flex align-items-center gap-1">
                                                 @csrf
                                                 @method('PATCH')
@@ -409,16 +411,16 @@
                                     @endif
                                     <td class="text-end pe-4">
                                         <div class="btn-group action-buttons" role="group" aria-label="Equipment actions">
-                                            <a href="{{ route('coordinator.equipment.show', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-secondary" title="View" aria-label="View">
+                                            <a href="{{ route($routePrefix.'.equipment.show', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-secondary" title="View" aria-label="View">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
-                                            <a href="{{ route('coordinator.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info" title="Traceability" aria-label="Traceability">
+                                            <a href="{{ route($routePrefix.'.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info" title="Traceability" aria-label="Traceability">
                                                 <i class="fa-solid fa-clock-rotate-left"></i>
                                             </a>
-                                            <a href="{{ route('coordinator.equipment.barcode-print', $equipment) }}" class="btn btn-sm btn-outline-dark" title="Print barcode" aria-label="Print barcode" target="_blank" rel="noopener noreferrer">
+                                            <a href="{{ route($routePrefix.'.equipment.barcode-print', $equipment) }}" class="btn btn-sm btn-outline-dark" title="Print barcode" aria-label="Print barcode" target="_blank" rel="noopener noreferrer">
                                                 <i class="fa-solid fa-print"></i>
                                             </a>
-                                            @if ($archived)
+                                            @if (!$isReadOnly && $archived)
                                                 @if ($canRestore)
                                                     <form action="{{ route('coordinator.equipment.restore', $equipment) }}" method="POST" class="d-inline">
                                                         @csrf
@@ -431,7 +433,7 @@
                                                         <i class="fa-solid fa-rotate-left"></i>
                                                     </button>
                                                 @endif
-                                            @else
+                                            @elseif (!$isReadOnly)
                                                 <a href="{{ route('coordinator.equipment.edit', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit">
                                                     <i class="fa-solid fa-pen-to-square"></i>
                                                 </a>

@@ -1,6 +1,7 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     $itemName = $itemType === 'Equipment' ? $item->equipment_name : $item->chemical_name;
     $itemCode = $itemType === 'Equipment' ? $item->equipment_code : $item->chemical_code;
     $calendarLink = $calendarUrl.'?'.http_build_query(['month' => $calendarMonth->format('Y-m')]);
@@ -27,7 +28,7 @@
             <a href="{{ $calendarLink }}" class="btn btn-outline-primary">
                 <i class="fa-regular fa-calendar me-2"></i>Back to calendar
             </a>
-            <a href="{{ route('coordinator.inventory-traceability.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route($routePrefix.'.inventory-traceability.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-list me-2"></i>All inventory
             </a>
         </div>
@@ -65,7 +66,7 @@
                             </div>
                             @if ($event['quantityLabel'])
                                 <div class="traceability-event-quantity">
-                                    <span class="small text-secondary">Quantity</span>
+                                    <span class="small text-secondary">{{ $event['quantityTitle'] ?? 'Quantity' }}</span>
                                     <strong>{{ $event['quantityLabel'] }}</strong>
                                 </div>
                             @endif
@@ -82,6 +83,12 @@
                                 </div>
                             @endif
                         </div>
+                        @if ($event['balanceLabel'] ?? null)
+                            <div class="small text-secondary mb-0 mt-2">
+                                Balance:
+                                <span class="badge rounded-pill text-bg-{{ $event['balanceTone'] ?? 'secondary' }}">{{ $event['balanceLabel'] }}</span>
+                            </div>
+                        @endif
                         <p class="small text-secondary mb-0 mt-2">{{ $event['details'] }}</p>
                     </div>
                 </article>
