@@ -354,7 +354,7 @@
                                                     <span>{{ $equipment->equipment_code }}</span>
                                                 </div>
                                                 <span class="badge rounded-pill text-bg-warning text-dark mt-1">
-                                                    <i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $equipment->manufacturing_date?->format('M d, Y') ?? 'Not set' }}
+                                                    <i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacture: {{ $equipment->manufacturing_date?->format('M d, Y') ?? 'Not set' }}
                                                 </span>
                                             </div>
                                         </div>
@@ -374,15 +374,14 @@
                                                     value="{{ $equipment->quantity }}"
                                                     min="{{ max(0, $equipment->quantity - $equipment->available_quantity) }}"
                                                     class="form-control form-control-sm text-center"
-                                                    style="width: 5.25rem;"
+                                                    style="width: 4rem;"
                                                     aria-label="Total quantity"
-                                                    required
                                                 >
                                                 <button type="submit" class="btn btn-sm btn-outline-primary" title="Save total quantity" aria-label="Save total quantity">
                                                     <i class="fa-solid fa-check"></i>
                                                 </button>
                                             </form>
-                                            <div class="small text-secondary mt-1">{{ $equipment->available_quantity }} available / {{ $equipment->quantity }} total</div>
+                                            <div class="small text-secondary mt-1">{{ $equipment->available_quantity }}/ {{ $equipment->quantity }} total</div>
                                         @else
                                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
                                             <div class="small text-secondary">Available / total quantity</div>
