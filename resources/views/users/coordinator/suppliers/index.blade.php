@@ -1,4 +1,9 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $isReadOnly = $routePrefix === 'facilitator';
+@endphp
 
 @section('title', 'Suppliers')
 @section('page-title', 'Suppliers')
@@ -16,7 +21,9 @@
             <div class="small text-uppercase text-secondary">Inventory contacts</div>
             <div class="text-secondary">Manage the suppliers available in equipment and chemical forms.</div>
         </div>
-        <a href="{{ route('coordinator.suppliers.create') }}" class="btn btn-primary px-4"><i class="fa-solid fa-plus me-2"></i>Add supplier</a>
+        @if (!$isReadOnly)
+            <a href="{{ route('coordinator.suppliers.create') }}" class="btn btn-primary px-4"><i class="fa-solid fa-plus me-2"></i>Add supplier</a>
+        @endif
     </div>
 
     <div class="row g-3 g-xl-4 mb-4">
@@ -27,10 +34,10 @@
 
     <div class="section-card mb-4">
         <div class="card-body p-4">
-            <form method="GET" action="{{ route('coordinator.suppliers.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($routePrefix.'.suppliers.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-6"><label class="form-label" for="search">Search</label><input type="search" id="search" name="search" value="{{ $search }}" placeholder="Supplier, code, contact, or email" class="form-control admin-form-control"></div>
                 <div class="col-12 col-lg-3"><label class="form-label" for="status">Status</label><select id="status" name="status" class="form-select admin-form-control"><option value="">All statuses</option><option value="Active" @selected($status === 'Active')>Active</option><option value="Inactive" @selected($status === 'Inactive')>Inactive</option></select></div>
-                <div class="col-12 col-lg-auto d-flex gap-2"><button class="btn btn-primary px-4">Search</button><a href="{{ route('coordinator.suppliers.index') }}" class="btn btn-outline-secondary px-4">Clear</a></div>
+                <div class="col-12 col-lg-auto d-flex gap-2"><button class="btn btn-primary px-4">Search</button><a href="{{ route($routePrefix.'.suppliers.index') }}" class="btn btn-outline-secondary px-4">Clear</a></div>
             </form>
         </div>
     </div>
@@ -55,7 +62,13 @@
                         <td>{{ $supplier->email }}</td>
                         <td><span class="badge text-bg-{{ $supplier->status === 'Active' ? 'success' : 'secondary' }}">{{ $supplier->status }}</span></td>
                         <td>{{ $supplier->equipment_count }} equipment · {{ $supplier->chemicals_count }} chemicals</td>
-                        <td class="text-center pe-4"><div class="btn-group action-buttons"><a href="{{ route('coordinator.suppliers.edit', $supplier) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a><form action="{{ route('coordinator.suppliers.destroy', $supplier) }}" method="POST">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this supplier?');" title="Archive"><i class="fa-solid fa-box-archive"></i></button></form></div></td>
+                        <td class="text-center pe-4">
+                            @if (!$isReadOnly)
+                                <div class="btn-group action-buttons"><a href="{{ route('coordinator.suppliers.edit', $supplier) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a><form action="{{ route('coordinator.suppliers.destroy', $supplier) }}" method="POST">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this supplier?');" title="Archive"><i class="fa-solid fa-box-archive"></i></button></form></div>
+                            @else
+                                <span class="small text-secondary">View only</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="text-center text-secondary py-5">No suppliers found.</td></tr>

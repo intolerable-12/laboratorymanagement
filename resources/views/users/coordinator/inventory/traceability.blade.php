@@ -1,6 +1,7 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     $itemName = $item
         ? ($itemType === 'Equipment' ? $item->equipment_name : $item->chemical_name)
         : null;
@@ -36,14 +37,14 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('coordinator.inventory-traceability.index') }}" class="btn btn-outline-secondary {{ $itemType === '' ? 'disabled' : '' }}">
+            <a href="{{ route($routePrefix.'.inventory-traceability.index') }}" class="btn btn-outline-secondary {{ $itemType === '' ? 'disabled' : '' }}">
                 <i class="fa-solid fa-list me-2"></i>All inventory
             </a>
             @if ($itemType !== 'Equipment')
-                <a href="{{ route('coordinator.inventory-traceability.index', ['item_type' => 'Equipment']) }}" class="btn btn-outline-primary">Equipment</a>
+                <a href="{{ route($routePrefix.'.inventory-traceability.index', ['item_type' => 'Equipment']) }}" class="btn btn-outline-primary">Equipment</a>
             @endif
             @if ($itemType !== 'Chemical')
-                <a href="{{ route('coordinator.inventory-traceability.index', ['item_type' => 'Chemical']) }}" class="btn btn-outline-primary">Chemicals</a>
+                <a href="{{ route($routePrefix.'.inventory-traceability.index', ['item_type' => 'Chemical']) }}" class="btn btn-outline-primary">Chemicals</a>
             @endif
         </div>
     </div>

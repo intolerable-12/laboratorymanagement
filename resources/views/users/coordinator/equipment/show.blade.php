@@ -1,10 +1,11 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @section('title', 'View Equipment')
 @section('page-title', 'View Equipment')
 @section('page-subtitle', 'Review the selected item, its image, and inventory details')
 
 @php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     $isArchived = $equipment->trashed();
     $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
     $canRestore = $restoreDeadline?->isFuture() ?? false;
@@ -20,12 +21,12 @@
     @endif
 
     <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
-        <a href="{{ $isArchived ? route('coordinator.equipment.archived', request()->query()) : route('coordinator.equipment.index', request()->query()) }}" class="inventory-back-link">
+        <a href="{{ $isArchived ? route($routePrefix.'.equipment.archived', request()->query()) : route($routePrefix.'.equipment.index', request()->query()) }}" class="inventory-back-link">
             <i class="fa-solid fa-arrow-left"></i>
             {{ $isArchived ? 'Back to archived' : 'Back to list' }}
         </a>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('coordinator.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info">
+            <a href="{{ route($routePrefix.'.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info">
                 <i class="fa-solid fa-clock-rotate-left me-1"></i>Traceability
             </a>
             <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>

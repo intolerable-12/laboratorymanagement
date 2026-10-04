@@ -63,6 +63,7 @@ class InventoryTraceabilityController extends Controller
 
     private function itemTraceability(Request $request, Equipment|Chemical $item, string $itemType): View
     {
+        $routePrefix = $this->routePrefix($request);
         $filters = $this->traceabilityFilters($request);
         $events = $this->itemEvents($item, $itemType);
         $calendarEventData = $events
@@ -74,15 +75,15 @@ class InventoryTraceabilityController extends Controller
             'item' => $item,
             'itemType' => $itemType,
             'backUrl' => $itemType === 'Equipment'
-                ? route('coordinator.equipment.index')
-                : route('coordinator.chemicals.index'),
+                ? route($routePrefix.'.equipment.index')
+                : route($routePrefix.'.chemicals.index'),
             'backLabel' => $itemType === 'Equipment' ? 'Equipment' : 'Chemicals',
             'traceabilityUrl' => $itemType === 'Equipment'
-                ? route('coordinator.equipment.traceability', $item)
-                : route('coordinator.chemicals.traceability', $item),
+                ? route($routePrefix.'.equipment.traceability', $item)
+                : route($routePrefix.'.chemicals.traceability', $item),
             'traceabilityDetailsUrl' => $itemType === 'Equipment'
-                ? route('coordinator.equipment.traceability.details', $item)
-                : route('coordinator.chemicals.traceability.details', $item),
+                ? route($routePrefix.'.equipment.traceability.details', $item)
+                : route($routePrefix.'.chemicals.traceability.details', $item),
             'calendarEvents' => $calendarEventData,
             'calendarInitialDate' => $filters['calendarMonth']->format('Y-m-d'),
             ...$filters,
@@ -91,13 +92,14 @@ class InventoryTraceabilityController extends Controller
 
     private function itemTraceabilityDetails(Request $request, Equipment|Chemical $item, string $itemType): View
     {
+        $routePrefix = $this->routePrefix($request);
         $filters = $this->traceabilityFilters($request);
         $events = $this->itemEvents($item, $itemType)
             ->filter(fn (array $event): bool => $event['occurred_at']->betweenIncluded($filters['period_start'], $filters['period_end']))
             ->values();
         $calendarUrl = $itemType === 'Equipment'
-            ? route('coordinator.equipment.traceability', $item)
-            : route('coordinator.chemicals.traceability', $item);
+            ? route($routePrefix.'.equipment.traceability', $item)
+            : route($routePrefix.'.chemicals.traceability', $item);
 
         return view('users.coordinator.inventory.traceability-details', [
             'item' => $item,
@@ -105,11 +107,16 @@ class InventoryTraceabilityController extends Controller
             'events' => $events,
             'calendarUrl' => $calendarUrl,
             'backUrl' => $itemType === 'Equipment'
-                ? route('coordinator.equipment.index')
-                : route('coordinator.chemicals.index'),
+                ? route($routePrefix.'.equipment.index')
+                : route($routePrefix.'.chemicals.index'),
             'backLabel' => $itemType === 'Equipment' ? 'Equipment' : 'Chemicals',
             ...$filters,
         ]);
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
     /**
@@ -300,28 +307,15 @@ class InventoryTraceabilityController extends Controller
 
         foreach ($inventoryLogs as $log) {
             $changed = (float) $log->quantity_changed;
-            $matchingScan = $barcodeLogs->contains(function (BarcodeLog $scan) use ($log, $changed): bool {
-                return ! $scan->is_voided
-                    && $scan->action === match ($log->action) {
-                        'Borrow' => 'Borrow',
-                        'Return' => 'Return',
-                        default => '',
-                    }
-                && abs(abs((float) $scan->quantity) - abs($changed)) < 0.001
-                && $scan->scanned_at?->diffInSeconds($log->performed_at) <= 120;
-            });
+            $matchingScan = $barcodeLogs->contains(
+                fn (BarcodeLog $scan): bool => $this->inventoryLogMatchesScan($log, $scan)
+            );
 
             if ($matchingScan && in_array($log->action, ['Borrow', 'Return'], true)) {
                 continue;
             }
 
-            $title = match ($log->action) {
-                'Borrow' => 'Inventory deducted for checkout',
-                'Return' => 'Inventory updated after check-in',
-                'Stock In' => 'Stock added',
-                'Stock Out' => 'Stock removed',
-                default => $log->action.' recorded',
-            };
+            $title = $this->inventoryEventTitle($log, $changed);
 
             $events->push($this->event(
                 occurredAt: $log->performed_at,
@@ -331,16 +325,22 @@ class InventoryTraceabilityController extends Controller
                 title: $title,
                 actor: $this->userName($log->performedBy),
                 actorLabel: 'Inventory update',
-                quantity: abs($changed),
-                quantityLabel: $this->quantityText(abs($changed), $itemType, $itemUnit),
+                quantity: (float) $log->quantity_after,
+                quantityLabel: $this->quantityText((float) $log->quantity_after, $itemType, $itemUnit),
                 reference: null,
-                details: 'Balance: '.$this->quantityText((float) $log->quantity_before, $itemType, $itemUnit).' → '.$this->quantityText((float) $log->quantity_after, $itemType, $itemUnit).'. '.($log->remarks ?: 'No additional details.'),
+                details: $this->inventoryEventDetails($log, $changed, $itemType, $itemUnit),
+                quantityTitle: 'Total after',
+                balanceLabel: $this->signedQuantityText($changed, $itemType, $itemUnit),
+                balanceTone: $changed > 0 ? 'success' : ($changed < 0 ? 'danger' : 'secondary'),
             ));
         }
 
         foreach ($barcodeLogs as $scan) {
             $transaction = $scan->borrowTransaction;
             $borrowItem = $transaction ? $borrowItemsByTransaction->get($transaction->id) : null;
+            $matchingInventoryLog = $inventoryLogs->first(
+                fn (InventoryLog $log): bool => $this->inventoryLogMatchesScan($log, $scan)
+            );
             $isCheckout = $scan->action === 'Borrow';
             $isCheckin = $scan->action === 'Return';
             $title = match (true) {
@@ -351,12 +351,22 @@ class InventoryTraceabilityController extends Controller
                 default => $scan->action.' barcode scan',
             };
             $condition = $isCheckin ? $scan->condition_in : $borrowItem?->condition_out;
+            $quantity = $matchingInventoryLog
+                ? (float) $matchingInventoryLog->quantity_after
+                : (float) $scan->quantity;
             $details = collect([
                 $transaction?->borrower ? 'Requested by '.$this->userName($transaction->borrower).'.' : null,
                 $borrowItem ? 'Requested quantity: '.$this->quantityText((float) $borrowItem->quantity_borrowed, $itemType, $itemUnit).'.' : null,
                 $condition ? ($isCheckin ? 'Condition in: ' : 'Condition out: ').$condition.'.' : null,
                 $scan->is_voided ? 'This scan was voided.' : null,
-                $scan->remarks,
+                $matchingInventoryLog
+                    ? $this->inventoryEventDetails(
+                        $matchingInventoryLog,
+                        (float) $matchingInventoryLog->quantity_changed,
+                        $itemType,
+                        $itemUnit,
+                    )
+                    : $scan->remarks,
             ])->filter()->implode(' ');
 
             $events->push($this->event(
@@ -367,10 +377,19 @@ class InventoryTraceabilityController extends Controller
                 title: $title,
                 actor: $this->userName($scan->user),
                 actorLabel: $isCheckout ? 'Checkout staff' : ($isCheckin ? 'Check-in staff' : 'Scanner'),
-                quantity: (float) $scan->quantity,
-                quantityLabel: $this->quantityText((float) $scan->quantity, $itemType, $itemUnit),
+                quantity: $quantity,
+                quantityLabel: $this->quantityText($quantity, $itemType, $itemUnit),
                 reference: $transaction ? 'Borrow '.$transaction->borrow_no : null,
                 details: $details ?: 'No additional details.',
+                quantityTitle: $matchingInventoryLog ? 'Total after' : null,
+                balanceLabel: $matchingInventoryLog
+                    ? $this->signedQuantityText((float) $matchingInventoryLog->quantity_changed, $itemType, $itemUnit)
+                    : null,
+                balanceTone: $matchingInventoryLog
+                    ? ((float) $matchingInventoryLog->quantity_changed > 0
+                        ? 'success'
+                        : ((float) $matchingInventoryLog->quantity_changed < 0 ? 'danger' : 'secondary'))
+                    : null,
             ));
         }
 
@@ -410,6 +429,7 @@ class InventoryTraceabilityController extends Controller
                 'actor' => $event['actor'],
                 'actor_label' => $event['actorLabel'],
                 'quantity' => $event['quantityLabel'],
+                'quantity_title' => $event['quantityTitle'] ?? 'Quantity',
                 'reference' => $event['reference'],
                 'details' => $event['details'],
                 'occurred_at' => $event['occurred_at']->format('F j, Y h:i A'),
@@ -442,6 +462,9 @@ class InventoryTraceabilityController extends Controller
         ?string $quantityLabel,
         ?string $reference,
         string $details,
+        ?string $quantityTitle = null,
+        ?string $balanceLabel = null,
+        ?string $balanceTone = null,
     ): array {
         return compact(
             'occurredAt',
@@ -453,6 +476,9 @@ class InventoryTraceabilityController extends Controller
             'actorLabel',
             'quantity',
             'quantityLabel',
+            'quantityTitle',
+            'balanceLabel',
+            'balanceTone',
             'reference',
             'details',
         ) + [
@@ -463,6 +489,86 @@ class InventoryTraceabilityController extends Controller
     private function quantityText(float $quantity, string $itemType, string $unit): string
     {
         return number_format($quantity, $itemType === 'Equipment' ? 0 : 2).' '.$unit;
+    }
+
+    private function signedQuantityText(float $quantity, string $itemType, string $unit): string
+    {
+        $sign = $quantity > 0 ? '+' : ($quantity < 0 ? '-' : '');
+        $formatted = number_format(abs($quantity), $itemType === 'Equipment' ? 0 : 2);
+
+        if ($itemType === 'Chemical' && str_contains($formatted, '.')) {
+            $formatted = rtrim(rtrim($formatted, '0'), '.');
+        }
+
+        return $sign.$formatted.' '.$unit;
+    }
+
+    private function inventoryLogMatchesScan(InventoryLog $log, BarcodeLog $scan): bool
+    {
+        if ($scan->is_voided || ! in_array($log->action, ['Borrow', 'Return'], true)) {
+            return false;
+        }
+
+        if ($scan->action !== $log->action || ! $scan->scanned_at || ! $log->performed_at) {
+            return false;
+        }
+
+        if ($scan->scanned_at->diffInSeconds($log->performed_at) > 120) {
+            return false;
+        }
+
+        $changed = (float) $log->quantity_changed;
+
+        return abs($changed) < 0.001
+            || abs(abs((float) $scan->quantity) - abs($changed)) < 0.001;
+    }
+
+    private function inventoryEventTitle(InventoryLog $log, float $changed): string
+    {
+        return match ($log->action) {
+            'Borrow' => 'Item borrowed / stock deducted',
+            'Return' => $changed > 0
+                ? 'Item returned / stock restocked'
+                : 'Item returned / not restocked',
+            'Purchase', 'Stock In' => 'Stock restocked / added',
+            'Stock Out' => 'Stock deducted / removed',
+            'Damage' => 'Damaged stock deducted',
+            'Lost' => 'Lost stock deducted',
+            'Maintenance' => 'Stock moved to maintenance',
+            'Adjustment' => $changed >= 0 ? 'Stock restored / adjusted' : 'Stock deducted / adjusted',
+            default => $log->action.' recorded',
+        };
+    }
+
+    private function inventoryEventDetails(InventoryLog $log, float $changed, string $itemType, string $itemUnit): string
+    {
+        $condition = $this->conditionFromRemarks($log->remarks);
+        $reason = match ($log->action) {
+            'Borrow' => 'Reason: borrowed / checked out.',
+            'Return' => $changed > 0
+                ? 'Reason: returned after check-in and added back to available stock.'
+                : 'Reason: returned after check-in but not added back to available stock'.($condition ? ' because it was '.$condition.'.' : '.'),
+            'Purchase', 'Stock In' => 'Reason: restock / quantity added by the coordinator.',
+            'Stock Out' => 'Reason: stock removed by the coordinator.',
+            'Damage' => 'Reason: damaged.',
+            'Lost' => 'Reason: lost.',
+            'Maintenance' => 'Reason: moved to maintenance.',
+            'Adjustment' => $changed >= 0
+                ? 'Reason: inventory correction added stock.'
+                : 'Reason: inventory correction deducted stock.',
+            default => 'Reason: '.$log->action.'.',
+        };
+
+        return $reason.' '.($log->remarks ?: 'No additional details.');
+    }
+
+    private function conditionFromRemarks(?string $remarks): ?string
+    {
+        if (! $remarks || ! preg_match('/tagged\s+([^\.]+)\./i', $remarks, $matches)) {
+            return null;
+        }
+
+        return trim($matches[1]);
     }
 
     private function userName(?User $user): string
