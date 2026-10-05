@@ -32,6 +32,136 @@
 @endphp
 
 @section('content')
+    <style>
+        .stock-up-trigger {
+            min-width: 10rem;
+            border: 1px solid #b6d4fe;
+            border-radius: .75rem;
+            padding: .55rem .75rem !important;
+            background: #f0f7ff;
+            cursor: pointer;
+            transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .stock-up-trigger:hover,
+        .stock-up-trigger:focus-visible {
+            border-color: #0d6efd;
+            background: #e2efff;
+            box-shadow: 0 .2rem .5rem rgba(13, 110, 253, .15);
+        }
+
+        .stock-up-modal .modal-content {
+            overflow: hidden;
+            border-radius: 1.25rem;
+        }
+
+        .stock-up-modal .modal-header {
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(135deg, #eff6ff, #ffffff);
+            border-bottom-color: #dbeafe;
+        }
+
+        .stock-up-modal .modal-title {
+            color: #0f172a;
+            font-size: 1.35rem !important;
+        }
+
+        .stock-up-modal .modal-body {
+            padding: 1.5rem;
+        }
+
+        .stock-up-modal__title-wrap {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+        }
+
+        .stock-up-modal__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.75rem;
+            height: 2.75rem;
+            flex: 0 0 2.75rem;
+            color: #0d6efd;
+            background: #dbeafe;
+            border-radius: .9rem;
+            font-size: 1.2rem;
+        }
+
+        .stock-up-modal__eyebrow,
+        .stock-up-section__eyebrow,
+        .stock-up-info-card__label {
+            color: #64748b;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .stock-up-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .75rem;
+        }
+
+        .stock-up-info-card {
+            min-width: 0;
+            padding: .9rem 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: .85rem;
+        }
+
+        .stock-up-info-card__value {
+            margin-top: .3rem;
+            color: #0f172a;
+            font-size: 1rem;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .stock-up-supplier-panel,
+        .stock-up-quantity-panel {
+            padding: 1rem;
+            border: 1px solid #dbeafe;
+            border-radius: 1rem;
+            background: #f8fbff;
+        }
+
+        .stock-up-supplier-panel {
+            margin-bottom: 1rem;
+        }
+
+        .stock-up-section__title {
+            margin-bottom: .2rem;
+            color: #0f172a;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .stock-up-section__hint {
+            margin-bottom: 1rem;
+            color: #64748b;
+            font-size: .85rem;
+        }
+
+        .stock-up-add-panel {
+            background: #ffffff;
+            border-color: #bfdbfe !important;
+        }
+
+        @media (max-width: 575.98px) {
+            .stock-up-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stock-up-modal .modal-body {
+                padding: 1.25rem;
+            }
+        }
+    </style>
+
     @if (session('status'))
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
@@ -373,10 +503,31 @@
                                 <td>{{ $chemical->category->category_name ?? '-' }}</td>
                                 <td>{{ $chemical->laboratory->laboratory_name ?? '-' }}</td>
                                 <td>
-                                    <div class="fw-semibold text-dark">{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</div>
-                                    <div class="small text-secondary">Minimum {{ number_format((float) $chemical->minimum_stock, 2) }} {{ $chemical->unit }}</div>
+                                    @if (!$archived && !$isReadOnly)
+                                        <button
+                                            type="button"
+                                            class="btn btn-link p-0 text-start text-decoration-none stock-up-trigger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#stock-up-modal"
+                                            data-stock-up-url="{{ route('coordinator.chemicals.stock-up', array_merge(['chemical' => $chemical], $listQuery)) }}"
+                                            data-stock-up-item="{{ $chemical->chemical_name }}"
+                                            data-stock-up-current="{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}"
+                                            data-stock-up-supplier="{{ $chemical->supplier?->supplier_name ?? 'Not set' }}"
+                                            data-stock-up-supplier-id="{{ $chemical->supplier_id }}"
+                                            data-stock-up-supplier-url="{{ route('coordinator.chemicals.supplier.update', array_merge(['chemical' => $chemical], $listQuery)) }}"
+                                            data-stock-up-date="{{ $chemical->received_date?->format('F j, Y') ?? 'Not set' }}"
+                                            data-stock-up-unit="{{ $chemical->unit }}"
+                                            aria-label="Stock up {{ $chemical->chemical_name }}"
+                                        >
+                                            <span class="d-block fw-semibold text-dark" data-stock-up-display>{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</span>
+                                            <span class="d-block small text-primary fw-semibold"><i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Click to stock up</span>
+                                        </button>
+                                    @else
+                                        <div class="fw-semibold text-dark">{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</div>
+                                        <div class="small text-secondary">Minimum {{ number_format((float) $chemical->minimum_stock, 2) }} {{ $chemical->unit }}</div>
+                                    @endif
                                     @if (!$archived && $isLowStock)
-                                        <span class="badge text-bg-warning mt-1">Below minimum stock</span>
+                                        <span class="badge text-bg-warning mt-1" data-stock-up-low-stock>Below minimum stock</span>
                                     @endif
                                 </td>
                                 <td>
@@ -472,7 +623,365 @@
         </div>
     </div>
 
+    @if (!$isReadOnly && !$archived)
+        <div class="modal fade stock-up-modal" id="stock-up-modal" tabindex="-1" aria-labelledby="stock-up-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header">
+                        <div class="stock-up-modal__title-wrap">
+                            <div class="stock-up-modal__icon" aria-hidden="true"><i class="fa-solid fa-flask"></i></div>
+                            <div>
+                                <div class="stock-up-modal__eyebrow">Stock up chemical</div>
+                                <h5 class="modal-title mb-0" id="stock-up-modal-label" data-stock-up-item-label></h5>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" data-stock-up-form data-stock-up-quick-store-url="{{ route('coordinator.suppliers.quick-store') }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="modal-body">
+                            <div class="stock-up-info-grid mb-4">
+                                <div class="stock-up-info-card">
+                                    <div class="stock-up-info-card__label">Supplier</div>
+                                    <div class="stock-up-info-card__value" data-stock-up-supplier>Not set</div>
+                                </div>
+                                <div class="stock-up-info-card">
+                                    <div class="stock-up-info-card__label">Date received</div>
+                                    <div class="stock-up-info-card__value" data-stock-up-date></div>
+                                </div>
+                                <div class="stock-up-info-card">
+                                    <div class="stock-up-info-card__label">Current stock</div>
+                                    <div class="stock-up-info-card__value" data-stock-up-current></div>
+                                </div>
+                            </div>
+                            <section class="stock-up-supplier-panel" aria-labelledby="chemical-supplier-heading">
+                                <div class="stock-up-section__eyebrow">Supplier workflow</div>
+                                <h6 class="stock-up-section__title" id="chemical-supplier-heading">Assign a supplier</h6>
+                                <p class="stock-up-section__hint">Choose an existing supplier, or add a new supplier and use it for this chemical.</p>
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <select class="form-select" name="supplier_id" data-stock-up-supplier-select aria-label="Supplier">
+                                        <option value="">No supplier</option>
+                                        @foreach ($suppliers as $supplier)
+                                            <option value="{{ $supplier->id }}">{{ $supplier->supplier_name }}{{ $supplier->status === 'Inactive' ? ' (Inactive)' : '' }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary text-nowrap" data-stock-up-save-supplier><i class="fa-solid fa-link me-1"></i>Save supplier</button>
+                                </div>
+                                <button type="button" class="btn btn-link btn-sm px-0 mt-2" data-stock-up-toggle-add><i class="fa-solid fa-plus me-1"></i>Add new supplier</button>
+                                <div class="stock-up-add-panel d-none border rounded-3 p-3 mt-2" data-stock-up-add-panel>
+                                    <div class="small text-secondary mb-2">New supplier details</div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small fw-semibold" for="new-supplier-name">Supplier name</label>
+                                            <input type="text" class="form-control" id="new-supplier-name" data-new-supplier-name autocomplete="organization">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small fw-semibold" for="new-supplier-email">Email</label>
+                                            <input type="email" class="form-control" id="new-supplier-email" data-new-supplier-email autocomplete="email">
+                                        </div>
+                                        <div class="col-12 text-end">
+                                            <button type="button" class="btn btn-sm btn-primary" data-stock-up-add-supplier><i class="fa-solid fa-user-plus me-1"></i>Add and use supplier</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                            <div class="alert d-none py-2" data-stock-up-feedback role="alert"></div>
+                            <section class="stock-up-quantity-panel" aria-labelledby="chemical-quantity-heading">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div>
+                                        <div class="stock-up-section__eyebrow">Inventory update</div>
+                                        <h6 class="stock-up-section__title mb-0" id="chemical-quantity-heading">Stock to add</h6>
+                                    </div>
+                                    <span class="badge text-bg-primary">Required</span>
+                                </div>
+                                <label for="stock-up-quantity" class="visually-hidden">Stock to add</label>
+                                <input type="text" inputmode="decimal" pattern="[0-9]+(?:\.[0-9]{1,2})?" class="form-control form-control-lg" id="stock-up-quantity" name="stock_up_quantity" placeholder="Enter quantity to add" autocomplete="off" required>
+                            <div class="form-text">Enter the amount to add to this chemical’s stock in <span data-stock-up-unit>the recorded unit</span>.</div>
+                            </section>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-boxes-stacked me-2"></i>Stock up</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade stock-up-confirm-modal" id="stock-up-confirm-modal" tabindex="-1" aria-labelledby="stock-up-confirm-modal-label" aria-describedby="stock-up-confirm-message" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header bg-warning-subtle border-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-warning-emphasis fs-4" aria-hidden="true"><i class="fa-solid fa-circle-question"></i></span>
+                            <h5 class="modal-title" id="stock-up-confirm-modal-label" data-stock-up-confirm-title>Confirm action</h5>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body fs-6">
+                        <p class="mb-0" data-stock-up-confirm-message></p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary" data-stock-up-confirm-cancel data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" data-stock-up-confirm-accept>Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <script>
+        (() => {
+            const modal = document.getElementById('stock-up-modal');
+
+            if (modal) {
+                const form = modal.querySelector('[data-stock-up-form]');
+                const item = modal.querySelector('[data-stock-up-item-label]');
+                const supplier = modal.querySelector('[data-stock-up-supplier]');
+                const supplierSelect = modal.querySelector('[data-stock-up-supplier-select]');
+                const saveSupplierButton = modal.querySelector('[data-stock-up-save-supplier]');
+                const toggleAddButton = modal.querySelector('[data-stock-up-toggle-add]');
+                const addPanel = modal.querySelector('[data-stock-up-add-panel]');
+                const addSupplierButton = modal.querySelector('[data-stock-up-add-supplier]');
+                const newSupplierName = modal.querySelector('[data-new-supplier-name]');
+                const newSupplierEmail = modal.querySelector('[data-new-supplier-email]');
+                const receivedDate = modal.querySelector('[data-stock-up-date]');
+                const current = modal.querySelector('[data-stock-up-current]');
+                const unit = modal.querySelector('[data-stock-up-unit]');
+                const quantity = modal.querySelector('#stock-up-quantity');
+                const feedback = modal.querySelector('[data-stock-up-feedback]');
+                const submitButton = form.querySelector('[type="submit"]');
+                const confirmationModal = document.getElementById('stock-up-confirm-modal');
+                const confirmationTitle = confirmationModal?.querySelector('[data-stock-up-confirm-title]');
+                const confirmationMessage = confirmationModal?.querySelector('[data-stock-up-confirm-message]');
+                const confirmationAcceptButton = confirmationModal?.querySelector('[data-stock-up-confirm-accept]');
+                let activeTrigger = null;
+
+                const askForConfirmation = (message, title = 'Confirm action') => {
+                    if (!confirmationModal || !confirmationTitle || !confirmationMessage || !confirmationAcceptButton) {
+                        return Promise.resolve(true);
+                    }
+
+                    confirmationTitle.textContent = title;
+                    confirmationMessage.textContent = message;
+
+                    return new Promise((resolve) => {
+                        let settled = false;
+                        const confirmationInstance = bootstrap.Modal.getOrCreateInstance(confirmationModal);
+                        const handleHidden = () => {
+                            if (settled) {
+                                return;
+                            }
+
+                            settled = true;
+                            resolve(false);
+                        };
+
+                        confirmationModal.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+                        confirmationAcceptButton.onclick = () => {
+                            if (settled) {
+                                return;
+                            }
+
+                            settled = true;
+                            confirmationModal.removeEventListener('hidden.bs.modal', handleHidden);
+                            confirmationInstance.hide();
+                            resolve(true);
+                        };
+
+                        confirmationInstance.show();
+                    });
+                };
+
+                const showFeedback = (message, tone = 'danger') => {
+                    feedback.textContent = message;
+                    feedback.className = `alert alert-${tone} py-2`;
+                };
+
+                const clearFeedback = () => {
+                    feedback.className = 'alert d-none py-2';
+                    feedback.textContent = '';
+                };
+
+                const updateSupplierLabel = () => {
+                    supplier.textContent = supplierSelect.selectedOptions[0]?.textContent?.trim() || 'Not set';
+                };
+
+                const requestJson = async (url, formData, method = 'POST') => {
+                    const response = await fetch(url, {
+                        method,
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        const validationErrors = Object.values(payload.errors || {}).flat();
+                        throw new Error(payload.message || validationErrors[0] || 'Unable to update supplier.');
+                    }
+
+                    return payload;
+                };
+
+                const saveSupplier = async ({ skipConfirmation = false } = {}) => {
+                    if (!skipConfirmation) {
+                        const selectedSupplier = supplierSelect.selectedOptions[0]?.textContent?.trim() || 'No supplier';
+                        const confirmed = await askForConfirmation(
+                            `Set ${selectedSupplier} as the supplier for ${item.textContent.trim()}?`,
+                            'Confirm supplier selection'
+                        );
+
+                        if (!confirmed) {
+                            return false;
+                        }
+                    }
+
+                    const supplierForm = new FormData();
+                    supplierForm.append('_token', form.querySelector('input[name="_token"]').value);
+                    supplierForm.append('_method', 'PATCH');
+                    supplierForm.append('supplier_id', supplierSelect.value);
+                    const payload = await requestJson(activeTrigger.dataset.stockUpSupplierUrl, supplierForm);
+
+                    activeTrigger.dataset.stockUpSupplierId = payload.supplier_id || '';
+                    activeTrigger.dataset.stockUpSupplier = payload.supplier_name || 'Not set';
+                    supplier.textContent = payload.supplier_name || 'Not set';
+                    showFeedback(payload.message, 'success');
+                    return true;
+                };
+
+                modal.addEventListener('show.bs.modal', (event) => {
+                    const trigger = event.relatedTarget;
+
+                    if (!trigger) {
+                        return;
+                    }
+
+                    activeTrigger = trigger;
+                    form.action = trigger.dataset.stockUpUrl;
+                    item.textContent = trigger.dataset.stockUpItem;
+                    supplierSelect.value = trigger.dataset.stockUpSupplierId || '';
+                    updateSupplierLabel();
+                    receivedDate.textContent = trigger.dataset.stockUpDate;
+                    current.textContent = trigger.dataset.stockUpCurrent;
+                    unit.textContent = trigger.dataset.stockUpUnit;
+                    quantity.value = '';
+                    addPanel.classList.add('d-none');
+                    clearFeedback();
+                });
+
+                modal.addEventListener('shown.bs.modal', () => quantity.focus());
+                supplierSelect.addEventListener('change', updateSupplierLabel);
+                toggleAddButton.addEventListener('click', () => addPanel.classList.toggle('d-none'));
+
+                saveSupplierButton.addEventListener('click', async () => {
+                    saveSupplierButton.disabled = true;
+
+                    try {
+                        await saveSupplier();
+                    } catch (error) {
+                        showFeedback(error.message);
+                    } finally {
+                        saveSupplierButton.disabled = false;
+                    }
+                });
+
+                addSupplierButton.addEventListener('click', async () => {
+                    if (!newSupplierName.value.trim() || !newSupplierEmail.value.trim()) {
+                        showFeedback('Enter the supplier name and email before adding the supplier.');
+                        return;
+                    }
+
+                    const confirmed = await askForConfirmation(
+                        `Add ${newSupplierName.value.trim()} as a new supplier and assign it to ${item.textContent.trim()}?`,
+                        'Add and assign supplier'
+                    );
+
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    addSupplierButton.disabled = true;
+
+                    try {
+                        const supplierForm = new FormData();
+                        supplierForm.append('_token', form.querySelector('input[name="_token"]').value);
+                        supplierForm.append('supplier_name', newSupplierName.value.trim());
+                        supplierForm.append('email', newSupplierEmail.value.trim());
+                        const payload = await requestJson(form.dataset.stockUpQuickStoreUrl, supplierForm);
+                        const option = new Option(payload.supplier.name, payload.supplier.id, true, true);
+                        supplierSelect.add(option);
+                        await saveSupplier({ skipConfirmation: true });
+                        newSupplierName.value = '';
+                        newSupplierEmail.value = '';
+                        addPanel.classList.add('d-none');
+                    } catch (error) {
+                        showFeedback(error.message);
+                    } finally {
+                        addSupplierButton.disabled = false;
+                    }
+                });
+
+                form.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const confirmed = await askForConfirmation(
+                        `Add ${quantity.value.trim()} unit(s) to ${item.textContent.trim()}?`,
+                        'Confirm stock update'
+                    );
+
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    submitButton.disabled = true;
+                    clearFeedback();
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+                        const payload = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            const validationErrors = Object.values(payload.errors || {}).flat();
+                            throw new Error(payload.message || validationErrors[0] || 'Unable to update chemical stock.');
+                        }
+
+                        const formattedQuantity = Number(payload.quantity).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        });
+                        const stockDisplay = `${formattedQuantity} ${activeTrigger.dataset.stockUpUnit}`;
+                        activeTrigger.querySelector('[data-stock-up-display]').textContent = stockDisplay;
+                        activeTrigger.dataset.stockUpCurrent = stockDisplay;
+                        activeTrigger.dataset.stockUpSupplierId = payload.supplier_id || '';
+                        activeTrigger.dataset.stockUpSupplier = payload.supplier_name || 'Not set';
+                        supplierSelect.value = payload.supplier_id || '';
+                        supplier.textContent = payload.supplier_name || 'Not set';
+                        current.textContent = stockDisplay;
+                        activeTrigger.closest('tr')?.querySelector('[data-stock-up-low-stock]')?.classList.toggle('d-none', !payload.low_stock);
+                        bootstrap.Modal.getOrCreateInstance(modal).hide();
+                    } catch (error) {
+                        showFeedback(error.message);
+                        submitButton.disabled = false;
+                    }
+                });
+
+                modal.addEventListener('hidden.bs.modal', () => {
+                    submitButton.disabled = false;
+                    activeTrigger = null;
+                });
+            }
+        })();
+
         (() => {
             const scope = document.querySelector('[data-barcode-selection="chemicals"]');
 

@@ -12,6 +12,7 @@ use App\Models\ReservationItem;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -69,6 +70,7 @@ class InventoryTraceabilityController extends Controller
         $calendarEventData = $events
             ->map(fn (array $event): array => $this->toCalendarEvent($event))
             ->values();
+        $listData = $this->traceabilityListData($request, $events);
 
         return view('users.coordinator.inventory.traceability', [
             'logs' => collect(),
@@ -86,8 +88,97 @@ class InventoryTraceabilityController extends Controller
                 : route($routePrefix.'.chemicals.traceability.details', $item),
             'calendarEvents' => $calendarEventData,
             'calendarInitialDate' => $filters['calendarMonth']->format('Y-m-d'),
+            'activeTraceabilityView' => $request->query('view') === 'list' ? 'list' : 'calendar',
+            'eventTypeOptions' => $this->eventTypeOptions(),
+            ...$listData,
             ...$filters,
         ]);
+    }
+
+    /**
+     * Apply the list view's filters and paginate the complete item event stream.
+     *
+     * @return array<string, mixed>
+     */
+    private function traceabilityListData(Request $request, Collection $events): array
+    {
+        $search = trim((string) $request->query('search', ''));
+        $eventType = (string) $request->query('event_type', '');
+        $eventTypes = array_keys($this->eventTypeOptions());
+
+        if (! in_array($eventType, $eventTypes, true)) {
+            $eventType = '';
+        }
+
+        $from = $this->parseDate($request->query('list_from'));
+        $to = $this->parseDate($request->query('list_to'));
+
+        if ($from && $to && $from->greaterThan($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $filteredEvents = $events
+            ->when($search !== '', function (Collection $events) use ($search): Collection {
+                $search = mb_strtolower($search);
+
+                return $events->filter(function (array $event) use ($search): bool {
+                    $searchable = mb_strtolower(collect([
+                        $event['title'],
+                        $event['type'],
+                        $event['actor'],
+                        $event['actorLabel'],
+                        $event['reference'],
+                        $event['details'],
+                        $event['quantityLabel'],
+                    ])->filter()->implode(' '));
+
+                    return str_contains($searchable, $search);
+                });
+            })
+            ->when($eventType !== '', fn (Collection $events): Collection => $events->where('type', $eventType))
+            ->when($from, fn (Collection $events): Collection => $events->filter(
+                fn (array $event): bool => $event['occurred_at']->greaterThanOrEqualTo($from->copy()->startOfDay())
+            ))
+            ->when($to, fn (Collection $events): Collection => $events->filter(
+                fn (array $event): bool => $event['occurred_at']->lessThanOrEqualTo($to->copy()->endOfDay())
+            ))
+            ->values();
+
+        $perPage = 15;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage('page');
+        $listEvents = new LengthAwarePaginator(
+            $filteredEvents->forPage($currentPage, $perPage)->values(),
+            $filteredEvents->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ],
+        );
+
+        return [
+            'listEvents' => $listEvents,
+            'listSearch' => $search,
+            'listEventType' => $eventType,
+            'listFromDate' => $from?->toDateString(),
+            'listToDate' => $to?->toDateString(),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function eventTypeOptions(): array
+    {
+        return [
+            'request' => 'Requests',
+            'approval' => 'Approvals',
+            'inventory' => 'Inventory updates',
+            'checkout' => 'Check-outs',
+            'checkin' => 'Check-ins',
+            'scan' => 'Barcode scans',
+        ];
     }
 
     private function itemTraceabilityDetails(Request $request, Equipment|Chemical $item, string $itemType): View

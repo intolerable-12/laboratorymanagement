@@ -9,6 +9,7 @@ use App\Models\Laboratory;
 use App\Models\Supplier;
 use App\Services\InventoryTraceabilityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -139,6 +140,7 @@ class ChemicalController extends Controller
 
         $categories = ChemicalCategory::orderBy('category_name')->get(['id', 'category_name']);
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
+        $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = Chemical::STATUSES;
         $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
 
@@ -173,6 +175,7 @@ class ChemicalController extends Controller
             'stats',
             'categories',
             'laboratories',
+            'suppliers',
             'statuses',
             'hazards',
             'search',
@@ -282,6 +285,85 @@ class ChemicalController extends Controller
         );
 
         return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', 'Chemical updated successfully.');
+    }
+
+    public function stockUp(Request $request, Chemical $chemical)
+    {
+        $data = $request->validate([
+            'stock_up_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+        ]);
+
+        DB::transaction(function () use ($chemical, $data, $request): void {
+            $chemical = Chemical::query()->lockForUpdate()->findOrFail($chemical->getKey());
+            $stockUpQuantity = round((float) $data['stock_up_quantity'], 2);
+            $previousQuantity = (float) $chemical->quantity;
+            $supplierId = $data['supplier_id'] ?? null;
+
+            $chemical->update([
+                'quantity' => round($previousQuantity + $stockUpQuantity, 2),
+                'supplier_id' => $supplierId,
+                'supplier_alert_sent_at' => (int) ($chemical->supplier_id ?? 0) === (int) ($supplierId ?? 0)
+                    ? $chemical->supplier_alert_sent_at
+                    : null,
+                'low_stock_supplier_alert_sent_at' => (int) ($chemical->supplier_id ?? 0) === (int) ($supplierId ?? 0)
+                    ? $chemical->low_stock_supplier_alert_sent_at
+                    : null,
+            ]);
+
+            app(InventoryTraceabilityLogger::class)->record(
+                item: $chemical,
+                quantityBefore: $previousQuantity,
+                quantityAfter: (float) $chemical->quantity,
+                performedBy: (int) $request->user()->userNo,
+                remarks: 'Chemical stock increased by the coordinator.',
+            );
+        });
+
+        $chemical->refresh();
+        $chemical->load('supplier');
+        $message = 'Chemical stock increased successfully.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'quantity' => (float) $chemical->quantity,
+                'supplier_id' => $chemical->supplier_id,
+                'supplier_name' => $chemical->supplier?->supplier_name,
+                'low_stock' => (float) $chemical->quantity <= (float) $chemical->minimum_stock,
+            ]);
+        }
+
+        return redirect()
+            ->route('coordinator.chemicals.index', $request->query())
+            ->with('status', $message);
+    }
+
+    public function updateSupplier(Request $request, Chemical $chemical)
+    {
+        $data = $request->validate([
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+        ]);
+        $supplierId = $data['supplier_id'] ?? null;
+        $supplierChanged = (int) ($chemical->supplier_id ?? 0) !== (int) ($supplierId ?? 0);
+
+        $chemical->update([
+            'supplier_id' => $supplierId,
+            'supplier_alert_sent_at' => $supplierChanged ? null : $chemical->supplier_alert_sent_at,
+            'low_stock_supplier_alert_sent_at' => $supplierChanged ? null : $chemical->low_stock_supplier_alert_sent_at,
+        ]);
+        $chemical->load('supplier');
+        $message = 'Chemical supplier updated successfully.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'supplier_id' => $chemical->supplier_id,
+                'supplier_name' => $chemical->supplier?->supplier_name,
+            ]);
+        }
+
+        return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', $message);
     }
 
     public function destroy(Chemical $chemical)

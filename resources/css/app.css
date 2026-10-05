@@ -1114,6 +1114,111 @@ a.request-stepper-link:focus-visible {
     color: #1f2937;
 }
 
+.traceability-view-tabs .btn {
+    min-width: 7.5rem;
+}
+
+.traceability-list-filters {
+    background: #f8f9fc;
+    border: 1px solid rgba(91, 70, 255, 0.12);
+}
+
+.traceability-list-day {
+    position: relative;
+}
+
+.traceability-list-day + .traceability-list-day {
+    margin-top: 2rem;
+}
+
+.traceability-list-day-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.traceability-list-day-marker {
+    width: 0.65rem;
+    height: 0.65rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    box-shadow: 0 0 0 0.3rem rgba(91, 70, 255, 0.12);
+}
+
+.traceability-list-day-events {
+    display: grid;
+    gap: 0.75rem;
+    padding-left: 1.25rem;
+    border-left: 1px solid rgba(91, 70, 255, 0.18);
+}
+
+.traceability-list-event {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    color: inherit;
+    background: #fff;
+    border: 1px solid rgba(20, 29, 54, 0.08);
+    border-radius: 1rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.traceability-list-event:hover,
+.traceability-list-event:focus-visible {
+    border-color: rgba(91, 70, 255, 0.35);
+    box-shadow: 0 0.5rem 1.25rem rgba(20, 29, 54, 0.08);
+    transform: translateY(-1px);
+}
+
+.traceability-list-event-content {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.traceability-list-event-content p {
+    overflow-wrap: anywhere;
+}
+
+.traceability-list-event-arrow {
+    flex: 0 0 auto;
+    align-self: center;
+    color: #98a1b2;
+}
+
+.traceability-list-empty {
+    background: #f8f9fc;
+    border: 1px dashed rgba(20, 29, 54, 0.16);
+}
+
+@media (max-width: 575.98px) {
+    .traceability-view-tabs {
+        width: 100%;
+    }
+
+    .traceability-view-tabs .btn {
+        flex: 1 1 50%;
+        min-width: 0;
+    }
+
+    .traceability-list-day-events {
+        padding-left: 0.75rem;
+    }
+
+    .traceability-list-event {
+        gap: 0.75rem;
+        padding: 0.85rem;
+    }
+
+    .traceability-list-event .traceability-event-icon {
+        width: 2rem;
+        height: 2rem;
+        flex-basis: 2rem;
+    }
+}
+
 @media (max-width: 575.98px) {
     .traceability-calendar-no-records {
         padding-top: 0.9rem;
