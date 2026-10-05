@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
-@php($routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator')
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +10,7 @@
     <title>{{ isset($items) ? 'Print Equipment Barcodes' : 'Print Barcode | ' . $equipment->equipment_name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        @page {
+        @@page {
             size: auto;
             margin: 0.6in;
         }
@@ -135,7 +137,7 @@
             min-width: 0;
         }
 
-        @media print {
+        @@media print {
             body {
                 background: #fff;
             }

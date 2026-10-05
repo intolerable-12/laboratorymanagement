@@ -52,6 +52,33 @@ class SupplierController extends Controller
         return redirect()->route('coordinator.suppliers.index')->with('status', 'Supplier created successfully.');
     }
 
+    public function quickStore(Request $request)
+    {
+        $data = $request->validate([
+            'supplier_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'contact_person' => ['nullable', 'string', 'max:255'],
+            'contact_number' => ['nullable', 'string', 'max:30'],
+        ]);
+        $data['status'] = 'Active';
+        $data['supplier_code'] = $this->nextSupplierCode();
+
+        $supplier = Supplier::create($data);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Supplier created successfully.',
+                'supplier' => [
+                    'id' => $supplier->id,
+                    'name' => $supplier->supplier_name,
+                    'status' => $supplier->status,
+                ],
+            ], 201);
+        }
+
+        return redirect()->route('coordinator.suppliers.index')->with('status', 'Supplier created successfully.');
+    }
+
     public function edit(Supplier $supplier)
     {
         return view('users.coordinator.suppliers.edit', compact('supplier'));

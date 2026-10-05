@@ -177,7 +177,8 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/create', [EquipmentController::class, 'create'])->name('create');
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
-                Route::patch('/{equipment}/quantity', [EquipmentController::class, 'updateQuantity'])->name('quantity.update');
+                Route::patch('/{equipment}/stock-up', [EquipmentController::class, 'stockUp'])->name('stock-up');
+                Route::patch('/{equipment}/supplier', [EquipmentController::class, 'updateSupplier'])->name('supplier.update');
                 Route::get('/{equipment}/traceability/details', [InventoryTraceabilityController::class, 'equipmentDetails'])->withTrashed()->name('traceability.details');
                 Route::get('/{equipment}/traceability', [InventoryTraceabilityController::class, 'equipment'])->withTrashed()->name('traceability');
                 Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
@@ -212,6 +213,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::delete('/{laboratory}', [LaboratoryController::class, 'destroy'])->name('destroy');
             });
 
+        Route::post('/suppliers/quick-store', [SupplierController::class, 'quickStore'])->name('suppliers.quick-store');
         Route::resource('suppliers', SupplierController::class)->except(['show']);
 
         Route::prefix('chemicals')
@@ -222,6 +224,8 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::patch('/{chemical}/stock-up', [ChemicalController::class, 'stockUp'])->name('stock-up');
+                Route::patch('/{chemical}/supplier', [ChemicalController::class, 'updateSupplier'])->name('supplier.update');
                 Route::get('/{chemical}/traceability/details', [InventoryTraceabilityController::class, 'chemicalDetails'])->withTrashed()->name('traceability.details');
                 Route::get('/{chemical}/traceability', [InventoryTraceabilityController::class, 'chemical'])->withTrashed()->name('traceability');
                 Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');

@@ -9,6 +9,7 @@ use App\Models\Laboratory;
 use App\Models\Supplier;
 use App\Services\InventoryTraceabilityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -120,6 +121,7 @@ class EquipmentController extends Controller
 
         $categories = EquipmentCategory::orderBy('category_name')->get(['id', 'category_name']);
         $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
+        $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = ['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'];
         $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
 
@@ -144,6 +146,7 @@ class EquipmentController extends Controller
             'stats',
             'categories',
             'laboratories',
+            'suppliers',
             'statuses',
             'conditions',
             'search',
@@ -246,30 +249,82 @@ class EquipmentController extends Controller
         return redirect()->route('coordinator.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
     }
 
-    public function updateQuantity(Request $request, Equipment $equipment)
+    public function stockUp(Request $request, Equipment $equipment)
     {
         $data = $request->validate([
-            'quantity' => ['required', 'integer', 'min:0'],
+            'stock_up_quantity' => ['required', 'integer', 'min:1'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
         ]);
 
-        $newQuantity = (int) $data['quantity'];
-        $previousAvailableQuantity = (int) $equipment->available_quantity;
-        $equipment->update([
-            'quantity' => $newQuantity,
-            'available_quantity' => $this->availableQuantityAfterTotalChange($equipment, $newQuantity),
-        ]);
+        DB::transaction(function () use ($equipment, $data, $request): void {
+            $equipment = Equipment::query()->lockForUpdate()->findOrFail($equipment->getKey());
+            $stockUpQuantity = (int) $data['stock_up_quantity'];
+            $previousAvailableQuantity = (int) $equipment->available_quantity;
+            $supplierId = $data['supplier_id'] ?? null;
 
-        app(InventoryTraceabilityLogger::class)->record(
-            item: $equipment,
-            quantityBefore: $previousAvailableQuantity,
-            quantityAfter: (int) $equipment->available_quantity,
-            performedBy: (int) $request->user()->userNo,
-            remarks: 'Equipment quantity updated by the coordinator.',
-        );
+            $equipment->update([
+                'quantity' => (int) $equipment->quantity + $stockUpQuantity,
+                'available_quantity' => $previousAvailableQuantity + $stockUpQuantity,
+                'supplier_id' => $supplierId,
+                'supplier_alert_sent_at' => (int) ($equipment->supplier_id ?? 0) === (int) ($supplierId ?? 0)
+                    ? $equipment->supplier_alert_sent_at
+                    : null,
+            ]);
+
+            app(InventoryTraceabilityLogger::class)->record(
+                item: $equipment,
+                quantityBefore: $previousAvailableQuantity,
+                quantityAfter: (int) $equipment->available_quantity,
+                performedBy: (int) $request->user()->userNo,
+                remarks: 'Equipment stock increased by the coordinator.',
+            );
+        });
+
+        $equipment->refresh();
+        $equipment->load('supplier');
+        $message = 'Equipment stock increased successfully.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'quantity' => (int) $equipment->quantity,
+                'available_quantity' => (int) $equipment->available_quantity,
+                'supplier_id' => $equipment->supplier_id,
+                'supplier_name' => $equipment->supplier?->supplier_name,
+                'low_stock' => $equipment->low_stock_threshold !== null
+                    && (int) $equipment->available_quantity <= (int) $equipment->low_stock_threshold,
+            ]);
+        }
 
         return redirect()
             ->route('coordinator.equipment.index', $request->query())
-            ->with('status', 'Equipment quantity updated successfully.');
+            ->with('status', $message);
+    }
+
+    public function updateSupplier(Request $request, Equipment $equipment)
+    {
+        $data = $request->validate([
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+        ]);
+        $supplierId = $data['supplier_id'] ?? null;
+        $supplierChanged = (int) ($equipment->supplier_id ?? 0) !== (int) ($supplierId ?? 0);
+
+        $equipment->update([
+            'supplier_id' => $supplierId,
+            'supplier_alert_sent_at' => $supplierChanged ? null : $equipment->supplier_alert_sent_at,
+        ]);
+        $equipment->load('supplier');
+        $message = 'Equipment supplier updated successfully.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'supplier_id' => $equipment->supplier_id,
+                'supplier_name' => $equipment->supplier?->supplier_name,
+            ]);
+        }
+
+        return redirect()->route('coordinator.equipment.index', $request->query())->with('status', $message);
     }
 
     public function destroy(Equipment $equipment)

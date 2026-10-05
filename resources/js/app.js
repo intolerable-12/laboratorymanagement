@@ -8,6 +8,9 @@ import './checkin';
 import './request-items';
 import './review-items';
 
+// Blade page scripts use Bootstrap's modal API for dynamically submitted forms.
+window.bootstrap = bootstrap;
+
 attachScannerEnterGuard();
 
 document.addEventListener('DOMContentLoaded', () => {
