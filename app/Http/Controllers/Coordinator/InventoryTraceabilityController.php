@@ -442,9 +442,15 @@ class InventoryTraceabilityController extends Controller
                 default => $scan->action.' barcode scan',
             };
             $condition = $isCheckin ? $scan->condition_in : $borrowItem?->condition_out;
-            $quantity = $matchingInventoryLog
+
+            $quantityAfter = $matchingInventoryLog
                 ? (float) $matchingInventoryLog->quantity_after
                 : (float) $scan->quantity;
+
+            $quantityBefore = $matchingInventoryLog
+                ? (float) $matchingInventoryLog->quantity_after - (float) $matchingInventoryLog->quantity_changed
+                : null;
+
             $details = collect([
                 $transaction?->borrower ? 'Requested by '.$this->userName($transaction->borrower).'.' : null,
                 $borrowItem ? 'Requested quantity: '.$this->quantityText((float) $borrowItem->quantity_borrowed, $itemType, $itemUnit).'.' : null,
@@ -457,7 +463,10 @@ class InventoryTraceabilityController extends Controller
                         $itemType,
                         $itemUnit,
                     )
-                    : $scan->remarks,
+                    : collect([
+                        'Scanned quantity: '.$this->quantityText((float) $scan->quantity, $itemType, $itemUnit).'.',
+                        $scan->remarks,
+                    ])->filter()->implode(' '),
             ])->filter()->implode(' ');
 
             $events->push($this->event(
@@ -468,8 +477,11 @@ class InventoryTraceabilityController extends Controller
                 title: $title,
                 actor: $this->userName($scan->user),
                 actorLabel: $isCheckout ? 'Checkout staff' : ($isCheckin ? 'Check-in staff' : 'Scanner'),
-                quantity: $quantity,
-                quantityLabel: $this->quantityText($quantity, $itemType, $itemUnit),
+                quantity: $quantityAfter,
+                quantityLabel: $this->quantityText($quantityAfter, $itemType, $itemUnit),
+                quantityBeforeLabel: $quantityBefore !== null
+                    ? $this->quantityText($quantityBefore, $itemType, $itemUnit)
+                    : null,
                 reference: $transaction ? 'Borrow '.$transaction->borrow_no : null,
                 details: $details ?: 'No additional details.',
                 quantityTitle: $matchingInventoryLog ? 'Total after' : null,
@@ -504,13 +516,13 @@ class InventoryTraceabilityController extends Controller
         return [
             'id' => sha1(implode('|', [
                 $event['type'],
-                $event['occurred_at']->toIso8601String(),
+                $event['occurred_at']->format('Y-m-d\TH:i:s'),
                 $event['title'],
                 $event['reference'] ?? '',
                 $event['details'],
             ])),
             'title' => $event['title'],
-            'start' => $event['occurred_at']->toIso8601String(),
+            'start' => $event['occurred_at']->format('Y-m-d\TH:i:s'),
             'backgroundColor' => $color,
             'borderColor' => $color,
             'textColor' => '#ffffff',
@@ -594,6 +606,26 @@ class InventoryTraceabilityController extends Controller
         return $sign.$formatted.' '.$unit;
     }
 
+    private function quantityMathText(
+        float $before,
+        float $change,
+        string $itemType,
+        string $unit,
+    ): string {
+        $beforeText = $this->quantityText($before, $itemType, $unit);
+        $magnitudeText = $this->quantityText(abs($change), $itemType, $unit);
+
+        if ($change < 0) {
+            return "{$beforeText} − {$magnitudeText}";
+        }
+
+        if ($change > 0) {
+            return "{$beforeText} + {$magnitudeText}";
+        }
+
+        return "{$beforeText} (no change)";
+}
+
     private function inventoryLogMatchesScan(InventoryLog $log, BarcodeLog $scan): bool
     {
         if ($scan->is_voided || ! in_array($log->action, ['Borrow', 'Return'], true)) {
@@ -634,23 +666,34 @@ class InventoryTraceabilityController extends Controller
     private function inventoryEventDetails(InventoryLog $log, float $changed, string $itemType, string $itemUnit): string
     {
         $condition = $this->conditionFromRemarks($log->remarks);
+
         $reason = match ($log->action) {
-            'Borrow' => 'Reason: borrowed / checked out.',
+            'Borrow' => 'Borrowed / checked out.',
             'Return' => $changed > 0
-                ? 'Reason: returned after check-in and added back to available stock.'
-                : 'Reason: returned after check-in but not added back to available stock'.($condition ? ' because it was '.$condition.'.' : '.'),
-            'Purchase', 'Stock In' => 'Reason: restock / quantity added by the coordinator.',
-            'Stock Out' => 'Reason: stock removed by the coordinator.',
-            'Damage' => 'Reason: damaged.',
-            'Lost' => 'Reason: lost.',
-            'Maintenance' => 'Reason: moved to maintenance.',
+                ? 'Returned after check-in and added back to available stock.'
+                : 'Returned after check-in but not added back to available stock'.($condition ? ' because it was '.$condition.'.' : '.'),
+            'Purchase', 'Stock In' => 'Restocked / quantity added by the coordinator.',
+            'Stock Out' => 'Stock removed by the coordinator.',
+            'Damage' => 'Damaged.',
+            'Lost' => 'Lost.',
+            'Maintenance' => 'Moved to maintenance.',
             'Adjustment' => $changed >= 0
-                ? 'Reason: inventory correction added stock.'
-                : 'Reason: inventory correction deducted stock.',
-            default => 'Reason: '.$log->action.'.',
+                ? 'Inventory correction added stock.'
+                : 'Inventory correction deducted stock.',
+            default => ucfirst($log->action).'.',
         };
 
-        return $reason.' '.($log->remarks ?: 'No additional details.');
+        $before = (float) $log->quantity_after - $changed;
+
+        $math = $this->quantityMathText($before, $changed, $itemType, $itemUnit);
+
+        $remarks = $log->remarks ?: null;
+
+        return trim(implode(' ', array_filter([
+            $math.'.',
+            $reason,
+            $remarks,
+        ])));
     }
 
     private function conditionFromRemarks(?string $remarks): ?string

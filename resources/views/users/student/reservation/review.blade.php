@@ -77,9 +77,13 @@
 
         <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mt-4">
             <a href="{{ route('student.reservations.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Requested Items</a>
-            <form method="POST" action="{{ route('student.reservations.store') }}">
+            <form id="reservation-request-form" method="POST" action="{{ route('student.reservations.store') }}">
                 @csrf
-                <button type="submit" class="btn btn-primary px-4" onclick="return confirm('Submit this reservation request?');">Submit Request <i class="fa-solid fa-check ms-1"></i></button>
+                <button type="button" class="btn btn-primary px-4"
+                        data-bs-toggle="modal"
+                        data-bs-target="#reservationRequestSubmitModal">
+                    Submit Request <i class="fa-solid fa-check ms-1"></i>
+                </button>
             </form>
         </div>
     </div>

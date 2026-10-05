@@ -136,7 +136,7 @@
 
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
                 <a href="{{ route('login') }}" class="btn btn-outline-secondary px-4">Cancel</a>
-                <button type="submit" class="btn btn-primary px-4">Next: Requested Items <i class="fa-solid fa-arrow-right ms-1"></i></button>
+                <button type="submit" class="btn btn-primary px-4">Requested Items <i class="fa-solid fa-arrow-right ms-1"></i></button>
             </div>
         </form>
     </div>
