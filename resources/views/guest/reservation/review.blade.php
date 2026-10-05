@@ -91,7 +91,7 @@
         </div>
 
         <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mt-4">
-            <a href="{{ route('guest.reservations.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Requested Items</a>
+            <a href="{{ route('guest.reservations.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i>Requested Items</a>
             <form id="guest-reservation-request-form" method="POST" action="{{ route('guest.reservations.store') }}">
                 @csrf
                 <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#guestReservationRequestSubmitModal">Submit Reservation Request <i class="fa-solid fa-check ms-1"></i></button>

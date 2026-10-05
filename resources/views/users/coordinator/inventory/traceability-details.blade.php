@@ -89,7 +89,21 @@
                                 <span class="badge rounded-pill text-bg-{{ $event['balanceTone'] ?? 'secondary' }}">{{ $event['balanceLabel'] }}</span>
                             </div>
                         @endif
-                        <p class="small text-secondary mb-0 mt-2">{{ $event['details'] }}</p>
+                        @php
+                            $detailParts = explode('.', $event['details'], 2);
+                            $mathPart = trim($detailParts[0] ?? '');
+                            $restPart = trim($detailParts[1] ?? '');
+                        @endphp
+                        <p class="small text-secondary mb-0 mt-2">
+                            @if ($mathPart !== '' && preg_match('/\d/', $mathPart))
+                                <strong class="text-dark">{{ $mathPart }}.</strong>
+                                @if ($restPart !== '')
+                                    {{ $restPart }}
+                                @endif
+                            @else
+                                {{ $event['details'] }}
+                            @endif
+                        </p>
                     </div>
                 </article>
             @empty

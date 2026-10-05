@@ -4,6 +4,13 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 
+const toLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const setTextContent = (element, value, fallback = '-') => {
     if (!element) {
         return;
@@ -127,7 +134,7 @@ export const initializeCalendars = () => {
         const calendar = new Calendar(calendarElement, {
             plugins: [dayGridPlugin, timeGridPlugin],
             initialView: 'dayGridMonth',
-            timeZone: 'UTC',
+            timeZone: 'local',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -291,7 +298,7 @@ export const initializeTraceabilityCalendars = () => {
             plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
             initialView: 'dayGridMonth',
             initialDate: shell.dataset.traceabilityCalendarInitialDate || undefined,
-            timeZone: 'UTC',
+            timeZone: 'local',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -360,7 +367,7 @@ export const initializeTraceabilityCalendars = () => {
                     return;
                 }
 
-                const dateString = info.date.toISOString().slice(0, 10);
+                const dateString = toLocalDateString(info.date);
 
                 if (eventDates.has(dateString)) {
                     return;
@@ -385,9 +392,9 @@ export const initializeTraceabilityCalendars = () => {
                 let endDate = info.endStr.slice(0, 10);
 
                 if (info.allDay) {
-                    const exclusiveEnd = new Date(info.endStr.slice(0, 10) + 'T00:00:00Z');
-                    exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() - 1);
-                    endDate = exclusiveEnd.toISOString().slice(0, 10);
+                    const exclusiveEnd = new Date(info.endStr.slice(0, 10) + 'T00:00:00');
+                    exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+                    endDate = toLocalDateString(exclusiveEnd);
                 }
 
                 setTraceabilityDateInput(fromInput, startDate);
@@ -401,7 +408,7 @@ export const initializeTraceabilityCalendars = () => {
             },
             datesSet(info) {
                 if (monthInput && !fromInput?.value && !toInput?.value) {
-                    monthInput.value = info.view.currentStart.toISOString().slice(0, 7);
+                    monthInput.value = toLocalDateString(info.view.currentStart).slice(0, 7);
                 }
             },
             eventClick(info) {
