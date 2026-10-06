@@ -516,11 +516,13 @@
                                             data-stock-up-supplier-id="{{ $chemical->supplier_id }}"
                                             data-stock-up-supplier-url="{{ route('coordinator.chemicals.supplier.update', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                             data-stock-up-date="{{ $chemical->received_date?->format('F j, Y') ?? 'Not set' }}"
+                                            data-stock-up-date-iso="{{ $chemical->received_date?->format('Y-m-d') ?? '' }}"
                                             data-stock-up-unit="{{ $chemical->unit }}"
+                                            data-stock-up-minimum="{{ number_format((float) $chemical->minimum_stock, 2) }}"
                                             aria-label="Stock up {{ $chemical->chemical_name }}"
                                         >
                                             <span class="d-block fw-semibold text-dark" data-stock-up-display>{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</span>
-                                            <span class="d-block small text-primary fw-semibold"><i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Click to stock up</span>
+                                            <span class="d-block small text-primary fw-semibold"><i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Update</span>
                                         </button>
                                     @else
                                         <div class="fw-semibold text-dark">{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</div>
@@ -691,18 +693,46 @@
                                 <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                     <div>
                                         <div class="stock-up-section__eyebrow">Inventory update</div>
-                                        <h6 class="stock-up-section__title mb-0" id="chemical-quantity-heading">Stock to add</h6>
+                                        <h6 class="stock-up-section__title mb-0" id="chemical-quantity-heading">Adjust stock</h6>
                                     </div>
-                                    <span class="badge text-bg-primary">Required</span>
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Update mode">
+                                        <input type="radio" class="btn-check" name="stock_up_mode" id="stock-up-mode-add" value="add" checked>
+                                        <label class="btn btn-outline-success" for="stock-up-mode-add">
+                                            <i class="fa-solid fa-plus me-1"></i>Add
+                                        </label>
+                                        <input type="radio" class="btn-check" name="stock_up_mode" id="stock-up-mode-deduct" value="deduct">
+                                        <label class="btn btn-outline-danger" for="stock-up-mode-deduct">
+                                            <i class="fa-solid fa-minus me-1"></i>Deduct
+                                        </label>
+                                    </div>
                                 </div>
-                                <label for="stock-up-quantity" class="visually-hidden">Stock to add</label>
-                                <input type="text" inputmode="decimal" pattern="[0-9]+(?:\.[0-9]{1,2})?" class="form-control form-control-lg" id="stock-up-quantity" name="stock_up_quantity" placeholder="Enter quantity to add" autocomplete="off" required>
-                            <div class="form-text">Enter the amount to add to this chemical’s stock in <span data-stock-up-unit>the recorded unit</span>.</div>
+
+                                <label for="stock-up-quantity" class="visually-hidden">Quantity</label>
+                                <input
+                                    type="text"
+                                    inputmode="decimal"
+                                    pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                                    class="form-control form-control-lg"
+                                    id="stock-up-quantity"
+                                    name="stock_up_quantity"
+                                    placeholder="Enter quantity to add"
+                                    autocomplete="off"
+                                    required
+                                >
+                                <div class="form-text" data-stock-up-quantity-hint>Enter the amount to add to this chemical’s stock.</div>
+
+                                <hr class="my-3">
+
+                                <div>
+                                    <label for="stock-up-received-date" class="form-label small fw-semibold">Date received</label>
+                                    <input type="date" class="form-control" id="stock-up-received-date" name="received_date" value="">
+                                    <div class="form-text">Update the recorded received date if needed.</div>
+                                </div>
                             </section>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-boxes-stacked me-2"></i>Stock up</button>
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-boxes-stacked me-2"></i>Update</button>
                         </div>
                     </form>
                 </div>
@@ -747,8 +777,11 @@
                 const newSupplierEmail = modal.querySelector('[data-new-supplier-email]');
                 const receivedDate = modal.querySelector('[data-stock-up-date]');
                 const current = modal.querySelector('[data-stock-up-current]');
-                const unit = modal.querySelector('[data-stock-up-unit]');
                 const quantity = modal.querySelector('#stock-up-quantity');
+                const quantityHint = modal.querySelector('[data-stock-up-quantity-hint]');
+                const receivedDateInput = modal.querySelector('#stock-up-received-date');
+                const modeAdd = modal.querySelector('#stock-up-mode-add');
+                const modeDeduct = modal.querySelector('#stock-up-mode-deduct');
                 const feedback = modal.querySelector('[data-stock-up-feedback]');
                 const submitButton = form.querySelector('[type="submit"]');
                 const confirmationModal = document.getElementById('stock-up-confirm-modal');
@@ -769,20 +802,14 @@
                         let settled = false;
                         const confirmationInstance = bootstrap.Modal.getOrCreateInstance(confirmationModal);
                         const handleHidden = () => {
-                            if (settled) {
-                                return;
-                            }
-
+                            if (settled) return;
                             settled = true;
                             resolve(false);
                         };
 
                         confirmationModal.addEventListener('hidden.bs.modal', handleHidden, { once: true });
                         confirmationAcceptButton.onclick = () => {
-                            if (settled) {
-                                return;
-                            }
-
+                            if (settled) return;
                             settled = true;
                             confirmationModal.removeEventListener('hidden.bs.modal', handleHidden);
                             confirmationInstance.hide();
@@ -807,14 +834,20 @@
                     supplier.textContent = supplierSelect.selectedOptions[0]?.textContent?.trim() || 'Not set';
                 };
 
+                const currentUnit = () => activeTrigger?.dataset.stockUpUnit || 'unit';
+
+                const updateQuantityHint = () => {
+                    const isDeduct = modeDeduct?.checked;
+                    const verb = isDeduct ? 'deduct from' : 'add to';
+                    quantityHint.textContent = `Enter the amount to ${verb} this chemical’s stock in ${currentUnit()}.`;
+                    quantity.placeholder = isDeduct ? 'Enter quantity to deduct' : 'Enter quantity to add';
+                };
+
                 const requestJson = async (url, formData, method = 'POST') => {
                     const response = await fetch(url, {
                         method,
                         body: formData,
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     });
                     const payload = await response.json().catch(() => ({}));
 
@@ -833,10 +866,7 @@
                             `Set ${selectedSupplier} as the supplier for ${item.textContent.trim()}?`,
                             'Confirm supplier selection'
                         );
-
-                        if (!confirmed) {
-                            return false;
-                        }
+                        if (!confirmed) return false;
                     }
 
                     const supplierForm = new FormData();
@@ -854,10 +884,7 @@
 
                 modal.addEventListener('show.bs.modal', (event) => {
                     const trigger = event.relatedTarget;
-
-                    if (!trigger) {
-                        return;
-                    }
+                    if (!trigger) return;
 
                     activeTrigger = trigger;
                     form.action = trigger.dataset.stockUpUrl;
@@ -866,19 +893,33 @@
                     updateSupplierLabel();
                     receivedDate.textContent = trigger.dataset.stockUpDate;
                     current.textContent = trigger.dataset.stockUpCurrent;
-                    unit.textContent = trigger.dataset.stockUpUnit;
                     quantity.value = '';
+                    modeAdd.checked = true;
+                    receivedDateInput.value = trigger.dataset.stockUpDateIso || '';
+                    updateQuantityHint();
                     addPanel.classList.add('d-none');
                     clearFeedback();
                 });
 
                 modal.addEventListener('shown.bs.modal', () => quantity.focus());
                 supplierSelect.addEventListener('change', updateSupplierLabel);
+                modeAdd?.addEventListener('change', updateQuantityHint);
+                modeDeduct?.addEventListener('change', updateQuantityHint);
                 toggleAddButton.addEventListener('click', () => addPanel.classList.toggle('d-none'));
+
+                receivedDateInput?.addEventListener('change', () => {
+                    if (!receivedDateInput.value) {
+                        receivedDate.textContent = 'Not set';
+                        return;
+                    }
+                    const [year, month, day] = receivedDateInput.value.split('-').map(Number);
+                    receivedDate.textContent = new Date(year, month - 1, day).toLocaleDateString(undefined, {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                    });
+                });
 
                 saveSupplierButton.addEventListener('click', async () => {
                     saveSupplierButton.disabled = true;
-
                     try {
                         await saveSupplier();
                     } catch (error) {
@@ -898,13 +939,9 @@
                         `Add ${newSupplierName.value.trim()} as a new supplier and assign it to ${item.textContent.trim()}?`,
                         'Add and assign supplier'
                     );
-
-                    if (!confirmed) {
-                        return;
-                    }
+                    if (!confirmed) return;
 
                     addSupplierButton.disabled = true;
-
                     try {
                         const supplierForm = new FormData();
                         supplierForm.append('_token', form.querySelector('input[name="_token"]').value);
@@ -927,14 +964,15 @@
                 form.addEventListener('submit', async (event) => {
                     event.preventDefault();
 
+                    const amount = quantity.value.trim();
+                    const isDeduct = modeDeduct?.checked;
+                    const verb = isDeduct ? 'Deduct' : 'Add';
+
                     const confirmed = await askForConfirmation(
-                        `Add ${quantity.value.trim()} unit(s) to ${item.textContent.trim()}?`,
+                        `${verb} ${amount} ${currentUnit()} ${isDeduct ? 'from' : 'to'} ${item.textContent.trim()}?`,
                         'Confirm stock update'
                     );
-
-                    if (!confirmed) {
-                        return;
-                    }
+                    if (!confirmed) return;
 
                     submitButton.disabled = true;
                     clearFeedback();
@@ -943,10 +981,7 @@
                         const response = await fetch(form.action, {
                             method: 'POST',
                             body: new FormData(form),
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest',
-                            },
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                         });
                         const payload = await response.json().catch(() => ({}));
 
@@ -964,6 +999,9 @@
                         activeTrigger.dataset.stockUpCurrent = stockDisplay;
                         activeTrigger.dataset.stockUpSupplierId = payload.supplier_id || '';
                         activeTrigger.dataset.stockUpSupplier = payload.supplier_name || 'Not set';
+                        activeTrigger.dataset.stockUpDate = payload.received_date_formatted || activeTrigger.dataset.stockUpDate;
+                        activeTrigger.dataset.stockUpDateIso = payload.received_date_iso || activeTrigger.dataset.stockUpDateIso;
+                        receivedDate.textContent = activeTrigger.dataset.stockUpDate;
                         supplierSelect.value = payload.supplier_id || '';
                         supplier.textContent = payload.supplier_name || 'Not set';
                         current.textContent = stockDisplay;
@@ -984,10 +1022,7 @@
 
         (() => {
             const scope = document.querySelector('[data-barcode-selection="chemicals"]');
-
-            if (!scope) {
-                return;
-            }
+            if (!scope) return;
 
             const storageKey = scope.dataset.barcodeStorageKey;
             let selectedIds = new Set();
@@ -1001,9 +1036,7 @@
             const saveSelection = () => {
                 try {
                     sessionStorage.setItem(storageKey, JSON.stringify([...selectedIds]));
-                } catch (error) {
-                    // Continue without persistence when browser storage is unavailable.
-                }
+                } catch (error) {}
             };
 
             const syncScope = (currentScope) => {
@@ -1031,13 +1064,8 @@
                 const submit = currentScope.querySelector('[data-barcode-submit]');
                 const count = currentScope.querySelector('[data-barcode-count]');
 
-                if (submit) {
-                    submit.disabled = selectedCount === 0;
-                }
-
-                if (count) {
-                    count.textContent = selectedCount;
-                }
+                if (submit) submit.disabled = selectedCount === 0;
+                if (count) count.textContent = selectedCount;
 
                 if (selectAll) {
                     const currentPageSelected = items.filter((item) => item.checked).length;
@@ -1049,10 +1077,7 @@
             document.addEventListener('change', (event) => {
                 const control = event.target.closest('[data-barcode-select-all], [data-barcode-item]');
                 const currentScope = control?.closest('[data-barcode-selection="chemicals"]');
-
-                if (!currentScope) {
-                    return;
-                }
+                if (!currentScope) return;
 
                 const items = [...currentScope.querySelectorAll('[data-barcode-item]')];
 

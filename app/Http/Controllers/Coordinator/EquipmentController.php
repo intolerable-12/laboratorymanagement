@@ -253,36 +253,78 @@ class EquipmentController extends Controller
     {
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'integer', 'min:1'],
-            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'stock_up_mode'     => ['required', 'in:add,deduct'],
+            'purchase_date'     => ['nullable', 'date'],
+            'supplier_id'       => ['nullable', 'exists:suppliers,id'],
         ]);
 
-        DB::transaction(function () use ($equipment, $data, $request): void {
-            $equipment = Equipment::query()->lockForUpdate()->findOrFail($equipment->getKey());
-            $stockUpQuantity = (int) $data['stock_up_quantity'];
-            $previousAvailableQuantity = (int) $equipment->available_quantity;
-            $supplierId = $data['supplier_id'] ?? null;
+        $mode = $data['stock_up_mode'];
 
-            $equipment->update([
-                'quantity' => (int) $equipment->quantity + $stockUpQuantity,
-                'available_quantity' => $previousAvailableQuantity + $stockUpQuantity,
-                'supplier_id' => $supplierId,
-                'supplier_alert_sent_at' => (int) ($equipment->supplier_id ?? 0) === (int) ($supplierId ?? 0)
-                    ? $equipment->supplier_alert_sent_at
-                    : null,
-            ]);
+        try {
+            DB::transaction(function () use ($equipment, $data, $request, $mode): void {
+                $equipment = Equipment::query()->lockForUpdate()->findOrFail($equipment->getKey());
+                $amount = (int) $data['stock_up_quantity'];
+                $previousAvailableQuantity = (int) $equipment->available_quantity;
+                $previousTotalQuantity = (int) $equipment->quantity;
 
-            app(InventoryTraceabilityLogger::class)->record(
-                item: $equipment,
-                quantityBefore: $previousAvailableQuantity,
-                quantityAfter: (int) $equipment->available_quantity,
-                performedBy: (int) $request->user()->userNo,
-                remarks: 'Equipment stock increased by the coordinator.',
-            );
-        });
+                if ($mode === 'deduct' && $amount > $previousAvailableQuantity) {
+                    throw ValidationException::withMessages([
+                        'stock_up_quantity' => "Cannot deduct {$amount} unit(s). Only {$previousAvailableQuantity} available.",
+                    ]);
+                }
+
+                $supplierId = $data['supplier_id'] ?? null;
+
+                $newTotal = $mode === 'deduct'
+                    ? max(0, $previousTotalQuantity - $amount)
+                    : $previousTotalQuantity + $amount;
+
+                $newAvailable = $mode === 'deduct'
+                    ? max(0, $previousAvailableQuantity - $amount)
+                    : $previousAvailableQuantity + $amount;
+
+                $updates = [
+                    'quantity' => $newTotal,
+                    'available_quantity' => $newAvailable,
+                    'supplier_id' => $supplierId,
+                    'supplier_alert_sent_at' => (int) ($equipment->supplier_id ?? 0) === (int) ($supplierId ?? 0)
+                        ? $equipment->supplier_alert_sent_at
+                        : null,
+                ];
+
+                if (! empty($data['purchase_date'])) {
+                    $updates['purchase_date'] = $data['purchase_date'];
+                }
+
+                $equipment->update($updates);
+
+                app(InventoryTraceabilityLogger::class)->record(
+                    item: $equipment,
+                    quantityBefore: $previousAvailableQuantity,
+                    quantityAfter: (int) $equipment->available_quantity,
+                    performedBy: (int) $request->user()->userNo,
+                    remarks: $mode === 'deduct'
+                        ? 'Equipment stock decreased by the coordinator.'
+                        : 'Equipment stock increased by the coordinator.',
+                );
+            });
+        } catch (ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         $equipment->refresh();
         $equipment->load('supplier');
-        $message = 'Equipment stock increased successfully.';
+
+        $message = $mode === 'deduct'
+            ? 'Equipment stock decreased successfully.'
+            : 'Equipment stock increased successfully.';
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -293,6 +335,8 @@ class EquipmentController extends Controller
                 'supplier_name' => $equipment->supplier?->supplier_name,
                 'low_stock' => $equipment->low_stock_threshold !== null
                     && (int) $equipment->available_quantity <= (int) $equipment->low_stock_threshold,
+                'purchase_date_iso' => $equipment->purchase_date?->format('Y-m-d'),
+                'purchase_date_formatted' => $equipment->purchase_date?->format('F j, Y') ?? 'Not set',
             ]);
         }
 

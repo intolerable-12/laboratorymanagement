@@ -491,11 +491,11 @@
                                     </td>
                                     <td>{{ $equipment->category->category_name ?? '-' }}</td>
                                     <td>{{ $equipment->laboratory->laboratory_name ?? '-' }}</td>
-                                    <td>
+                                    <td class="text-center">
                                         @if (!$archived && !$isReadOnly)
                                             <button
                                                 type="button"
-                                                class="btn text-start text-decoration-none stock-up-trigger"
+                                                class="btn text-start text-decoration-none stock-up-trigger d-inline-block w-auto p-0 lh-sm"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#stock-up-modal"
                                                 data-stock-up-url="{{ route('coordinator.equipment.stock-up', array_merge(['equipment' => $equipment], $listQuery)) }}"
@@ -505,10 +505,13 @@
                                                 data-stock-up-supplier-id="{{ $equipment->supplier_id }}"
                                                 data-stock-up-supplier-url="{{ route('coordinator.equipment.supplier.update', array_merge(['equipment' => $equipment], $listQuery)) }}"
                                                 data-stock-up-date="{{ $equipment->purchase_date?->format('F j, Y') ?? 'Not set' }}"
+                                                data-stock-up-date-iso="{{ $equipment->purchase_date?->format('Y-m-d') ?? '' }}"
                                                 aria-label="Stock up {{ $equipment->equipment_name }}"
                                             >
                                                 <span class="d-block fw-semibold text-dark" data-stock-up-display>{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</span>
-                                                <span class="d-block small text-primary fw-semibold"><i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Click to stock up</span>
+                                                <span class="d-block small text-primary fw-semibold">
+                                                    <i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>update
+                                                </span>
                                             </button>
                                         @else
                                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
@@ -616,7 +619,7 @@
                                 </div>
                                 <div class="stock-up-info-card">
                                     <div class="stock-up-info-card__label">Date of purchase</div>
-                                    <div class="stock-up-info-card__value" data-stock-up-date></div>
+                                    <div class="stock-up-info-card__value" data-stock-up-date>Not set</div>
                                 </div>
                                 <div class="stock-up-info-card">
                                     <div class="stock-up-info-card__label">Current quantity</div>
@@ -659,18 +662,36 @@
                                 <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                     <div>
                                         <div class="stock-up-section__eyebrow">Inventory update</div>
-                                        <h6 class="stock-up-section__title mb-0" id="equipment-quantity-heading">Quantity to add</h6>
+                                        <h6 class="stock-up-section__title mb-0" id="equipment-quantity-heading">Adjust quantity</h6>
                                     </div>
-                                    <span class="badge text-bg-primary">Required</span>
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Update mode">
+                                        <input type="radio" class="btn-check" name="stock_up_mode" id="stock-up-mode-add" value="add" checked>
+                                        <label class="btn btn-outline-success" for="stock-up-mode-add">
+                                            <i class="fa-solid fa-plus me-1"></i>Add
+                                        </label>
+                                        <input type="radio" class="btn-check" name="stock_up_mode" id="stock-up-mode-deduct" value="deduct">
+                                        <label class="btn btn-outline-danger" for="stock-up-mode-deduct">
+                                            <i class="fa-solid fa-minus me-1"></i>Deduct
+                                        </label>
+                                    </div>
                                 </div>
-                                <label for="stock-up-quantity" class="visually-hidden">Quantity to add</label>
+
+                                <label for="stock-up-quantity" class="visually-hidden">Quantity</label>
                                 <input type="text" inputmode="numeric" pattern="[0-9]+" class="form-control form-control-lg" id="stock-up-quantity" name="stock_up_quantity" placeholder="Enter quantity to add" autocomplete="off" required>
-                            <div class="form-text">Enter the number of units to add to this equipment’s stock.</div>
+                                <div class="form-text" data-stock-up-quantity-hint>Enter the number of units to add to this equipment’s stock.</div>
+
+                                <hr class="my-3">
+
+                                <div>
+                                    <label for="stock-up-purchase-date" class="form-label small fw-semibold">Date of purchase</label>
+                                    <input type="date" class="form-control" id="stock-up-purchase-date" name="purchase_date" value="">
+                                    <div class="form-text">Update the recorded purchase date if needed.</div>
+                                </div>
                             </section>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-boxes-stacked me-2"></i>Stock up</button>
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-boxes-stacked me-2"></i>Update</button>
                         </div>
                     </form>
                 </div>
@@ -722,6 +743,10 @@
                 const confirmationTitle = confirmationModal?.querySelector('[data-stock-up-confirm-title]');
                 const confirmationMessage = confirmationModal?.querySelector('[data-stock-up-confirm-message]');
                 const confirmationAcceptButton = confirmationModal?.querySelector('[data-stock-up-confirm-accept]');
+                const quantityHint = modal.querySelector('[data-stock-up-quantity-hint]');
+                const purchaseDateInput = modal.querySelector('#stock-up-purchase-date');
+                const modeAdd = modal.querySelector('#stock-up-mode-add');
+                const modeDeduct = modal.querySelector('#stock-up-mode-deduct');
                 let activeTrigger = null;
 
                 const askForConfirmation = (message, title = 'Confirm action') => {
@@ -768,6 +793,14 @@
                 const clearFeedback = () => {
                     feedback.className = 'alert d-none py-2';
                     feedback.textContent = '';
+                };
+
+                const updateQuantityHint = () => {
+                    const isDeduct = modeDeduct?.checked;
+                    quantityHint.textContent = isDeduct
+                        ? 'Enter the number of units to deduct from this equipment’s stock.'
+                        : 'Enter the number of units to add to this equipment’s stock.';
+                    quantity.placeholder = isDeduct ? 'Enter quantity to deduct' : 'Enter quantity to add';
                 };
 
                 const updateSupplierLabel = () => {
@@ -834,12 +867,18 @@
                     purchaseDate.textContent = trigger.dataset.stockUpDate;
                     current.textContent = trigger.dataset.stockUpCurrent;
                     quantity.value = '';
+                    modeAdd.checked = true;
+                    updateQuantityHint();
+                    purchaseDateInput.value = trigger.dataset.stockUpDateIso || '';
+
                     addPanel.classList.add('d-none');
                     clearFeedback();
                 });
 
                 modal.addEventListener('shown.bs.modal', () => quantity.focus());
                 supplierSelect.addEventListener('change', updateSupplierLabel);
+                modeAdd?.addEventListener('change', updateQuantityHint);
+                modeDeduct?.addEventListener('change', updateQuantityHint);
                 toggleAddButton.addEventListener('click', () => addPanel.classList.toggle('d-none'));
 
                 saveSupplierButton.addEventListener('click', async () => {
@@ -893,8 +932,12 @@
                 form.addEventListener('submit', async (event) => {
                     event.preventDefault();
 
+                    const amount = quantity.value.trim();
+                    const isDeduct = modeDeduct?.checked;
+                    const verb = isDeduct ? 'Deduct' : 'Add';
+
                     const confirmed = await askForConfirmation(
-                        `Add ${quantity.value.trim()} unit(s) to ${item.textContent.trim()}?`,
+                        `${verb} ${amount} unit(s) ${isDeduct ? 'from' : 'to'} ${item.textContent.trim()}?`,
                         'Confirm stock update'
                     );
 
@@ -930,9 +973,13 @@
                         supplierSelect.value = payload.supplier_id || '';
                         supplier.textContent = payload.supplier_name || 'Not set';
                         current.textContent = activeTrigger.dataset.stockUpCurrent;
+                        activeTrigger.dataset.stockUpDate = payload.purchase_date_formatted || activeTrigger.dataset.stockUpDate;
+                        activeTrigger.dataset.stockUpDateIso = payload.purchase_date_iso || activeTrigger.dataset.stockUpDateIso;
+                        purchaseDate.textContent = activeTrigger.dataset.stockUpDate;
                         activeTrigger.closest('tr')?.querySelector('[data-stock-up-low-stock]')?.classList.toggle('d-none', !payload.low_stock);
                         bootstrap.Modal.getOrCreateInstance(modal).hide();
                     } catch (error) {
+                        console.error('Stock-up submit failed:', error);
                         showFeedback(error.message);
                         submitButton.disabled = false;
                     }
