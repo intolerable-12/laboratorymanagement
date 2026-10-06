@@ -291,38 +291,76 @@ class ChemicalController extends Controller
     {
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
-            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'stock_up_mode'     => ['required', 'in:add,deduct'],
+            'received_date'     => ['nullable', 'date'],
+            'supplier_id'       => ['nullable', 'exists:suppliers,id'],
         ]);
 
-        DB::transaction(function () use ($chemical, $data, $request): void {
-            $chemical = Chemical::query()->lockForUpdate()->findOrFail($chemical->getKey());
-            $stockUpQuantity = round((float) $data['stock_up_quantity'], 2);
-            $previousQuantity = (float) $chemical->quantity;
-            $supplierId = $data['supplier_id'] ?? null;
+        $mode = $data['stock_up_mode'];
 
-            $chemical->update([
-                'quantity' => round($previousQuantity + $stockUpQuantity, 2),
-                'supplier_id' => $supplierId,
-                'supplier_alert_sent_at' => (int) ($chemical->supplier_id ?? 0) === (int) ($supplierId ?? 0)
-                    ? $chemical->supplier_alert_sent_at
-                    : null,
-                'low_stock_supplier_alert_sent_at' => (int) ($chemical->supplier_id ?? 0) === (int) ($supplierId ?? 0)
-                    ? $chemical->low_stock_supplier_alert_sent_at
-                    : null,
-            ]);
+        try {
+            DB::transaction(function () use ($chemical, $data, $request, $mode): void {
+                $chemical = Chemical::query()->lockForUpdate()->findOrFail($chemical->getKey());
+                $amount = round((float) $data['stock_up_quantity'], 2);
+                $previousQuantity = (float) $chemical->quantity;
 
-            app(InventoryTraceabilityLogger::class)->record(
-                item: $chemical,
-                quantityBefore: $previousQuantity,
-                quantityAfter: (float) $chemical->quantity,
-                performedBy: (int) $request->user()->userNo,
-                remarks: 'Chemical stock increased by the coordinator.',
-            );
-        });
+                if ($mode === 'deduct' && $amount > $previousQuantity) {
+                    throw ValidationException::withMessages([
+                        'stock_up_quantity' => "Cannot deduct {$amount} {$chemical->unit}. Only {$previousQuantity} {$chemical->unit} available.",
+                    ]);
+                }
+
+                $newQuantity = $mode === 'deduct'
+                    ? max(0, round($previousQuantity - $amount, 2))
+                    : round($previousQuantity + $amount, 2);
+
+                $supplierId = $data['supplier_id'] ?? null;
+                $supplierUnchanged = (int) ($chemical->supplier_id ?? 0) === (int) ($supplierId ?? 0);
+
+                $updates = [
+                    'quantity' => $newQuantity,
+                    'supplier_id' => $supplierId,
+                    'supplier_alert_sent_at' => $supplierUnchanged
+                        ? $chemical->supplier_alert_sent_at
+                        : null,
+                    'low_stock_supplier_alert_sent_at' => $supplierUnchanged
+                        ? $chemical->low_stock_supplier_alert_sent_at
+                        : null,
+                ];
+
+                if (! empty($data['received_date'])) {
+                    $updates['received_date'] = $data['received_date'];
+                }
+
+                $chemical->update($updates);
+
+                app(InventoryTraceabilityLogger::class)->record(
+                    item: $chemical,
+                    quantityBefore: $previousQuantity,
+                    quantityAfter: (float) $chemical->quantity,
+                    performedBy: (int) $request->user()->userNo,
+                    remarks: $mode === 'deduct'
+                        ? 'Chemical stock decreased by the coordinator.'
+                        : 'Chemical stock increased by the coordinator.',
+                );
+            });
+        } catch (ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         $chemical->refresh();
         $chemical->load('supplier');
-        $message = 'Chemical stock increased successfully.';
+
+        $message = $mode === 'deduct'
+            ? 'Chemical stock decreased successfully.'
+            : 'Chemical stock increased successfully.';
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -331,6 +369,8 @@ class ChemicalController extends Controller
                 'supplier_id' => $chemical->supplier_id,
                 'supplier_name' => $chemical->supplier?->supplier_name,
                 'low_stock' => (float) $chemical->quantity <= (float) $chemical->minimum_stock,
+                'received_date_iso' => $chemical->received_date?->format('Y-m-d'),
+                'received_date_formatted' => $chemical->received_date?->format('F j, Y') ?? 'Not set',
             ]);
         }
 
