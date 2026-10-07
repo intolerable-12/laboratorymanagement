@@ -30,7 +30,6 @@ class Feedback extends Model
         'reservation_id',
         'rating',
         'comments',
-        'visibility',
         'is_anonymous',
     ];
 

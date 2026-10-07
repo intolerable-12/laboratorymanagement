@@ -6,6 +6,11 @@ use App\Models\BorrowTransaction;
 use App\Models\Announcement;
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\Feedback;
+use App\Models\ForumComment;
+use App\Models\ForumPost;
+use App\Models\FeedbackQuestionnaire;
+use App\Models\FeedbackQuestionnaireResponse;
 use App\Models\Notification as UserNotification;
 use App\Mail\RequestReviewMail;
 use App\Models\Reservation;
@@ -90,6 +95,143 @@ class RequestNotificationService
             });
     }
 
+    public function emailUser(
+        User $user,
+        string $requestType,
+        string $requestNumber,
+        string $headline,
+        string $bodyMessage,
+        string $actionUrl,
+        string $actionLabel,
+        array $summaryRows = [],
+    ): void {
+        if (! $user->email) {
+            return;
+        }
+
+        Mail::to($user->email)->queue(new RequestReviewMail(
+            recipientName: $this->displayName($user),
+            requestType: $requestType,
+            requestNumber: $requestNumber,
+            headline: $headline,
+            bodyMessage: $bodyMessage,
+            actionUrl: $actionUrl,
+            actionLabel: $actionLabel,
+            summaryRows: $summaryRows,
+        ));
+    }
+
+    public function notifyForumPostCreated(ForumPost $forumPost, User $author): void
+    {
+        $authorName = $this->displayName($author);
+        $authorRole = $author->role?->role_name ?? 'User';
+        $title = 'New forum post';
+        $message = $authorRole . ' ' . $authorName . ' created a new forum post: "' . $forumPost->title . '".';
+
+        foreach (['Student', 'Instructor'] as $roleName) {
+            $this->notifyRoleUsers(
+                $roleName,
+                'System',
+                $title,
+                $message,
+                $forumPost,
+                $author->userNo,
+            );
+        }
+    }
+
+    public function notifyForumCommentCreated(ForumComment $comment, User $actor): void
+    {
+        $comment->loadMissing(['post.user.role', 'parent.user.role']);
+
+        $forumPost = $comment->post;
+        $postAuthor = $forumPost?->user;
+
+        if ($postAuthor
+            && $postAuthor->userNo !== $actor->userNo
+            && in_array($postAuthor->role?->role_name, ['Student', 'Instructor', 'Laboratory In-charge', 'Coordinator'], true)) {
+            $actorName = $this->displayName($actor);
+            $title = 'New comment on your forum post';
+            $message = $actorName . ' commented on your forum post: "' . $forumPost->title . '".';
+
+            $this->notifyUser($postAuthor, 'System', $title, $message, $forumPost);
+            $this->emailUser(
+                $postAuthor,
+                'Forum comment',
+                'Post #' . $forumPost->id,
+                $title,
+                $message . ' Open LabCentral to read the comment and reply.',
+                $this->forumPostUrl($forumPost, $postAuthor),
+                'View forum post',
+                [
+                    ['label' => 'Post', 'value' => $forumPost->title],
+                    ['label' => 'Commenter', 'value' => $actorName],
+                ],
+            );
+        }
+
+        $parentAuthor = $comment->parent?->user;
+
+        if ($parentAuthor
+            && $parentAuthor->userNo !== $actor->userNo
+            && $parentAuthor->userNo !== $postAuthor?->userNo) {
+            $message = $this->displayName($actor) . ' replied to your comment on "' . $forumPost->title . '".';
+
+            $this->notifyUser($parentAuthor, 'System', 'Someone replied to your comment', $message, $forumPost);
+        }
+    }
+
+    public function notifyQuestionnaireCreated(FeedbackQuestionnaire $questionnaire, User $creator): void
+    {
+        $title = 'New feedback questionnaire';
+        $message = 'Coordinator ' . $this->displayName($creator) . ' created a new questionnaire: "' . $questionnaire->topic . '".';
+        $actionUrl = route('coordinator.feedback.questionnaires.show', $questionnaire);
+
+        $this->notifyRoleUsers('Coordinator', 'System', $title, $message, $questionnaire);
+        $this->emailRoleUsers(
+            'Coordinator',
+            'Questionnaire',
+            'Questionnaire #' . $questionnaire->id,
+            $title,
+            $message . ' Review it in LabCentral.',
+            $actionUrl,
+            'Review questionnaire',
+            [
+                ['label' => 'Topic', 'value' => $questionnaire->topic],
+                ['label' => 'Status', 'value' => $questionnaire->is_active ? 'Active' : 'Inactive'],
+            ],
+        );
+    }
+
+    public function notifyQuestionnaireResponseSubmitted(FeedbackQuestionnaireResponse $response): void
+    {
+        $response->loadMissing(['questionnaire', 'user.role']);
+
+        $questionnaire = $response->questionnaire;
+        $respondent = $response->user;
+        $respondentName = $respondent ? $this->displayName($respondent) : 'A user';
+        $respondentRole = $respondent?->role?->role_name ?? 'User';
+        $title = 'New questionnaire response';
+        $message = $respondentRole . ' ' . $respondentName . ' submitted a response to "' . $questionnaire->topic . '".';
+        $actionUrl = route('coordinator.feedback.questionnaires.responses.show', [$questionnaire, $response]);
+
+        $this->notifyRoleUsers('Coordinator', 'System', $title, $message, $response);
+        $this->emailRoleUsers(
+            'Coordinator',
+            'Questionnaire response',
+            'Response #' . $response->id,
+            $title,
+            $message . ' Review the submitted answers in LabCentral.',
+            $actionUrl,
+            'Review response',
+            [
+                ['label' => 'Questionnaire', 'value' => $questionnaire->topic],
+                ['label' => 'Respondent', 'value' => $respondentName],
+                ['label' => 'Submitted', 'value' => $response->created_at?->format('M d, Y h:i A') ?? 'Just now'],
+            ],
+        );
+    }
+
     public function notifyRequester(Model $reference, string $type, string $title, string $message): void
     {
         $user = $this->requesterFor($reference);
@@ -153,6 +295,30 @@ class RequestNotificationService
                 : route('notifications.index');
         }
 
+        if ($reference instanceof Feedback) {
+            return $user->role?->role_name === 'Coordinator'
+                ? route('coordinator.feedback.show', $reference)
+                : route('notifications.index');
+        }
+
+        if ($reference instanceof ForumPost) {
+            return $this->forumPostUrl($reference, $user);
+        }
+
+        if ($reference instanceof FeedbackQuestionnaire) {
+            return $user->role?->role_name === 'Coordinator'
+                ? route('coordinator.feedback.questionnaires.show', $reference)
+                : route('notifications.index');
+        }
+
+        if ($reference instanceof FeedbackQuestionnaireResponse) {
+            $reference->loadMissing('questionnaire');
+
+            return $user->role?->role_name === 'Coordinator'
+                ? route('coordinator.feedback.questionnaires.responses.show', [$reference->questionnaire, $reference])
+                : route('notifications.index');
+        }
+
         if ($reference instanceof Reservation) {
             return match ($user->role?->role_name) {
                 'Coordinator' => route('coordinator.reservations.show', $reference),
@@ -205,5 +371,16 @@ class RequestNotificationService
         }
 
         return null;
+    }
+
+    private function forumPostUrl(ForumPost $forumPost, User $user): string
+    {
+        return match ($user->role?->role_name) {
+            'Coordinator' => route('coordinator.forum.show', $forumPost),
+            'Laboratory In-charge' => route('facilitator.forum.show', $forumPost),
+            'Instructor' => route('instructor.forum.show', $forumPost),
+            'Student' => route('student.forum.show', $forumPost),
+            default => route('notifications.index'),
+        };
     }
 }

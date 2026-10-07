@@ -14,11 +14,9 @@ class FeedbackController extends Controller
 
         $search = trim((string) $request->query('search', ''));
         $type = trim((string) $request->query('type', ''));
-        $visibility = trim((string) $request->query('visibility', ''));
 
         $feedbacks = Feedback::with(['user', 'laboratory', 'reservation'])
             ->when($type !== '', fn ($query) => $query->where('feedback_type', $type))
-            ->when($visibility !== '', fn ($query) => $query->where('visibility', $visibility))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($nestedQuery) use ($search) {
                     $nestedQuery->where('comments', 'like', '%' . $search . '%')
@@ -39,16 +37,13 @@ class FeedbackController extends Controller
 
         $stats = [
             'total' => Feedback::count(),
-            'public' => Feedback::where('visibility', 'Public')->count(),
-            'private' => Feedback::where('visibility', 'Private')->count(),
             'lab_service' => Feedback::where('feedback_type', 'Lab Service')->count(),
             'system' => Feedback::where('feedback_type', 'System')->count(),
         ];
 
         $types = ['Lab Service', 'System'];
-        $visibilities = ['Private', 'Public'];
 
-        return view('users.coordinator.feedback.index', compact('feedbacks', 'search', 'type', 'visibility', 'stats', 'types', 'visibilities'));
+        return view('users.coordinator.feedback.index', compact('feedbacks', 'search', 'type', 'stats', 'types'));
     }
 
     public function show(Request $request, Feedback $feedback)
@@ -58,17 +53,6 @@ class FeedbackController extends Controller
         $feedback->load(['user', 'laboratory', 'reservation']);
 
         return view('users.coordinator.feedback.show', compact('feedback'));
-    }
-
-    public function toggleVisibility(Request $request, Feedback $feedback)
-    {
-        $this->ensureCoordinator($request);
-
-        $feedback->update([
-            'visibility' => $feedback->visibility === 'Public' ? 'Private' : 'Public',
-        ]);
-
-        return back()->with('status', 'Feedback visibility updated successfully.');
     }
 
     private function ensureCoordinator(Request $request): void

@@ -26,7 +26,6 @@
                 <div class="card-body p-4 p-xl-5">
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <span class="category-chip">{{ $feedback->feedback_type }}</span>
-                        <span class="badge rounded-pill text-bg-{{ $feedback->visibility === 'Public' ? 'success' : 'secondary' }}">{{ $feedback->visibility }}</span>
                         <span class="badge rounded-pill text-bg-light text-dark border">{{ $feedback->is_anonymous ? 'Anonymous' : 'Named' }}</span>
                     </div>
 
@@ -56,7 +55,7 @@
                 <div class="card-body p-4 vstack gap-3">
                     <div>
                         <div class="social-eyebrow mb-2">Moderator actions</div>
-                        <h3 class="h5 fw-semibold mb-0 text-dark">Visibility controls</h3>
+                        <h3 class="h5 fw-semibold mb-0 text-dark">Feedback review</h3>
                     </div>
 
                     <div class="social-summary-card">
@@ -70,14 +69,9 @@
                     </div>
 
                     <div class="social-summary-card">
-                        <div class="small text-secondary">Current visibility</div>
-                        <div class="fw-semibold text-dark">{{ $feedback->visibility }}</div>
+                        <div class="small text-secondary">Access</div>
+                        <div class="fw-semibold text-dark">Coordinator only</div>
                     </div>
-
-                    <form method="POST" action="{{ route('coordinator.feedback.toggle-visibility', $feedback) }}">
-                        @csrf
-                        <button type="submit" class="btn btn-primary w-100 rounded-pill">Toggle visibility</button>
-                    </form>
                 </div>
             </div>
         </div>

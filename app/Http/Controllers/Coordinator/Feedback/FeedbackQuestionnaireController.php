@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Coordinator\Feedback;
 use App\Http\Controllers\Controller;
 use App\Models\FeedbackQuestionnaire;
 use App\Models\FeedbackQuestionnaireResponse;
+use App\Services\RequestNotificationService;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -51,7 +52,7 @@ class FeedbackQuestionnaireController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, RequestNotificationService $notificationService)
     {
         $this->ensureCoordinator($request);
 
@@ -86,6 +87,8 @@ class FeedbackQuestionnaireController extends Controller
 
             return $questionnaire;
         });
+
+        $notificationService->notifyQuestionnaireCreated($questionnaire, $request->user());
 
         return redirect()
             ->route('coordinator.feedback.questionnaires.show', $questionnaire)

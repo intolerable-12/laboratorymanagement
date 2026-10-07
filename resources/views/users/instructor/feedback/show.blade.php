@@ -33,7 +33,6 @@
                     <div class="card-body p-4 p-xl-5">
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             <span class="category-chip">{{ $feedback->feedback_type }}</span>
-                            <span class="badge rounded-pill text-bg-{{ $feedback->visibility === 'Public' ? 'success' : 'secondary' }}">{{ $feedback->visibility }}</span>
                             <span class="badge rounded-pill text-bg-light text-dark border">{{ $feedback->is_anonymous ? 'Anonymous' : 'Named' }}</span>
                         </div>
 
@@ -74,11 +73,6 @@
                         <div class="social-summary-card">
                             <div class="small text-secondary">Target</div>
                             <div class="fw-semibold text-dark">{{ $feedback->laboratory?->laboratory_name ?? 'System' }}</div>
-                        </div>
-
-                        <div class="social-summary-card">
-                            <div class="small text-secondary">Visibility</div>
-                            <div class="fw-semibold text-dark">{{ $feedback->visibility }}</div>
                         </div>
 
                         <div class="social-summary-card">

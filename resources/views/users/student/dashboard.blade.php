@@ -29,11 +29,16 @@
                     ['label' => 'Chemical Quantity', 'value' => $metrics['chemical_quantity'], 'note' => 'Grouped by unit: ml, g, and more'],
                     ['label' => 'Overdue Returns', 'value' => $metrics['overdue_returns'], 'note' => 'Active requests past due'],
                     ['label' => 'On-time Returns', 'value' => $metrics['on_time_returns'], 'note' => 'Return completion rate'],
+                    ['label' => 'Active Reservations', 'value' => $metrics['active_reservations'], 'note' => 'Approved upcoming bookings'],
+                    ['label' => 'Pending Reservations', 'value' => $metrics['pending_reservations'], 'note' => 'Awaiting approval'],
+                    ['label' => 'Unread Notifications', 'value' => $metrics['unread_notifications'], 'note' => 'Updates needing your attention'],
+                    ['label' => 'Feedback Submitted', 'value' => $metrics['feedback_submissions'], 'note' => 'Your coordinator-only feedback'],
+                    ['label' => 'Forum Contributions', 'value' => $metrics['forum_contributions'], 'note' => 'Posts and comments'],
                 ];
             @endphp
 
             @foreach ($metricCards as $metric)
-                <div class="col-12 col-sm-6 col-xl">
+                <div class="col-12 col-sm-6 col-xl-3">
                     <div class="card metric-card border-0 h-100 text-center">
                         <div class="card-body p-4">
                             <div class="h4 fw-semibold mb-1 text-dark">{{ $metric['label'] }}</div>
@@ -112,22 +117,25 @@
             <div class="col-lg-7">
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
-                        <h3 class="h4 fw-semibold mb-4 text-dark">Recent Activity</h3>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="h4 fw-semibold mb-0 text-dark">Recent Activity</h3>
+                            <a href="{{ route('notifications.index') }}" class="small text-decoration-none">View notifications</a>
+                        </div>
 
                         <div class="vstack gap-2">
-                            @foreach ([
-                                ['text' => 'Requested Microscope (Compound)', 'meta' => '2026-02-15 | Qty: 2', 'status' => 'Approved'],
-                                ['text' => 'Requested Digital pH Meter', 'meta' => '2026-02-16 | Qty: 1', 'status' => 'Pending'],
-                                ['text' => 'Requested Safety Goggles', 'meta' => '2026-02-16 | Qty: 10', 'status' => 'Pending'],
-                            ] as $activity)
+                            @forelse ($recentActivities as $activity)
                                 <div class="activity-item d-flex align-items-center justify-content-between gap-3">
-                                    <div>
-                                        <div class="fw-semibold text-dark">{{ $activity['text'] }}</div>
+                                    <div class="min-w-0">
+                                        <a href="{{ $activity['url'] }}" class="fw-semibold text-dark text-decoration-none d-block text-truncate" title="{{ $activity['text'] }}">
+                                            {{ $activity['text'] }}
+                                        </a>
                                         <div class="small text-secondary">{{ $activity['meta'] }}</div>
                                     </div>
                                     <span class="badge text-bg-light border text-secondary">{{ $activity['status'] }}</span>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="text-secondary small">No activity has been recorded yet.</div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -143,6 +151,7 @@
                             <a href="{{ route('student.reservations.calendar') }}" class="btn btn-outline-secondary">Reservation Calendar</a>
                             <a href="{{ route('student.borrow.create') }}" class="btn btn-outline-secondary">Borrow Equipment</a>
                             <a href="{{ route('student.borrow.calendar') }}" class="btn btn-outline-secondary">Borrow Calendar</a>
+                            <a href="{{ route('notifications.index') }}" class="btn btn-outline-secondary">View Notifications</a>
                         </div>
                     </div>
                 </div>

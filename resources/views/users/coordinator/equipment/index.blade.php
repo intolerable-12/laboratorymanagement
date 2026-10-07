@@ -41,6 +41,24 @@
 
 @section('content')
     <style>
+        .equipment-table .table-column-compact {
+            width: 7rem;
+            max-width: 7rem;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .equipment-table .table-column-compact .stock-up-trigger {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .equipment-table .table-column-compact .badge {
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
         .stock-up-trigger {
             min-width: 9rem;
             border: 1px solid #b6d4fe;
@@ -428,7 +446,7 @@
                                         <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
                                     </a>
                                 </th>
-                                <th scope="col">
+                                <th scope="col" class="table-column-compact">
                                     <a href="{{ $sortUrl('quantity') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                         <span>Quantity</span>
                                         <i class="fa-solid {{ $sortIcon('quantity') }} small"></i>
@@ -440,7 +458,7 @@
                                         <i class="fa-solid {{ $sortIcon('status') }} small"></i>
                                     </a>
                                 </th>
-                                <th scope="col">
+                                <th scope="col" class="table-column-compact">
                                     <a href="{{ $sortUrl('condition') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                         <span>Condition</span>
                                         <i class="fa-solid {{ $sortIcon('condition') }} small"></i>
@@ -491,7 +509,7 @@
                                     </td>
                                     <td>{{ $equipment->category->category_name ?? '-' }}</td>
                                     <td>{{ $equipment->laboratory->laboratory_name ?? '-' }}</td>
-                                    <td class="text-center">
+                                    <td class="text-center table-column-compact">
                                         @if (!$archived && !$isReadOnly)
                                             <button
                                                 type="button"
@@ -510,7 +528,7 @@
                                             >
                                                 <span class="d-block fw-semibold text-dark" data-stock-up-display>{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</span>
                                                 <span class="d-block small text-primary fw-semibold">
-                                                    <i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>update
+                                                    <i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>
                                                 </span>
                                             </button>
                                         @else
@@ -528,7 +546,7 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="table-column-compact">
                                         <span class="badge text-bg-light border text-dark">{{ $equipment->condition }}</span>
                                     </td>
                                     @if ($archived)

@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Student\Forum;
 use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
+use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ForumCommentController extends Controller
 {
-    public function store(Request $request, ForumPost $forumPost)
+    public function store(Request $request, ForumPost $forumPost, RequestNotificationService $notificationService)
     {
         $this->ensureStudent($request);
 
@@ -34,13 +35,15 @@ class ForumCommentController extends Controller
             ],
         ]);
 
-        ForumComment::create([
+        $comment = ForumComment::create([
             'post_id' => $forumPost->id,
             'user_no' => $request->user()->userNo,
             'parent_comment_id' => $data['parent_comment_id'] ?? null,
             'comment' => $data['comment'],
             'is_hidden' => false,
         ]);
+
+        $notificationService->notifyForumCommentCreated($comment, $request->user());
 
         return redirect()
             ->route('student.forum.show', $forumPost)

@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Feedback;
 use App\Models\FeedbackQuestionnaire;
 use App\Models\Laboratory;
+use App\Services\RequestNotificationService;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -18,11 +18,8 @@ class FeedbackController extends Controller
     {
         $this->ensureStudent($request);
 
-        $feedbacks = Feedback::with(['laboratory', 'reservation'])
-            ->where('user_no', $request->user()->userNo)
-            ->latest()
-            ->paginate(10);
-
+        // Submitted feedback is coordinator-only; retain an empty paginator for the shared page layout.
+        $feedbacks = Feedback::query()->whereKey(-1)->paginate(10);
         $studentNo = $request->user()->userNo;
 
         $questionnaires = FeedbackQuestionnaire::query()
@@ -46,7 +43,7 @@ class FeedbackController extends Controller
         return view('users.student.feedback.create', compact('laboratories'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, RequestNotificationService $notificationService)
     {
         $this->ensureStudent($request);
 
@@ -55,7 +52,6 @@ class FeedbackController extends Controller
             'laboratory_id' => ['nullable', 'exists:laboratories,id'],
             'rating' => ['required', 'integer', 'between:1,5'],
             'comments' => ['nullable', 'string', 'max:15000'],
-            'visibility' => ['required', Rule::in(['Private', 'Public'])],
             'is_anonymous' => ['nullable', 'boolean'],
         ]);
 
@@ -74,28 +70,48 @@ class FeedbackController extends Controller
             'reservation_id' => null,
             'rating' => $data['rating'],
             'comments' => $comments,
-            'visibility' => $data['visibility'],
             'is_anonymous' => $request->boolean('is_anonymous'),
         ]);
 
+        $feedback->load(['user', 'laboratory']);
+        $this->notifyCoordinators($notificationService, $feedback, 'Student');
+
         return redirect()
-            ->route('student.feedback.show', $feedback)
-            ->with('status', 'Feedback submitted successfully.');
-    }
-
-    public function show(Request $request, Feedback $feedback)
-    {
-        $this->ensureStudent($request);
-
-        abort_unless($feedback->user_no === $request->user()->userNo, 403);
-
-        $feedback->load(['laboratory', 'reservation']);
-
-        return view('users.student.feedback.show', compact('feedback'));
+            ->route('student.feedback.index')
+            ->with('status', 'Feedback submitted successfully. The coordinator has been notified.');
     }
 
     private function ensureStudent(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
+    }
+
+    private function notifyCoordinators(RequestNotificationService $notificationService, Feedback $feedback, string $submitterRole): void
+    {
+        $submitterName = $feedback->is_anonymous
+            ? 'Anonymous'
+            : ($feedback->user ? $notificationService->displayName($feedback->user) : 'Student');
+        $target = $feedback->laboratory?->laboratory_name ?? 'System';
+        $requestNumber = 'Feedback #' . $feedback->id;
+        $title = 'New feedback submitted';
+        $message = $submitterRole . ' ' . $submitterName . ' submitted ' . strtolower($feedback->feedback_type) . ' feedback for ' . $target . '.';
+        $actionUrl = route('coordinator.feedback.show', $feedback);
+
+        $notificationService->notifyRoleUsers('Coordinator', 'System', $title, $message, $feedback);
+        $notificationService->emailRoleUsers(
+            'Coordinator',
+            'Feedback',
+            $requestNumber,
+            $title,
+            $message . ' Please review it in LabCentral.',
+            $actionUrl,
+            'Review feedback',
+            [
+                ['label' => 'Submitted by', 'value' => $submitterName],
+                ['label' => 'Feedback type', 'value' => $feedback->feedback_type],
+                ['label' => 'Target', 'value' => $target],
+                ['label' => 'Rating', 'value' => $feedback->rating . '/5'],
+            ],
+        );
     }
 }

@@ -33,6 +33,24 @@
 
 @section('content')
     <style>
+        .equipment-table .table-column-compact {
+            width: 7rem;
+            max-width: 7rem;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .equipment-table .table-column-compact .stock-up-trigger {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .equipment-table .table-column-compact .badge {
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
         .stock-up-trigger {
             min-width: 10rem;
             border: 1px solid #b6d4fe;
@@ -432,7 +450,7 @@
                                     <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
                                 </a>
                             </th>
-                            <th scope="col">
+                            <th scope="col" class="table-column-compact">
                                 <a href="{{ $sortUrl('stock') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>Stock</span>
                                     <i class="fa-solid {{ $sortIcon('stock') }} small"></i>
@@ -444,7 +462,7 @@
                                     <i class="fa-solid {{ $sortIcon('status') }} small"></i>
                                 </a>
                             </th>
-                            <th scope="col">
+                            <th scope="col" class="table-column-compact">
                                 <a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>Hazard</span>
                                     <i class="fa-solid {{ $sortIcon('hazard') }} small"></i>
@@ -502,7 +520,7 @@
                                 </td>
                                 <td>{{ $chemical->category->category_name ?? '-' }}</td>
                                 <td>{{ $chemical->laboratory->laboratory_name ?? '-' }}</td>
-                                <td>
+                                <td class="table-column-compact">
                                     @if (!$archived && !$isReadOnly)
                                         <button
                                             type="button"
@@ -522,7 +540,7 @@
                                             aria-label="Stock up {{ $chemical->chemical_name }}"
                                         >
                                             <span class="d-block fw-semibold text-dark" data-stock-up-display>{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</span>
-                                            <span class="d-block small text-primary fw-semibold"><i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Update</span>
+                                            <span class="d-block small text-primary fw-semibold"><i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i></span>
                                         </button>
                                     @else
                                         <div class="fw-semibold text-dark">{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}</div>
@@ -537,7 +555,7 @@
                                         {{ $statusLabel }}
                                     </span>
                                 </td>
-                                <td>
+                                <td class="table-column-compact">
                                     <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
                                 </td>
                                 @if ($archived)

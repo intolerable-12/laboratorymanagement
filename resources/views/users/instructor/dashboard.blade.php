@@ -28,14 +28,7 @@
         ])
 
         <section class="row g-3 g-xl-4 mb-4">
-            @foreach ([
-                ['label' => 'Active Borrowings', 'value' => '2', 'note' => 'Currently borrowed'],
-                ['label' => 'Total Students', 'value' => '256', 'note' => 'Across all classes'],
-                ['label' => 'Pending Requests', 'value' => '2', 'note' => 'Awaiting approval'],
-                ['label' => 'Approved Requests', 'value' => '2', 'note' => 'Allowed student'],
-                ['label' => 'Forwarded Requests', 'value' => '2', 'note' => 'Coordinator approval'],
-                ['label' => 'Total Requests', 'value' => '3', 'note' => 'All time'],
-            ] as $metric)
+            @foreach ($metrics as $metric)
                 <div class="col-12 col-sm-6 col-xl-4">
                     <div class="card metric-card border-0 h-100">
                         <div class="card-body p-4">
@@ -53,28 +46,30 @@
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h3 class="h4 fw-semibold mb-0 text-dark">Equipment Usage by Class</h3>
-                            <span class="text-secondary small">This Month</span>
+                            <h3 class="h4 fw-semibold mb-0 text-dark">Equipment in Use by Category</h3>
+                            <span class="text-secondary small">Current inventory</span>
                         </div>
 
-                        <div class="vstack gap-4">
-                            @foreach ([
-                                ['class' => 'Nursing 1A', 'usage' => 82],
-                                ['class' => 'Nursing 2A', 'usage' => 76],
-                                ['class' => 'Nursing 3A', 'usage' => 68],
-                            ] as $row)
-                                <div>
-                                    <div class="d-flex align-items-center gap-3 mb-2">
-                                        <div class="fw-medium text-dark" style="width: 96px;">{{ $row['class'] }}</div>
-                                        <div class="flex-grow-1">
-                                            <div class="progress role-progress" style="height: 34px;">
-                                                <div class="progress-bar" style="width: {{ $row['usage'] }}%;"></div>
-                                            </div>
+                        @forelse ($equipmentUsage as $row)
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="fw-medium text-dark text-truncate" style="width: 150px;" title="{{ $row['category'] }}">
+                                        {{ $row['category'] }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="progress role-progress" style="height: 34px;" aria-label="{{ $row['category'] }} equipment usage">
+                                            <div class="progress-bar" style="width: {{ $row['usage'] }}%;"></div>
                                         </div>
                                     </div>
+                                    <div class="small text-secondary text-nowrap">{{ number_format($row['in_use']) }} / {{ number_format($row['total']) }}</div>
                                 </div>
-                            @endforeach
-                        </div>
+                                <div class="small text-secondary">{{ $row['usage'] }}% currently in use</div>
+                            </div>
+                        @empty
+                            <div class="text-center text-secondary py-5">
+                                No equipment records are available yet.
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -88,18 +83,26 @@
                         </div>
 
                         <div class="availability-chart d-flex align-items-center justify-content-center rounded-3 mb-4">
-                            <div class="availability-chart__ring"></div>
+                            <div
+                                class="availability-chart__ring"
+                                data-label="{{ $equipmentAvailability['available_percent'] }}%"
+                                style="--available-percent: {{ $equipmentAvailability['available_percent'] }}%;"
+                            ></div>
                         </div>
 
                         <div class="d-flex justify-content-center gap-4">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="legend-swatch legend-swatch--available"></span>
-                                <span class="text-secondary small">Available</span>
+                                <span class="text-secondary small">Available ({{ number_format($equipmentAvailability['available']) }})</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <span class="legend-swatch legend-swatch--inuse"></span>
-                                <span class="text-secondary small">In Use</span>
+                                <span class="text-secondary small">In use ({{ number_format($equipmentAvailability['in_use']) }})</span>
                             </div>
+                        </div>
+
+                        <div class="text-center small text-secondary mt-3">
+                            {{ number_format($equipmentAvailability['total']) }} total equipment units
                         </div>
 
                         <div class="mt-4">

@@ -327,7 +327,6 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                     });
 
                 Route::get('/{feedback}', [CoordinatorFeedbackController::class, 'show'])->whereNumber('feedback')->name('show');
-                Route::post('/{feedback}/toggle-visibility', [CoordinatorFeedbackController::class, 'toggleVisibility'])->whereNumber('feedback')->name('toggle-visibility');
             });
 
     });
@@ -424,7 +423,6 @@ Route::middleware(['auth', 'role:Student', 'audit'])
                         Route::post('/{feedbackQuestionnaire}', [StudentFeedbackQuestionnaireController::class, 'store'])->whereNumber('feedbackQuestionnaire')->name('store');
                     });
 
-                Route::get('/{feedback}', [StudentFeedbackController::class, 'show'])->whereNumber('feedback')->name('show');
             });
 
         Route::get('/my-account', [StudentMyAccountController::class, 'index'])->name('myaccount');
@@ -603,7 +601,6 @@ Route::middleware(['auth', 'role:Instructor', 'audit'])
                         Route::get('/{feedbackQuestionnaire}', [InstructorFeedbackQuestionnaireController::class, 'show'])->whereNumber('feedbackQuestionnaire')->name('show');
                         Route::post('/{feedbackQuestionnaire}', [InstructorFeedbackQuestionnaireController::class, 'store'])->whereNumber('feedbackQuestionnaire')->name('store');
                     });
-                Route::get('/{feedback}', [InstructorFeedbackController::class, 'show'])->whereNumber('feedback')->name('show');
             });
 
         Route::prefix('forum')

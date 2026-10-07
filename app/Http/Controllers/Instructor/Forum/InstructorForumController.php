@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Instructor\Forum;
 use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
+use App\Services\RequestNotificationService;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -54,7 +55,7 @@ class InstructorForumController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, RequestNotificationService $notificationService)
     {
         $this->ensureInstructor($request);
 
@@ -82,6 +83,8 @@ class InstructorForumController extends Controller
             'is_locked' => false,
             'is_hidden' => false,
         ]);
+
+        $notificationService->notifyForumPostCreated($forumPost, $request->user());
 
         return redirect()
             ->route('instructor.forum.show', $forumPost)
@@ -112,7 +115,7 @@ class InstructorForumController extends Controller
         return view('users.instructor.forum.show', compact('forumPost', 'commentTree'));
     }
 
-    public function storeComment(Request $request, ForumPost $forumPost)
+    public function storeComment(Request $request, ForumPost $forumPost, RequestNotificationService $notificationService)
     {
         $this->ensureInstructor($request);
 
@@ -135,13 +138,15 @@ class InstructorForumController extends Controller
             ],
         ]);
 
-        ForumComment::create([
+        $comment = ForumComment::create([
             'post_id' => $forumPost->id,
             'user_no' => $request->user()->userNo,
             'parent_comment_id' => $data['parent_comment_id'] ?? null,
             'comment' => $data['comment'],
             'is_hidden' => false,
         ]);
+
+        $notificationService->notifyForumCommentCreated($comment, $request->user());
 
         return redirect()
             ->route('instructor.forum.show', $forumPost)
