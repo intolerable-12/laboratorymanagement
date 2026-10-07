@@ -11,6 +11,7 @@ use App\Services\InventoryTraceabilityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Picqer\Barcode\BarcodeGenerator;
@@ -254,14 +255,16 @@ class EquipmentController extends Controller
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'integer', 'min:1'],
             'stock_up_mode'     => ['required', 'in:add,deduct'],
-            'purchase_date'     => ['nullable', 'date'],
+            'transaction_date'  => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'purchase_date'     => ['nullable', 'date', 'before_or_equal:today'],
             'supplier_id'       => ['nullable', 'exists:suppliers,id'],
         ]);
 
         $mode = $data['stock_up_mode'];
+        $transactionAt = Carbon::createFromFormat('!Y-m-d', $data['transaction_date']);
 
         try {
-            DB::transaction(function () use ($equipment, $data, $request, $mode): void {
+            DB::transaction(function () use ($equipment, $data, $request, $mode, $transactionAt): void {
                 $equipment = Equipment::query()->lockForUpdate()->findOrFail($equipment->getKey());
                 $amount = (int) $data['stock_up_quantity'];
                 $previousAvailableQuantity = (int) $equipment->available_quantity;
@@ -306,6 +309,7 @@ class EquipmentController extends Controller
                     remarks: $mode === 'deduct'
                         ? 'Equipment stock decreased by the coordinator.'
                         : 'Equipment stock increased by the coordinator.',
+                    performedAt: $transactionAt,
                 );
             });
         } catch (ValidationException $e) {
