@@ -31,22 +31,6 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card metric-card h-100">
                 <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Public</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['public'] }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
-                    <div class="small text-uppercase text-secondary mb-2">Private</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['private'] }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card metric-card h-100">
-                <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2">Lab / System</div>
                     <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['lab_service'] }} / {{ $stats['system'] }}</div>
                 </div>
@@ -68,16 +52,6 @@
                         <option value="">All</option>
                         @foreach ($types as $option)
                             <option value="{{ $option }}" @selected($type === $option)>{{ $option }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-6 col-lg-2">
-                    <label for="visibility" class="form-label fw-medium mb-1">Visibility</label>
-                    <select id="visibility" name="visibility" class="form-select social-input">
-                        <option value="">All</option>
-                        @foreach ($visibilities as $option)
-                            <option value="{{ $option }}" @selected($visibility === $option)>{{ $option }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -104,7 +78,6 @@
                     <div class="flex-grow-1 min-w-0">
                         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                             <span class="category-chip">{{ $feedback->feedback_type }}</span>
-                            <span class="badge rounded-pill text-bg-{{ $feedback->visibility === 'Public' ? 'success' : 'secondary' }}">{{ $feedback->visibility }}</span>
                             <span class="badge rounded-pill text-bg-light text-dark border">{{ $feedback->is_anonymous ? 'Anonymous' : 'Named' }}</span>
                         </div>
 

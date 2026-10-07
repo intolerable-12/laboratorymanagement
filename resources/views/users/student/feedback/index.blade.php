@@ -110,7 +110,6 @@
                                 <div class="flex-grow-1 min-w-0">
                                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                                         <span class="category-chip">{{ $feedback->feedback_type }}</span>
-                                        <span class="badge rounded-pill text-bg-{{ $feedback->visibility === 'Public' ? 'success' : 'secondary' }}">{{ $feedback->visibility }}</span>
                                         <span class="badge rounded-pill text-bg-light text-dark border">{{ $feedback->is_anonymous ? 'Anonymous' : 'Named' }}</span>
                                     </div>
 
@@ -120,7 +119,7 @@
                                             <div class="small text-secondary">Submitted {{ $feedback->created_at?->format('M d, Y h:i A') }}</div>
                                         </div>
 
-                                        <a href="{{ route('student.feedback.show', $feedback) }}" class="btn btn-outline-primary rounded-pill align-self-start">Open feedback</a>
+                                        <span class="small text-secondary align-self-start">Coordinator review only</span>
                                     </div>
 
                                     <div class="rating-compact mt-3">
@@ -137,8 +136,8 @@
                 @empty
                     <div class="card social-card border-0">
                         <div class="card-body p-5 text-center">
-                            <div class="display-6 mb-3">No feedback yet</div>
-                            <p class="text-secondary mb-4">Your submitted reviews will appear here as soon as you post them.</p>
+                            <div class="display-6 mb-3">Feedback is coordinator-only</div>
+                            <p class="text-secondary mb-4">Submitted feedback is sent directly to the coordinator for review.</p>
                             <a href="{{ route('student.feedback.create') }}" class="btn btn-primary rounded-pill px-4">Write feedback</a>
                         </div>
                     </div>
@@ -169,8 +168,8 @@
                         </div>
 
                         <div class="social-promo-item">
-                            <div class="fw-semibold text-dark">Public feedback appears in moderation</div>
-                            <div class="small text-secondary">Use a clear review tone so the coordinator can act quickly.</div>
+                            <div class="fw-semibold text-dark">Coordinator review</div>
+                            <div class="small text-secondary">Submitted feedback is visible only to coordinators.</div>
                         </div>
                     </div>
                 </div>

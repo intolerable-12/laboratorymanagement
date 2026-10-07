@@ -1328,21 +1328,33 @@ a.request-stepper-link:focus-visible {
 }
 
 .role-page .availability-chart__ring {
+    position: relative;
+    display: grid;
+    place-items: center;
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 2px solid #7d8795;
-    position: relative;
+    background: conic-gradient(
+        #5f7cff 0 var(--available-percent, 0%),
+        #ff9ac6 var(--available-percent, 0%) 100%
+    );
 }
 
-.role-page .availability-chart__ring::before,
-.role-page .availability-chart__ring::after {
+.role-page .availability-chart__ring::before {
     content: '';
     position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(45deg, transparent calc(50% - 1px), #7d8795 50%, transparent calc(50% + 1px)),
-        linear-gradient(-45deg, transparent calc(50% - 1px), #7d8795 50%, transparent calc(50% + 1px));
+    inset: 14px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.role-page .availability-chart__ring::after {
+    content: attr(data-label);
+    position: relative;
+    z-index: 1;
+    color: var(--role-text);
+    font-size: 1.15rem;
+    font-weight: 700;
 }
 
 .role-page .legend-swatch {
@@ -1353,11 +1365,11 @@ a.request-stepper-link:focus-visible {
 }
 
 .role-page .legend-swatch--available {
-    background: #a0a7b2;
+    background: #5f7cff;
 }
 
 .role-page .legend-swatch--inuse {
-    background: #8d94a0;
+    background: #ff9ac6;
 }
 
 .role-page .activity-item {

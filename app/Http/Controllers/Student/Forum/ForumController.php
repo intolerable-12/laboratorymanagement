@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student\Forum;
 use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
+use App\Services\RequestNotificationService;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -54,7 +55,7 @@ class ForumController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, RequestNotificationService $notificationService)
     {
         $this->ensureStudent($request);
 
@@ -82,6 +83,8 @@ class ForumController extends Controller
             'is_locked' => false,
             'is_hidden' => false,
         ]);
+
+        $notificationService->notifyForumPostCreated($forumPost, $request->user());
 
         return redirect()
             ->route('student.forum.show', $forumPost)

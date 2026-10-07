@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student\Feedback;
 use App\Http\Controllers\Controller;
 use App\Models\FeedbackQuestionnaire;
 use App\Models\FeedbackQuestionnaireResponse;
+use App\Services\RequestNotificationService;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class FeedbackQuestionnaireController extends Controller
         return view('users.student.feedback.questionnaires.show', compact('feedbackQuestionnaire', 'response'));
     }
 
-    public function store(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire)
+    public function store(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire, RequestNotificationService $notificationService)
     {
         $this->ensureStudent($request);
 
@@ -124,7 +125,7 @@ class FeedbackQuestionnaireController extends Controller
             $normalizedAnswers[$question->id] = $sanitizedAnswer;
         }
 
-        DB::transaction(function () use ($feedbackQuestionnaire, $studentNo, $normalizedAnswers) {
+        $response = DB::transaction(function () use ($feedbackQuestionnaire, $studentNo, $normalizedAnswers) {
             $response = FeedbackQuestionnaireResponse::create([
                 'feedback_questionnaire_id' => $feedbackQuestionnaire->id,
                 'user_no' => $studentNo,
@@ -143,7 +144,11 @@ class FeedbackQuestionnaireController extends Controller
                     'raw_answer' => $question->question_type === 'raw' ? $submittedValue : null,
                 ]);
             }
+
+            return $response;
         });
+
+        $notificationService->notifyQuestionnaireResponseSubmitted($response);
 
         return redirect()
             ->route('student.feedback.questionnaires.show', $feedbackQuestionnaire)

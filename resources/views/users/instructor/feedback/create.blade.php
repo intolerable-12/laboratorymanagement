@@ -17,7 +17,7 @@
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Feedback composer</div>
                     <h2 class="display-6 fw-semibold mb-3 text-dark">Write feedback that reads like a real review</h2>
-                    <p class="lead text-secondary mb-0">Use rich text, choose the right visibility, and explain the experience clearly.</p>
+                    <p class="lead text-secondary mb-0">Explain the experience clearly so the coordinator can review it.</p>
                 </div>
                 <a href="{{ route('instructor.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Back to feedback</a>
             </div>
@@ -65,15 +65,6 @@
                                     @error('rating')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label for="visibility" class="form-label fw-semibold text-dark">Visibility</label>
-                                    <select id="visibility" name="visibility" class="form-select social-input @error('visibility') is-invalid @enderror" required>
-                                        <option value="Private" @selected(old('visibility', 'Private') === 'Private')>Private</option>
-                                        <option value="Public" @selected(old('visibility') === 'Public')>Public</option>
-                                    </select>
-                                    @error('visibility')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                </div>
-
                                 <div class="col-md-4 d-flex align-items-end">
                                     <div class="form-check mt-4">
                                         <input type="checkbox" id="is_anonymous" name="is_anonymous" value="1" class="form-check-input" @checked(old('is_anonymous'))>
@@ -118,8 +109,8 @@
                         </div>
 
                         <div class="social-promo-item">
-                            <div class="fw-semibold text-dark">Choose public or private</div>
-                            <div class="small text-secondary">Set visibility based on whether the feedback should be seen by everyone.</div>
+                            <div class="fw-semibold text-dark">Coordinator review</div>
+                            <div class="small text-secondary">Only coordinators can view submitted feedback.</div>
                         </div>
                     </div>
                 </div>

@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\ForumPost;
+use App\Models\FeedbackQuestionnaire;
+use App\Models\FeedbackQuestionnaireResponse;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Observers\EquipmentObserver;
@@ -36,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
         Relation::morphMap([
             'Equipment' => Equipment::class,
             'Chemical' => Chemical::class,
+            'ForumPost' => ForumPost::class,
+            'FeedbackQuestionnaire' => FeedbackQuestionnaire::class,
+            'FeedbackQuestionnaireResponse' => FeedbackQuestionnaireResponse::class,
         ]);
 
         Equipment::observe(EquipmentObserver::class);
