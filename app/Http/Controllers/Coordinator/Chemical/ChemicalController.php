@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Picqer\Barcode\BarcodeGenerator;
 use Picqer\Barcode\BarcodeGeneratorSVG;
@@ -292,14 +293,16 @@ class ChemicalController extends Controller
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'stock_up_mode'     => ['required', 'in:add,deduct'],
+            'transaction_date'  => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'received_date'     => ['nullable', 'date'],
             'supplier_id'       => ['nullable', 'exists:suppliers,id'],
         ]);
 
         $mode = $data['stock_up_mode'];
+        $transactionAt = Carbon::createFromFormat('!Y-m-d', $data['transaction_date']);
 
         try {
-            DB::transaction(function () use ($chemical, $data, $request, $mode): void {
+            DB::transaction(function () use ($chemical, $data, $request, $mode, $transactionAt): void {
                 $chemical = Chemical::query()->lockForUpdate()->findOrFail($chemical->getKey());
                 $amount = round((float) $data['stock_up_quantity'], 2);
                 $previousQuantity = (float) $chemical->quantity;
@@ -342,6 +345,7 @@ class ChemicalController extends Controller
                     remarks: $mode === 'deduct'
                         ? 'Chemical stock decreased by the coordinator.'
                         : 'Chemical stock increased by the coordinator.',
+                    performedAt: $transactionAt,
                 );
             });
         } catch (ValidationException $e) {

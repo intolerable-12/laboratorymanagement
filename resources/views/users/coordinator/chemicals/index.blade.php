@@ -639,7 +639,7 @@
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" data-stock-up-form data-stock-up-quick-store-url="{{ route('coordinator.suppliers.quick-store') }}">
+                    <form method="POST" data-stock-up-form data-required-indicators="manual" data-stock-up-quick-store-url="{{ route('coordinator.suppliers.quick-store') }}">
                         @csrf
                         @method('PATCH')
                         <div class="modal-body">
@@ -723,6 +723,12 @@
 
                                 <hr class="my-3">
 
+                                <div class="mb-3">
+                                    <label for="stock-up-transaction-date" class="form-label small fw-semibold">Transaction date</label>
+                                    <input type="date" class="form-control" id="stock-up-transaction-date" name="transaction_date" value="{{ today()->toDateString() }}" max="{{ today()->toDateString() }}" required>
+                                    <div class="form-text">The date this stock addition or deduction happened.</div>
+                                </div>
+
                                 <div>
                                     <label for="stock-up-received-date" class="form-label small fw-semibold">Date received</label>
                                     <input type="date" class="form-control" id="stock-up-received-date" name="received_date" value="">
@@ -758,6 +764,26 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="stock-up-success-modal" tabindex="-1" aria-labelledby="stock-up-success-modal-label" aria-describedby="stock-up-success-message" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header bg-success-subtle border-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-success fs-4" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+                            <h5 class="modal-title" id="stock-up-success-modal-label">Stock updated successfully</h5>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2" id="stock-up-success-message" data-stock-up-success-message></p>
+                        <div class="small text-secondary" data-stock-up-success-total></div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-success" data-bs-dismiss="modal">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
     <script>
@@ -779,6 +805,7 @@
                 const current = modal.querySelector('[data-stock-up-current]');
                 const quantity = modal.querySelector('#stock-up-quantity');
                 const quantityHint = modal.querySelector('[data-stock-up-quantity-hint]');
+                const transactionDateInput = modal.querySelector('#stock-up-transaction-date');
                 const receivedDateInput = modal.querySelector('#stock-up-received-date');
                 const modeAdd = modal.querySelector('#stock-up-mode-add');
                 const modeDeduct = modal.querySelector('#stock-up-mode-deduct');
@@ -788,6 +815,9 @@
                 const confirmationTitle = confirmationModal?.querySelector('[data-stock-up-confirm-title]');
                 const confirmationMessage = confirmationModal?.querySelector('[data-stock-up-confirm-message]');
                 const confirmationAcceptButton = confirmationModal?.querySelector('[data-stock-up-confirm-accept]');
+                const successModal = document.getElementById('stock-up-success-modal');
+                const successMessage = successModal?.querySelector('[data-stock-up-success-message]');
+                const successTotal = successModal?.querySelector('[data-stock-up-success-total]');
                 let activeTrigger = null;
 
                 const askForConfirmation = (message, title = 'Confirm action') => {
@@ -828,6 +858,31 @@
                 const clearFeedback = () => {
                     feedback.className = 'alert d-none py-2';
                     feedback.textContent = '';
+                };
+
+                const showSuccessModal = ({ amount, isDeduct, total, unit }) => {
+                    if (!successModal || !successMessage || !successTotal) {
+                        bootstrap.Modal.getOrCreateInstance(modal).hide();
+                        return;
+                    }
+
+                    const formattedAmount = Number(amount).toLocaleString(undefined, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                    });
+                    const formattedTotal = Number(total).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    });
+                    const action = isDeduct ? 'deducted from' : 'added to';
+
+                    successMessage.textContent = `${formattedAmount} ${unit} was ${action} ${item.textContent.trim()}.`;
+                    successTotal.textContent = `Updated stock: ${formattedTotal} ${unit}`;
+
+                    modal.addEventListener('hidden.bs.modal', () => {
+                        bootstrap.Modal.getOrCreateInstance(successModal).show();
+                    }, { once: true });
+                    bootstrap.Modal.getOrCreateInstance(modal).hide();
                 };
 
                 const updateSupplierLabel = () => {
@@ -895,6 +950,7 @@
                     current.textContent = trigger.dataset.stockUpCurrent;
                     quantity.value = '';
                     modeAdd.checked = true;
+                    transactionDateInput.value = transactionDateInput.defaultValue;
                     receivedDateInput.value = trigger.dataset.stockUpDateIso || '';
                     updateQuantityHint();
                     addPanel.classList.add('d-none');
@@ -968,6 +1024,16 @@
                     const isDeduct = modeDeduct?.checked;
                     const verb = isDeduct ? 'Deduct' : 'Add';
 
+                    if (!transactionDateInput.value) {
+                        showFeedback('Select the transaction date.');
+                        return;
+                    }
+
+                    if (transactionDateInput.max && transactionDateInput.value > transactionDateInput.max) {
+                        showFeedback('The transaction date cannot be in the future.');
+                        return;
+                    }
+
                     const confirmed = await askForConfirmation(
                         `${verb} ${amount} ${currentUnit()} ${isDeduct ? 'from' : 'to'} ${item.textContent.trim()}?`,
                         'Confirm stock update'
@@ -1006,7 +1072,12 @@
                         supplier.textContent = payload.supplier_name || 'Not set';
                         current.textContent = stockDisplay;
                         activeTrigger.closest('tr')?.querySelector('[data-stock-up-low-stock]')?.classList.toggle('d-none', !payload.low_stock);
-                        bootstrap.Modal.getOrCreateInstance(modal).hide();
+                        showSuccessModal({
+                            amount,
+                            isDeduct,
+                            total: payload.quantity,
+                            unit: activeTrigger.dataset.stockUpUnit,
+                        });
                     } catch (error) {
                         showFeedback(error.message);
                         submitButton.disabled = false;

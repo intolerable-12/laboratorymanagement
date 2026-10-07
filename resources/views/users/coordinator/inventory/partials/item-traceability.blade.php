@@ -36,16 +36,14 @@
                     </p>
                 </div>
 
-                <div class="traceability-view-tabs btn-group" role="tablist" aria-label="Traceability view">
+                <div class="traceability-view-tabs btn-group shadow-sm" role="group" aria-label="Traceability view switcher">
                     <a href="{{ $makeTraceabilityUrl(['view' => 'calendar', 'month' => $calendarMonth->format('Y-m')]) }}"
-                        class="btn {{ $activeTraceabilityView === 'calendar' ? 'btn-primary' : 'btn-outline-primary' }}"
-                        role="tab"
+                        class="btn {{ $activeTraceabilityView === 'calendar' ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2"
                         aria-selected="{{ $activeTraceabilityView === 'calendar' ? 'true' : 'false' }}">
                         <i class="fa-solid fa-calendar-days me-2" aria-hidden="true"></i>Calendar
                     </a>
                     <a href="{{ $makeTraceabilityUrl(['view' => 'list', 'search' => $listSearch, 'event_type' => $listEventType, 'list_from' => $listFromDate, 'list_to' => $listToDate]) }}"
-                        class="btn {{ $activeTraceabilityView === 'list' ? 'btn-primary' : 'btn-outline-primary' }}"
-                        role="tab"
+                        class="btn {{ $activeTraceabilityView === 'list' ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2"
                         aria-selected="{{ $activeTraceabilityView === 'list' ? 'true' : 'false' }}">
                         <i class="fa-solid fa-list me-2" aria-hidden="true"></i>List
                     </a>
