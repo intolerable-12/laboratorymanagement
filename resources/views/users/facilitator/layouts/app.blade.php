@@ -8,18 +8,20 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="role-page facilitator-page coordinator-page coordinator-sidebar-open">
-    <div class="admin-shell">
-        @include('users.facilitator.layouts.sidebar')
+        <div class="admin-shell">
+            @include('users.coordinator.layouts.sidebar')
 
-        <div class="admin-content d-flex flex-column">
-            @include('users.facilitator.layouts.navbar')
+            <div class="admin-content d-flex flex-column">
+                @include('users.coordinator.layouts.navbar')
 
-            <main class="flex-grow-1 p-3 p-lg-4">
-                <div class="container-fluid px-0">
-                    @yield('content')
-                </div>
-            </main>
+                <main class="flex-grow-1 p-3 p-lg-4">
+                    <div class="container-fluid px-0">
+                        @yield('content')
+                    </div>
+                </main>
+            </div>
         </div>
-    </div>
+
+    @stack('scripts')
 </body>
 </html>

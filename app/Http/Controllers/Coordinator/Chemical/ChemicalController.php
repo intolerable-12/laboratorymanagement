@@ -283,6 +283,7 @@ class ChemicalController extends Controller
             quantityAfter: (float) $chemical->quantity,
             performedBy: (int) $request->user()->userNo,
             remarks: 'Chemical quantity updated by the coordinator.',
+            performedAt: now(),   // ✅ explicit
         );
 
         return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', 'Chemical updated successfully.');
@@ -299,7 +300,7 @@ class ChemicalController extends Controller
         ]);
 
         $mode = $data['stock_up_mode'];
-        $transactionAt = Carbon::createFromFormat('!Y-m-d', $data['transaction_date']);
+        $transactionAt = Carbon::parse($data['transaction_date'], config('app.timezone'))->setTimeFrom(now());
 
         try {
             DB::transaction(function () use ($chemical, $data, $request, $mode, $transactionAt): void {

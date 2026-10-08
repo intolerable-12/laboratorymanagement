@@ -61,13 +61,28 @@
                                     <span class="badge rounded-pill text-bg-{{ $event['tone'] === 'warning' ? 'warning' : ($event['tone'] === 'primary' ? 'primary' : ($event['tone'] === 'danger' ? 'danger' : ($event['tone'] === 'success' ? 'success' : 'secondary'))) }}">{{ $event['type'] }}</span>
                                 </div>
                                 <div class="small text-secondary mt-1">
-                                    <time datetime="{{ $event['occurred_at']->toIso8601String() }}">{{ $event['occurred_at']->format('F j, Y · h:i A') }}</time>
+                                    <time datetime="{{ $event['occurred_at']->toIso8601String() }}"
+                                        data-local-time
+                                        data-local-time-format="full">
+                                        {{ $event['occurred_at']->format('F j, Y · h:i A') }}
+                                    </time>
+                                    <span class="text-secondary" data-local-relative></span>
                                 </div>
                             </div>
-                            @if ($event['quantityLabel'])
+                           @if ($event['quantityLabel'])
+                                @php
+                                    // Match patterns like: "10.00 g + 10.00 g" or "10.00 g - 5.00 g"
+                                    // Group 1 = balance, Group 2 = sign, Group 3 = amount + unit
+                                    preg_match('/^([\d.,]+\s*\w+)\s*([+\-])\s*([\d.,]+\s*\w+)$/', trim($event['quantityLabel']), $qty);
+                                @endphp
                                 <div class="traceability-event-quantity">
                                     <span class="small text-secondary">{{ $event['quantityTitle'] ?? 'Quantity' }}</span>
-                                    <strong>{{ $event['quantityLabel'] }}</strong>
+                                    @if (!empty($qty))
+                                        <span class="text-secondary">{{ $qty[1] }}</span>
+                                        <strong class="text-dark ms-1">{{ $qty[2] }} {{ $qty[3] }}</strong>
+                                    @else
+                                        <strong class="text-dark">{{ $event['quantityLabel'] }}</strong>
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -90,12 +105,20 @@
                             </div>
                         @endif
                         @php
-                            $detailParts = explode('.', $event['details'], 2);
+                            // Split on the first ". " (period followed by a space) instead of just "."
+                            $detailParts = preg_split('/\.\s+/', $event['details'], 2);
                             $mathPart = trim($detailParts[0] ?? '');
                             $restPart = trim($detailParts[1] ?? '');
+
+                            // Normalize the stray space in things like "10. 00 g" → "10.00 g"
+                            $mathPart = preg_replace('/(\d)\.\s+(\d)/', '$1.$2', $mathPart);
+
+                            // Does the math part actually contain a +/- change?
+                            $hasChange = preg_match('/[+\-]\s*[\d.,]/', $mathPart) === 1;
                         @endphp
+
                         <p class="small text-secondary mb-0 mt-2">
-                            @if ($mathPart !== '' && preg_match('/\d/', $mathPart))
+                            @if ($mathPart !== '' && $hasChange)
                                 <strong class="text-dark">{{ $mathPart }}.</strong>
                                 @if ($restPart !== '')
                                     {{ $restPart }}
@@ -116,4 +139,47 @@
         </div>
     </section>
 </div>
+
+@push('scripts')
+<script>
+(function () {
+    function formatLocal(date, mode) {
+        const opts = mode === 'time'
+            ? { hour: 'numeric', minute: '2-digit', hour12: true }
+            : { year: 'numeric', month: 'long', day: 'numeric',
+                hour: 'numeric', minute: '2-digit', hour12: true };
+        return new Intl.DateTimeFormat(undefined, opts).format(date);
+    }
+
+    function relativeTime(date) {
+        const diff = (Date.now() - date.getTime()) / 1000;
+        const abs = Math.abs(diff);
+        const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
+        if (abs < 45) return 'just now';
+        if (abs < 90) return rtf.format(-1, 'minute');
+        if (abs < 3600) return rtf.format(-Math.round(diff / 60), 'minute');
+        if (abs < 86400) return rtf.format(-Math.round(diff / 3600), 'hour');
+        if (abs < 604800) return rtf.format(-Math.round(diff / 86400), 'day');
+        if (abs < 2592000) return rtf.format(-Math.round(diff / 604800), 'week');
+        if (abs < 31536000) return rtf.format(-Math.round(diff / 2592000), 'month');
+        return rtf.format(-Math.round(diff / 31536000), 'year');
+    }
+
+    function refresh() {
+        document.querySelectorAll('time[data-local-time]').forEach(function (el) {
+            const date = new Date(el.getAttribute('datetime'));
+            if (isNaN(date)) return;
+            const mode = el.dataset.localTimeFormat || 'full';
+            el.textContent = formatLocal(date, mode);
+            const rel = el.parentElement.querySelector('[data-local-relative]');
+            if (rel) rel.textContent = '· ' + relativeTime(date);
+        });
+    }
+
+    refresh();
+    setInterval(refresh, 30000);
+})();
+</script>
+@endpush
 @endsection

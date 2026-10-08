@@ -261,7 +261,7 @@ class EquipmentController extends Controller
         ]);
 
         $mode = $data['stock_up_mode'];
-        $transactionAt = Carbon::createFromFormat('!Y-m-d', $data['transaction_date']);
+        $transactionAt = Carbon::parse($data['transaction_date'], config('app.timezone'))->setTimeFrom(now());
 
         try {
             DB::transaction(function () use ($equipment, $data, $request, $mode, $transactionAt): void {

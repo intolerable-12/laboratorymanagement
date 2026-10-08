@@ -41,8 +41,10 @@
         }
 
         .equipment-table .table-column-compact .stock-up-trigger {
+            width: 100%;
             min-width: 0;
             max-width: 100%;
+            margin: 0 auto;
         }
 
         .equipment-table .table-column-compact .badge {
@@ -52,13 +54,24 @@
         }
 
         .stock-up-trigger {
-            min-width: 10rem;
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;          /* allow shrink in narrow columns */
             border: 1px solid #b6d4fe;
             border-radius: .75rem;
-            padding: .55rem .75rem !important;
+            padding: .55rem .5rem !important;
             background: #f0f7ff;
             cursor: pointer;
+            text-align: center;
+            white-space: normal;
+            overflow-wrap: anywhere;
             transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .equipment-table td.table-column-compact {
+            padding-left: .35rem;
+            padding-right: .35rem;
         }
 
         .stock-up-trigger:hover,
@@ -524,7 +537,7 @@
                                     @if (!$archived && !$isReadOnly)
                                         <button
                                             type="button"
-                                            class="btn btn-link p-0 text-start text-decoration-none stock-up-trigger"
+                                            class="btn p-0 text-decoration-none stock-up-trigger w-100"
                                             data-bs-toggle="modal"
                                             data-bs-target="#stock-up-modal"
                                             data-stock-up-url="{{ route('coordinator.chemicals.stock-up', array_merge(['chemical' => $chemical], $listQuery)) }}"
@@ -555,7 +568,7 @@
                                         {{ $statusLabel }}
                                     </span>
                                 </td>
-                                <td class="table-column-compact">
+                                <td class="table-column-compact text-center">
                                     <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
                                 </td>
                                 @if ($archived)

@@ -91,7 +91,7 @@
         </div>
 
         <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mt-4">
-            <a href="{{ route('student.borrow.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Requested Items</a>
+            <a href="{{ route('student.borrow.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i>Requested Items</a>
             <form id="borrow-request-form" method="POST" action="{{ route('student.borrow.store') }}">
                 @csrf
                 <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#borrowRequestSubmitModal">Submit Borrow Request <i class="fa-solid fa-check ms-1"></i></button>
