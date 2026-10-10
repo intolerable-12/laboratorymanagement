@@ -9,16 +9,15 @@
 @section('content')
     <div class="account-page">
         <section class="hero-banner social-hero card border-0 mb-4">
-            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-4">
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Student forum</div>
                     <h2 class="display-6 fw-semibold mb-3 text-dark">A feed for questions, updates, and campus conversations</h2>
                     <p class="lead text-secondary mb-0">Browse by category, search the feed, and open the latest discussion cards.</p>
                 </div>
-                <a href="{{ route('student.forum.create') }}" class="btn btn-primary px-4 rounded-pill">New post</a>
-            </div>
+                <a href="{{ route('student.forum.create') }}" class="btn btn-primary px-4 rounded-pill text-nowrap">New post</a>
         </section>
-
+    
         @if (session('status'))
             <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
         @endif

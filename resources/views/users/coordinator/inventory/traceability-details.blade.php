@@ -73,7 +73,7 @@
                                 @php
                                     // Match patterns like: "10.00 g + 10.00 g" or "10.00 g - 5.00 g"
                                     // Group 1 = balance, Group 2 = sign, Group 3 = amount + unit
-                                    preg_match('/^([\d.,]+\s*\w+)\s*([+\-])\s*([\d.,]+\s*\w+)$/', trim($event['quantityLabel']), $qty);
+                                    preg_match('/^([\d.,]+\s*\p{L}+)\s*([+\-\x{2212}\x{2013}\x{2014}])\s*([\d.,]+\s*\p{L}+)$/u', trim($event['quantityLabel']), $qty);
                                 @endphp
                                 <div class="traceability-event-quantity">
                                     <span class="small text-secondary">{{ $event['quantityTitle'] ?? 'Quantity' }}</span>
@@ -114,7 +114,7 @@
                             $mathPart = preg_replace('/(\d)\.\s+(\d)/', '$1.$2', $mathPart);
 
                             // Does the math part actually contain a +/- change?
-                            $hasChange = preg_match('/[+\-]\s*[\d.,]/', $mathPart) === 1;
+                            $hasChange = preg_match('/[+\-\x{2212}\x{2013}\x{2014}]\s*[\d.,]/u', $mathPart) === 1;
                         @endphp
 
                         <p class="small text-secondary mb-0 mt-2">

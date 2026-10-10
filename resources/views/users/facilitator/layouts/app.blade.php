@@ -9,10 +9,10 @@
 </head>
 <body class="role-page facilitator-page coordinator-page coordinator-sidebar-open">
         <div class="admin-shell">
-            @include('users.coordinator.layouts.sidebar')
+            @include('users.facilitator.layouts.sidebar')
 
             <div class="admin-content d-flex flex-column">
-                @include('users.coordinator.layouts.navbar')
+                @include('users.facilitator.layouts.navbar')
 
                 <main class="flex-grow-1 p-3 p-lg-4">
                     <div class="container-fluid px-0">

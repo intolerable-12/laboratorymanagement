@@ -99,12 +99,12 @@
                             <div class="table-responsive">
                                 <table class="table align-middle">
                                     <thead>
-                                        <tr class="text-secondary small text-uppercase">
-                                            <th>Type</th>
-                                            <th>Item</th>
-                                            <th>Quantity</th>
-                                            <th>Condition Out</th>
-                                            <th>Remarks</th>
+                                        <tr>
+                                            <th class="text-dark">Type</th>
+                                            <th class="text-dark">Item</th>
+                                            <th class="text-dark">Quantity</th>
+                                            <th class="text-dark">Condition Out</th>
+                                            <th class="text-dark">Remarks</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -114,11 +114,6 @@
                                                 <td>
                                                     <div class="fw-semibold text-dark">{{ $item->item?->equipment_name ?? $item->item?->chemical_name ?? '—' }}</div>
                                                      <div class="small text-secondary">{{ $item->item?->equipment_code ?? $item->item?->chemical_code ?? '' }}</div>
-                                                     @if ($item->item_type === 'Equipment')
-                                                         <span class="badge rounded-pill text-bg-warning text-dark mt-1"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $item->item?->manufacturing_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                     @else
-                                                         <span class="badge rounded-pill {{ $item->item?->is_expired ? 'text-bg-danger' : ($item->item?->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-1"><i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $item->item?->expiration_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                     @endif
                                                 </td>
                                                 <td>{{ $item->quantity_borrowed }}</td>
                                                 <td>{{ $item->condition_out }}</td>

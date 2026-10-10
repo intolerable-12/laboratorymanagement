@@ -15,7 +15,7 @@
 
                     <div class="login-brand text-center mx-auto mb-4">
                         <img src="{{ asset('images/pnglogo.png') }}" alt="Lourdes College logo" class="brand-logo img-fluid mb-3">
-                        <p class="brand-title mb-2">Centralize Science Laboratory Management System</p>
+                        <p class="brand-title mb-2">Centralized Science Laboratory Management System</p>
                         
                     </div>
 
