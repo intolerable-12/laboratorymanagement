@@ -38,6 +38,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $roles['Coordinator'],
                 'department_id' => '3',
+                'campus' => null,
                 'status' => 'Active',
                 'email_verified_at' => now(),
             ],
@@ -54,6 +55,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $roles['Laboratory In-charge'],
                 'department_id' => '3',
+                'campus' => 'Main',
                 'status' => 'Active',
                 'email_verified_at' => now(),
             ],
@@ -70,6 +72,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $roles['Instructor'],
                 'department_id' => '3',
+                'campus' => null,
                 'status' => 'Active',
                 'email_verified_at' => now(),
             ],
@@ -86,6 +89,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $roles['Student'],
                 'department_id' => '3',
+                'campus' => null,
                 'status' => 'Active',
                 'email_verified_at' => now(),
             ],
@@ -96,5 +100,25 @@ class UserSeeder extends Seeder
                 'userID' => $user['userID'],
             ], $user);
         }
+
+        User::updateOrCreate(
+            ['userID' => 'LB03-0719'],
+            [
+                'first_name' => 'IBED Laboratory',
+                'middle_name' => null,
+                'last_name' => 'In-charge',
+                'suffix' => null,
+                'birth_date' => null,
+                'gender' => 'Male',
+                'email' => 'ibed.lab.incharge@lccdo.edu.ph',
+                'contact_number' => '09990000005',
+                'password' => Hash::make('password'),
+                'role_id' => $roles['Laboratory In-charge'],
+                'department_id' => '1',
+                'campus' => 'IBED',
+                'status' => 'Active',
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

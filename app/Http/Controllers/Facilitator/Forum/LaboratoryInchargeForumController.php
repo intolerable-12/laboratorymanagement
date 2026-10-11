@@ -138,11 +138,19 @@ class LaboratoryInchargeForumController extends Controller
             ],
         ]);
 
+        $commentBody = RichTextSanitizer::sanitize($data['comment']);
+
+        if ($commentBody === null) {
+            throw ValidationException::withMessages([
+                'comment' => 'Comment is required.',
+            ]);
+        }
+
         $comment = ForumComment::create([
             'post_id' => $forumPost->id,
             'user_no' => $request->user()->userNo,
             'parent_comment_id' => $data['parent_comment_id'] ?? null,
-            'comment' => $data['comment'],
+            'comment' => $commentBody,
             'is_hidden' => false,
         ]);
 

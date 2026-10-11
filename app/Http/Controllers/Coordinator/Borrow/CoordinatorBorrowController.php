@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
 use App\Models\BorrowTransaction;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +31,7 @@ class CoordinatorBorrowController extends Controller
 		}
 
 		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
+			->forCampus(Campus::MAIN)
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
@@ -43,6 +45,7 @@ class CoordinatorBorrowController extends Controller
 	public function show(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureCoordinator($request);
+		$this->ensureMainCampus($borrowTransaction);
 
 		$borrowTransaction->load(['borrower', 'items.item', 'releasedBy', 'receivedBy']);
 
@@ -126,6 +129,7 @@ class CoordinatorBorrowController extends Controller
 	public function reschedule(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureCoordinator($request);
+		$this->ensureMainCampus($borrowTransaction);
 
 		$data = $request->validate([
 			'borrowed_at' => ['required', 'date_format:Y-m-d\\TH:i'],
@@ -156,11 +160,26 @@ class CoordinatorBorrowController extends Controller
 
 	private function guardForCoordinator(BorrowTransaction $borrowTransaction): void
 	{
+		$borrowTransaction->loadMissing('laboratory');
+
+		if ($borrowTransaction->laboratory?->campus !== Campus::MAIN) {
+			throw ValidationException::withMessages([
+				'status' => 'IBED borrow requests are completed by the IBED Laboratory In-charge and do not require coordinator approval.',
+			]);
+		}
+
 		if ($borrowTransaction->status !== 'Facilitator Approved') {
 			throw ValidationException::withMessages([
 				'status' => 'Only facilitator-approved borrow requests can be processed by the coordinator.',
 			]);
 		}
+	}
+
+	private function ensureMainCampus(BorrowTransaction $borrowTransaction): void
+	{
+		$borrowTransaction->loadMissing('laboratory');
+
+		abort_unless($borrowTransaction->laboratory?->campus === Campus::MAIN, 403);
 	}
 
 	private function ensureCoordinator(Request $request): void

@@ -53,9 +53,42 @@ class RequestNotificationService
         ?Model $reference = null,
         ?int $exceptUserNo = null
     ): void {
-        User::query()
-            ->where('status', 'Active')
-            ->whereHas('role', fn ($query) => $query->where('role_name', $roleName))
+        $this->roleUsers($roleName)
+            ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
+            ->get()
+            ->each(fn (User $user) => $this->notifyUser($user, $type, $title, $message, $reference));
+    }
+
+    public function notifyDepartmentRoleUsers(
+        string $roleName,
+        int $departmentId,
+        string $type,
+        string $title,
+        string $message,
+        ?Model $reference = null,
+        ?int $exceptUserNo = null
+    ): void {
+        $this->roleUsers($roleName)
+            ->where('department_id', $departmentId)
+            ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
+            ->get()
+            ->each(fn (User $user) => $this->notifyUser($user, $type, $title, $message, $reference));
+    }
+
+    public function notifyCampusRoleUsers(
+        string $roleName,
+        string $campus,
+        string $type,
+        string $title,
+        string $message,
+        ?Model $reference = null,
+        ?int $exceptUserNo = null
+    ): void {
+        $this->roleUsers($roleName)
+            ->where(function ($query) use ($campus): void {
+                $query->where('users.campus', $campus)
+                    ->orWhereHas('department', fn ($departmentQuery) => $departmentQuery->where('campus', $campus));
+            })
             ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
             ->get()
             ->each(fn (User $user) => $this->notifyUser($user, $type, $title, $message, $reference));
@@ -72,9 +105,7 @@ class RequestNotificationService
         array $summaryRows = [],
         ?int $exceptUserNo = null
     ): void {
-        User::query()
-            ->where('status', 'Active')
-            ->whereHas('role', fn ($query) => $query->where('role_name', $roleName))
+        $this->roleUsers($roleName)
             ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo))
             ->get()
             ->each(function (User $user) use ($requestType, $requestNumber, $headline, $bodyMessage, $actionUrl, $actionLabel, $summaryRows) {
@@ -93,6 +124,87 @@ class RequestNotificationService
                     summaryRows: $summaryRows,
                 ));
             });
+    }
+
+    public function emailDepartmentRoleUsers(
+        string $roleName,
+        int $departmentId,
+        string $requestType,
+        string $requestNumber,
+        string $headline,
+        string $bodyMessage,
+        string $actionUrl,
+        string $actionLabel,
+        array $summaryRows = [],
+        ?int $exceptUserNo = null
+    ): void {
+        $this->emailUsers(
+            $this->roleUsers($roleName)->where('department_id', $departmentId)
+                ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo)),
+            $requestType,
+            $requestNumber,
+            $headline,
+            $bodyMessage,
+            $actionUrl,
+            $actionLabel,
+            $summaryRows,
+        );
+    }
+
+    public function emailCampusRoleUsers(
+        string $roleName,
+        string $campus,
+        string $requestType,
+        string $requestNumber,
+        string $headline,
+        string $bodyMessage,
+        string $actionUrl,
+        string $actionLabel,
+        array $summaryRows = [],
+        ?int $exceptUserNo = null
+    ): void {
+        $this->emailUsers(
+            $this->roleUsers($roleName)
+                ->where(function ($query) use ($campus): void {
+                    $query->where('users.campus', $campus)
+                        ->orWhereHas('department', fn ($departmentQuery) => $departmentQuery->where('campus', $campus));
+                })
+                ->when($exceptUserNo !== null, fn ($query) => $query->where('userNo', '!=', $exceptUserNo)),
+            $requestType,
+            $requestNumber,
+            $headline,
+            $bodyMessage,
+            $actionUrl,
+            $actionLabel,
+            $summaryRows,
+        );
+    }
+
+    private function roleUsers(string $roleName)
+    {
+        return User::query()
+            ->where('status', 'Active')
+            ->whereHas('role', fn ($query) => $query->where('role_name', $roleName));
+    }
+
+    private function emailUsers($users, string $requestType, string $requestNumber, string $headline, string $bodyMessage, string $actionUrl, string $actionLabel, array $summaryRows): void
+    {
+        $users->get()->each(function (User $user) use ($requestType, $requestNumber, $headline, $bodyMessage, $actionUrl, $actionLabel, $summaryRows): void {
+            if (! $user->email) {
+                return;
+            }
+
+            Mail::to($user->email)->queue(new RequestReviewMail(
+                recipientName: $this->displayName($user),
+                requestType: $requestType,
+                requestNumber: $requestNumber,
+                headline: $headline,
+                bodyMessage: $bodyMessage,
+                actionUrl: $actionUrl,
+                actionLabel: $actionLabel,
+                summaryRows: $summaryRows,
+            ));
+        });
     }
 
     public function emailUser(
@@ -121,6 +233,34 @@ class RequestNotificationService
         ));
     }
 
+    /**
+     * Send both the in-app and email versions of a notification to one user.
+     */
+    public function notifyAndEmailUser(
+        User $user,
+        string $type,
+        string $title,
+        string $message,
+        Model $reference,
+        string $requestType,
+        string $requestNumber,
+        string $actionUrl,
+        string $actionLabel,
+        array $summaryRows = [],
+    ): void {
+        $this->notifyUser($user, $type, $title, $message, $reference);
+        $this->emailUser(
+            $user,
+            $requestType,
+            $requestNumber,
+            $title,
+            $message,
+            $actionUrl,
+            $actionLabel,
+            $summaryRows,
+        );
+    }
+
     public function notifyForumPostCreated(ForumPost $forumPost, User $author): void
     {
         $authorName = $this->displayName($author);
@@ -145,39 +285,85 @@ class RequestNotificationService
         $comment->loadMissing(['post.user.role', 'parent.user.role']);
 
         $forumPost = $comment->post;
-        $postAuthor = $forumPost?->user;
+
+        if (! $forumPost) {
+            return;
+        }
+
+        $eligibleRoles = ['Student', 'Instructor', 'Laboratory In-charge', 'Coordinator'];
+        $participants = collect([$forumPost->user])
+            ->concat($forumPost->comments()
+                ->with('user.role')
+                ->get()
+                ->pluck('user'))
+            ->filter(fn (?User $user) => $user
+                && $user->status === 'Active'
+                && $user->userNo !== $actor->userNo
+                && in_array($user->role?->role_name, $eligibleRoles, true))
+            ->unique('userNo');
+
+        $actorName = $this->displayName($actor);
+        $title = 'New reply on forum post';
+        $message = $actorName . ' posted a new reply on the forum post: "' . $forumPost->title . '".';
+
+        // Notify every participant in-app; email is limited to the poster and direct parent author below.
+        $participants->each(fn (User $user) => $this->notifyUser(
+            $user,
+            'System',
+            $title,
+            $message,
+            $forumPost,
+        ));
+
+        $postAuthor = $forumPost->user;
+        $parentAuthor = $comment->parent?->user;
+        $emailNotifications = [];
 
         if ($postAuthor
+            && $postAuthor->status === 'Active'
             && $postAuthor->userNo !== $actor->userNo
-            && in_array($postAuthor->role?->role_name, ['Student', 'Instructor', 'Laboratory In-charge', 'Coordinator'], true)) {
-            $actorName = $this->displayName($actor);
-            $title = 'New comment on your forum post';
-            $message = $actorName . ' commented on your forum post: "' . $forumPost->title . '".';
-
-            $this->notifyUser($postAuthor, 'System', $title, $message, $forumPost);
-            $this->emailUser(
-                $postAuthor,
-                'Forum comment',
-                'Post #' . $forumPost->id,
-                $title,
-                $message . ' Open LabCentral to read the comment and reply.',
-                $this->forumPostUrl($forumPost, $postAuthor),
-                'View forum post',
-                [
+            && in_array($postAuthor->role?->role_name, $eligibleRoles, true)) {
+            $emailNotifications[$postAuthor->userNo] = [
+                'user' => $postAuthor,
+                'requestType' => 'Forum comment',
+                'headline' => 'New comment on your forum post',
+                'message' => $actorName . ' commented on your forum post: "' . $forumPost->title . '".',
+                'summaryRows' => [
                     ['label' => 'Post', 'value' => $forumPost->title],
                     ['label' => 'Commenter', 'value' => $actorName],
                 ],
-            );
+            ];
         }
 
-        $parentAuthor = $comment->parent?->user;
-
         if ($parentAuthor
+            && $parentAuthor->status === 'Active'
             && $parentAuthor->userNo !== $actor->userNo
-            && $parentAuthor->userNo !== $postAuthor?->userNo) {
-            $message = $this->displayName($actor) . ' replied to your comment on "' . $forumPost->title . '".';
+            && in_array($parentAuthor->role?->role_name, $eligibleRoles, true)) {
+            $emailNotifications[$parentAuthor->userNo] = [
+                'user' => $parentAuthor,
+                'requestType' => 'Forum reply',
+                'headline' => 'Someone replied to your comment',
+                'message' => $actorName . ' replied to your comment on "' . $forumPost->title . '".',
+                'summaryRows' => [
+                    ['label' => 'Post', 'value' => $forumPost->title],
+                    ['label' => 'Replier', 'value' => $actorName],
+                ],
+            ];
+        }
 
-            $this->notifyUser($parentAuthor, 'System', 'Someone replied to your comment', $message, $forumPost);
+        foreach ($emailNotifications as $emailNotification) {
+            $recipient = $emailNotification['user'];
+
+            $this->emailUser(
+                $recipient,
+                $emailNotification['requestType'],
+                'Post #' . $forumPost->id,
+                $emailNotification['headline'],
+                $emailNotification['message'] . ' Open LabCentral to read it and reply.',
+                $this->forumPostUrl($forumPost, $recipient),
+                'View forum post',
+                $emailNotification['summaryRows'],
+            );
         }
     }
 
@@ -320,6 +506,10 @@ class RequestNotificationService
         }
 
         if ($reference instanceof Reservation) {
+            if ($user->role?->role_name === 'Instructor' && (int) $reference->user_no === (int) $user->userNo) {
+                return route('instructor.my-reservations.show', $reference);
+            }
+
             return match ($user->role?->role_name) {
                 'Coordinator' => route('coordinator.reservations.show', $reference),
                 'Laboratory In-charge' => route('facilitator.reservations.show', $reference),
@@ -331,10 +521,15 @@ class RequestNotificationService
 
         if ($reference instanceof BorrowTransaction) {
             $roleName = $user->role?->role_name;
+
+            if ($roleName === 'Instructor' && (int) $reference->borrower_id === (int) $user->userNo) {
+                return route('instructor.my-borrow-requests.show', $reference);
+            }
+
             $routeGroup = in_array($roleName, ['Coordinator', 'Laboratory In-charge'], true)
                 ? match ($notification->title) {
                     'Checkout is due now' => 'checkout',
-                    'Check-in is due now' => 'checkin',
+                    'Check-in is due now', 'Check-in overdue' => 'checkin',
                     default => 'borrow',
                 }
                 : 'borrow';

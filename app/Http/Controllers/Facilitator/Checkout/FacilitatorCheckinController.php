@@ -23,6 +23,7 @@ class FacilitatorCheckinController extends Controller
         $this->ensureCheckoutStaff($request);
 
         $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'reservation', 'items.item', 'receivedBy'])
+            ->forCampus($request->user()->campusName())
             ->whereHas('items', fn ($query) => $query->where('item_type', 'Equipment'))
             ->whereIn('status', ['Borrowed', 'Partially Returned', 'Overdue'])
             ->orderByRaw("CASE WHEN status = 'Overdue' THEN 0 WHEN status = 'Partially Returned' THEN 1 ELSE 2 END")
@@ -40,6 +41,7 @@ class FacilitatorCheckinController extends Controller
     public function show(Request $request, BorrowTransaction $borrowTransaction): View
     {
         $this->ensureCheckoutStaff($request);
+        $this->ensureTransactionAccess($request, $borrowTransaction);
 
         abort_unless(in_array($borrowTransaction->status, ['Borrowed', 'Partially Returned', 'Overdue', 'Returned'], true), 404);
 
@@ -62,6 +64,7 @@ class FacilitatorCheckinController extends Controller
     public function scan(Request $request, BorrowTransaction $borrowTransaction)
     {
         $this->ensureCheckoutStaff($request);
+        $this->ensureTransactionAccess($request, $borrowTransaction);
 
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:100'],
@@ -288,6 +291,7 @@ class FacilitatorCheckinController extends Controller
     public function remove(Request $request, BorrowTransaction $borrowTransaction, BarcodeLog $barcodeLog)
     {
         $this->ensureCheckoutStaff($request);
+        $this->ensureTransactionAccess($request, $borrowTransaction);
 
         $result = DB::transaction(function () use ($request, $borrowTransaction, $barcodeLog): array {
             $transaction = BorrowTransaction::query()->lockForUpdate()->findOrFail($borrowTransaction->id);
@@ -488,7 +492,15 @@ class FacilitatorCheckinController extends Controller
             $complete = $complete && $accounted + 0.001 >= $checkedOut;
         }
 
-        return [$complete, $complete ? 'Returned' : ($hasAccountedQuantity ? 'Partially Returned' : 'Borrowed')];
+        if ($complete) {
+            return [true, 'Returned'];
+        }
+
+        if ($transaction->due_at?->isPast()) {
+            return [false, 'Overdue'];
+        }
+
+        return [false, $hasAccountedQuantity ? 'Partially Returned' : 'Borrowed'];
     }
 
     private function progressItems(BorrowTransaction $transaction): array
@@ -554,6 +566,20 @@ class FacilitatorCheckinController extends Controller
     private function ensureCheckoutStaff(Request $request): void
     {
         abort_unless(in_array(optional($request->user()->role)->role_name, ['Laboratory In-charge', 'Coordinator'], true), 403);
+
+        if (! $this->isCoordinator($request)) {
+            abort_unless($request->user()->campusName(), 403);
+        }
+    }
+
+    private function ensureTransactionAccess(Request $request, BorrowTransaction $borrowTransaction): void
+    {
+        if ($this->isCoordinator($request)) {
+            return;
+        }
+
+        $borrowTransaction->loadMissing('laboratory');
+        abort_unless($borrowTransaction->laboratory?->campus === $request->user()->campusName(), 404);
     }
 
     private function isCoordinator(Request $request): bool

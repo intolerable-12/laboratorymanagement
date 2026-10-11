@@ -4,15 +4,18 @@ namespace App\Http\Controllers\Student\Borrow;
 
 use App\Http\Controllers\Concerns\BuildsBorrowCalendarEvents;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class StudentBorrowCalendarController extends Controller
 {
     use BuildsBorrowCalendarEvents;
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $calendarEvents = $this->borrowTransactionsForCalendar()
+        abort_unless($request->user()->campusName(), 403);
+
+        $calendarEvents = $this->borrowTransactionsForCalendar($request->user())
             ->flatMap(fn ($borrowTransaction) => $this->toBorrowCalendarEvents($borrowTransaction))
             ->values();
 

@@ -2,7 +2,7 @@
 
 @section('title', 'Add Laboratory')
 @section('page-title', 'Add Laboratory')
-@section('page-subtitle', 'Create a new laboratory record with image and details')
+@section('page-subtitle', 'Create a new laboratory record with photos and details')
 
 @section('content')
     @if ($errors->any())

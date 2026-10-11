@@ -21,6 +21,7 @@ class InventoryTraceabilityController extends Controller
 {
     public function index(Request $request): View
     {
+        $campus = $this->viewerCampus($request);
         $itemType = $request->query('item_type');
 
         if (! in_array($itemType, ['Equipment', 'Chemical'], true)) {
@@ -30,6 +31,14 @@ class InventoryTraceabilityController extends Controller
         $logs = InventoryLog::query()
             ->with(['performedBy', 'item'])
             ->when($itemType !== '', fn ($query) => $query->where('item_type', $itemType))
+            ->when($campus !== null, fn ($query) => $query->whereHasMorph(
+                'item',
+                [Equipment::class, Chemical::class],
+                fn ($itemQuery) => $itemQuery->whereHas(
+                    'laboratory',
+                    fn ($laboratoryQuery) => $laboratoryQuery->where('campus', $campus),
+                ),
+            ))
             ->latest('performed_at')
             ->latest('id')
             ->paginate(20)
@@ -64,6 +73,7 @@ class InventoryTraceabilityController extends Controller
 
     private function itemTraceability(Request $request, Equipment|Chemical $item, string $itemType): View
     {
+        $this->ensureViewerCanAccess($request, $item);
         $routePrefix = $this->routePrefix($request);
         $filters = $this->traceabilityFilters($request);
         $events = $this->itemEvents($item, $itemType);
@@ -183,6 +193,7 @@ class InventoryTraceabilityController extends Controller
 
     private function itemTraceabilityDetails(Request $request, Equipment|Chemical $item, string $itemType): View
     {
+        $this->ensureViewerCanAccess($request, $item);
         $routePrefix = $this->routePrefix($request);
         $filters = $this->traceabilityFilters($request);
         $events = $this->itemEvents($item, $itemType)
@@ -208,6 +219,25 @@ class InventoryTraceabilityController extends Controller
     private function routePrefix(Request $request): string
     {
         return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    }
+
+    private function viewerCampus(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
+    }
+
+    private function ensureViewerCanAccess(Request $request, Equipment|Chemical $item): void
+    {
+        $campus = $this->viewerCampus($request);
+
+        if ($campus === null) {
+            return;
+        }
+
+        $item->loadMissing('laboratory');
+        abort_unless($item->laboratory?->campus === $campus, 404);
     }
 
     /**

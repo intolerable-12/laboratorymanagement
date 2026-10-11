@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Coordinator\Reservation;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -15,6 +16,7 @@ class CoordinatorReservationCalendarController extends Controller
         $this->ensureCoordinator($request);
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+            ->forCampus(Campus::MAIN)
             ->whereIn('status', ['Coordinator Approved', 'Completed'])
             ->whereNotNull('reservation_date')
             ->orderBy('reservation_date')

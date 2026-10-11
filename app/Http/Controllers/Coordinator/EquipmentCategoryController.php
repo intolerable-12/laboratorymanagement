@@ -11,10 +11,13 @@ class EquipmentCategoryController extends Controller
 {
     public function index(Request $request)
     {
+        $campus = $this->campusForViewer($request);
         $search = trim((string) $request->query('search', ''));
         $hasEquipment = $request->query('has_equipment', '');
 
-        $categoriesQuery = EquipmentCategory::withCount('equipment')
+        $categoriesQuery = EquipmentCategory::query()
+            ->forCampus($campus)
+            ->withCount(['equipment' => fn ($query) => $query->forCampus($campus)])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('category_name', 'like', '%' . $search . '%')
@@ -22,15 +25,15 @@ class EquipmentCategoryController extends Controller
                         ->orWhere('description', 'like', '%' . $search . '%');
                 });
             })
-            ->when($hasEquipment === 'with', fn ($query) => $query->has('equipment'))
-            ->when($hasEquipment === 'empty', fn ($query) => $query->doesntHave('equipment'));
+            ->when($hasEquipment === 'with', fn ($query) => $query->whereHas('equipment', fn ($equipmentQuery) => $equipmentQuery->forCampus($campus)))
+            ->when($hasEquipment === 'empty', fn ($query) => $query->whereDoesntHave('equipment', fn ($equipmentQuery) => $equipmentQuery->forCampus($campus)));
 
         $categories = $categoriesQuery->latest()->paginate(10);
 
         $stats = [
-            'total' => EquipmentCategory::count(),
-            'with_items' => EquipmentCategory::has('equipment')->count(),
-            'empty' => EquipmentCategory::doesntHave('equipment')->count(),
+            'total' => EquipmentCategory::forCampus($campus)->count(),
+            'with_items' => EquipmentCategory::forCampus($campus)->whereHas('equipment', fn ($query) => $query->forCampus($campus))->count(),
+            'empty' => EquipmentCategory::forCampus($campus)->whereDoesntHave('equipment', fn ($query) => $query->forCampus($campus))->count(),
         ];
 
         return view('users.coordinator.equipmentcategory.index', compact('categories', 'stats', 'search', 'hasEquipment'));
@@ -50,11 +53,15 @@ class EquipmentCategoryController extends Controller
         return redirect()->route('coordinator.equipment.categories.index')->with('status', 'Equipment category created successfully.');
     }
 
-    public function show(EquipmentCategory $equipmentCategory)
+    public function show(Request $request, EquipmentCategory $equipmentCategory)
     {
-        $equipmentCategory->loadCount('equipment');
+        $campus = $this->campusForViewer($request);
+        abort_unless(EquipmentCategory::forCampus($campus)->whereKey($equipmentCategory->getKey())->exists(), 404);
+
+        $equipmentCategory->loadCount(['equipment' => fn ($query) => $query->forCampus($campus)]);
         $equipmentItems = $equipmentCategory->equipment()
             ->with(['laboratory', 'supplier'])
+            ->forCampus($campus)
             ->latest()
             ->paginate(8);
 
@@ -106,5 +113,12 @@ class EquipmentCategoryController extends Controller
             ],
             'description' => ['nullable', 'string'],
         ]);
+    }
+
+    private function campusForViewer(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
     }
 }

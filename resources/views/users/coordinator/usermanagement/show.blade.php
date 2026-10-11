@@ -43,6 +43,11 @@
                         <span class="badge text-bg-{{ $user->trashed() ? 'secondary' : 'success' }}">{{ $user->trashed() ? 'Archived' : $user->status }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $user->role->role_name ?? 'No role' }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $user->department->department_name ?? 'No department' }}</span>
+                        @if ($user->campusName())
+                            <span class="badge rounded-pill text-bg-{{ $user->campusName() === 'IBED' ? 'warning' : 'info' }}">{{ $user->campusName() }} campus</span>
+                        @else
+                            <span class="badge rounded-pill text-bg-secondary">All campuses</span>
+                        @endif
                     </div>
 
                     <div class="row g-4">
@@ -98,6 +103,10 @@
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Department</div>
                             <div class="fw-semibold text-dark">{{ $user->department->department_name ?? '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="small text-uppercase text-secondary mb-1">Campus scope</div>
+                            <div class="fw-semibold text-dark">{{ $user->campusName() ? $user->campusName().' campus' : 'All campuses' }}</div>
                         </div>
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Status</div>

@@ -30,11 +30,7 @@
                 <article class="card social-card border-0 mb-4">
                     <div class="card-body p-4 p-xl-5">
                         <div class="d-flex flex-wrap gap-2 mb-3">
-                            <span class="category-chip">{{ $forumPost->category ?? 'General' }}</span>
-                            <span class="badge rounded-pill text-bg-{{ $forumPost->is_pinned ? 'primary' : 'secondary' }}">{{ $forumPost->is_pinned ? 'Pinned' : 'Post' }}</span>
-                            @if ($forumPost->is_locked)
-                                <span class="badge rounded-pill text-bg-secondary">Locked</span>
-                            @endif
+                            @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                         </div>
 
                         <div class="d-flex align-items-start gap-3 mb-4">
@@ -60,11 +56,14 @@
                             <form method="POST" action="{{ route('instructor.forum.comments.store', $forumPost) }}" class="vstack gap-3">
                                 @csrf
 
-                                <div>
-                                    <label for="comment" class="form-label fw-semibold text-dark">Comment</label>
-                                    <textarea id="comment" name="comment" rows="4" class="form-control social-input @error('comment') is-invalid @enderror" placeholder="Write a reply..." required>{{ old('comment') }}</textarea>
-                                    @error('comment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                </div>
+                                @include('partials.rich-text-editor', [
+                                    'name' => 'comment',
+                                    'label' => 'Comment',
+                                    'required' => true,
+                                    'id' => 'forum-comment',
+                                    'placeholder' => 'Write a reply...',
+                                    'hint' => 'Rich text is supported.',
+                                ])
 
                                 <div class="d-flex justify-content-end">
                                     <button type="submit" class="btn btn-primary px-4 rounded-pill">Post reply</button>

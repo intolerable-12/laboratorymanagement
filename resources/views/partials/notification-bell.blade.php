@@ -48,7 +48,6 @@
                                 <small class="text-secondary text-nowrap">{{ $notification->sent_at?->diffForHumans() ?? 'just now' }}</small>
                             </div>
                             <div class="small text-secondary text-truncate">{{ \Illuminate\Support\Str::limit($notification->message, 95) }}</div>
-                            <div class="small text-uppercase fw-semibold text-secondary mt-1 notification-menu__type">{{ $notification->type }}</div>
                         </div>
                     </div>
                 </a>

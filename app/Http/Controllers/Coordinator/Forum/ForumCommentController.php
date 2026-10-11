@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Services\RequestNotificationService;
+use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -32,11 +33,19 @@ class ForumCommentController extends Controller
             ],
         ]);
 
+        $commentBody = RichTextSanitizer::sanitize($data['comment']);
+
+        if ($commentBody === null) {
+            throw ValidationException::withMessages([
+                'comment' => 'Comment is required.',
+            ]);
+        }
+
         $comment = ForumComment::create([
             'post_id' => $forumPost->id,
             'user_no' => $request->user()->userNo,
             'parent_comment_id' => $data['parent_comment_id'] ?? null,
-            'comment' => $data['comment'],
+            'comment' => $commentBody,
             'is_hidden' => false,
         ]);
 

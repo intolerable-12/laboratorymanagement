@@ -13,8 +13,12 @@ class InstructorReservationCalendarController extends Controller
     public function index(Request $request): View
     {
         $this->ensureInstructor($request);
+		$campus = $request->user()->campusName();
+		abort_unless($request->user()->department_id && $campus, 403);
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+			->forCampus($campus)
+			->forDepartment((int) $request->user()->department_id)
             ->whereIn('status', ['Coordinator Approved', 'Completed'])
             ->whereNotNull('reservation_date')
             ->orderBy('reservation_date')

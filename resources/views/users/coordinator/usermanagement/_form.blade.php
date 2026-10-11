@@ -86,6 +86,18 @@
     </div>
 
     <div class="col-md-4">
+        <label class="form-label" for="campus">Campus assignment</label>
+        <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror">
+            <option value="">Derived from department</option>
+            @foreach (\App\Support\Campus::values() as $campus)
+                <option value="{{ $campus }}" @selected(old('campus', $user->campus ?? '') === $campus)>{{ $campus }} campus</option>
+            @endforeach
+        </select>
+        <div class="form-text">Required only for Laboratory In-charge accounts.</div>
+        @error('campus') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="col-md-4">
         <label class="form-label" for="status">Status</label>
         <select id="status" name="status" class="form-select admin-form-control @error('status') is-invalid @enderror" required>
             @foreach ($statuses as $statusOption)

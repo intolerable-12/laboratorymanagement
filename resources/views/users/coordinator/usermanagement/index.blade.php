@@ -130,6 +130,16 @@
                     </select>
                 </div>
 
+                <div class="col-6 col-lg-2">
+                    <label for="campus" class="form-label fw-medium mb-1">Campus</label>
+                    <select id="campus" name="campus" class="form-select admin-form-control">
+                        <option value="">All</option>
+                        @foreach (\App\Support\Campus::values() as $option)
+                            <option value="{{ $option }}" @selected($campus === $option)>{{ $option }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <input type="hidden" name="sort" value="{{ $currentSort }}">
                     <input type="hidden" name="direction" value="{{ $currentDirection }}">
@@ -216,6 +226,7 @@
                                     <i class="fa-solid {{ $sortIcon('department') }} small"></i>
                                 </a>
                             </th>
+                            <th scope="col" class="text-dark">Campus</th>
                             <th scope="col">
                                 <a href="{{ $sortUrl('email') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>Email</span>
@@ -252,6 +263,12 @@
                                 </td>
                                 <td>{{ $user->role->role_name ?? '—' }}</td>
                                 <td>{{ $user->department->department_name ?? '—' }}</td>
+                                <td>
+                                    @php($userCampus = $user->campusName())
+                                    <span class="badge rounded-pill text-bg-{{ $userCampus === 'IBED' ? 'warning' : ($userCampus === 'Main' ? 'info' : 'secondary') }}">
+                                        {{ $userCampus ? $userCampus . ' campus' : 'All campuses' }}
+                                    </span>
+                                </td>
                                 <td>{{ $user->email }}</td>
                                 <td>
                                     <span
@@ -306,7 +323,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-secondary py-5">No users found.</td>
+                                <td colspan="8" class="text-center text-secondary py-5">No users found.</td>
                             </tr>
                         @endforelse
                     </tbody>

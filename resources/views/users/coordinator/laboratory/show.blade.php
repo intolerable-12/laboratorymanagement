@@ -34,8 +34,8 @@
             <div class="section-card h-100">
                 <div class="card-body p-4 p-xl-5">
                     <div class="laboratory-frame laboratory-frame--detail mb-4">
-                        @if ($laboratory->image)
-                            <img src="{{ asset('storage/' . $laboratory->image) }}" alt="{{ $laboratory->laboratory_name }}">
+                        @if ($laboratory->primaryImagePath())
+                            <img src="{{ asset('storage/' . $laboratory->primaryImagePath()) }}" alt="{{ $laboratory->laboratory_name }}">
                         @else
                             <div class="laboratory-frame__placeholder">
                                 <div class="laboratory-grid-card__placeholder-mark">L</div>
@@ -47,6 +47,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         <span class="badge text-bg-{{ $laboratory->status === 'Available' ? 'success' : ($laboratory->status === 'Under Maintenance' ? 'warning' : 'secondary') }}">{{ $laboratory->status }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $laboratory->laboratory_code }}</span>
+                        <span class="badge rounded-pill text-bg-info">{{ $laboratory->campus }} campus</span>
                     </div>
 
                     <div class="vstack gap-3">
@@ -84,6 +85,10 @@
                             <div class="fw-semibold text-dark">{{ $laboratory->laboratory_name }}</div>
                         </div>
                         <div class="col-md-6">
+                            <div class="small text-uppercase text-secondary mb-1">Campus</div>
+                            <div class="fw-semibold text-dark">{{ $laboratory->campus }} campus</div>
+                        </div>
+                        <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Building</div>
                             <div class="fw-semibold text-dark">{{ $laboratory->building ?? '—' }}</div>
                         </div>
@@ -108,4 +113,22 @@
             </div>
         </div>
     </div>
+
+    @if ($laboratory->images->isNotEmpty())
+        <div class="section-card mt-4">
+            <div class="card-body p-4 p-xl-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="h5 fw-semibold mb-0">Laboratory photos</h3>
+                    <a href="{{ route('coordinator.laboratories.edit', $laboratory) }}" class="btn btn-sm btn-outline-primary">Manage photos</a>
+                </div>
+                <div class="row g-3">
+                    @foreach ($laboratory->images as $image)
+                        <div class="col-6 col-md-4 col-xl-3">
+                            <img src="{{ asset('storage/' . $image->image_path) }}" alt="{{ $laboratory->laboratory_name }} photo {{ $loop->iteration }}" class="w-100 rounded-3" style="height: 150px; object-fit: cover;">
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection

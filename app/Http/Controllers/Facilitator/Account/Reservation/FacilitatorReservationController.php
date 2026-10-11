@@ -3,21 +3,30 @@
 namespace App\Http\Controllers\Facilitator\Account\Reservation;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\ValidatesReservationSchedule;
+use App\Models\BorrowItem;
+use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\ApprovalLog;
 use App\Models\Equipment;
+use App\Models\Laboratory;
+use App\Support\Campus;
 use App\Models\Reservation;
 use App\Models\ReservationItem;
 use App\Services\RequestNotificationService;
+use App\Services\SequentialCodeGenerator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FacilitatorReservationController extends Controller
 {
+	use ValidatesReservationSchedule;
 	public function index(Request $request)
 	{
 		$this->ensureFacilitator($request);
+		$campus = $request->user()->campusName();
 
 		$sort = $request->query('sort', 'reservation_date');
 		$direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -34,6 +43,7 @@ class FacilitatorReservationController extends Controller
 		}
 
 		$reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
+			->forCampus($campus)
 			->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
 			->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
 			->select('reservations.*')
@@ -49,6 +59,7 @@ class FacilitatorReservationController extends Controller
 	public function show(Request $request, Reservation $reservation)
 	{
 		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $reservation);
 
 		$reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester', 'borrowTransactions']);
 		$borrowTransaction = $reservation->borrowTransactions->sortByDesc('id')->first();
@@ -71,7 +82,9 @@ class FacilitatorReservationController extends Controller
 	public function approve(Request $request, Reservation $reservation)
 	{
 		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $reservation);
 		$this->guardForFacilitator($reservation);
+		$isIbed = $reservation->laboratory?->campus === Campus::IBED;
 
 		$rules = [
 			'remarks' => ['nullable', 'string', 'max:1000'],
@@ -86,6 +99,12 @@ class FacilitatorReservationController extends Controller
 			'remove_items.*' => ['integer'],
 		];
 
+		if ($isIbed) {
+			$rules['reservation_date'] = ['required', 'date', 'after_or_equal:today'];
+			$rules['start_time'] = ['required', 'date_format:H:i'];
+			$rules['end_time'] = ['required', 'date_format:H:i'];
+		}
+
 		$removedIds = collect($request->input('remove_items', []))->map(fn ($id) => (int) $id)->unique()->values()->all();
 
 		foreach ($reservation->items as $item) {
@@ -99,6 +118,29 @@ class FacilitatorReservationController extends Controller
 		}
 
 		$data = $request->validate($rules);
+
+		if ($isIbed) {
+			if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
+				throw ValidationException::withMessages([
+					'end_time' => 'The end time must be after the start time.',
+				]);
+			}
+
+			$this->ensureReservationHours($data['reservation_date'], $data['start_time'], $data['end_time']);
+
+			if ($this->hasReservationTimeConflict(
+				(int) $reservation->laboratory_id,
+				$data['reservation_date'],
+				$data['start_time'],
+				$data['end_time'],
+				(int) $reservation->id
+			)) {
+				throw ValidationException::withMessages([
+					'reservation_date' => 'This laboratory already has another reservation that overlaps the selected time.',
+				]);
+			}
+		}
+
 		$keptItems = [];
 		$seenItems = [];
 
@@ -152,7 +194,23 @@ class FacilitatorReservationController extends Controller
 
 		$notificationService = app(RequestNotificationService::class);
 
-        DB::transaction(function () use ($request, $reservation, $data, $notificationService, $removedIds, $keptItems, $newItems) {
+        DB::transaction(function () use ($request, $reservation, $data, $notificationService, $removedIds, $keptItems, $newItems, $isIbed) {
+			if ($isIbed) {
+				Laboratory::query()->lockForUpdate()->findOrFail($reservation->laboratory_id);
+
+				if ($this->hasReservationTimeConflict(
+					(int) $reservation->laboratory_id,
+					$data['reservation_date'],
+					$data['start_time'],
+					$data['end_time'],
+					(int) $reservation->id
+				)) {
+					throw ValidationException::withMessages([
+						'reservation_date' => 'This laboratory already has another reservation that overlaps the selected time.',
+					]);
+				}
+			}
+
 			$reservation->items()->whereIn('id', $removedIds)->delete();
 
 			foreach ($keptItems as $selectedItem) {
@@ -171,9 +229,16 @@ class FacilitatorReservationController extends Controller
 				]);
 			}
 
-            $reservation->update([
-                'status' => 'Facilitator Approved',
-			]);
+			$reservation->update(array_filter([
+				'status' => $isIbed ? 'Coordinator Approved' : 'Facilitator Approved',
+				'reservation_date' => $isIbed ? $data['reservation_date'] : null,
+				'start_time' => $isIbed ? $data['start_time'] : null,
+				'end_time' => $isIbed ? $data['end_time'] : null,
+			], static fn ($value, $key) => $key === 'status' || $value !== null));
+
+			if ($isIbed) {
+				$this->createBorrowTransactionFromReservation($reservation);
+			}
 
 			ApprovalLog::create([
 				'reservation_id' => $reservation->id,
@@ -188,46 +253,57 @@ class FacilitatorReservationController extends Controller
 				$reservation,
 				'Reservation',
 				'Reservation approved',
-				'Your reservation ' . $reservation->reservation_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
+				$isIbed
+					? 'Your reservation ' . $reservation->reservation_no . ' was fully approved by the IBED Laboratory In-charge.'
+					: 'Your reservation ' . $reservation->reservation_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
 			);
 
-            $notificationService->notifyRoleUsers(
-                'Coordinator',
-                'Reservation',
-                'Reservation ready for review',
-                'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for coordinator review.',
-                $reservation,
-                $request->user()->userNo
-            );
+			if (! $isIbed) {
+				$notificationService->notifyRoleUsers(
+					'Coordinator',
+					'Reservation',
+					'Reservation ready for review',
+					'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for coordinator review.',
+					$reservation,
+					$request->user()->userNo
+				);
+			}
         });
 
         $reservation->loadMissing('laboratory');
-        $notificationService->emailRoleUsers(
-            'Coordinator',
-            'Reservation',
-            $reservation->reservation_no,
-            'Reservation ready for review',
-            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for your review.',
-            route('coordinator.reservations.show', $reservation),
-            'Review reservation',
-            [
-                ['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
-                ['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
-                ['label' => 'Status', 'value' => $reservation->status],
-            ],
-            $request->user()->userNo
-        );
+		if ($isIbed) {
+			app(FacilitatorReservationEmailController::class)->sendApprovedToRequester($reservation, $request->user());
+		} else {
+			$notificationService->emailRoleUsers(
+				'Coordinator',
+				'Reservation',
+				$reservation->reservation_no,
+				'Reservation ready for review',
+				'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for your review.',
+				route('coordinator.reservations.show', $reservation),
+				'Review reservation',
+				[
+					['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
+					['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
+					['label' => 'Status', 'value' => $reservation->status],
+				],
+				$request->user()->userNo
+			);
 
-        app(FacilitatorReservationEmailController::class)->sendForwardedToCoordinator($reservation, $request->user());
+			app(FacilitatorReservationEmailController::class)->sendForwardedToCoordinator($reservation, $request->user());
+		}
 
 		return redirect()
 			->route('facilitator.reservations.show', $reservation)
-			->with('status', 'Reservation approved and forwarded to the coordinator.');
+			->with('status', $isIbed
+				? 'Reservation approved successfully by the IBED Laboratory In-charge.'
+				: 'Reservation approved and forwarded to the coordinator.');
 	}
 
 	public function reject(Request $request, Reservation $reservation)
 	{
 		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $reservation);
 		$this->guardForFacilitator($reservation);
 
 		$data = $request->validate([
@@ -266,11 +342,147 @@ class FacilitatorReservationController extends Controller
 			->with('status', 'Reservation rejected successfully.');
 	}
 
+	public function reschedule(Request $request, Reservation $reservation)
+	{
+		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $reservation);
+
+		abort_unless($reservation->laboratory?->campus === Campus::IBED, 403);
+
+		$data = $request->validate([
+			'reservation_date' => ['required', 'date', 'after_or_equal:today'],
+			'start_time' => ['required', 'date_format:H:i'],
+			'end_time' => ['required', 'date_format:H:i'],
+		]);
+
+		if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
+			throw ValidationException::withMessages([
+				'end_time' => 'The end time must be after the start time.',
+			]);
+		}
+
+		$this->ensureReservationHours($data['reservation_date'], $data['start_time'], $data['end_time']);
+
+		DB::transaction(function () use ($reservation, $data) {
+			$lockedReservation = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
+
+			if ($lockedReservation->status !== 'Coordinator Approved') {
+				throw ValidationException::withMessages([
+					'status' => 'Only approved IBED reservations can be rescheduled before checkout.',
+				]);
+			}
+
+			if ($this->hasReservationTimeConflict(
+				(int) $lockedReservation->laboratory_id,
+				$data['reservation_date'],
+				$data['start_time'],
+				$data['end_time'],
+				(int) $lockedReservation->id
+			)) {
+				throw ValidationException::withMessages([
+					'reservation_date' => 'This laboratory already has another reservation that overlaps the selected time.',
+				]);
+			}
+
+			$borrowTransaction = $lockedReservation->borrowTransactions()
+				->where('status', 'Coordinator Approved')
+				->latest('id')
+				->lockForUpdate()
+				->first();
+
+			if (! $borrowTransaction) {
+				throw ValidationException::withMessages([
+					'status' => 'This reservation can no longer be rescheduled because checkout has already started.',
+				]);
+			}
+
+			$lockedReservation->update([
+				'reservation_date' => $data['reservation_date'],
+				'start_time' => $data['start_time'],
+				'end_time' => $data['end_time'],
+			]);
+
+			$scheduledDate = $data['reservation_date'];
+			$borrowTransaction->update([
+				'borrowed_at' => Carbon::createFromFormat('Y-m-d H:i', $scheduledDate . ' ' . $data['start_time']),
+				'due_at' => Carbon::createFromFormat('Y-m-d H:i', $scheduledDate . ' ' . $data['end_time']),
+			]);
+		});
+
+		$notificationService = app(RequestNotificationService::class);
+		$notificationService->notifyRequester(
+			$reservation,
+			'Reservation',
+			'Reservation schedule updated',
+			'Your approved IBED reservation ' . $reservation->reservation_no . ' was rescheduled by the Laboratory In-charge.'
+		);
+		app(FacilitatorReservationEmailController::class)->sendRescheduledToRequester($reservation, $request->user());
+
+		return redirect()
+			->route('facilitator.reservations.show', $reservation)
+			->with('status', 'IBED reservation rescheduled successfully.');
+	}
+
+	private function createBorrowTransactionFromReservation(Reservation $reservation): ?BorrowTransaction
+	{
+		$reservation->loadMissing(['items', 'schoolYear']);
+
+		$existingTransaction = $reservation->borrowTransactions()->lockForUpdate()->first();
+
+		if ($existingTransaction) {
+			return $existingTransaction;
+		}
+
+		if ($reservation->items->isEmpty()) {
+			return null;
+		}
+
+		$scheduledDate = $reservation->reservation_date?->format('Y-m-d')
+			?? (string) $reservation->getRawOriginal('reservation_date');
+		$borrowedAt = Carbon::createFromFormat('Y-m-d H:i', $scheduledDate . ' ' . substr((string) $reservation->start_time, 0, 5));
+		$dueAt = Carbon::createFromFormat('Y-m-d H:i', $scheduledDate . ' ' . substr((string) $reservation->end_time, 0, 5));
+
+		$borrowTransaction = BorrowTransaction::create([
+			'borrow_no' => app(SequentialCodeGenerator::class)->borrowNumber($reservation->schoolYear),
+			'laboratory_id' => $reservation->laboratory_id,
+			'reservation_id' => $reservation->id,
+			'borrower_id' => $reservation->user_no,
+			'borrowed_at' => $borrowedAt,
+			'due_at' => $dueAt,
+			'status' => 'Coordinator Approved',
+			'remarks' => $reservation->remarks,
+		]);
+
+		foreach ($reservation->items as $item) {
+			BorrowItem::create([
+				'borrow_transaction_id' => $borrowTransaction->id,
+				'item_type' => $item->item_type,
+				'item_id' => $item->item_id,
+				'quantity_borrowed' => $item->quantity,
+				'quantity_checked_out' => 0,
+				'quantity_returned' => 0,
+				'quantity_used' => 0,
+				'quantity_lost' => 0,
+				'quantity_damaged' => 0,
+				'condition_out' => 'Good',
+				'condition_in' => null,
+				'remarks' => $item->remarks,
+			]);
+		}
+
+		return $borrowTransaction;
+	}
+
 	private function guardForFacilitator(Reservation $reservation): void
 	{
-		if ($reservation->status !== 'Instructor Approved') {
+		$reservation->loadMissing(['user.role', 'laboratory']);
+
+		$pendingInstructorRequest = $reservation->status === 'Pending'
+			&& $reservation->user?->role?->role_name === 'Instructor';
+
+		if (! $pendingInstructorRequest && $reservation->status !== 'Instructor Approved') {
 			throw ValidationException::withMessages([
-				'status' => 'Only instructor-approved reservations can be processed by the laboratory in-charge.',
+				'status' => 'Only student instructor-approved or instructor-submitted reservations can be processed by the laboratory in-charge.',
 			]);
 		}
 	}
@@ -335,5 +547,13 @@ class FacilitatorReservationController extends Controller
 	private function ensureFacilitator(Request $request): void
 	{
 		abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
+		abort_unless($request->user()->campusName(), 403);
+	}
+
+	private function ensureFacilitatorCanAccess(Request $request, Reservation $reservation): void
+	{
+		$reservation->loadMissing('laboratory');
+
+		abort_unless($reservation->laboratory?->campus === $request->user()->campusName(), 403);
 	}
 }

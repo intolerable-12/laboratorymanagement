@@ -1,8 +1,10 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
 
 @section('title', 'Requested Items')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 @section('content')
     <div class="account-page">
@@ -12,11 +14,11 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">Create a Borrow Request</h2>
                     <p class="mb-0 text-secondary">Step 2 of 3: choose the equipment you need to borrow.</p>
                 </div>
-                <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route($requestRoutePrefix . '.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
         </section>
 
-        @include('shared.request-steps', ['currentStep' => 2, 'requestType' => 'Borrow', 'stepRoutes' => [1 => route('student.borrow.create')]])
+        @include('shared.request-steps', ['currentStep' => 2, 'requestType' => 'Borrow', 'stepRoutes' => [1 => route($requestRoutePrefix . '.create')]])
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
                 Please review the selected item quantities.
@@ -24,7 +26,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('student.borrow.items.store') }}">
+        <form method="POST" action="{{ route($requestRoutePrefix . '.items.store') }}">
             @csrf
             <div class="card section-card border-0 mb-4" data-reservation-tabs>
                 <div class="card-body p-4 p-xl-5">
@@ -56,7 +58,7 @@
             </div>
 
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
-                <a href="{{ route('student.borrow.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Borrow Details</a>
+                <a href="{{ route($requestRoutePrefix . '.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Back: Borrow Details</a>
                 <button type="submit" class="btn btn-primary px-4">Next: Review Request <i class="fa-solid fa-arrow-right ms-1"></i></button>
             </div>
         </form>

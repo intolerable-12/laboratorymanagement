@@ -22,6 +22,32 @@ class FacilitatorBorrowEmailController
 		);
 	}
 
+	public function sendApprovedToRequester(BorrowTransaction $borrowTransaction, User $facilitator): void
+	{
+		$this->send(
+			borrowTransaction: $borrowTransaction,
+			reviewerRole: 'IBED Laboratory In-charge',
+			decisionLabel: 'Approved by Laboratory In-charge',
+			subjectPrefix: 'Borrow request approved',
+			bodyMessage: 'Your borrow request has been fully approved by the IBED Laboratory In-charge.',
+			reason: null,
+			actorName: $this->buildUserName($facilitator),
+		);
+	}
+
+	public function sendRescheduledToRequester(BorrowTransaction $borrowTransaction, User $facilitator): void
+	{
+		$this->send(
+			borrowTransaction: $borrowTransaction,
+			reviewerRole: 'IBED Laboratory In-charge',
+			decisionLabel: 'Borrow schedule updated',
+			subjectPrefix: 'Borrow schedule updated',
+			bodyMessage: 'The IBED Laboratory In-charge changed the schedule of your approved borrow request.',
+			reason: null,
+			actorName: $this->buildUserName($facilitator),
+		);
+	}
+
 	public function sendRejectedToRequester(BorrowTransaction $borrowTransaction, User $facilitator, string $reason): void
 	{
 		$this->send(

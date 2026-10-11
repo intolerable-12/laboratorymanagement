@@ -77,6 +77,7 @@
                             <tr>
                                 <th scope="col" class="text-dark ps-4">Laboratory</th>
                                 <th scope="col" class="text-dark">Room</th>
+                                <th scope="col" class="text-dark">Campus</th>
                                 <th scope="col" class="text-dark">Capacity</th>
                                 <th scope="col" class="text-dark">Status</th>
                                 <th scope="col" class="text-center text-dark pe-4">Actions</th>
@@ -88,8 +89,8 @@
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="laboratory-table-thumb">
-                                                @if ($laboratory->image)
-                                                    <img src="{{ asset('storage/' . $laboratory->image) }}" alt="{{ $laboratory->laboratory_name }}">
+                                                @if ($laboratory->primaryImagePath())
+                                                    <img src="{{ asset('storage/' . $laboratory->primaryImagePath()) }}" alt="{{ $laboratory->laboratory_name }}">
                                                 @else
                                                     <div class="laboratory-table-thumb__placeholder">L</div>
                                                 @endif
@@ -101,6 +102,7 @@
                                         </div>
                                     </td>
                                     <td>{{ $laboratory->building ?? '—' }} / {{ $laboratory->room_number }}</td>
+                                    <td><span class="badge rounded-pill text-bg-info">{{ $laboratory->campus }} campus</span></td>
                                     <td>{{ $laboratory->capacity }}</td>
                                     <td>
                                         <span class="badge text-bg-{{ $laboratory->status === 'Available' ? 'success' : ($laboratory->status === 'Under Maintenance' ? 'warning' : 'secondary') }}">{{ $laboratory->status }}</span>
@@ -136,7 +138,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-secondary py-4">No laboratories found.</td>
+                                    <td colspan="6" class="text-center text-secondary py-4">No laboratories found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -153,8 +155,8 @@
                 <div class="col-12 col-md-6 col-xxl-4">
                     <div class="laboratory-grid-card">
                         <div class="laboratory-frame laboratory-frame--card">
-                            @if ($laboratory->image)
-                                <img src="{{ asset('storage/' . $laboratory->image) }}" alt="{{ $laboratory->laboratory_name }}">
+                            @if ($laboratory->primaryImagePath())
+                                <img src="{{ asset('storage/' . $laboratory->primaryImagePath()) }}" alt="{{ $laboratory->laboratory_name }}">
                             @else
                                 <div class="laboratory-frame__placeholder">
                                     <div class="laboratory-grid-card__placeholder-mark">L</div>
@@ -168,7 +170,10 @@
                                     <h3 class="h5 fw-semibold mb-1 text-dark">{{ $laboratory->laboratory_name }}</h3>
                                     <div class="small text-secondary">{{ $laboratory->laboratory_code }}</div>
                                 </div>
-                                <span class="badge text-bg-{{ $laboratory->status === 'Available' ? 'success' : ($laboratory->status === 'Under Maintenance' ? 'warning' : 'secondary') }}">{{ $laboratory->status }}</span>
+                                <div class="d-flex flex-wrap justify-content-end gap-2">
+                                    <span class="badge rounded-pill text-bg-info">{{ $laboratory->campus }} campus</span>
+                                    <span class="badge text-bg-{{ $laboratory->status === 'Available' ? 'success' : ($laboratory->status === 'Under Maintenance' ? 'warning' : 'secondary') }}">{{ $laboratory->status }}</span>
+                                </div>
                             </div>
 
                             <div class="small text-secondary mb-3">{{ $laboratory->building ?? 'No building specified' }} · Room {{ $laboratory->room_number }}</div>

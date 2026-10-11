@@ -29,8 +29,10 @@ class StudentBorrowController extends Controller
 	public function index(Request $request)
 	{
 		$this->ensureStudent($request);
+		$campus = $this->campusForUser($request);
 
 		$transactions = BorrowTransaction::with(['borrower', 'laboratory', 'items.item'])
+			->forCampus($campus)
 			->where('borrower_id', $request->user()->userNo)
 			->latest('borrowed_at')
 			->get();
@@ -166,17 +168,19 @@ class StudentBorrowController extends Controller
 	public function create(Request $request)
 	{
 		$this->ensureStudent($request);
+		$campus = $this->campusForUser($request);
 
 		$details = $request->session()->get(self::DRAFT_DETAILS, []);
 		$activeTab = 'equipment';
 		$selectedLaboratoryId = filter_var(old('laboratory_id', $details['laboratory_id'] ?? $request->query('laboratory_id', null)), FILTER_VALIDATE_INT, [
 			'options' => ['min_range' => 1],
 		]) ?: null;
-		$laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
+		$laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
 		$minimumBorrowDate = $this->minimumBorrowDateTime();
 		$borrowDateMin = $minimumBorrowDate->format('Y-m-d\TH:i');
 		$borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
 		$equipmentQuery = Equipment::query()
+			->forCampus($campus)
 			->where('status', 'Available')
 			->orderBy('equipment_name');
 		$search = trim((string) $request->query('search', ''));
@@ -198,6 +202,7 @@ class StudentBorrowController extends Controller
 		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
 		$oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
 		$selectedEquipmentItems = Equipment::query()
+			->forCampus($campus)
 			->whereIn('id', array_keys($oldEquipmentSelections))
 			->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
 			->get()
@@ -234,7 +239,7 @@ class StudentBorrowController extends Controller
 			$request->session()->forget(self::DRAFT_ITEMS);
 		}
 
-		return redirect()->route('student.borrow.items');
+		return redirect()->route($this->requesterRoute($request, 'items'));
 	}
 
 	public function items(Request $request)
@@ -242,14 +247,16 @@ class StudentBorrowController extends Controller
 		$this->ensureStudent($request);
 
 		if (! $request->session()->has(self::DRAFT_DETAILS)) {
-			return redirect()->route('student.borrow.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
 		}
 
 		$details = $request->session()->get(self::DRAFT_DETAILS);
 		$selectedLaboratoryId = (int) $details['laboratory_id'];
-		$laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+		$campus = $this->campusForUser($request);
+		$laboratory = Laboratory::forCampus($campus)->findOrFail($selectedLaboratoryId);
 		$search = trim((string) $request->query('search', ''));
 		$equipmentQuery = Equipment::query()
+			->forCampus($campus)
 			->where('status', 'Available')
 			->where('laboratory_id', $selectedLaboratoryId)
 			->orderBy('equipment_name');
@@ -267,7 +274,7 @@ class StudentBorrowController extends Controller
 		$oldEquipmentSelections = $request->session()->hasOldInput('equipment_items')
 			? (array) $request->session()->getOldInput('equipment_items', [])
 			: $this->draftItemSelections($draftItems);
-		$selectedEquipmentItems = Equipment::query()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+		$selectedEquipmentItems = Equipment::query()->forCampus($campus)->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
 
 		if ($request->ajax()) {
 			return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
@@ -288,7 +295,7 @@ class StudentBorrowController extends Controller
 
 		$details = $request->session()->get(self::DRAFT_DETAILS);
 		if (! $details) {
-			return redirect()->route('student.borrow.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
 		}
 
 		$request->validate([
@@ -307,7 +314,7 @@ class StudentBorrowController extends Controller
 
 		$request->session()->put(self::DRAFT_ITEMS, $items);
 
-		return redirect()->route('student.borrow.review');
+		return redirect()->route($this->requesterRoute($request, 'review'));
 	}
 
 	public function review(Request $request)
@@ -318,15 +325,16 @@ class StudentBorrowController extends Controller
 		$items = (array) $request->session()->get(self::DRAFT_ITEMS, []);
 
 		if (! $details) {
-			return redirect()->route('student.borrow.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
 		}
 
 		if ($items === []) {
-			return redirect()->route('student.borrow.items');
+			return redirect()->route($this->requesterRoute($request, 'items'));
 		}
 
-		$laboratory = Laboratory::findOrFail($details['laboratory_id']);
-		$equipment = Equipment::whereIn('id', collect($items)->pluck('item_id'))->get()->keyBy('id');
+		$campus = $this->campusForUser($request);
+		$laboratory = Laboratory::forCampus($campus)->findOrFail($details['laboratory_id']);
+		$equipment = Equipment::forCampus($campus)->whereIn('id', collect($items)->pluck('item_id'))->get()->keyBy('id');
 		$requestedItems = collect($items)->map(function (array $item) use ($equipment) {
 			$item['item'] = $equipment->get($item['item_id']);
 			return $item;
@@ -343,14 +351,15 @@ class StudentBorrowController extends Controller
 		$draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
 
 		if (! $data) {
-			return redirect()->route('student.borrow.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
 		}
 
 		if ($draftItems === []) {
-			return redirect()->route('student.borrow.items');
+			return redirect()->route($this->requesterRoute($request, 'items'));
 		}
 
 		$itemsRequest = Request::create('/', 'POST', $this->draftItemsInput($draftItems));
+		$itemsRequest->setUserResolver(fn () => $request->user());
 		$items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id']);
 		$notificationService = app(RequestNotificationService::class);
 
@@ -361,6 +370,7 @@ class StudentBorrowController extends Controller
 		}
 
 		$borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
+			$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 			$codeGenerator = app(SequentialCodeGenerator::class);
 			$schoolYear = SchoolYear::query()->where('is_current', true)->orderByDesc('start_date')->first()
 				?? SchoolYear::query()->orderByDesc('start_date')->first();
@@ -394,38 +404,71 @@ class StudentBorrowController extends Controller
 				]);
 			}
 
-			$notificationService->notifyRoleUsers(
-				'Instructor',
-				'Borrow',
-				'New borrow request',
-				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
-				$borrowTransaction
-			);
+			if ($this->isInstructorRequester($request)) {
+				$notificationService->notifyCampusRoleUsers(
+					'Laboratory In-charge',
+					$request->user()->campusName(),
+					'Borrow',
+					'New borrow request',
+					'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for Laboratory In-charge review.',
+					$borrowTransaction
+				);
+			} else {
+				$notificationService->notifyDepartmentRoleUsers(
+					'Instructor',
+					(int) $request->user()->department_id,
+					'Borrow',
+					'New borrow request',
+					'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
+					$borrowTransaction
+				);
+			}
 
 			return $borrowTransaction;
 		});
 
 		$request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
-		$notificationService->emailRoleUsers(
-			'Instructor',
-			'Borrow',
-			$borrowTransaction->borrow_no,
-			'New borrow request',
-			'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
-			route('instructor.borrow.show', $borrowTransaction),
-			'Review borrow request',
-			[
-				['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
-				['label' => 'Return at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
-				['label' => 'Status', 'value' => $borrowTransaction->status],
-			]
-		);
+		if ($this->isInstructorRequester($request)) {
+			$notificationService->emailCampusRoleUsers(
+				'Laboratory In-charge',
+				$request->user()->campusName(),
+				'Borrow',
+				$borrowTransaction->borrow_no,
+				'New borrow request',
+				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
+				route('facilitator.borrow.show', $borrowTransaction),
+				'Review borrow request',
+				[
+					['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
+					['label' => 'Return at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+					['label' => 'Status', 'value' => $borrowTransaction->status],
+				]
+			);
+		} else {
+			$notificationService->emailDepartmentRoleUsers(
+				'Instructor',
+				(int) $request->user()->department_id,
+				'Borrow',
+				$borrowTransaction->borrow_no,
+				'New borrow request',
+				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
+				route('instructor.borrow.show', $borrowTransaction),
+				'Review borrow request',
+				[
+					['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
+					['label' => 'Return at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+					['label' => 'Status', 'value' => $borrowTransaction->status],
+				]
+			);
+		}
 
-		app(StudentBorrowEmailController::class)->sendSubmittedToRequester($borrowTransaction, $request->user());
+		if (! $this->isInstructorRequester($request)) {
+			app(StudentBorrowEmailController::class)->sendSubmittedToRequester($borrowTransaction, $request->user());
+		}
 
 		return redirect()
-			->route('student.borrow.show', $borrowTransaction)
+			->route($this->requesterRoute($request, 'show'), $borrowTransaction)
 			->with('status', 'Borrow request submitted successfully.');
 	}
 
@@ -434,6 +477,7 @@ class StudentBorrowController extends Controller
 		$this->ensureStudent($request);
 
 		abort_unless($borrowTransaction->borrower_id === $request->user()->userNo, 403);
+		$this->ensureStudentLaboratory($request, (int) $borrowTransaction->laboratory_id);
 
 		$borrowTransaction->load(['borrower', 'items.item', 'releasedBy', 'receivedBy']);
 
@@ -445,9 +489,11 @@ class StudentBorrowController extends Controller
 		$this->ensureStudent($request);
 
 		abort_unless($borrowTransaction->borrower_id === $request->user()->userNo, 403);
+		$this->ensureStudentLaboratory($request, (int) $borrowTransaction->laboratory_id);
 
 		$cancelled = BorrowTransaction::query()
 			->whereKey($borrowTransaction->getKey())
+			->forCampus($this->campusForUser($request))
 			->where('borrower_id', $request->user()->userNo)
 			->whereIn('status', ['Pending', 'Instructor Approved', 'Facilitator Approved'])
 			->update([
@@ -462,7 +508,7 @@ class StudentBorrowController extends Controller
 		}
 
 		return redirect()
-			->route('student.borrow.show', $borrowTransaction)
+			->route($this->requesterRoute($request, 'show'), $borrowTransaction)
 			->with('status', 'Borrow request cancelled successfully.');
 	}
 
@@ -474,6 +520,8 @@ class StudentBorrowController extends Controller
 			'laboratory_id' => ['required', 'exists:laboratories,id'],
 			'remarks' => ['nullable', 'string', 'max:1000'],
 		]);
+
+		$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 
 		$borrowedAt = Carbon::parse($data['borrowed_at']);
 		$returnAt = Carbon::parse($data['due_at']);
@@ -515,6 +563,8 @@ class StudentBorrowController extends Controller
 
 	private function collectRequestedItems(Request $request, int $laboratoryId): array
 	{
+		$this->ensureStudentLaboratory($request, $laboratoryId);
+		$campus = $this->campusForUser($request);
 		$errors = [];
 		$items = [];
 
@@ -534,7 +584,7 @@ class StudentBorrowController extends Controller
 				continue;
 			}
 
-			$equipment = Equipment::find($equipmentId);
+			$equipment = Equipment::forCampus($campus)->find($equipmentId);
 
 			if (! $equipment) {
 				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
@@ -591,7 +641,33 @@ class StudentBorrowController extends Controller
 
 	private function ensureStudent(Request $request): void
 	{
-		abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
+		abort_unless(in_array(optional($request->user()->role)->role_name, ['Student', 'Instructor'], true), 403);
+	}
+
+	private function isInstructorRequester(Request $request): bool
+	{
+		return optional($request->user()->role)->role_name === 'Instructor';
+	}
+
+	private function requesterRoute(Request $request, string $action): string
+	{
+		$prefix = $this->isInstructorRequester($request) ? 'instructor.my-borrow-requests.' : 'student.borrow.';
+
+		return $prefix . $action;
+	}
+
+	private function campusForUser(Request $request): string
+	{
+		$campus = $request->user()->campusName();
+
+		abort_unless($campus, 403);
+
+		return $campus;
+	}
+
+	private function ensureStudentLaboratory(Request $request, int $laboratoryId): void
+	{
+		abort_unless(Laboratory::forCampus($this->campusForUser($request))->whereKey($laboratoryId)->exists(), 403);
 	}
 
 	private function minimumBorrowDateTime(): Carbon

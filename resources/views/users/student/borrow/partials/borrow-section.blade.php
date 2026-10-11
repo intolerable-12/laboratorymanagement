@@ -78,9 +78,9 @@
                     <div class="mt-3 d-flex justify-content-between align-items-center border-top pt-3">
                         <span class="small text-secondary fw-medium">{{ $entry['borrow_no'] }}</span>
                         <div class="d-flex align-items-center gap-2">
-                            <a href="{{ route('student.borrow.show', $transaction) }}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="{{ route((auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow') . '.show', $transaction) }}" class="btn btn-sm btn-outline-primary">View</a>
                             @if (in_array($entry['status'], ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
-                                <form method="POST" action="{{ route('student.borrow.cancel', $transaction) }}" class="d-inline">
+                                <form method="POST" action="{{ route((auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow') . '.cancel', $transaction) }}" class="d-inline">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this borrow request?');">Cancel</button>

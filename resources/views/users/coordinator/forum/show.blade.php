@@ -32,20 +32,7 @@
             <article class="card social-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="category-chip">
-                            <i class="fa-solid fa-tag me-1"></i>{{ $forumPost->category ?? 'General' }}
-                        </span>
-                        <span class="badge rounded-pill text-bg-{{ $forumPost->is_hidden ? 'danger' : ($forumPost->is_locked ? 'secondary' : ($forumPost->is_pinned ? 'primary' : 'success')) }}">
-                            @if($forumPost->is_hidden)
-                                <i class="fa-solid fa-eye-slash me-1"></i> Hidden
-                            @elseif($forumPost->is_locked)
-                                <i class="fa-solid fa-lock me-1"></i> Locked
-                            @elseif($forumPost->is_pinned)
-                                <i class="fa-solid fa-thumbtack me-1"></i> Pinned
-                            @else
-                                <i class="fa-solid fa-door-open me-1"></i> Open
-                            @endif
-                        </span>
+                        @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                     </div>
 
                     <div class="d-flex align-items-start gap-3 mb-4">
@@ -103,11 +90,14 @@
                         <form method="POST" action="{{ route('coordinator.forum.comments.store', $forumPost) }}" class="vstack gap-3">
                             @csrf
 
-                            <div>
-                                <label for="comment" class="form-label fw-semibold text-dark">Comment</label>
-                                <textarea id="comment" name="comment" rows="4" class="form-control social-input @error('comment') is-invalid @enderror" placeholder="Write a reply..." required>{{ old('comment') }}</textarea>
-                                @error('comment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            </div>
+                            @include('partials.rich-text-editor', [
+                                'name' => 'comment',
+                                'label' => 'Comment',
+                                'required' => true,
+                                'id' => 'forum-comment',
+                                'placeholder' => 'Write a reply...',
+                                'hint' => 'Rich text is supported.',
+                            ])
 
                             <div class="d-flex justify-content-end">
                                 <button type="submit" class="btn btn-primary px-4 rounded-pill">Post reply</button>

@@ -16,7 +16,7 @@ class FacilitatorBorrowCalendarController extends Controller
     {
         $this->ensureFacilitator($request);
 
-        $calendarEvents = $this->borrowTransactionsForCalendar()
+        $calendarEvents = $this->borrowTransactionsForCalendar($request->user())
             ->flatMap(fn ($borrowTransaction) => $this->toBorrowCalendarEvents($borrowTransaction))
             ->values();
 

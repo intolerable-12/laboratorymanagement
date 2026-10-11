@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Coordinator\Reservation;
 
 use App\Http\Controllers\Concerns\BuildsBorrowCalendarEvents;
 use App\Http\Controllers\Controller;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -15,7 +16,7 @@ class CoordinatorBorrowCalendarController extends Controller
     {
         $this->ensureCoordinator($request);
 
-        $calendarEvents = $this->borrowTransactionsForCalendar()
+        $calendarEvents = $this->borrowTransactionsForCalendar(null, Campus::MAIN)
             ->flatMap(fn ($borrowTransaction) => $this->toBorrowCalendarEvents($borrowTransaction))
             ->values();
 

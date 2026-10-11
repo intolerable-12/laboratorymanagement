@@ -31,6 +31,16 @@
         @enderror
     </div>
 
+    <div class="col-md-6">
+        <label class="form-label" for="campus">Campus</label>
+        <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror" required>
+            @foreach (\App\Support\Campus::values() as $campus)
+                <option value="{{ $campus }}" @selected(old('campus', $department->campus ?? 'Main') === $campus)>{{ $campus }} campus</option>
+            @endforeach
+        </select>
+        @error('campus') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
     <div class="col-12">
         <label class="form-label" for="description">Description</label>
         <textarea

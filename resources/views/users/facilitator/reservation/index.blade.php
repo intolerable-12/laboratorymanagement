@@ -51,7 +51,7 @@
                         <thead>
                             <tr>
                                 <th><a href="{{ $sortUrl('reservation_no') }}" class="text-decoration-none text-dark">Reservation <i class="fa-solid {{ $sortIcon('reservation_no') }} small"></i></a></th>
-                                <th><a href="{{ $sortUrl('student') }}" class="text-decoration-none text-dark">Student <i class="fa-solid {{ $sortIcon('student') }} small"></i></a></th>
+                                <th><a href="{{ $sortUrl('student') }}" class="text-decoration-none text-dark">Requester <i class="fa-solid {{ $sortIcon('student') }} small"></i></a></th>
                                 <th><a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark">Laboratory <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i></a></th>
                                 <th><a href="{{ $sortUrl('reservation_date') }}" class="text-decoration-none text-dark">Schedule <i class="fa-solid {{ $sortIcon('reservation_date') }} small"></i></a></th>
                                 <th><a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark">Status <i class="fa-solid {{ $sortIcon('status') }} small"></i></a></th>
