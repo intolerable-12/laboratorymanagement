@@ -108,6 +108,7 @@
                         <tr>
                             <th scope="col" class="text-dark ps-4">Department</th>
                             <th scope="col" class="text-dark">Code</th>
+                            <th scope="col" class="text-dark">Campus</th>
                             <th scope="col" class="text-dark">Users</th>
                             <th scope="col" class="text-dark">Description</th>
                             <th scope="col" class="text-center text-dark pe-4">Actions</th>
@@ -121,6 +122,7 @@
                             <tr>
                                 <td class="ps-4 fw-semibold text-dark">{{ $department->department_name }}</td>
                                 <td><span class="badge text-bg-light border text-dark">{{ $department->department_code }}</span></td>
+                                <td><span class="badge text-bg-info">{{ $department->campus }}</span></td>
                                 <td>{{ $department->users_count }}</td>
                                 <td class="text-secondary">{{ $department->description ?? '-' }}</td>
                                 <td class="text-center pe-4">
@@ -170,7 +172,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-secondary py-5">No departments found.</td>
+                                <td colspan="6" class="text-center text-secondary py-5">No departments found.</td>
                             </tr>
                         @endforelse
                     </tbody>

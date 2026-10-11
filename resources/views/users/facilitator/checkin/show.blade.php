@@ -18,6 +18,8 @@
     @php
         $borrowerName = trim(collect([$borrowTransaction->borrower?->first_name, $borrowTransaction->borrower?->middle_name, $borrowTransaction->borrower?->last_name, $borrowTransaction->borrower?->suffix])->filter()->implode(' '));
         $completed = $borrowTransaction->status === 'Returned';
+        $isOverdue = ! $completed && $borrowTransaction->due_at?->isPast();
+        $displayStatus = $isOverdue ? 'Overdue' : $borrowTransaction->status;
         $returnableItems = $borrowTransaction->items->where('item_type', 'Equipment');
         $totalCheckedOut = $returnableItems->sum(fn ($item) => (float) ($item->quantity_checked_out ?? 0));
         $totalReturned = $returnableItems->sum(fn ($item) => (float) $item->quantity_returned);
@@ -33,12 +35,19 @@
             </a>
             <div class="d-flex align-items-center gap-2">
                 <span class="text-secondary small"><span id="checkin-scan-count">{{ $scanCount }}</span> scan{{ $scanCount === 1 ? '' : 's' }}</span>
-                <span id="checkin-status" class="badge text-bg-{{ $completed ? 'success' : ($borrowTransaction->status === 'Partially Returned' ? 'warning' : 'primary') }} px-3 py-2">{{ $borrowTransaction->status }}</span>
+                <span id="checkin-status" class="badge text-bg-{{ $completed ? 'success' : ($isOverdue ? 'danger' : ($borrowTransaction->status === 'Partially Returned' ? 'warning' : 'primary')) }} px-3 py-2">{{ $displayStatus }}</span>
             </div>
         </div>
 
         @if (session('checkin_status'))
             <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4"><i class="fa-solid fa-circle-check me-1"></i>{{ session('checkin_status') }}</div>
+        @endif
+
+        @if ($isOverdue)
+            <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                This request is overdue for check-in. The scheduled return time was {{ $borrowTransaction->due_at?->format('M d, Y h:i A') }}.
+            </div>
         @endif
 
         @if ($errors->any())

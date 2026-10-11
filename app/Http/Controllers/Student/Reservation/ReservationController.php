@@ -28,8 +28,10 @@ class ReservationController extends Controller
     public function index(Request $request)
     {
         $this->ensureStudent($request);
+		$campus = $this->campusForUser($request);
 
         $reservations = Reservation::with(['laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
+			->forCampus($campus)
             ->where('user_no', $request->user()->userNo)
             ->latest()
             ->paginate(10);
@@ -40,9 +42,10 @@ class ReservationController extends Controller
     public function create(Request $request)
     {
         $this->ensureStudent($request);
+		$campus = $this->campusForUser($request);
 
         $reservationMinDate = $this->minimumReservationDate()->format('Y-m-d');
-        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
         $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
         $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
 
@@ -67,7 +70,7 @@ class ReservationController extends Controller
             $request->session()->forget(self::DRAFT_ITEMS);
         }
 
-        return redirect()->route('student.reservations.items');
+		return redirect()->route($this->requesterRoute($request, 'items'));
     }
 
     public function items(Request $request)
@@ -75,19 +78,22 @@ class ReservationController extends Controller
         $this->ensureStudent($request);
 
         if (! $request->session()->has(self::DRAFT_DETAILS)) {
-            return redirect()->route('student.reservations.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
         }
 
         $details = $request->session()->get(self::DRAFT_DETAILS);
         $activeTab = $request->query('tab', 'equipment');
         $selectedLaboratoryId = (int) $details['laboratory_id'];
-        $laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+		$campus = $this->campusForUser($request);
+		$laboratory = Laboratory::forCampus($campus)->findOrFail($selectedLaboratoryId);
         $search = trim((string) $request->query('search', ''));
         $equipmentQuery = Equipment::with('laboratory')
+			->forCampus($campus)
             ->where('status', 'Available')
             ->where('laboratory_id', $selectedLaboratoryId)
             ->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')
+			->forCampus($campus)
             ->availableForRequest()
             ->where('laboratory_id', $selectedLaboratoryId)
             ->orderBy('chemical_name');
@@ -114,8 +120,8 @@ class ReservationController extends Controller
         $oldChemicalSelections = $request->session()->hasOldInput('chemical_items')
             ? (array) $request->session()->getOldInput('chemical_items', [])
             : $this->draftItemSelections($draftItems, 'Chemical');
-        $selectedEquipmentItems = Equipment::query()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
-        $selectedChemicalItems = Chemical::query()->availableForRequest()->whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
+        $selectedEquipmentItems = Equipment::query()->forCampus($campus)->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+        $selectedChemicalItems = Chemical::query()->forCampus($campus)->availableForRequest()->whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
 
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
@@ -141,7 +147,7 @@ class ReservationController extends Controller
 
         $details = $request->session()->get(self::DRAFT_DETAILS);
         if (! $details) {
-            return redirect()->route('student.reservations.create');
+            return redirect()->route($this->requesterRoute($request, 'create'));
         }
 
         $request->validate([
@@ -163,7 +169,7 @@ class ReservationController extends Controller
 
         $request->session()->put(self::DRAFT_ITEMS, $items);
 
-        return redirect()->route('student.reservations.review');
+		return redirect()->route($this->requesterRoute($request, 'review'));
     }
 
     public function review(Request $request)
@@ -174,16 +180,17 @@ class ReservationController extends Controller
         $items = (array) $request->session()->get(self::DRAFT_ITEMS, []);
 
         if (! $details) {
-            return redirect()->route('student.reservations.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
         }
 
         if ($items === []) {
-            return redirect()->route('student.reservations.items');
+			return redirect()->route($this->requesterRoute($request, 'items'));
         }
 
-        $laboratory = Laboratory::findOrFail($details['laboratory_id']);
-        $equipment = Equipment::whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
-        $chemicals = Chemical::whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
+        $campus = $this->campusForUser($request);
+        $laboratory = Laboratory::forCampus($campus)->findOrFail($details['laboratory_id']);
+        $equipment = Equipment::forCampus($campus)->whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
+        $chemicals = Chemical::forCampus($campus)->whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
         $requestedItems = collect($items)->map(function (array $item) use ($equipment, $chemicals) {
             $item['item'] = $item['item_type'] === 'Equipment'
                 ? $equipment->get($item['item_id'])
@@ -203,14 +210,15 @@ class ReservationController extends Controller
         $draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
 
         if (! $data) {
-            return redirect()->route('student.reservations.create');
+			return redirect()->route($this->requesterRoute($request, 'create'));
         }
 
         if ($draftItems === []) {
-            return redirect()->route('student.reservations.items');
+			return redirect()->route($this->requesterRoute($request, 'items'));
         }
 
         $itemsRequest = Request::create('/', 'POST', $this->draftItemsInput($draftItems));
+		$itemsRequest->setUserResolver(fn () => $request->user());
         $items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id']);
         $notificationService = app(RequestNotificationService::class);
 
@@ -230,7 +238,8 @@ class ReservationController extends Controller
                 ]);
             }
 
-            $laboratory = Laboratory::query()->lockForUpdate()->findOrFail($data['laboratory_id']);
+			$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
+			$laboratory = Laboratory::forCampus($request->user()->campusName())->lockForUpdate()->findOrFail($data['laboratory_id']);
             $codeGenerator = app(SequentialCodeGenerator::class);
 
             if ($this->hasReservationTimeConflict(
@@ -271,13 +280,25 @@ class ReservationController extends Controller
                 ]);
             }
 
-                $notificationService->notifyRoleUsers(
-                    'Instructor',
-                    'Reservation',
-                    'New reservation request',
-                    'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
-                    $reservation
-                );
+				if ($this->isInstructorRequester($request)) {
+					$notificationService->notifyCampusRoleUsers(
+						'Laboratory In-charge',
+						$request->user()->campusName(),
+						'Reservation',
+						'New reservation request',
+						'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for Laboratory In-charge review.',
+						$reservation
+					);
+				} else {
+					$notificationService->notifyDepartmentRoleUsers(
+						'Instructor',
+						(int) $request->user()->department_id,
+						'Reservation',
+						'New reservation request',
+						'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
+						$reservation
+					);
+				}
 
             return $reservation;
         });
@@ -286,23 +307,42 @@ class ReservationController extends Controller
 
         $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
-        $notificationService->emailRoleUsers(
-            'Instructor',
-            'Reservation',
-            $reservation->reservation_no,
-            'New reservation request',
-            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
-            route('instructor.reservations.show', $reservation),
-            'Review reservation',
-            [
-                ['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
-                ['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
-                ['label' => 'Status', 'value' => $reservation->status],
-            ]
-        );
+		if ($this->isInstructorRequester($request)) {
+			$notificationService->emailCampusRoleUsers(
+				'Laboratory In-charge',
+				$request->user()->campusName(),
+				'Reservation',
+				$reservation->reservation_no,
+				'New reservation request',
+				'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
+				route('facilitator.reservations.show', $reservation),
+				'Review reservation',
+				[
+					['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
+					['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
+					['label' => 'Status', 'value' => $reservation->status],
+				]
+			);
+		} else {
+			$notificationService->emailDepartmentRoleUsers(
+				'Instructor',
+				(int) $request->user()->department_id,
+				'Reservation',
+				$reservation->reservation_no,
+				'New reservation request',
+				'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for your review.',
+				route('instructor.reservations.show', $reservation),
+				'Review reservation',
+				[
+					['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
+					['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
+					['label' => 'Status', 'value' => $reservation->status],
+				]
+			);
+		}
 
         return redirect()
-            ->route('student.reservations.show', $reservation)
+			->route($this->requesterRoute($request, 'show'), $reservation)
             ->with('status', 'Reservation request submitted successfully.');
     }
 
@@ -311,6 +351,7 @@ class ReservationController extends Controller
         $this->ensureStudent($request);
 
         abort_unless($reservation->user_no === $request->user()->userNo, 403);
+		$this->ensureStudentLaboratory($request, (int) $reservation->laboratory_id);
 
         $reservation->load(['laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester']);
 
@@ -322,9 +363,11 @@ class ReservationController extends Controller
         $this->ensureStudent($request);
 
         abort_unless($reservation->user_no === $request->user()->userNo, 403);
+		$this->ensureStudentLaboratory($request, (int) $reservation->laboratory_id);
 
         $cancelled = Reservation::query()
             ->whereKey($reservation->getKey())
+			->forCampus($this->campusForUser($request))
             ->where('user_no', $request->user()->userNo)
             ->whereIn('status', ['Pending', 'Instructor Approved', 'Facilitator Approved'])
             ->update([
@@ -339,7 +382,7 @@ class ReservationController extends Controller
         }
 
         return redirect()
-            ->route('student.reservations.show', $reservation)
+			->route($this->requesterRoute($request, 'show'), $reservation)
             ->with('status', 'Reservation request cancelled successfully.');
     }
 
@@ -355,6 +398,8 @@ class ReservationController extends Controller
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
+
+		$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 
         if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
             throw ValidationException::withMessages([
@@ -416,6 +461,8 @@ class ReservationController extends Controller
 
     private function collectRequestedItems(Request $request, int $laboratoryId): array
     {
+        $this->ensureStudentLaboratory($request, $laboratoryId);
+		$campus = $this->campusForUser($request);
         $errors = [];
         $items = [];
 
@@ -435,7 +482,7 @@ class ReservationController extends Controller
                 continue;
             }
 
-            $equipment = Equipment::find($equipmentId);
+            $equipment = Equipment::forCampus($campus)->find($equipmentId);
 
             if (! $equipment) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
@@ -484,7 +531,7 @@ class ReservationController extends Controller
                 continue;
             }
 
-            $chemical = Chemical::find($chemicalId);
+            $chemical = Chemical::forCampus($campus)->find($chemicalId);
 
             if (! $chemical) {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'Selected chemical was not found.';
@@ -531,8 +578,34 @@ class ReservationController extends Controller
 
     private function ensureStudent(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
+		abort_unless(in_array(optional($request->user()->role)->role_name, ['Student', 'Instructor'], true), 403);
     }
+
+	private function isInstructorRequester(Request $request): bool
+	{
+		return optional($request->user()->role)->role_name === 'Instructor';
+	}
+
+	private function requesterRoute(Request $request, string $action): string
+	{
+		$prefix = $this->isInstructorRequester($request) ? 'instructor.my-reservations.' : 'student.reservations.';
+
+		return $prefix . $action;
+	}
+
+	private function campusForUser(Request $request): string
+	{
+		$campus = $request->user()->campusName();
+
+		abort_unless($campus, 403);
+
+		return $campus;
+	}
+
+	private function ensureStudentLaboratory(Request $request, int $laboratoryId): void
+	{
+		abort_unless(Laboratory::forCampus($this->campusForUser($request))->whereKey($laboratoryId)->exists(), 403);
+	}
 
     private function minimumReservationDate(): Carbon
     {

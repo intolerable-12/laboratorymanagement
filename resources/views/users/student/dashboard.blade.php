@@ -21,6 +21,8 @@
             'feedSubtitle' => 'Important notices from the coordinator that affect your laboratory work.',
         ])
 
+        @include('users.student.partials.laboratory-showcase')
+
         <section class="row g-3 g-xl-4 mb-4">
             @php
                 $metricCards = [

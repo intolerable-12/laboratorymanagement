@@ -12,6 +12,7 @@ use App\Models\Laboratory;
 use App\Models\Reservation;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +41,7 @@ class CoordinatorReservationController extends Controller
         }
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
+            ->forCampus(Campus::MAIN)
             ->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
             ->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
             ->select('reservations.*')
@@ -55,6 +57,7 @@ class CoordinatorReservationController extends Controller
     public function show(Request $request, Reservation $reservation)
     {
         $this->ensureCoordinator($request);
+        $this->ensureMainCampus($reservation);
 
         $reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester', 'borrowTransactions']);
         $borrowTransaction = $reservation->borrowTransactions->sortByDesc('id')->first();
@@ -189,6 +192,7 @@ class CoordinatorReservationController extends Controller
     public function reschedule(Request $request, Reservation $reservation)
     {
         $this->ensureCoordinator($request);
+		$this->ensureMainCampus($reservation);
 
         $data = $request->validate([
             'reservation_date' => ['required', 'date', 'after_or_equal:today'],
@@ -315,12 +319,27 @@ class CoordinatorReservationController extends Controller
 
     private function guardForCoordinator(Reservation $reservation): void
     {
+        $reservation->loadMissing('laboratory');
+
+        if ($reservation->laboratory?->campus !== Campus::MAIN) {
+            throw ValidationException::withMessages([
+                'status' => 'IBED reservations are completed by the IBED Laboratory In-charge and do not require coordinator approval.',
+            ]);
+        }
+
         if ($reservation->status !== 'Facilitator Approved') {
             throw ValidationException::withMessages([
                 'status' => 'Only facilitator-approved reservations can be processed by the coordinator.',
             ]);
         }
     }
+
+	private function ensureMainCampus(Reservation $reservation): void
+	{
+		$reservation->loadMissing('laboratory');
+
+		abort_unless($reservation->laboratory?->campus === Campus::MAIN, 403);
+	}
 
     private function ensureCoordinator(Request $request): void
     {

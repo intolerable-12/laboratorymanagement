@@ -9,6 +9,7 @@ use App\Models\Equipment;
 use App\Models\Feedback;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
+use App\Models\Laboratory;
 use App\Models\Notification;
 use App\Models\Reservation;
 use Illuminate\Support\Collection;
@@ -21,9 +22,12 @@ class DashboardController extends Controller
     public function index(): View
     {
         $user = auth()->user();
+		$campus = $user->campusName();
+		abort_unless($campus, 403);
 
         $transactions = BorrowTransaction::query()
             ->with(['items.item', 'laboratory'])
+			->forCampus($campus)
             ->where('borrower_id', $user?->userNo)
             ->latest('updated_at')
             ->latest('id')
@@ -31,9 +35,18 @@ class DashboardController extends Controller
 
         $reservations = Reservation::query()
             ->with('laboratory')
+			->forCampus($campus)
             ->where('user_no', $user?->userNo)
             ->latest('updated_at')
             ->latest('id')
+            ->get();
+
+        $laboratories = Laboratory::query()
+            ->forCampus($campus)
+            ->with('images')
+            ->withCount(['equipment', 'chemicals'])
+            ->orderBy('laboratory_name')
+            ->limit(3)
             ->get();
 
         $feedbacks = Feedback::query()
@@ -134,6 +147,7 @@ class DashboardController extends Controller
                 'overdue' => $overdueRequestCount,
             ],
             'recentActivities' => $recentActivities,
+            'laboratories' => $laboratories,
         ]);
     }
 

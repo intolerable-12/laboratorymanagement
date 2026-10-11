@@ -30,6 +30,10 @@
                             <div class="fw-semibold text-dark">{{ $department->department_name }}</div>
                         </div>
                         <div>
+                            <div class="small text-uppercase text-secondary mb-1">Campus</div>
+                            <div class="fw-semibold text-dark">{{ $department->campusName() }} campus</div>
+                        </div>
+                        <div>
                             <div class="small text-uppercase text-secondary mb-1">Description</div>
                             <div class="text-dark">{{ $department->description ?? '-' }}</div>
                         </div>

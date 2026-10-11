@@ -38,7 +38,9 @@ class FeedbackController extends Controller
     {
         $this->ensureInstructor($request);
 
-        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
+        $campus = $request->user()->campusName();
+        abort_unless($campus, 403);
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
 
         return view('users.instructor.feedback.create', compact('laboratories'));
     }
@@ -63,6 +65,13 @@ class FeedbackController extends Controller
             ]);
         }
 
+        if (! empty($data['laboratory_id'])) {
+            abort_unless(
+                Laboratory::forCampus($request->user()->campusName())->whereKey($data['laboratory_id'])->exists(),
+                403,
+            );
+        }
+
         $feedback = Feedback::create([
             'user_no' => $request->user()->userNo,
             'feedback_type' => $data['feedback_type'],
@@ -84,6 +93,7 @@ class FeedbackController extends Controller
     private function ensureInstructor(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Instructor', 403);
+        abort_unless($request->user()->department_id && $request->user()->campusName(), 403);
     }
 
     private function notifyCoordinators(RequestNotificationService $notificationService, Feedback $feedback, string $submitterRole): void

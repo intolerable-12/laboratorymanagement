@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Concerns;
 use App\Models\BorrowTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use App\Models\User;
 
 trait BuildsBorrowCalendarEvents
 {
-    protected function borrowTransactionsForCalendar(): Collection
+    protected function borrowTransactionsForCalendar(?User $user = null, ?string $campus = null): Collection
     {
-        return BorrowTransaction::with(['borrower', 'laboratory', 'items.item'])
+        $query = BorrowTransaction::with(['borrower', 'laboratory', 'items.item'])
+            ->when($campus, fn ($query) => $query->forCampus($campus))
+            ->when($user, fn ($query) => $query->forCampus($user->campusName()))
+            ->when($user?->role?->role_name === 'Student', fn ($query) => $query->where('borrower_id', $user->userNo))
+            ->when($user?->role?->role_name === 'Instructor', fn ($query) => $query->forDepartment((int) $user->department_id))
             ->whereIn('status', [
                 'Coordinator Approved',
                 'Partially Borrowed',
@@ -22,7 +27,9 @@ trait BuildsBorrowCalendarEvents
             ->whereNotNull('borrowed_at')
             ->whereNotNull('due_at')
             ->orderBy('borrowed_at')
-            ->get();
+            ;
+
+        return $query->get();
     }
 
     protected function borrowCalendarStats(Collection $events): array

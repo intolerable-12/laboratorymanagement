@@ -58,6 +58,7 @@ use App\Http\Controllers\Instructor\Feedback\FeedbackQuestionnaireController as 
 use App\Http\Controllers\Instructor\Forum\InstructorForumController;
 use App\Http\Controllers\Instructor\Account\MyAccountController as InstructorMyAccountController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
+use App\Http\Controllers\Student\LaboratoryController as StudentLaboratoryController;
 use App\Http\Controllers\Student\Inventory\ChemicalController as StudentChemicalInventoryController;
 use App\Http\Controllers\Student\Inventory\LabEquipmentController as StudentLabEquipmentController;
 use App\Http\Controllers\Student\Reservation\ReservationController as StudentReservationController;
@@ -207,6 +208,8 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/', [LaboratoryController::class, 'index'])->name('index');
                 Route::get('/create', [LaboratoryController::class, 'create'])->name('create');
                 Route::post('/', [LaboratoryController::class, 'store'])->name('store');
+                Route::delete('/{laboratory}/images', [LaboratoryController::class, 'destroyImages'])->name('images.destroy');
+                Route::delete('/{laboratory}/images/{laboratoryImage}', [LaboratoryController::class, 'destroyImage'])->name('images.destroy.single');
                 Route::get('/{laboratory}', [LaboratoryController::class, 'show'])->name('show');
                 Route::get('/{laboratory}/edit', [LaboratoryController::class, 'edit'])->name('edit');
                 Route::put('/{laboratory}', [LaboratoryController::class, 'update'])->name('update');
@@ -338,13 +341,22 @@ Route::middleware(['auth', 'role:Student', 'audit'])
     ->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
+        Route::prefix('laboratories')
+            ->name('laboratories.')
+            ->group(function () {
+                Route::get('/', [StudentLaboratoryController::class, 'index'])->name('index');
+                Route::get('/{laboratory}', [StudentLaboratoryController::class, 'show'])->name('show');
+            });
+
         Route::get('/inventory', function () {
+            $campus = request()->user()->campusName();
+
             return view('users.student.inventory.index', [
                 'stats' => [
-                    'equipment_available' => Equipment::withoutTrashed()->where('status', 'Available')->count(),
-                    'chemicals_available' => Chemical::withoutTrashed()->availableForRequest()->count(),
-                    'equipment_categories' => EquipmentCategory::count(),
-                    'chemical_categories' => ChemicalCategory::count(),
+                    'equipment_available' => Equipment::withoutTrashed()->forCampus($campus)->where('status', 'Available')->count(),
+                    'chemicals_available' => Chemical::withoutTrashed()->forCampus($campus)->availableForRequest()->count(),
+                    'equipment_categories' => EquipmentCategory::forCampus($campus)->count(),
+                    'chemical_categories' => ChemicalCategory::forCampus($campus)->count(),
                 ],
             ]);
         })->name('inventory.index');
@@ -487,6 +499,7 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/{reservation}', [FacilitatorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [FacilitatorReservationController::class, 'approve'])->name('approve');
                 Route::post('/{reservation}/reject', [FacilitatorReservationController::class, 'reject'])->name('reject');
+                Route::patch('/{reservation}/reschedule', [FacilitatorReservationController::class, 'reschedule'])->name('reschedule');
             });
 
         Route::prefix('borrow')
@@ -497,6 +510,7 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/{borrowTransaction}', [FacilitatorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [FacilitatorBorrowController::class, 'approve'])->name('approve');
                 Route::post('/{borrowTransaction}/reject', [FacilitatorBorrowController::class, 'reject'])->name('reject');
+                Route::patch('/{borrowTransaction}/reschedule', [FacilitatorBorrowController::class, 'reschedule'])->name('reschedule');
             });
 
         Route::prefix('checkout')
@@ -578,6 +592,20 @@ Route::middleware(['auth', 'role:Instructor', 'audit'])
                 Route::post('/{reservation}/reject', [InstructorReservationController::class, 'reject'])->name('reject');
             });
 
+        Route::prefix('my-reservations')
+            ->name('my-reservations.')
+            ->group(function () {
+                Route::get('/', [StudentReservationController::class, 'index'])->name('index');
+                Route::get('/create', [StudentReservationController::class, 'create'])->name('create');
+                Route::post('/create/details', [StudentReservationController::class, 'details'])->name('details');
+                Route::get('/create/items', [StudentReservationController::class, 'items'])->name('items');
+                Route::post('/create/items', [StudentReservationController::class, 'itemsStore'])->name('items.store');
+                Route::get('/create/review', [StudentReservationController::class, 'review'])->name('review');
+                Route::post('/', [StudentReservationController::class, 'store'])->name('store');
+                Route::patch('/{reservation}/cancel', [StudentReservationController::class, 'cancel'])->name('cancel');
+                Route::get('/{reservation}', [StudentReservationController::class, 'show'])->name('show');
+            });
+
         Route::prefix('borrow')
             ->name('borrow.')
             ->group(function () {
@@ -586,6 +614,20 @@ Route::middleware(['auth', 'role:Instructor', 'audit'])
                 Route::get('/{borrowTransaction}', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'show'])->name('show');
                 Route::post('/{borrowTransaction}/approve', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'approve'])->name('approve');
                 Route::post('/{borrowTransaction}/reject', [\App\Http\Controllers\Instructor\Borrow\InstructorBorrowController::class, 'reject'])->name('reject');
+            });
+
+        Route::prefix('my-borrow-requests')
+            ->name('my-borrow-requests.')
+            ->group(function () {
+                Route::get('/', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'create'])->name('create');
+                Route::post('/create/details', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'details'])->name('details');
+                Route::get('/create/items', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'items'])->name('items');
+                Route::post('/create/items', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'itemsStore'])->name('items.store');
+                Route::get('/create/review', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'review'])->name('review');
+                Route::post('/', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'store'])->name('store');
+                Route::patch('/{borrowTransaction}/cancel', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'cancel'])->name('cancel');
+                Route::get('/{borrowTransaction}', [\App\Http\Controllers\Student\Borrow\StudentBorrowController::class, 'show'])->name('show');
             });
 
         Route::prefix('feedback')

@@ -17,6 +17,7 @@ class LaboratoryFactory extends Factory
         return [
             'laboratory_code' => strtoupper(Str::substr(Str::slug($name), 0, 6) ?: 'LAB'),
             'laboratory_name' => $name,
+            'campus' => 'Main',
             'building' => $this->faker->randomElement(['Main', 'Science', 'Engineering']),
             'room_number' => $this->faker->bothify('R##'),
             'capacity' => $this->faker->numberBetween(10, 40),

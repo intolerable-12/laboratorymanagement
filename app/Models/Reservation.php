@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class Reservation extends Model
 {
@@ -44,6 +45,20 @@ class Reservation extends Model
             'reservation_date' => 'date',
             'expected_participants' => 'integer',
         ];
+    }
+
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        return filled($campus)
+            ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
+            : $query;
+    }
+
+    public function scopeForDepartment(Builder $query, ?int $departmentId): Builder
+    {
+        return $departmentId
+            ? $query->whereHas('user', fn (Builder $userQuery) => $userQuery->where('department_id', $departmentId))
+            : $query->whereRaw('1 = 0');
     }
 
     /**

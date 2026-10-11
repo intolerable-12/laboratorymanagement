@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class ChemicalCategory extends Model
 {
@@ -21,6 +22,13 @@ class ChemicalCategory extends Model
         'category_name',
         'description',
     ];
+
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        return filled($campus)
+            ? $query->whereHas('chemicals', fn (Builder $chemicalQuery) => $chemicalQuery->forCampus($campus))
+            : $query;
+    }
 
     /**
      * Get all chemicals under this category.

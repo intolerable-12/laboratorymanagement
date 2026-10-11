@@ -24,6 +24,7 @@
 
         $isInventoryIndex = request()->routeIs('student.inventory.index');
         $isInventoryGroup = request()->routeIs('student.inventory.*');
+        $isLaboratoriesGroup = request()->routeIs('student.laboratories.*');
 
         $isReservationsGroup = request()->routeIs('student.reservations.*');
         $isReservationsIndex = request()->routeIs('student.reservations.index');
@@ -112,6 +113,12 @@
                         </a>
                     </div>
                 </div>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isLaboratoriesGroup ? 'active' : '' }}"
+                    href="{{ route('student.laboratories.index') }}" title="Laboratories">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-flask"></i></span>
+                    <span class="sidebar-item__label">Laboratories</span>
+                </a>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"

@@ -126,8 +126,6 @@
             @php
                 $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Student';
                 $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
-                $preview = \Illuminate\Support\Str::limit(trim(strip_tags($forumPost->content)), 180);
-                $statusTone = $forumPost->is_hidden ? 'danger' : ($forumPost->is_locked ? 'secondary' : ($forumPost->is_pinned ? 'primary' : 'success'));
                 $postUrl = route('coordinator.forum.show', $forumPost);
             @endphp
             <article class="card social-card post-card border-0 mb-3 position-relative clickable-card">
@@ -136,8 +134,7 @@
                         <div class="feed-avatar">{{ $authorInitial }}</div>
                         <div class="flex-grow-1 min-w-0">
                             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                                <span class="category-chip">{{ $forumPost->category ?? 'General' }}</span>
-                                <span class="badge rounded-pill text-bg-{{ $statusTone }}">{{ $forumPost->is_hidden ? 'Hidden' : ($forumPost->is_locked ? 'Locked' : ($forumPost->is_pinned ? 'Pinned' : 'Open')) }}</span>
+                                @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                             </div>
 
                             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
@@ -151,7 +148,7 @@
                                 <span class="btn btn-outline-primary rounded-pill align-self-start pe-none">Review post</span>
                             </div>
 
-                            <div class="rte-preview mt-2 text-secondary forum-list-preview">{{ $preview }}</div>
+                            <div class="rte-preview mt-2 text-secondary forum-list-preview">{!! $forumPost->content !!}</div>
 
                             <div class="d-flex flex-wrap gap-4 mt-3 small text-secondary">
                                 <span><i class="fa-regular fa-comments me-1"></i>{{ $forumPost->comments_count }} comments</span>
@@ -175,8 +172,6 @@
                 @php
                     $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Student';
                     $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
-                    $preview = \Illuminate\Support\Str::limit(trim(strip_tags($forumPost->content)), 120);
-                    $statusTone = $forumPost->is_hidden ? 'danger' : ($forumPost->is_locked ? 'secondary' : ($forumPost->is_pinned ? 'primary' : 'success'));
                     $postUrl = route('coordinator.forum.show', $forumPost);
                 @endphp
                 <div class="col-12 col-md-6 col-xxl-4">
@@ -190,17 +185,19 @@
                                         <div class="text-secondary" style="font-size: 0.75rem;">{{ $forumPost->created_at?->format('M d, Y') }}</div>
                                     </div>
                                 </div>
-                                <span class="badge rounded-pill text-bg-{{ $statusTone }}">{{ $forumPost->is_hidden ? 'Hidden' : ($forumPost->is_locked ? 'Locked' : ($forumPost->is_pinned ? 'Pinned' : 'Open')) }}</span>
+                                @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                             </div>
 
                             <div class="mb-2">
-                                <span class="category-chip mb-2 d-inline-block">{{ $forumPost->category ?? 'General' }}</span>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    @include('partials.forum-post-badges', ['forumPost' => $forumPost])
+                                </div>
                                 <h4 class="h5 fw-semibold mb-2 text-dark">
                                     <a href="{{ $postUrl }}" class="text-dark text-decoration-none stretched-link">{{ $forumPost->title }}</a>
                                 </h4>
                             </div>
 
-                            <p class="small text-secondary mb-4 flex-grow-1">{{ $preview }}</p>
+                            <div class="rte-preview small text-secondary mb-4 flex-grow-1">{!! $forumPost->content !!}</div>
 
                             <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto small text-secondary">
                                 <div class="d-flex gap-3">

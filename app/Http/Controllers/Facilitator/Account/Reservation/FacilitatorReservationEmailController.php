@@ -22,6 +22,32 @@ class FacilitatorReservationEmailController
 		);
 	}
 
+	public function sendApprovedToRequester(Reservation $reservation, User $facilitator): void
+	{
+		$this->send(
+			reservation: $reservation,
+			reviewerRole: 'IBED Laboratory In-charge',
+			decisionLabel: 'Approved by Laboratory In-charge',
+			subjectPrefix: 'Reservation approved',
+			bodyMessage: 'Your reservation request has been fully approved by the IBED Laboratory In-charge.',
+			reason: null,
+			actorName: $this->buildUserName($facilitator),
+		);
+	}
+
+	public function sendRescheduledToRequester(Reservation $reservation, User $facilitator): void
+	{
+		$this->send(
+			reservation: $reservation,
+			reviewerRole: 'IBED Laboratory In-charge',
+			decisionLabel: 'Reservation rescheduled',
+			subjectPrefix: 'Reservation schedule updated',
+			bodyMessage: 'The IBED Laboratory In-charge changed the schedule of your approved reservation.',
+			reason: null,
+			actorName: $this->buildUserName($facilitator),
+		);
+	}
+
 	public function sendRejectedToRequester(Reservation $reservation, User $facilitator, string $reason): void
 	{
 		$this->send(

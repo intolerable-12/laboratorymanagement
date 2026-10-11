@@ -12,6 +12,7 @@ class LabEquipmentController extends Controller
 {
     public function index(Request $request): View
     {
+        $campus = $this->campusForUser($request);
         $search = trim((string) $request->query('search', ''));
         $sort = $request->query('sort', 'category');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -25,9 +26,11 @@ class LabEquipmentController extends Controller
         }
 
         $categories = EquipmentCategory::query()
+			->forCampus($campus)
             ->withCount([
                 'equipment as available_equipment_count' => fn ($query) => $query
                     ->withoutTrashed()
+					->forCampus($campus)
                     ->where('status', 'Available'),
             ])
             ->when($search !== '', function ($query) use ($search) {
@@ -42,14 +45,14 @@ class LabEquipmentController extends Controller
             ->withQueryString();
 
         $stats = [
-            'categories' => EquipmentCategory::count(),
-            'available_items' => Equipment::withoutTrashed()->where('status', 'Available')->count(),
-            'laboratories' => Equipment::withoutTrashed()
+            'categories' => EquipmentCategory::forCampus($campus)->count(),
+            'available_items' => Equipment::withoutTrashed()->forCampus($campus)->where('status', 'Available')->count(),
+            'laboratories' => Equipment::withoutTrashed()->forCampus($campus)
                 ->where('status', 'Available')
                 ->distinct()
                 ->count('laboratory_id'),
         ];
-        $featuredImages = Equipment::withoutTrashed()
+        $featuredImages = Equipment::withoutTrashed()->forCampus($campus)
             ->where('status', 'Available')
             ->whereNotNull('image')
             ->orderByDesc('created_at')
@@ -63,6 +66,8 @@ class LabEquipmentController extends Controller
 
     public function category(Request $request, EquipmentCategory $equipmentCategory): View
     {
+        $campus = $this->campusForUser($request);
+		abort_unless(EquipmentCategory::forCampus($campus)->whereKey($equipmentCategory->getKey())->exists(), 404);
         $search = trim((string) $request->query('search', ''));
         $sort = $request->query('sort', 'item');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -81,6 +86,7 @@ class LabEquipmentController extends Controller
         $equipmentCategory->loadCount([
             'equipment as available_equipment_count' => fn ($query) => $query
                 ->withoutTrashed()
+				->forCampus($campus)
                 ->where('status', 'Available'),
         ]);
 
@@ -89,6 +95,7 @@ class LabEquipmentController extends Controller
             ->leftJoin('laboratories', 'equipment.laboratory_id', '=', 'laboratories.id')
             ->select('equipment.*')
             ->withoutTrashed()
+			->forCampus($campus)
             ->where('equipment.status', 'Available')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -109,10 +116,18 @@ class LabEquipmentController extends Controller
 
     public function show(Equipment $equipment): View
     {
-        abort_unless(! $equipment->trashed() && $equipment->status === 'Available', 404);
+        $campus = request()->user()->campusName();
+        abort_unless($campus && ! $equipment->trashed() && $equipment->status === 'Available' && Equipment::forCampus($campus)->whereKey($equipment->getKey())->exists(), 404);
 
         $equipment->load(['category', 'laboratory']);
 
         return view('users.student.inventory.equipment.show', compact('equipment'));
     }
+
+	private function campusForUser(Request $request): string
+	{
+		abort_unless($request->user()->campusName(), 403);
+
+		return $request->user()->campusName();
+	}
 }

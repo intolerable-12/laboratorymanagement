@@ -12,6 +12,7 @@ class ChemicalController extends Controller
 {
     public function index(Request $request): View
     {
+        $campus = $this->campusForUser($request);
         $search = trim((string) $request->query('search', ''));
         $sort = $request->query('sort', 'category');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -25,9 +26,11 @@ class ChemicalController extends Controller
         }
 
         $categories = ChemicalCategory::query()
+			->forCampus($campus)
             ->withCount([
                 'chemicals as available_chemical_count' => fn ($query) => $query
                     ->withoutTrashed()
+					->forCampus($campus)
                     ->availableForRequest(),
             ])
             ->when($search !== '', function ($query) use ($search) {
@@ -42,14 +45,14 @@ class ChemicalController extends Controller
             ->withQueryString();
 
         $stats = [
-            'categories' => ChemicalCategory::count(),
-            'available_items' => Chemical::withoutTrashed()->availableForRequest()->count(),
-            'laboratories' => Chemical::withoutTrashed()
+            'categories' => ChemicalCategory::forCampus($campus)->count(),
+            'available_items' => Chemical::withoutTrashed()->forCampus($campus)->availableForRequest()->count(),
+            'laboratories' => Chemical::withoutTrashed()->forCampus($campus)
                 ->availableForRequest()
                 ->distinct()
                 ->count('laboratory_id'),
         ];
-        $featuredImages = Chemical::withoutTrashed()
+        $featuredImages = Chemical::withoutTrashed()->forCampus($campus)
             ->availableForRequest()
             ->whereNotNull('image')
             ->orderByDesc('created_at')
@@ -63,6 +66,8 @@ class ChemicalController extends Controller
 
     public function category(Request $request, ChemicalCategory $chemicalCategory): View
     {
+        $campus = $this->campusForUser($request);
+		abort_unless(ChemicalCategory::forCampus($campus)->whereKey($chemicalCategory->getKey())->exists(), 404);
         $search = trim((string) $request->query('search', ''));
         $sort = $request->query('sort', 'item');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -81,6 +86,7 @@ class ChemicalController extends Controller
         $chemicalCategory->loadCount([
             'chemicals as available_chemical_count' => fn ($query) => $query
                 ->withoutTrashed()
+				->forCampus($campus)
                 ->availableForRequest(),
         ]);
 
@@ -89,6 +95,7 @@ class ChemicalController extends Controller
             ->leftJoin('laboratories', 'chemicals.laboratory_id', '=', 'laboratories.id')
             ->select('chemicals.*')
             ->withoutTrashed()
+			->forCampus($campus)
             ->availableForRequest()
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -109,10 +116,18 @@ class ChemicalController extends Controller
 
     public function show(Chemical $chemical): View
     {
-        abort_unless(! $chemical->trashed() && Chemical::query()->availableForRequest()->whereKey($chemical->id)->exists(), 404);
+        $campus = request()->user()->campusName();
+        abort_unless($campus && ! $chemical->trashed() && Chemical::forCampus($campus)->availableForRequest()->whereKey($chemical->id)->exists(), 404);
 
         $chemical->load(['category', 'laboratory']);
 
         return view('users.student.inventory.chemicals.show', compact('chemical'));
     }
+
+	private function campusForUser(Request $request): string
+	{
+		abort_unless($request->user()->campusName(), 403);
+
+		return $request->user()->campusName();
+	}
 }

@@ -15,6 +15,7 @@ class InstructorBorrowController extends Controller
 	public function index(Request $request)
 	{
 		$this->ensureInstructor($request);
+		$campus = $request->user()->campusName();
 
 		$sort = $request->query('sort', 'borrowed_at');
 		$direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -30,6 +31,9 @@ class InstructorBorrowController extends Controller
 		}
 
 		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
+			->forCampus($campus)
+			->forDepartment((int) $request->user()->department_id)
+			->whereHas('borrower.role', fn ($query) => $query->where('role_name', 'Student'))
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
@@ -43,6 +47,7 @@ class InstructorBorrowController extends Controller
 	public function show(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureInstructor($request);
+		$this->ensureInstructorCanReview($request, $borrowTransaction);
 
 		$borrowTransaction->load(['borrower', 'items.item', 'releasedBy', 'receivedBy']);
 
@@ -52,6 +57,7 @@ class InstructorBorrowController extends Controller
 	public function approve(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureInstructor($request);
+		$this->ensureInstructorCanReview($request, $borrowTransaction);
 		$this->guardPendingBorrow($borrowTransaction);
 
 		$data = $request->validate([
@@ -73,8 +79,9 @@ class InstructorBorrowController extends Controller
 				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Instructor and forwarded to the Laboratory In-charge.'
 			);
 
-            $notificationService->notifyRoleUsers(
+			$notificationService->notifyCampusRoleUsers(
                 'Laboratory In-charge',
+				$borrowTransaction->laboratory->campus,
                 'Borrow',
                 'Borrow request ready for review',
                 'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for Laboratory In-charge review.',
@@ -83,8 +90,9 @@ class InstructorBorrowController extends Controller
             );
         });
 
-        $notificationService->emailRoleUsers(
+		$notificationService->emailCampusRoleUsers(
             'Laboratory In-charge',
+			$borrowTransaction->laboratory->campus,
             'Borrow',
             $borrowTransaction->borrow_no,
             'Borrow request ready for review',
@@ -109,6 +117,7 @@ class InstructorBorrowController extends Controller
 	public function reject(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureInstructor($request);
+		$this->ensureInstructorCanReview($request, $borrowTransaction);
 		$this->guardPendingBorrow($borrowTransaction);
 
 		$data = $request->validate([
@@ -150,5 +159,18 @@ class InstructorBorrowController extends Controller
 	private function ensureInstructor(Request $request): void
 	{
 		abort_unless(optional($request->user()->role)->role_name === 'Instructor', 403);
+		abort_unless($request->user()->department_id && $request->user()->campusName(), 403);
+	}
+
+	private function ensureInstructorCanReview(Request $request, BorrowTransaction $borrowTransaction): void
+	{
+		$borrowTransaction->loadMissing(['borrower', 'laboratory']);
+
+		abort_unless(
+			$borrowTransaction->borrower?->role?->role_name === 'Student'
+				&& (int) $borrowTransaction->borrower?->department_id === (int) $request->user()->department_id
+				&& $borrowTransaction->laboratory?->campus === $request->user()->campusName(),
+			403
+		);
 	}
 }

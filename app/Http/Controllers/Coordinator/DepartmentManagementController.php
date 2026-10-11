@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Coordinator;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\UserAccountRequest;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class DepartmentManagementController extends Controller
 {
@@ -96,7 +98,7 @@ class DepartmentManagementController extends Controller
     {
         $departmentKey = $department?->getKey();
 
-        return $request->validate([
+        $validated = $request->validate([
             'department_code' => [
                 'required',
                 'string',
@@ -109,7 +111,22 @@ class DepartmentManagementController extends Controller
                 'max:150',
                 Rule::unique('departments', 'department_name')->ignore($departmentKey),
             ],
+            'campus' => ['required', Rule::in(Campus::values())],
             'description' => ['nullable', 'string'],
         ]);
+
+        $expectedCampus = match (strtoupper(trim((string) $validated['department_code']))) {
+            'JHS' => Campus::IBED,
+            'COL', 'SHS' => Campus::MAIN,
+            default => null,
+        };
+
+        if ($expectedCampus !== null && $validated['campus'] !== $expectedCampus) {
+            throw ValidationException::withMessages([
+                'campus' => "The {$validated['department_code']} department must belong to the {$expectedCampus} campus.",
+            ]);
+        }
+
+        return $validated;
     }
 }

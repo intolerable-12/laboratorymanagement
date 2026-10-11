@@ -24,6 +24,8 @@
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
 
+    @include('users.shared.request-approval-indicator', ['approvalRequest' => $borrowTransaction])
+
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="card admin-card h-100">

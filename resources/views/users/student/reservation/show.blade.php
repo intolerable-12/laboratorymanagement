@@ -1,8 +1,10 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-reservations' : 'student.reservations')
 
 @section('title', 'Reservation Details')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 
 
@@ -14,7 +16,7 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">{{ $reservation->reservation_no }}</h2>
                     <p class="mb-0 text-secondary">{{ $reservation->experiment_title }}</p>
                 </div>
-                <a href="{{ route('student.reservations.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route($requestRoutePrefix . '.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
         </section>
 
@@ -50,7 +52,7 @@
 
                         @if (in_array($reservation->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
                             <div class="d-flex justify-content-end mb-4">
-                                <form method="POST" action="{{ route('student.reservations.cancel', $reservation) }}">
+                                <form method="POST" action="{{ route($requestRoutePrefix . '.cancel', $reservation) }}">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this reservation request?');">Cancel Request</button>

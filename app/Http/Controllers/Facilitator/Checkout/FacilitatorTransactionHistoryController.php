@@ -103,6 +103,7 @@ class FacilitatorTransactionHistoryController extends Controller
             ->pluck('userNo');
 
         return BarcodeLog::query()
+            ->when(! $this->isCoordinator($request), fn (Builder $query) => $query->whereHas('borrowTransaction.laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->where('campus', $request->user()->campusName())))
             ->where(function (Builder $query) use ($checkoutStaffUserNos): void {
                 $query
                     ->whereIn('user_no', $checkoutStaffUserNos)
@@ -214,6 +215,10 @@ class FacilitatorTransactionHistoryController extends Controller
     private function ensureCheckoutStaff(Request $request): void
     {
         abort_unless(in_array(optional($request->user()->role)->role_name, ['Laboratory In-charge', 'Coordinator'], true), 403);
+
+        if (! $this->isCoordinator($request)) {
+            abort_unless($request->user()->campusName(), 403);
+        }
     }
 
     private function isCoordinator(Request $request): bool

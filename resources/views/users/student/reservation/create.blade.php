@@ -1,8 +1,10 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-reservations' : 'student.reservations')
 
 @section('title', 'Reservation Details')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 @section('content')
     <div class="account-page">
@@ -12,7 +14,7 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">Create a Reservation Request</h2>
                     <p class="mb-0 text-secondary">Step 1 of 3: provide the details of your laboratory reservation.</p>
                 </div>
-                <a href="{{ route('student.reservations.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route($requestRoutePrefix . '.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
         </section>
 
@@ -22,7 +24,7 @@
         @endif
 
         @php($details = session('student.reservation.draft.details', []))
-        <form method="POST" action="{{ route('student.reservations.details') }}">
+        <form method="POST" action="{{ route($requestRoutePrefix . '.details') }}">
             @csrf
             <div class="card section-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">

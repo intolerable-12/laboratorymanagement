@@ -16,6 +16,7 @@ class ReservationController extends Controller
     public function index(Request $request)
     {
         $this->ensureInstructor($request);
+		$campus = $request->user()->campusName();
 
         $sort = $request->query('sort', 'reservation_date');
         $direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -32,6 +33,9 @@ class ReservationController extends Controller
         }
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
+			->forCampus($campus)
+			->forDepartment((int) $request->user()->department_id)
+			->whereHas('user.role', fn ($query) => $query->where('role_name', 'Student'))
             ->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
             ->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
             ->select('reservations.*')
@@ -47,6 +51,7 @@ class ReservationController extends Controller
     public function show(Request $request, Reservation $reservation)
     {
         $this->ensureInstructor($request);
+		$this->ensureInstructorCanReview($request, $reservation);
 
         $reservation->load(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester']);
 
@@ -56,6 +61,7 @@ class ReservationController extends Controller
     public function approve(Request $request, Reservation $reservation)
     {
         $this->ensureInstructor($request);
+		$this->ensureInstructorCanReview($request, $reservation);
         $this->guardPendingReservation($reservation);
 
         $data = $request->validate([
@@ -85,8 +91,9 @@ class ReservationController extends Controller
                 'Your reservation ' . $reservation->reservation_no . ' was approved by the Instructor and forwarded to the Laboratory In-charge.'
             );
 
-            $notificationService->notifyRoleUsers(
+            $notificationService->notifyCampusRoleUsers(
                 'Laboratory In-charge',
+                $reservation->laboratory->campus,
                 'Reservation',
                 'Reservation ready for review',
                 'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for Laboratory In-charge review.',
@@ -96,8 +103,9 @@ class ReservationController extends Controller
         });
 
         $reservation->loadMissing('laboratory');
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Laboratory In-charge',
+            $reservation->laboratory->campus,
             'Reservation',
             $reservation->reservation_no,
             'Reservation ready for review',
@@ -122,6 +130,7 @@ class ReservationController extends Controller
     public function reject(Request $request, Reservation $reservation)
     {
         $this->ensureInstructor($request);
+		$this->ensureInstructorCanReview($request, $reservation);
         $this->guardPendingReservation($reservation);
 
         $data = $request->validate([
@@ -172,5 +181,18 @@ class ReservationController extends Controller
     private function ensureInstructor(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Instructor', 403);
+		abort_unless($request->user()->department_id && $request->user()->campusName(), 403);
+	}
+
+	private function ensureInstructorCanReview(Request $request, Reservation $reservation): void
+	{
+		$reservation->loadMissing(['user', 'laboratory']);
+
+		abort_unless(
+			$reservation->user?->role?->role_name === 'Student'
+				&& (int) $reservation->user?->department_id === (int) $request->user()->department_id
+				&& $reservation->laboratory?->campus === $request->user()->campusName(),
+			403
+		);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\Campus;
 
 class Department extends Model
 {
@@ -18,6 +19,7 @@ class Department extends Model
     protected $fillable = [
         'department_code',
         'department_name',
+        'campus',
         'description',
     ];
 
@@ -27,6 +29,14 @@ class Department extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function campusName(): string
+    {
+        return Campus::normalize($this->campus)
+            ?? (in_array(strtoupper((string) $this->department_code), ['JHS'], true)
+                ? Campus::IBED
+                : Campus::MAIN);
     }
 
     /**
