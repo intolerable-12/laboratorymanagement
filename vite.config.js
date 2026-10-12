@@ -16,6 +16,11 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    css: {
+        lightningcss: {
+            errorRecovery: true,
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

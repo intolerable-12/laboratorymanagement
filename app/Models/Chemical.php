@@ -85,6 +85,13 @@ class Chemical extends Model
             });
     }
 
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        return filled($campus)
+            ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
+            : $query;
+    }
+
     /**
      * Determine whether the chemical has reached its expiration date.
      */

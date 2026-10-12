@@ -5,7 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LabCentral | Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('styles/login.css') }}">
+    <style>
+        /* Suppress native Edge/IE password reveal and clear buttons to avoid double icons */
+        input::-ms-reveal,
+        input::-ms-clear {
+            display: none !important;
+        }
+
+        .password-field-wrapper {
+            position: relative;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            top: 50%;
+            right: 0.75rem;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 0.25rem;
+            color: #6c757d;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+
+        .password-toggle-btn:focus {
+            outline: none;
+            color: #212529;
+        }
+
+        .auth-input.has-toggle {
+            padding-right: 2.5rem;
+        }
+    </style>
 </head>
 <body>
     <main class="login-page d-flex align-items-center justify-content-center py-4 py-lg-5">
@@ -51,7 +88,12 @@
 
                         <div>
                             <label for="login-password" class="form-label auth-label">Password <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
-                            <input type="password" class="form-control auth-input" id="login-password" name="password" autocomplete="current-password" required aria-required="true">
+                            <div class="password-field-wrapper">
+                                <input type="password" class="form-control auth-input has-toggle" id="login-password" name="password" autocomplete="current-password" required aria-required="true">
+                                <button type="button" id="toggle-password" class="password-toggle-btn" aria-label="Show password">
+                                    <i class="bi bi-eye" id="toggle-password-icon"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-end">
@@ -93,5 +135,24 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const passwordInput = document.getElementById('login-password');
+            const toggleButton = document.getElementById('toggle-password');
+            const toggleIcon = document.getElementById('toggle-password-icon');
+
+            if (toggleButton && passwordInput && toggleIcon) {
+                toggleButton.addEventListener('click', function () {
+                    const isPassword = passwordInput.getAttribute('type') === 'password';
+                    passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                    
+                    toggleIcon.classList.toggle('bi-eye', !isPassword);
+                    toggleIcon.classList.toggle('bi-eye-slash', isPassword);
+                    
+                    toggleButton.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

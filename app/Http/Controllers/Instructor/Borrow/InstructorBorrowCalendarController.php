@@ -15,7 +15,7 @@ class InstructorBorrowCalendarController extends Controller
     {
         $this->ensureInstructor($request);
 
-        $calendarEvents = $this->borrowTransactionsForCalendar()
+        $calendarEvents = $this->borrowTransactionsForCalendar($request->user())
             ->flatMap(fn ($borrowTransaction) => $this->toBorrowCalendarEvents($borrowTransaction))
             ->values();
 
@@ -28,5 +28,6 @@ class InstructorBorrowCalendarController extends Controller
     private function ensureInstructor(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Instructor', 403);
+        abort_unless($request->user()->department_id && $request->user()->campusName(), 403);
     }
 }

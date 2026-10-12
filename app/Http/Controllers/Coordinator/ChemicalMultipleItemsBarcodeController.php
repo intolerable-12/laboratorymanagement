@@ -14,6 +14,10 @@ class ChemicalMultipleItemsBarcodeController extends Controller
 
     public function __invoke(Request $request)
     {
+		$campus = $request->user()?->role?->role_name === 'Laboratory In-charge'
+			? $request->user()->campusName()
+			: null;
+
         $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:'.self::MAX_ITEMS],
             'ids.*' => ['integer', 'distinct', 'exists:chemicals,id'],
@@ -22,6 +26,7 @@ class ChemicalMultipleItemsBarcodeController extends Controller
         $ids = array_map('intval', $validated['ids']);
         $chemicalById = Chemical::withTrashed()
             ->with(['category', 'laboratory', 'supplier'])
+            ->forCampus($campus)
             ->whereIn('id', $ids)
             ->get()
             ->keyBy('id');

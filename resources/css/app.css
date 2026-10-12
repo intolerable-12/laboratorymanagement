@@ -1911,12 +1911,23 @@ a.request-stepper-link:focus-visible {
 .role-page .category-chip {
     display: inline-flex;
     align-items: center;
+    gap: 0.25rem;
+    min-height: 2rem;
     padding: 0.4rem 0.8rem;
     border-radius: 999px;
     background: var(--role-accent-soft);
     color: var(--role-accent-deep);
     font-size: 0.85rem;
     font-weight: 700;
+}
+
+.role-page .forum-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.4rem 0.8rem;
+    white-space: nowrap;
 }
 
 .role-page .feed-avatar,
@@ -1952,6 +1963,13 @@ a.request-stepper-link:focus-visible {
 .role-page .forum-comment-body {
     color: var(--role-text);
     line-height: 1.75;
+}
+
+.role-page .rte-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
 }
 
 .role-page .rte-content p:last-child,
@@ -2687,4 +2705,53 @@ a.request-stepper-link:focus-visible {
         width: 56px;
         height: 56px;
     }
+}
+
+.student-laboratory-photo-trigger {
+    display: block;
+    overflow: hidden;
+    cursor: zoom-in;
+}
+
+.student-laboratory-photo-trigger img,
+.student-laboratory-photo-trigger__image {
+    transition: transform 0.3s ease;
+}
+
+.student-laboratory-photo-trigger:hover img,
+.student-laboratory-photo-trigger:hover .student-laboratory-photo-trigger__image {
+    transform: scale(1.06);
+}
+
+.student-laboratory-lightbox__image {
+    display: block;
+    width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+}
+
+.student-laboratory-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.58);
+    transform: translateY(-50%);
+}
+
+.student-laboratory-lightbox__nav:hover,
+.student-laboratory-lightbox__nav:focus-visible {
+    background: rgba(0, 0, 0, 0.82);
+}
+
+.student-laboratory-lightbox__nav--previous {
+    left: 0.75rem;
+}
+
+.student-laboratory-lightbox__nav--next {
+    right: 0.75rem;
 }

@@ -17,6 +17,7 @@ class DepartmentFactory extends Factory
         return [
             'department_code' => strtoupper(Str::substr(Str::slug($name), 0, 6) ?: 'DEPT'),
             'department_name' => $name,
+            'campus' => 'Main',
             'description' => $this->faker->sentence(),
         ];
     }

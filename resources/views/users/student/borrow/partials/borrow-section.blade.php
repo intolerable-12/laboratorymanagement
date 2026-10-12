@@ -85,7 +85,7 @@
                                 <i class="fa-solid fa-eye"></i>
                             </a>
                             @if (in_array($entry['status'], ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
-                                <form method="POST" action="{{ route('student.borrow.cancel', $transaction) }}" class="d-inline">
+                                <form method="POST" action="{{ route((auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow') . '.cancel', $transaction) }}" class="d-inline">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this borrow request?');">Cancel</button>

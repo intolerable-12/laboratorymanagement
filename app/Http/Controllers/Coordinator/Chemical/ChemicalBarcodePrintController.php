@@ -12,6 +12,11 @@ class ChemicalBarcodePrintController extends Controller
 {
     public function __invoke(Request $request, Chemical $chemical)
     {
+		if ($request->user()?->role?->role_name === 'Laboratory In-charge') {
+			$chemical->loadMissing('laboratory');
+			abort_unless($chemical->laboratory?->campus === $request->user()->campusName(), 404);
+		}
+
         $chemical->loadMissing(['category', 'laboratory', 'supplier']);
 
         $printCount = (int) $request->query('count', 1);

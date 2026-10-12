@@ -13,6 +13,7 @@ class LaboratorySeeder extends Seeder
             ['laboratory_code' => 'LAB-001'],
             [
                 'laboratory_name' => 'Chemistry Laboratory',
+                'campus' => 'Main',
                 'building' => 'Science Building',
                 'room_number' => '101',
                 'capacity' => 40,
@@ -25,6 +26,7 @@ class LaboratorySeeder extends Seeder
             ['laboratory_code' => 'LAB-002'],
             [
                 'laboratory_name' => 'Physics Laboratory',
+                'campus' => 'Main',
                 'building' => 'Science Building',
                 'room_number' => '102',
                 'capacity' => 40,
@@ -37,6 +39,7 @@ class LaboratorySeeder extends Seeder
             ['laboratory_code' => 'LAB-003'],
             [
                 'laboratory_name' => 'Biology Laboratory',
+                'campus' => 'IBED',
                 'building' => 'Science Building',
                 'room_number' => '103',
                 'capacity' => 40,

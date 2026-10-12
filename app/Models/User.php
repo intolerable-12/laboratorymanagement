@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Support\Campus;
 
 class User extends Authenticatable
 {
@@ -39,6 +40,7 @@ class User extends Authenticatable
         'profile_photo',
         'role_id',
         'department_id',
+        'campus',
         'status',
     ];
 
@@ -80,6 +82,31 @@ class User extends Authenticatable
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Resolve the campus this account is allowed to work with.
+     * Students and instructors inherit it from their department; laboratory
+     * in-charges use their explicit assignment. Coordinators are cross-campus.
+     */
+    public function campusName(): ?string
+    {
+        $this->loadMissing(['role', 'department']);
+        $roleName = strtolower((string) $this->role?->role_name);
+
+        if ($roleName === 'coordinator') {
+            return null;
+        }
+
+        if ($roleName === 'laboratory in-charge') {
+            return Campus::normalize($this->campus) ?? $this->department?->campusName();
+        }
+
+        if (in_array($roleName, ['student', 'instructor'], true)) {
+            return $this->department?->campusName();
+        }
+
+        return Campus::normalize($this->campus);
     }
 
     /**

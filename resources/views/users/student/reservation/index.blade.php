@@ -1,9 +1,11 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-reservations' : 'student.reservations')
 
 @section('title', 'My Reservations')
 @section('page-title', 'My Reservations')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 
 
@@ -15,7 +17,7 @@
 					<h2 class="h3 fw-semibold mb-2 text-dark">Laboratory Reservations</h2>
 					<p class="mb-0 text-secondary">Create a reservation request and attach the equipment and chemicals you need.</p>
 				</div>
-				<a href="{{ route('student.reservations.create') }}" class="btn btn-primary px-4">New Reservation</a>
+				<a href="{{ route($requestRoutePrefix . '.create') }}" class="btn btn-primary px-4">New Reservation</a>
 			</div>
 		</section>
 
@@ -88,9 +90,9 @@
 									</td>
 									<td class="text-center">
 										<div class="d-inline-flex align-items-center gap-2">
-											<a href="{{ route('student.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
+											<a href="{{ route($requestRoutePrefix . '.show', $reservation) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i></a>
 											@if (in_array($reservation->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
-												<form method="POST" action="{{ route('student.reservations.cancel', $reservation) }}" class="d-inline">
+												<form method="POST" action="{{ route($requestRoutePrefix . '.cancel', $reservation) }}" class="d-inline">
 													@csrf
 													@method('PATCH')
 													<button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this reservation request?');">Cancel</button>

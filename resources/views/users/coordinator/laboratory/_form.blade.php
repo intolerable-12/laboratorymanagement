@@ -1,6 +1,6 @@
 @php
     $statuses = ['Available', 'Unavailable', 'Under Maintenance'];
-    $imageUrl = !empty($laboratory?->image) ? asset('storage/' . $laboratory->image) : null;
+    $imageUrl = $laboratory?->primaryImagePath() ? asset('storage/' . $laboratory->primaryImagePath()) : null;
     $isEditing = filled($laboratory?->getKey());
 @endphp
 
@@ -19,10 +19,12 @@
                 @endif
             </div>
 
-            <label class="form-label" for="image">Laboratory image</label>
-            <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*" data-image-preview-input>
-            <div class="form-text">JPEG, PNG, or WEBP up to 4 MB.</div>
-            @error('image') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+            <label class="form-label" for="images">Laboratory photos</label>
+            <input type="file" id="images" name="images[]" class="form-control admin-form-control @error('images') is-invalid @enderror @error('images.*') is-invalid @enderror" accept="image/jpeg,image/png,image/webp" multiple data-laboratory-images-input>
+            <div class="form-text">Add one or several JPEG, PNG, or WEBP photos. Each photo may be up to 4 MB.</div>
+            @error('images') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+            @error('images.*') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+            <div class="row g-2 mt-2" data-laboratory-new-preview></div>
         </div>
     </div>
 
@@ -39,10 +41,7 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="laboratory_name">Laboratory name</label>
-                <input type="text" id="laboratory_name" name="laboratory_name" value="{{ old('laboratory_name', $laboratory->laboratory_name ?? '') }}" class="form-control admin-form-control @error('laboratory_name') is-invalid @enderror" required @if($isEditing) readonly tabindex="-1" aria-readonly="true" @endif>
-                @if($isEditing)
-                    <div class="form-text">Laboratory name cannot be changed after creation.</div>
-                @endif
+                <input type="text" id="laboratory_name" name="laboratory_name" value="{{ old('laboratory_name', $laboratory->laboratory_name ?? '') }}" class="form-control admin-form-control @error('laboratory_name') is-invalid @enderror" maxlength="255" required>
                 @error('laboratory_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
@@ -50,6 +49,16 @@
                 <label class="form-label" for="building">Building</label>
                 <input type="text" id="building" name="building" value="{{ old('building', $laboratory->building ?? '') }}" class="form-control admin-form-control @error('building') is-invalid @enderror" maxlength="100">
                 @error('building') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label" for="campus">Campus</label>
+                <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror" required>
+                    @foreach (\App\Support\Campus::values() as $campus)
+                        <option value="{{ $campus }}" @selected(old('campus', $laboratory->campus ?? 'Main') === $campus)>{{ $campus }} campus</option>
+                    @endforeach
+                </select>
+                @error('campus') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-6">
@@ -87,3 +96,44 @@
         </div>
     </div>
 </div>
+
+@once
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.querySelector('[data-laboratory-images-input]');
+            const preview = document.querySelector('[data-laboratory-new-preview]');
+
+            if (!input || !preview) {
+                return;
+            }
+
+            input.addEventListener('change', function () {
+                preview.innerHTML = '';
+
+                Array.from(input.files).forEach(function (file) {
+                    const column = document.createElement('div');
+                    column.className = 'col-6 col-md-4';
+
+                    const card = document.createElement('div');
+                    card.className = 'border rounded-3 overflow-hidden bg-light';
+
+                    const image = document.createElement('img');
+                    image.src = URL.createObjectURL(file);
+                    image.alt = file.name;
+                    image.className = 'w-100';
+                    image.style.height = '120px';
+                    image.style.objectFit = 'cover';
+
+                    const label = document.createElement('div');
+                    label.className = 'small text-secondary text-truncate px-2 py-2';
+                    label.textContent = file.name;
+
+                    card.appendChild(image);
+                    card.appendChild(label);
+                    column.appendChild(card);
+                    preview.appendChild(column);
+                });
+            });
+        });
+    </script>
+@endonce

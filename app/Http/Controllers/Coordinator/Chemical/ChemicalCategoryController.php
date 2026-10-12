@@ -11,10 +11,13 @@ class ChemicalCategoryController extends Controller
 {
     public function index(Request $request)
     {
+        $campus = $this->campusForViewer($request);
         $search = trim((string) $request->query('search', ''));
         $hasChemicals = $request->query('has_chemicals', '');
 
-        $categoriesQuery = ChemicalCategory::withCount('chemicals')
+        $categoriesQuery = ChemicalCategory::query()
+            ->forCampus($campus)
+            ->withCount(['chemicals' => fn ($query) => $query->forCampus($campus)])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('category_name', 'like', '%' . $search . '%')
@@ -22,15 +25,15 @@ class ChemicalCategoryController extends Controller
                         ->orWhere('description', 'like', '%' . $search . '%');
                 });
             })
-            ->when($hasChemicals === 'with', fn ($query) => $query->has('chemicals'))
-            ->when($hasChemicals === 'empty', fn ($query) => $query->doesntHave('chemicals'));
+            ->when($hasChemicals === 'with', fn ($query) => $query->whereHas('chemicals', fn ($chemicalQuery) => $chemicalQuery->forCampus($campus)))
+            ->when($hasChemicals === 'empty', fn ($query) => $query->whereDoesntHave('chemicals', fn ($chemicalQuery) => $chemicalQuery->forCampus($campus)));
 
         $categories = $categoriesQuery->latest()->paginate(10);
 
         $stats = [
-            'total' => ChemicalCategory::count(),
-            'with_items' => ChemicalCategory::has('chemicals')->count(),
-            'empty' => ChemicalCategory::doesntHave('chemicals')->count(),
+            'total' => ChemicalCategory::forCampus($campus)->count(),
+            'with_items' => ChemicalCategory::forCampus($campus)->whereHas('chemicals', fn ($query) => $query->forCampus($campus))->count(),
+            'empty' => ChemicalCategory::forCampus($campus)->whereDoesntHave('chemicals', fn ($query) => $query->forCampus($campus))->count(),
         ];
 
         return view('users.coordinator.chemicalscategory.index', compact('categories', 'stats', 'search', 'hasChemicals'));
@@ -50,11 +53,15 @@ class ChemicalCategoryController extends Controller
         return redirect()->route('coordinator.chemical.categories.index')->with('status', 'Chemical category created successfully.');
     }
 
-    public function show(ChemicalCategory $chemicalCategory)
+    public function show(Request $request, ChemicalCategory $chemicalCategory)
     {
-        $chemicalCategory->loadCount('chemicals');
+        $campus = $this->campusForViewer($request);
+        abort_unless(ChemicalCategory::forCampus($campus)->whereKey($chemicalCategory->getKey())->exists(), 404);
+
+        $chemicalCategory->loadCount(['chemicals' => fn ($query) => $query->forCampus($campus)]);
         $chemicals = $chemicalCategory->chemicals()
             ->with(['laboratory', 'supplier'])
+            ->forCampus($campus)
             ->latest()
             ->paginate(8);
 
@@ -106,5 +113,12 @@ class ChemicalCategoryController extends Controller
             ],
             'description' => ['nullable', 'string'],
         ]);
+    }
+
+    private function campusForViewer(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
     }
 }

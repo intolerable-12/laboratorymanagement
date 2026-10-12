@@ -1,8 +1,10 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
 
 @section('title', 'Review Borrow Request')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 @section('content')
     <div class="account-page">
@@ -12,11 +14,11 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">Review Borrow Request</h2>
                     <p class="mb-0 text-secondary">Step 3 of 3: confirm the borrow schedule and equipment before submitting.</p>
                 </div>
-                <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route($requestRoutePrefix . '.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
         </section>
 
-        @include('shared.request-steps', ['currentStep' => 3, 'requestType' => 'Borrow', 'stepRoutes' => [1 => route('student.borrow.create'), 2 => route('student.borrow.items')]])
+        @include('shared.request-steps', ['currentStep' => 3, 'requestType' => 'Borrow', 'stepRoutes' => [1 => route($requestRoutePrefix . '.create'), 2 => route($requestRoutePrefix . '.items')]])
         <div class="row g-4">
             <div class="col-lg-5">
                 <div class="card section-card border-0 h-100">
@@ -26,7 +28,7 @@
                                 <h3 class="h4 fw-semibold mb-1 text-dark">Borrow Details</h3>
                                 <p class="mb-0 text-secondary">Review the borrow schedule and remarks.</p>
                             </div>
-                            <a href="{{ route('student.borrow.create') }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a href="{{ route($requestRoutePrefix . '.create') }}" class="btn btn-sm btn-outline-primary">Edit</a>
                         </div>
 
                         <dl class="row g-3 mb-0">
@@ -53,7 +55,7 @@
                                 <h3 class="h4 fw-semibold mb-1 text-dark">Requested Equipment</h3>
                                 <p class="mb-0 text-secondary">{{ $requestedItems->count() }} item(s) selected.</p>
                             </div>
-                            <a href="{{ route('student.borrow.items') }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a href="{{ route($requestRoutePrefix . '.items') }}" class="btn btn-sm btn-outline-primary">Edit</a>
                         </div>
 
                         <div class="table-responsive">

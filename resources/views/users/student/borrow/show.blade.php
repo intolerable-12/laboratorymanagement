@@ -1,8 +1,10 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
 
 @section('title', 'Borrow Details')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 
 
@@ -14,7 +16,7 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">{{ $borrowTransaction->borrow_no }}</h2>
                     <p class="mb-0 text-secondary">Review the details of your borrow request and its current status.</p>
                 </div>
-                <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route($requestRoutePrefix . '.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
         </section>
 
@@ -55,7 +57,7 @@
 
                         @if (in_array($borrowTransaction->status, ['Pending', 'Instructor Approved', 'Facilitator Approved'], true))
                             <div class="d-flex justify-content-end mb-4">
-                                <form method="POST" action="{{ route('student.borrow.cancel', $borrowTransaction) }}">
+                                <form method="POST" action="{{ route($requestRoutePrefix . '.cancel', $borrowTransaction) }}">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this borrow request?');">Cancel Request</button>

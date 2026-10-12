@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class Equipment extends Model
 {
@@ -66,6 +67,13 @@ class Equipment extends Model
             'supplier_alert_sent_at' => 'datetime',
             'low_stock_alert_sent_at' => 'datetime',
         ];
+    }
+
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        return filled($campus)
+            ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
+            : $query;
     }
 
     /**

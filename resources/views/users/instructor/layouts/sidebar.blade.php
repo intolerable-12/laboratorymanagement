@@ -23,6 +23,8 @@
         $isDashboard = request()->routeIs('instructor.dashboard');
         $isReservationCalendar = request()->routeIs('instructor.reservations.calendar');
         $isBorrowCalendar = request()->routeIs('instructor.borrow.calendar');
+        $isMyReservationsGroup = request()->routeIs('instructor.my-reservations.*');
+        $isMyBorrowRequestsGroup = request()->routeIs('instructor.my-borrow-requests.*');
         $isReservationsGroup = request()->routeIs('instructor.reservations.*') && ! $isReservationCalendar;
         $isBorrowGroup = request()->routeIs('instructor.borrow.*') && ! $isBorrowCalendar;
         $isForumGroup = request()->routeIs('instructor.forum.*');
@@ -47,8 +49,8 @@
             'instructor.borrow.show'
         );
 
-        $isInstructorReservationGroup = $isReservationCalendar || $isReservationRequestActive;
-        $isInstructorBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive;
+        $isInstructorReservationGroup = $isReservationCalendar || $isReservationRequestActive || $isMyReservationsGroup;
+        $isInstructorBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive || $isMyBorrowRequestsGroup;
 
         $isInstructorInventoryGroup = $isEquipmentGroup || $isChemicalGroup;
 
@@ -134,6 +136,11 @@
                                 </span>
                             @endif
                         </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isMyReservationsGroup ? 'active' : '' }}"
+                            href="{{ route('instructor.my-reservations.index') }}" title="My Reservations">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-user-clock"></i></span>
+                            <span class="sidebar-item__label">My Reservations</span>
+                        </a>
                     </div>
                 </div>
 
@@ -167,6 +174,11 @@
                                     {{ $pendingBorrowRequests > 99 ? '99+' : $pendingBorrowRequests }}
                                 </span>
                             @endif
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isMyBorrowRequestsGroup ? 'active' : '' }}"
+                            href="{{ route('instructor.my-borrow-requests.index') }}" title="My Borrow Requests">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-user-clock"></i></span>
+                            <span class="sidebar-item__label">My Borrow Requests</span>
                         </a>
                     </div>
                 </div>

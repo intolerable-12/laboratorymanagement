@@ -41,8 +41,9 @@ class EquipmentController extends Controller
         return $this->renderIndex($request, true);
     }
 
-    public function restore(Equipment $equipment)
+    public function restore(Request $request, Equipment $equipment)
     {
+        $this->ensureViewerCanAccess($request, $equipment);
         abort_unless($equipment->trashed(), 404);
 
         $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
@@ -85,7 +86,9 @@ class EquipmentController extends Controller
             $sort = 'item';
         }
 
+        $campus = $this->viewerCampus($request);
         $equipmentQuery = Equipment::with(['category', 'laboratory', 'supplier'])
+            ->forCampus($campus)
             ->leftJoin('equipment_categories', 'equipment.category_id', '=', 'equipment_categories.id')
             ->leftJoin('laboratories', 'equipment.laboratory_id', '=', 'laboratories.id')
             ->select('equipment.*')
@@ -120,17 +123,17 @@ class EquipmentController extends Controller
             ->when($sort !== 'archived_at' || !$archived, fn($query) => $query->orderBy('equipment.created_at', 'desc'))
             ->paginate(10);
 
-        $categories = EquipmentCategory::orderBy('category_name')->get(['id', 'category_name']);
-        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
+        $categories = EquipmentCategory::forCampus($campus)->orderBy('category_name')->get(['id', 'category_name']);
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name']);
         $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = ['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'];
         $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
 
         $stats = [
-            'total' => Equipment::withoutTrashed()->count(),
-            'available' => Equipment::withoutTrashed()->where('status', 'Available')->count(),
-            'maintenance' => Equipment::withoutTrashed()->where('status', 'Maintenance')->count(),
-            'archived' => Equipment::onlyTrashed()->count(),
+            'total' => Equipment::withoutTrashed()->forCampus($campus)->count(),
+            'available' => Equipment::withoutTrashed()->forCampus($campus)->where('status', 'Available')->count(),
+            'maintenance' => Equipment::withoutTrashed()->forCampus($campus)->where('status', 'Maintenance')->count(),
+            'archived' => Equipment::onlyTrashed()->forCampus($campus)->count(),
         ];
 
         $filters = array_filter([
@@ -198,8 +201,9 @@ class EquipmentController extends Controller
         return redirect()->route('coordinator.equipment.index')->with('status', 'Equipment created successfully.');
     }
 
-    public function show(Equipment $equipment)
+    public function show(Request $request, Equipment $equipment)
     {
+        $this->ensureViewerCanAccess($request, $equipment);
         $equipment->load(['category', 'laboratory', 'supplier']);
         $barcodeSvg = $this->renderBarcodeSvg($equipment->barcode);
 
@@ -475,5 +479,24 @@ class EquipmentController extends Controller
         }
 
         return $options;
+    }
+
+    private function viewerCampus(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
+    }
+
+    private function ensureViewerCanAccess(Request $request, Equipment $equipment): void
+    {
+        $campus = $this->viewerCampus($request);
+
+        if ($campus === null) {
+            return;
+        }
+
+        $equipment->loadMissing('laboratory');
+        abort_unless($equipment->laboratory?->campus === $campus, 404);
     }
 }

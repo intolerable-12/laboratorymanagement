@@ -17,15 +17,20 @@ class DashboardController extends Controller
 
     public function index(): View
     {
+        $user = auth()->user();
+		$campus = $user->campusName();
+		abort_unless($user->department_id && $campus, 403);
+
         $equipment = Equipment::query()
+			->forCampus($campus)
             ->with('category:id,category_name')
             ->get(['id', 'category_id', 'quantity', 'available_quantity']);
 
         $equipmentAvailability = $this->equipmentAvailability($equipment);
         $activeBorrowStatuses = ['Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'];
         $requestStatuses = fn (string $status) => [
-            Reservation::query()->where('status', $status)->count(),
-            BorrowTransaction::query()->where('status', $status)->count(),
+            Reservation::query()->forCampus($campus)->forDepartment((int) $user->department_id)->where('status', $status)->count(),
+            BorrowTransaction::query()->forCampus($campus)->forDepartment((int) $user->department_id)->where('status', $status)->count(),
         ];
 
         [$pendingReservations, $pendingBorrows] = $requestStatuses('Pending');
@@ -37,13 +42,14 @@ class DashboardController extends Controller
             'metrics' => [
                 [
                     'label' => 'Active Borrowings',
-                    'value' => number_format(BorrowTransaction::query()->whereIn('status', $activeBorrowStatuses)->count()),
+                    'value' => number_format(BorrowTransaction::query()->forCampus($campus)->forDepartment((int) $user->department_id)->whereIn('status', $activeBorrowStatuses)->count()),
                     'note' => 'Currently checked-out requests',
                 ],
                 [
                     'label' => 'Total Students',
                     'value' => number_format(User::query()
                         ->where('status', 'Active')
+                        ->where('department_id', $user->department_id)
                         ->whereHas('role', fn ($query) => $query->whereRaw('LOWER(role_name) = ?', ['student']))
                         ->count()),
                     'note' => 'Active student accounts',
@@ -65,7 +71,10 @@ class DashboardController extends Controller
                 ],
                 [
                     'label' => 'Total Requests',
-                    'value' => number_format(Reservation::query()->count() + BorrowTransaction::query()->count()),
+                    'value' => number_format(
+                        Reservation::query()->forCampus($campus)->forDepartment((int) $user->department_id)->count()
+                        + BorrowTransaction::query()->forCampus($campus)->forDepartment((int) $user->department_id)->count()
+                    ),
                     'note' => 'Reservations and borrow requests',
                 ],
             ],

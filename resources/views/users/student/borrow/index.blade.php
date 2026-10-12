@@ -1,10 +1,12 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
 
 @section('title', 'My Borrowing Equipment')
 @section('page-title', 'My Borrow')
 @section('page-title', 'Check In Items')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 @section('content')
     <div class="account-page">
@@ -15,7 +17,7 @@
                     <p class="mb-0 text-secondary">Review your active, pending, and returned laboratory items in one place.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('student.borrow.create') }}" class="btn btn-primary px-4">New Borrow Request</a>
+                    <a href="{{ route($requestRoutePrefix . '.create') }}" class="btn btn-primary px-4">New Borrow Request</a>
                 </div>
             </div>
         </section>

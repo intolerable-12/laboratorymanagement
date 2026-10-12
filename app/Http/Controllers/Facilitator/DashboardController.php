@@ -18,9 +18,13 @@ class DashboardController extends Controller
 
     public function index(): View
     {
+        $user = auth()->user();
+		$campus = $user->campusName();
+		abort_unless($campus, 403);
         $now = Carbon::now();
         $activeBorrowStatuses = ['Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'];
         $checkoutBorrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item'])
+			->forCampus($campus)
             ->whereIn('status', ['Coordinator Approved', 'Partially Borrowed'])
             ->whereNotNull('borrowed_at')
             ->where('borrowed_at', '<=', $now)
@@ -29,7 +33,7 @@ class DashboardController extends Controller
             ->get();
 
         $activeBorrowItems = BorrowItem::query()
-            ->whereHas('borrowTransaction', fn ($query) => $query->whereIn('status', $activeBorrowStatuses))
+            ->whereHas('borrowTransaction', fn ($query) => $query->forCampus($campus)->whereIn('status', $activeBorrowStatuses))
             ->get([
                 'item_type',
                 'item_id',
@@ -41,19 +45,19 @@ class DashboardController extends Controller
             ])
             ->load('item');
 
-        $uniqueEquipment = Equipment::count();
-        $totalEquipmentUnits = (int) Equipment::sum('quantity');
-        $equipmentInLaboratory = (int) Equipment::sum('available_quantity');
+        $uniqueEquipment = Equipment::forCampus($campus)->count();
+        $totalEquipmentUnits = (int) Equipment::forCampus($campus)->sum('quantity');
+        $equipmentInLaboratory = (int) Equipment::forCampus($campus)->sum('available_quantity');
         $borrowedEquipment = $this->outstandingQuantity($activeBorrowItems, 'Equipment');
-        $totalChemicalRecords = Chemical::count();
-        $lowStockEquipment = Equipment::query()
+        $totalChemicalRecords = Chemical::forCampus($campus)->count();
+        $lowStockEquipment = Equipment::query()->forCampus($campus)
             ->whereNotNull('low_stock_threshold')
             ->whereColumn('available_quantity', '<=', 'low_stock_threshold')
             ->count();
-        $lowStockChemicals = Chemical::query()
+        $lowStockChemicals = Chemical::query()->forCampus($campus)
             ->whereColumn('quantity', '<=', 'minimum_stock')
             ->count();
-        $chemicalQuantityInLaboratory = $this->chemicalQuantityBreakdown(Chemical::query()->get(['quantity', 'unit']));
+        $chemicalQuantityInLaboratory = $this->chemicalQuantityBreakdown(Chemical::query()->forCampus($campus)->get(['quantity', 'unit']));
         $borrowedChemicalQuantity = $this->borrowedChemicalQuantityBreakdown($activeBorrowItems);
 
         return view('users.facilitator.dashboard', [

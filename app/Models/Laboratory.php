@@ -5,11 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Builder;
+use App\Support\Campus;
 
 class Laboratory extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const CAMPUS_MAIN = Campus::MAIN;
+    public const CAMPUS_IBED = Campus::IBED;
 
     /**
      * The attributes that are mass assignable.
@@ -19,6 +25,7 @@ class Laboratory extends Model
     protected $fillable = [
         'laboratory_code',
         'laboratory_name',
+        'campus',
         'image',
         'building',
         'room_number',
@@ -37,6 +44,40 @@ class Laboratory extends Model
         return [
             'capacity' => 'integer',
         ];
+    }
+
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        return filled($campus) ? $query->where($query->qualifyColumn('campus'), $campus) : $query;
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(LaboratoryImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
+
+    public function chemicals(): HasMany
+    {
+        return $this->hasMany(Chemical::class);
+    }
+
+    public function primaryImagePath(): ?string
+    {
+        $galleryImage = $this->relationLoaded('images')
+            ? $this->images->first()
+            : $this->images()->first();
+
+        return $galleryImage?->image_path ?: $this->image;
+    }
+
+    public static function campusOptions(): array
+    {
+        return Campus::values();
     }
 
     /**

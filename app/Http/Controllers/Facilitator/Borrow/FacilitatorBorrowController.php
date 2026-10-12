@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Facilitator\Borrow;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Facilitator\Borrow\FacilitatorBorrowEmailController;
+use App\Http\Controllers\Concerns\ValidatesBorrowSchedule;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
+use App\Support\Campus;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FacilitatorBorrowController extends Controller
 {
+	use ValidatesBorrowSchedule;
 	public function index(Request $request)
 	{
 		$this->ensureFacilitator($request);
+		$campus = $request->user()->campusName();
 
 		$sort = $request->query('sort', 'borrowed_at');
 		$direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -31,6 +36,7 @@ class FacilitatorBorrowController extends Controller
 		}
 
 		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
+			->forCampus($campus)
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
@@ -44,6 +50,7 @@ class FacilitatorBorrowController extends Controller
 	public function show(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $borrowTransaction);
 
 		$borrowTransaction->load(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy']);
 		$equipmentItems = $this->availableItems($request, (int) $borrowTransaction->laboratory_id, 'Equipment');
@@ -64,7 +71,9 @@ class FacilitatorBorrowController extends Controller
 	public function approve(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $borrowTransaction);
 		$this->guardForFacilitator($borrowTransaction);
+		$isIbed = $borrowTransaction->laboratory?->campus === Campus::IBED;
 
 		$rules = [
 			'remarks' => ['nullable', 'string', 'max:1000'],
@@ -76,6 +85,11 @@ class FacilitatorBorrowController extends Controller
 			'remove_items' => ['nullable', 'array'],
 			'remove_items.*' => ['integer'],
 		];
+
+		if ($isIbed) {
+			$rules['borrowed_at'] = ['required', 'date_format:Y-m-d\TH:i'];
+			$rules['due_at'] = ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'];
+		}
 
 		$removedIds = collect($request->input('remove_items', []))->map(fn ($id) => (int) $id)->unique()->values()->all();
 
@@ -90,6 +104,13 @@ class FacilitatorBorrowController extends Controller
 		}
 
 		$data = $request->validate($rules);
+
+		if ($isIbed) {
+			$this->ensureBorrowRequestHours(
+				Carbon::createFromFormat('Y-m-d\TH:i', $data['borrowed_at']),
+				Carbon::createFromFormat('Y-m-d\TH:i', $data['due_at'])
+			);
+		}
 
 		if (! empty($data['new_items']['Chemical'])) {
 			throw ValidationException::withMessages([
@@ -141,7 +162,7 @@ class FacilitatorBorrowController extends Controller
 
 		$notificationService = app(RequestNotificationService::class);
 
-		DB::transaction(function () use ($borrowTransaction, $data, $notificationService, $request, $removedIds, $keptItems, $newItems) {
+		DB::transaction(function () use ($borrowTransaction, $data, $notificationService, $request, $removedIds, $keptItems, $newItems, $isIbed) {
 			$borrowTransaction->items()->whereIn('id', $removedIds)->delete();
 
 			foreach ($keptItems as $selectedItem) {
@@ -164,54 +185,67 @@ class FacilitatorBorrowController extends Controller
 				]);
 			}
 
-			$borrowTransaction->update([
-				'status' => 'Facilitator Approved',
+			$borrowTransaction->update(array_filter([
+				'status' => $isIbed ? 'Coordinator Approved' : 'Facilitator Approved',
 				'remarks' => $data['remarks'] ?? $borrowTransaction->remarks,
-			]);
+				'borrowed_at' => $isIbed ? $data['borrowed_at'] : null,
+				'due_at' => $isIbed ? $data['due_at'] : null,
+			], static fn ($value, $key) => in_array($key, ['status', 'remarks'], true) || $value !== null));
 
 			$notificationService->notifyRequester(
 				$borrowTransaction,
 				'Borrow',
 				'Borrow request approved',
-				'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
+				$isIbed
+					? 'Your borrow request ' . $borrowTransaction->borrow_no . ' was fully approved by the IBED Laboratory In-charge.'
+					: 'Your borrow request ' . $borrowTransaction->borrow_no . ' was approved by the Laboratory In-charge and forwarded to the Coordinator.'
 			);
 
-			$notificationService->notifyRoleUsers(
-				'Coordinator',
-				'Borrow',
-				'Borrow request ready for review',
-				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for coordinator review.',
-				$borrowTransaction,
-				$request->user()->userNo
-			);
+			if (! $isIbed) {
+				$notificationService->notifyRoleUsers(
+					'Coordinator',
+					'Borrow',
+					'Borrow request ready for review',
+					'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for coordinator review.',
+					$borrowTransaction,
+					$request->user()->userNo
+				);
+			}
 		});
 
-		$notificationService->emailRoleUsers(
-			'Coordinator',
-			'Borrow',
-			$borrowTransaction->borrow_no,
-			'Borrow request ready for review',
-			'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for your review.',
-			route('coordinator.borrow.show', $borrowTransaction),
-			'Review borrow request',
-			[
-				['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
-				['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
-				['label' => 'Status', 'value' => $borrowTransaction->status],
-			],
-			$request->user()->userNo
-		);
+		if ($isIbed) {
+			app(FacilitatorBorrowEmailController::class)->sendApprovedToRequester($borrowTransaction, $request->user());
+		} else {
+			$notificationService->emailRoleUsers(
+				'Coordinator',
+				'Borrow',
+				$borrowTransaction->borrow_no,
+				'Borrow request ready for review',
+				'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for your review.',
+				route('coordinator.borrow.show', $borrowTransaction),
+				'Review borrow request',
+				[
+					['label' => 'Borrowed at', 'value' => $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '-'],
+					['label' => 'Due at', 'value' => $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '-'],
+					['label' => 'Status', 'value' => $borrowTransaction->status],
+				],
+				$request->user()->userNo
+			);
 
-		app(FacilitatorBorrowEmailController::class)->sendForwardedToCoordinator($borrowTransaction, $request->user());
+			app(FacilitatorBorrowEmailController::class)->sendForwardedToCoordinator($borrowTransaction, $request->user());
+		}
 
 		return redirect()
 			->route('facilitator.borrow.show', $borrowTransaction)
-			->with('status', 'Borrow request approved and forwarded to the coordinator.');
+			->with('status', $isIbed
+				? 'Borrow request approved successfully by the IBED Laboratory In-charge.'
+				: 'Borrow request approved and forwarded to the coordinator.');
 	}
 
 	public function reject(Request $request, BorrowTransaction $borrowTransaction)
 	{
 		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $borrowTransaction);
 		$this->guardForFacilitator($borrowTransaction);
 
 		$data = $request->validate([
@@ -241,11 +275,62 @@ class FacilitatorBorrowController extends Controller
 			->with('status', 'Borrow request rejected successfully.');
 	}
 
+	public function reschedule(Request $request, BorrowTransaction $borrowTransaction)
+	{
+		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $borrowTransaction);
+
+		abort_unless($borrowTransaction->laboratory?->campus === Campus::IBED, 403);
+
+		$data = $request->validate([
+			'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
+			'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
+		]);
+
+		$this->ensureBorrowRequestHours(
+			Carbon::createFromFormat('Y-m-d\TH:i', $data['borrowed_at']),
+			Carbon::createFromFormat('Y-m-d\TH:i', $data['due_at'])
+		);
+
+		DB::transaction(function () use ($borrowTransaction, $data) {
+			$transaction = BorrowTransaction::query()->lockForUpdate()->findOrFail($borrowTransaction->id);
+
+			if ($transaction->status !== 'Coordinator Approved') {
+				throw ValidationException::withMessages([
+					'status' => 'Only approved IBED borrow requests can be rescheduled before checkout.',
+				]);
+			}
+
+			$transaction->update([
+				'borrowed_at' => $data['borrowed_at'],
+				'due_at' => $data['due_at'],
+			]);
+		});
+
+		$notificationService = app(RequestNotificationService::class);
+		$notificationService->notifyRequester(
+			$borrowTransaction,
+			'Borrow',
+			'Borrow schedule updated',
+			'Your approved IBED borrow request ' . $borrowTransaction->borrow_no . ' was rescheduled by the Laboratory In-charge.'
+		);
+		app(FacilitatorBorrowEmailController::class)->sendRescheduledToRequester($borrowTransaction, $request->user());
+
+		return redirect()
+			->route('facilitator.borrow.show', $borrowTransaction)
+			->with('status', 'IBED borrow request rescheduled successfully.');
+	}
+
 	private function guardForFacilitator(BorrowTransaction $borrowTransaction): void
 	{
-		if ($borrowTransaction->status !== 'Instructor Approved') {
+		$borrowTransaction->loadMissing(['borrower.role', 'laboratory']);
+
+		$pendingInstructorRequest = $borrowTransaction->status === 'Pending'
+			&& $borrowTransaction->borrower?->role?->role_name === 'Instructor';
+
+		if (! $pendingInstructorRequest && $borrowTransaction->status !== 'Instructor Approved') {
 			throw ValidationException::withMessages([
-				'status' => 'Only instructor-approved borrow requests can be processed by the laboratory in-charge.',
+				'status' => 'Only student instructor-approved or instructor-submitted borrow requests can be processed by the laboratory in-charge.',
 			]);
 		}
 	}
@@ -297,5 +382,13 @@ class FacilitatorBorrowController extends Controller
 	private function ensureFacilitator(Request $request): void
 	{
 		abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
+		abort_unless($request->user()->campusName(), 403);
+	}
+
+	private function ensureFacilitatorCanAccess(Request $request, BorrowTransaction $borrowTransaction): void
+	{
+		$borrowTransaction->loadMissing('laboratory');
+
+		abort_unless($borrowTransaction->laboratory?->campus === $request->user()->campusName(), 403);
 	}
 }

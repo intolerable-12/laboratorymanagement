@@ -12,6 +12,7 @@ class EquipmentBarcodePrintController extends Controller
 {
 	public function __invoke(Request $request, Equipment $equipment)
 	{
+		$this->ensureViewerCanAccess($request, $equipment);
 		$equipment->loadMissing(['category', 'laboratory']);
 
 		$printCount = (int) $request->query('count', 1);
@@ -26,5 +27,15 @@ class EquipmentBarcodePrintController extends Controller
 		);
 
 		return view('users.coordinator.equipment.barcode-print', compact('equipment', 'barcodeSvg', 'printCount'));
+	}
+
+	private function ensureViewerCanAccess(Request $request, Equipment $equipment): void
+	{
+		if ($request->user()?->role?->role_name !== 'Laboratory In-charge') {
+			return;
+		}
+
+		$equipment->loadMissing('laboratory');
+		abort_unless($equipment->laboratory?->campus === $request->user()->campusName(), 404);
 	}
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class BorrowTransaction extends Model
 {
@@ -29,6 +30,7 @@ class BorrowTransaction extends Model
         'checkout_notified_at',
         'due_at',
         'checkin_notified_at',
+        'overdue_notified_at',
         'returned_at',
         'status',
         'remarks',
@@ -47,8 +49,23 @@ class BorrowTransaction extends Model
             'checkout_notified_at' => 'datetime',
             'due_at' => 'datetime',
             'checkin_notified_at' => 'datetime',
+            'overdue_notified_at' => 'datetime',
             'returned_at' => 'datetime',
         ];
+    }
+
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        return filled($campus)
+            ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
+            : $query;
+    }
+
+    public function scopeForDepartment(Builder $query, ?int $departmentId): Builder
+    {
+        return $departmentId
+            ? $query->whereHas('borrower', fn (Builder $userQuery) => $userQuery->where('department_id', $departmentId))
+            : $query->whereRaw('1 = 0');
     }
 
     /**

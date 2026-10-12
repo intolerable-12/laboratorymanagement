@@ -25,17 +25,22 @@
         </div>
     </div>
 
-    <div class="mt-3 text-dark forum-comment-body">{{ $comment->comment }}</div>
+    <div class="mt-3 text-dark forum-comment-body">{!! $comment->comment !!}</div>
 
     @if (! $forumPost->is_locked)
         <form method="POST" action="{{ route('facilitator.forum.comments.store', $forumPost) }}" class="mt-3 vstack gap-2">
             @csrf
             <input type="hidden" name="parent_comment_id" value="{{ $comment->id }}">
 
-            <div>
-                <label class="form-label small mb-0">Reply<span class="required-indicator text-danger" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
-                <textarea name="comment" rows="2" class="form-control form-control-sm social-input @error('comment') is-invalid @enderror" placeholder="Reply to this comment" required></textarea>
-            </div>
+            @include('partials.rich-text-editor', [
+                'name' => 'comment',
+                'label' => 'Reply',
+                'required' => true,
+                'id' => 'forum-reply-' . $comment->id,
+                'placeholder' => 'Reply to this comment',
+                'hint' => 'Rich text is supported.',
+                'compact' => true,
+            ])
 
             <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Reply</button>

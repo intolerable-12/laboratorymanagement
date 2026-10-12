@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserAccountRequest;
+use App\Support\Campus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
@@ -113,6 +114,13 @@ class UserManagementController extends Controller
         $status = $request->query('status', '');
         $roleId = $request->query('role_id', '');
         $departmentId = $request->query('department_id', '');
+        $campusInput = $request->query('campus');
+        $campus = is_string($campusInput) ? Campus::normalize($campusInput) : null;
+
+        if (! in_array($campus, Campus::values(), true)) {
+            $campus = '';
+        }
+
         $sort = $request->query('sort', 'name');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
 
@@ -147,6 +155,12 @@ class UserManagementController extends Controller
             })
             ->when($roleId !== '', fn (Builder $query) => $query->where('role_id', $roleId))
             ->when($departmentId !== '', fn (Builder $query) => $query->where('department_id', $departmentId))
+            ->when($campus !== '', function (Builder $query) use ($campus) {
+                $query->where(function (Builder $campusQuery) use ($campus) {
+                    $campusQuery->where('users.campus', $campus)
+                        ->orWhereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
+                });
+            })
             ->leftJoin('roles', 'users.role_id', '=', 'roles.id')
             ->leftJoin('departments', 'users.department_id', '=', 'departments.id')
             ->select('users.*')
@@ -175,6 +189,7 @@ class UserManagementController extends Controller
             'status' => $status,
             'role_id' => $roleId,
             'department_id' => $departmentId,
+            'campus' => $campus,
         ], static fn ($value) => $value !== '' && $value !== null);
 
         return view('users.coordinator.usermanagement.index', compact(
@@ -187,6 +202,7 @@ class UserManagementController extends Controller
             'status',
             'roleId',
             'departmentId',
+            'campus',
             'sort',
             'direction',
             'archived',
@@ -253,6 +269,18 @@ class UserManagementController extends Controller
 
         $roleName = strtolower((string) Role::query()->whereKey($validated['role_id'])->value('role_name'));
 
+        if ($roleName === 'laboratory in-charge') {
+            $request->validate([
+                'campus' => ['required', Rule::in(Campus::values())],
+            ], [
+                'campus.required' => 'A campus is required for laboratory in-charge accounts.',
+            ]);
+
+            $validated['campus'] = Campus::normalize($request->input('campus'));
+        } else {
+            $validated['campus'] = null;
+        }
+
         if ($roleName === 'student') {
             $request->validate([
                 'department_id' => ['required', 'integer', 'exists:departments,id'],
@@ -275,6 +303,12 @@ class UserManagementController extends Controller
                 'userID.regex' => $studentUserIdMessage,
             ]);
         } elseif ($roleName === 'instructor') {
+            $request->validate([
+                'department_id' => ['required', 'integer', 'exists:departments,id'],
+            ], [
+                'department_id.required' => 'A department is required for instructor accounts.',
+            ]);
+
             $request->validate([
                 'userID' => ['regex:/^[1-9][0-9]{0,3}$/'],
             ], [

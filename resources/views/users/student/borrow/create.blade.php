@@ -1,8 +1,10 @@
-@extends('users.student.layouts.app')
+@extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
+
+@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
 
 @section('title', 'New Borrow Request')
-@section('user-name', 'Student')
-@section('user-role', 'Student')
+@section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
+@section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
 
 
@@ -14,7 +16,7 @@
                     <h2 class="h3 fw-semibold mb-2 text-dark">Create a Borrow Request</h2>
                     <p class="mb-0 text-secondary">Choose a laboratory first, then select the equipment you need from that laboratory.</p>
                 </div>
-                <a href="{{ route('student.borrow.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
+                <a href="{{ route($requestRoutePrefix . '.index') }}" class="btn btn-outline-secondary px-4">Back to Requests</a>
             </div>
         </section>
 
@@ -25,7 +27,7 @@
             </div>
         @endif
 
-        <form id="borrow-request-form" method="POST" action="{{ route('student.borrow.details') }}" novalidate>
+        <form id="borrow-request-form" method="POST" action="{{ route($requestRoutePrefix . '.details') }}" novalidate>
             @csrf
 
             <div class="card section-card border-0 mb-4">

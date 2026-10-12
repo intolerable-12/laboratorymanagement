@@ -71,8 +71,6 @@
                     @php
                         $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Laboratory In-charge';
                         $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
-                        $preview = \Illuminate\Support\Str::limit(trim(strip_tags($forumPost->content)), 180);
-                        $statusTone = $forumPost->is_locked ? 'secondary' : ($forumPost->is_pinned ? 'primary' : ($forumPost->is_hidden ? 'danger' : 'success'));
                     @endphp
                     <article class="card social-card post-card border-0 mb-3">
                         <div class="card-body p-4 p-xl-5">
@@ -80,8 +78,7 @@
                                 <div class="feed-avatar">{{ $authorInitial }}</div>
                                 <div class="flex-grow-1 min-w-0">
                                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                                        <span class="category-chip">{{ $forumPost->category ?? 'General' }}</span>
-                                        <span class="badge rounded-pill text-bg-{{ $statusTone }}">{{ $forumPost->is_locked ? 'Locked' : ($forumPost->is_pinned ? 'Pinned' : ($forumPost->is_hidden ? 'Hidden' : 'Open')) }}</span>
+                                        @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                                     </div>
 
                                     <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
@@ -93,7 +90,7 @@
                                         <a href="{{ route('facilitator.forum.show', $forumPost) }}" class="btn btn-outline-primary rounded-pill align-self-start">Open post</a>
                                     </div>
 
-                                    <div class="rte-preview mt-3">{{ $preview }}</div>
+                                    <div class="rte-preview mt-3">{!! $forumPost->content !!}</div>
 
                                     <div class="d-flex flex-wrap gap-3 mt-4 small text-secondary">
                                         <span>{{ $forumPost->comments_count }} comments</span>

@@ -43,8 +43,9 @@ class ChemicalController extends Controller
         return $this->renderIndex($request, true);
     }
 
-    public function restore(Chemical $chemical)
+    public function restore(Request $request, Chemical $chemical)
     {
+        $this->ensureViewerCanAccess($request, $chemical);
         abort_unless($chemical->trashed(), 404);
 
         $restoreDeadline = $chemical->deleted_at?->copy()->addYears(5);
@@ -87,7 +88,9 @@ class ChemicalController extends Controller
             $sort = 'item';
         }
 
+        $campus = $this->viewerCampus($request);
         $chemicalsQuery = Chemical::with(['category', 'laboratory', 'supplier'])
+            ->forCampus($campus)
             ->leftJoin('chemical_categories', 'chemicals.category_id', '=', 'chemical_categories.id')
             ->leftJoin('laboratories', 'chemicals.laboratory_id', '=', 'laboratories.id')
             ->select('chemicals.*')
@@ -139,18 +142,18 @@ class ChemicalController extends Controller
             ->when($sort !== 'archived_at' || !$archived, fn($query) => $query->orderBy('chemicals.created_at', 'desc'))
             ->paginate(10);
 
-        $categories = ChemicalCategory::orderBy('category_name')->get(['id', 'category_name']);
-        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name']);
+        $categories = ChemicalCategory::forCampus($campus)->orderBy('category_name')->get(['id', 'category_name']);
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name']);
         $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = Chemical::STATUSES;
         $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
 
         $stats = [
-            'total' => Chemical::withoutTrashed()->count(),
-            'active' => Chemical::withoutTrashed()->where('status', 'Active')->count(),
-            'inactive' => Chemical::withoutTrashed()->where('status', 'Inactive')->count(),
-            'low_stock' => Chemical::withoutTrashed()->whereColumn('quantity', '<=', 'minimum_stock')->count(),
-            'expired' => Chemical::withoutTrashed()->where(function ($query) {
+            'total' => Chemical::withoutTrashed()->forCampus($campus)->count(),
+            'active' => Chemical::withoutTrashed()->forCampus($campus)->where('status', 'Active')->count(),
+            'inactive' => Chemical::withoutTrashed()->forCampus($campus)->where('status', 'Inactive')->count(),
+            'low_stock' => Chemical::withoutTrashed()->forCampus($campus)->whereColumn('quantity', '<=', 'minimum_stock')->count(),
+            'expired' => Chemical::withoutTrashed()->forCampus($campus)->where(function ($query) {
                 $query->where('status', 'Expired')
                     ->orWhere(function ($dateQuery) {
                         $dateQuery->whereNotNull('expiration_date')
@@ -158,8 +161,8 @@ class ChemicalController extends Controller
                             ->where('status', '!=', 'For Disposal');
                     });
             })->count(),
-            'for_disposal' => Chemical::withoutTrashed()->where('status', 'For Disposal')->count(),
-            'archived' => Chemical::onlyTrashed()->count(),
+            'for_disposal' => Chemical::withoutTrashed()->forCampus($campus)->where('status', 'For Disposal')->count(),
+            'archived' => Chemical::onlyTrashed()->forCampus($campus)->count(),
         ];
 
         $filters = array_filter([
@@ -226,8 +229,9 @@ class ChemicalController extends Controller
         return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical created successfully.');
     }
 
-    public function show(Chemical $chemical)
+    public function show(Request $request, Chemical $chemical)
     {
+        $this->ensureViewerCanAccess($request, $chemical);
         $chemical->load(['category', 'laboratory', 'supplier']);
         $barcodeSvg = $this->renderBarcodeSvg($chemical->barcode);
 
@@ -554,5 +558,24 @@ class ChemicalController extends Controller
         }
 
         return $options;
+    }
+
+    private function viewerCampus(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
+    }
+
+    private function ensureViewerCanAccess(Request $request, Chemical $chemical): void
+    {
+        $campus = $this->viewerCampus($request);
+
+        if ($campus === null) {
+            return;
+        }
+
+        $chemical->loadMissing('laboratory');
+        abort_unless($chemical->laboratory?->campus === $campus, 404);
     }
 }

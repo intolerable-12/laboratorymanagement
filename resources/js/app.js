@@ -1,6 +1,8 @@
 
 import * as bootstrap from 'bootstrap';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/themes/airbnb.css';
 import Quill from 'quill';
 import { attachScannerEnterGuard } from './scanner-input';
 import './barcode';
@@ -245,7 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const selectedDate = parseLocalDateTime(value, field.type === 'date');
+        const inputType = field.dataset.flatpickrType || field.type;
+        const isDateOnly = inputType === 'date';
+        const selectedDate = parseLocalDateTime(value, isDateOnly);
 
         if (!selectedDate) {
             setValidationMessage('Please enter a valid date.');
@@ -284,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const minimumDateValue = field.dataset.businessDaysMin || field.min;
 
         if (minimumDateValue) {
-            const minimumDate = parseLocalDateTime(minimumDateValue, field.type === 'date');
+            const minimumDate = parseLocalDateTime(minimumDateValue, isDateOnly);
 
             if (minimumDate && selectedDate < minimumDate) {
                 setValidationMessage(field.dataset.minimumMessage || 'Please choose a later date.');
@@ -300,6 +304,173 @@ document.addEventListener('DOMContentLoaded', () => {
         field.addEventListener('input', () => validateDateInput(field));
         field.addEventListener('change', () => validateDateInput(field));
     });
+
+    const flatpickrSelector = 'input[type="date"], input[type="time"], input[type="datetime-local"]';
+    const normalizeTimeBound = (value) => /^\d{2}:\d{2}$/.test(value) ? `${value}:00` : value;
+    const normalizeDateTimeBound = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00` : value;
+    const flatpickrPlaceholders = {
+        borrowed_at: 'Select Borrow Date',
+        due_at: 'Select Due Date',
+        reservation_date: 'Select Reservation Date',
+        start_time: 'Select Start Time',
+        end_time: 'Select End Time',
+        birth_date: 'Select Birth Date',
+        start_date: 'Select Start Date',
+        end_date: 'Select End Date',
+        manufactured_date: 'Select Manufactured Date',
+        manufacturing_date: 'Select Manufacturing Date',
+        received_date: 'Select Received Date',
+        expiration_date: 'Select Expiration Date',
+        transaction_date: 'Select Transaction Date',
+        purchase_date: 'Select Purchase Date',
+        date_from: 'Select From Date',
+        date_to: 'Select To Date',
+        from: 'Select From Date',
+        to: 'Select To Date',
+        list_from: 'Select List Start Date',
+        list_to: 'Select List End Date',
+    };
+
+    const getFlatpickrPlaceholder = (field) => {
+        const fieldName = field.name?.split('[').pop()?.replace(']', '') || '';
+
+        if (flatpickrPlaceholders[fieldName]) {
+            return flatpickrPlaceholders[fieldName];
+        }
+
+        const label = field.id
+            ? document.querySelector(`label[for="${field.id}"]`)
+            : field.closest('.mb-3, .col-md-6, .col-md-4, .col-12, .form-group')?.querySelector('label');
+        const labelText = label?.textContent?.replace(/\s*\*\s*$/, '').trim();
+
+        if (labelText) {
+            return `Select ${labelText}`;
+        }
+
+        const fallbackName = fieldName.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+        return fallbackName ? `Select ${fallbackName}` : 'Select date and time';
+    };
+
+    const initializeFlatpickr = (root = document) => {
+        const fields = [];
+
+        if (root.nodeType === Node.ELEMENT_NODE && root.matches(flatpickrSelector)) {
+            fields.push(root);
+        }
+
+        if (root.querySelectorAll) {
+            fields.push(...root.querySelectorAll(flatpickrSelector));
+        }
+
+        fields.forEach((field) => {
+            if (field.dataset.flatpickrInitialized === 'true' || field._flatpickr) {
+                return;
+            }
+
+            const inputType = field.type;
+            const config = {
+                disableMobile: true,
+                allowInput: true,
+                time_24hr: false,
+                altInput: true,
+            };
+            const min = field.getAttribute('min');
+            const max = field.getAttribute('max');
+
+            if (inputType === 'date') {
+                config.dateFormat = 'Y-m-d';
+                config.altFormat = 'F j, Y';
+
+                if (min) {
+                    config.minDate = min;
+                }
+
+                if (max) {
+                    config.maxDate = max;
+                }
+            } else if (inputType === 'time') {
+                config.noCalendar = true;
+                config.enableTime = true;
+                config.dateFormat = 'H:i';
+                config.altFormat = 'h:i K';
+
+                if (min) {
+                    config.minTime = normalizeTimeBound(min);
+                }
+
+                if (max) {
+                    config.maxTime = normalizeTimeBound(max);
+                }
+
+                const step = Number(field.getAttribute('step'));
+
+                if (Number.isFinite(step) && step > 0) {
+                    config.minuteIncrement = Math.max(1, Math.round(step / 60));
+                }
+            } else {
+                config.enableTime = true;
+                config.dateFormat = 'Y-m-d\\TH:i';
+                config.altFormat = 'F j, Y h:i K';
+
+                if (min) {
+                    config.minDate = normalizeDateTimeBound(min);
+                }
+
+                if (max) {
+                    config.maxDate = normalizeDateTimeBound(max);
+                }
+            }
+
+            const placeholder = field.getAttribute('placeholder') || getFlatpickrPlaceholder(field);
+
+            field.setAttribute('placeholder', placeholder);
+            field.dataset.flatpickrType = inputType;
+            field.dataset.flatpickrInitialized = 'true';
+            const instance = flatpickr(field, config);
+
+            if (instance.altInput) {
+                instance.altInput.placeholder = placeholder;
+            }
+
+            instance.calendarContainer?.querySelectorAll('.cur-year').forEach((yearInput) => {
+                yearInput.tabIndex = 0;
+                yearInput.inputMode = 'numeric';
+                yearInput.title = 'Type a year or scroll to change it';
+
+                yearInput.addEventListener('wheel', (event) => {
+                    event.preventDefault();
+
+                    const currentYear = Number.parseInt(yearInput.value, 10) || instance.currentYear;
+                    const nextYear = currentYear + (event.deltaY < 0 ? 1 : -1);
+
+                    instance.changeYear(nextYear);
+                }, { passive: false });
+
+                yearInput.addEventListener('change', () => {
+                    const typedYear = Number.parseInt(yearInput.value, 10);
+
+                    if (Number.isInteger(typedYear) && typedYear >= 1000) {
+                        instance.changeYear(typedYear);
+                    }
+                });
+            });
+        });
+    };
+
+    initializeFlatpickr();
+
+    const flatpickrObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    initializeFlatpickr(node);
+                }
+            });
+        });
+    });
+
+    flatpickrObserver.observe(document.body, { childList: true, subtree: true });
 
     const richTextToolbarOptions = [
         [{ header: [1, 2, 3, false] }],
