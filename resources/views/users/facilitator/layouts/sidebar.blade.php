@@ -17,8 +17,9 @@
     </div>
 
     @php
-        $sidebarUser = auth()->user()?->loadMissing('role');
+        $sidebarUser = auth()->user()?->loadMissing(['role', 'department']);
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Laboratory In-charge';
+        $facilitatorCampus = $sidebarUser?->campusName();
 
         $isDashboard = request()->routeIs('facilitator.dashboard');
         $isEquipmentGroup = request()->routeIs('facilitator.equipment.*', 'facilitator.equipment.categories.*')
@@ -58,8 +59,26 @@
         $isFacilitatorBorrowGroup = $isBorrowCalendar || $isBorrowRequestActive;
         $isFacilitatorScanGroup = $isCheckoutGroup || $isCheckinGroup || $isTransactionHistory;
 
-        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Instructor Approved')->count();
-        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Instructor Approved')->count();
+        $pendingReservationRequests = \App\Models\Reservation::query()
+            ->forCampus($facilitatorCampus)
+            ->where(function ($query) {
+                $query->where('status', 'Instructor Approved')
+                    ->orWhere(function ($query) {
+                        $query->where('status', 'Pending')
+                            ->whereHas('user.role', fn ($roleQuery) => $roleQuery->where('role_name', 'Instructor'));
+                    });
+            })
+            ->count();
+        $pendingBorrowRequests = \App\Models\BorrowTransaction::query()
+            ->forCampus($facilitatorCampus)
+            ->where(function ($query) {
+                $query->where('status', 'Instructor Approved')
+                    ->orWhere(function ($query) {
+                        $query->where('status', 'Pending')
+                            ->whereHas('borrower.role', fn ($roleQuery) => $roleQuery->where('role_name', 'Instructor'));
+                    });
+            })
+            ->count();
         $pendingUserAccountRequests = \App\Models\UserAccountRequest::pending()->count();
     @endphp
 

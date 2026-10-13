@@ -9,6 +9,7 @@
             $displayRole = $user?->role?->role_name
                 ? $user->role->role_name . ' account'
                 : 'Coordinator account';
+            $avatarUrl = $user?->profilePhotoUrl();
         @endphp
 
         <div class="d-flex align-items-center gap-3">
@@ -26,7 +27,11 @@
 
             <div class="dropdown">
                 <button class="btn btn-light border dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold" style="width: 36px; height: 36px;">{{ strtoupper(substr($displayName, 0, 1)) }}</span>
+                    @if ($avatarUrl)
+                        <img src="{{ $avatarUrl }}" alt="{{ $displayName }} profile photo" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
+                    @else
+                        <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold" style="width: 36px; height: 36px;">{{ strtoupper(substr($displayName, 0, 1)) }}</span>
+                    @endif
                     <span class="d-none d-md-inline text-start">
                         <span class="d-block fw-medium text-dark lh-1">{{ $displayName }}</span>
                         <small class="text-secondary">{{ $displayRole }}</small>

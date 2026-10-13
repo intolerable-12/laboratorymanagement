@@ -15,8 +15,8 @@ class InstructorBorrowEmailController
 			borrowTransaction: $borrowTransaction,
 			reviewerRole: 'Instructor',
 			decisionLabel: 'Approved by Instructor',
-			subjectPrefix: 'Forwarded for facilitator review',
-			bodyMessage: 'Your borrow request has been approved by the instructor and forwarded to the facilitator for review.',
+			subjectPrefix: 'Forwarded for Laboratory In-charge review',
+			bodyMessage: 'Your borrow request has been approved by the instructor and forwarded to the Laboratory In-charge for review.',
 			reason: null,
 			actorName: $this->buildUserName($instructor),
 		);

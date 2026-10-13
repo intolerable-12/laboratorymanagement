@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use App\Support\Campus;
 
 class BorrowTransaction extends Model
 {
@@ -59,6 +60,31 @@ class BorrowTransaction extends Model
         return filled($campus)
             ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
             : $query;
+    }
+
+    /**
+     * Limit the instructor approval queue to students belonging to the
+     * instructor's campus. IBED instructors review JHS students only.
+     */
+    public function scopeForInstructorApproval(Builder $query, ?string $campus): Builder
+    {
+        if (! filled($campus)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->forCampus($campus)
+            ->whereHas('borrower', function (Builder $userQuery) use ($campus): void {
+                $userQuery
+                    ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'))
+                    ->whereHas('department', function (Builder $departmentQuery) use ($campus): void {
+                        $departmentQuery->where('campus', $campus)
+                            ->when(
+                                $campus === Campus::IBED,
+                                fn (Builder $query) => $query->whereRaw("UPPER(TRIM(department_code)) = 'JHS'")
+                            );
+                    });
+            });
     }
 
     public function scopeForDepartment(Builder $query, ?int $departmentId): Builder

@@ -37,7 +37,7 @@
                         <strong>Reservation instructions:</strong>
                         <ul class="mb-0 mt-2">
                             <li>Submit your reservation at least 3 days in advance.</li>
-                            <li>Laboratory hours are Monday-Friday, 7:30 AM-5:00 PM, and Saturday, 8:00 AM-12:00 NN.</li>
+                            <li>Laboratory hours are Monday-Friday, 7:30 AM-12:00 PM and 1:00 PM-5:00 PM, and Saturday, 8:00 AM-12:00 PM.</li>
                             <li>Sundays are unavailable.</li>
                             <li>The academic period is applied automatically.</li>
                         </ul>
@@ -65,19 +65,19 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                            <input type="date" id="reservation-date" name="reservation_date" value="{{ old('reservation_date', $details['reservation_date'] ?? '') }}" min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" required>
+                            <input type="date" id="reservation-date" name="reservation_date" value="{{ old('reservation_date', $details['reservation_date'] ?? '') }}" min="{{ $reservationMinDate }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback" data-date-validation-message hidden></div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Start Time</label>
-                            <input type="time" id="reservation-start-time" name="start_time" value="{{ old('start_time', $details['start_time'] ?? '') }}" min="07:30" max="17:00" step="60" class="form-control @error('start_time') is-invalid @enderror" required>
+                            <input type="time" id="reservation-start-time" name="start_time" value="{{ old('start_time', $details['start_time'] ?? '') }}" min="07:30" max="17:00" step="60" data-native-date-time class="form-control @error('start_time') is-invalid @enderror" required>
                             @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback" data-time-validation-message="start_time" hidden></div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">End Time</label>
-                            <input type="time" id="reservation-end-time" name="end_time" value="{{ old('end_time', $details['end_time'] ?? '') }}" min="07:30" max="17:00" step="60" class="form-control @error('end_time') is-invalid @enderror" required>
+                            <input type="time" id="reservation-end-time" name="end_time" value="{{ old('end_time', $details['end_time'] ?? '') }}" min="07:30" max="17:00" step="60" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback" data-time-validation-message="end_time" hidden></div>
                         </div>
@@ -116,13 +116,17 @@
             if (!form || !dateField || !startField || !endField) return;
             const fields = [startField, endField];
             const minutes = (value) => value && /^\d{2}:\d{2}$/.test(value) ? value.split(':').map(Number).reduce((h, m) => h * 60 + m) : null;
-            const getSchedule = () => { const date = dateField.value ? new Date(`${dateField.value}T00:00:00`) : null; const saturday = date && !Number.isNaN(date.getTime()) && date.getDay() === 6; return { sunday: date && !Number.isNaN(date.getTime()) && date.getDay() === 0, opening: saturday ? '08:00' : '07:30', closing: saturday ? '12:00' : '17:00' }; };
+            const getSchedule = () => { const date = dateField.value ? new Date(`${dateField.value}T00:00:00`) : null; const saturday = date && !Number.isNaN(date.getTime()) && date.getDay() === 6; return { sunday: date && !Number.isNaN(date.getTime()) && date.getDay() === 0, windows: saturday ? [{ opening: '08:00', closing: '12:00' }] : [{ opening: '07:30', closing: '12:00' }, { opening: '13:00', closing: '17:00' }] }; };
             const validate = (show = false) => {
                 const schedule = getSchedule(), dateMessage = schedule.sunday ? 'Sundays are unavailable. Please choose a Monday-Saturday date.' : '';
                 dateField.setCustomValidity(dateMessage); dateField.classList.toggle('is-invalid', show && Boolean(dateMessage));
                 const dateFeedback = document.querySelector('[data-date-validation-message]'); if (dateFeedback) { dateFeedback.textContent = dateMessage; dateFeedback.hidden = !show || !dateMessage; }
-                const start = minutes(startField.value), end = minutes(endField.value), opening = minutes(schedule.opening), closing = minutes(schedule.closing);
-                fields.forEach((field) => { field.min = schedule.opening; field.max = schedule.closing; const message = schedule.sunday ? 'Reservations are not available on Sundays.' : field === startField && start !== null && (start < opening || start > closing) ? `Start time must be between ${schedule.opening} and ${schedule.closing}.` : field === endField && end !== null && (end < opening || end > closing) ? `End time must be between ${schedule.opening} and ${schedule.closing}.` : field === endField && start !== null && end !== null && end <= start ? 'End time must be after the start time.' : ''; field.setCustomValidity(message); field.classList.toggle('is-invalid', show && Boolean(message)); const feedback = document.querySelector(`[data-time-validation-message="${field.name}"]`); if (feedback) { feedback.textContent = message; feedback.hidden = !show || !message; } });
+                const start = minutes(startField.value), end = minutes(endField.value), opening = minutes(schedule.windows[0].opening), closing = minutes(schedule.windows[schedule.windows.length - 1].closing);
+                const formatTime = (value) => { const [hour, minute] = value.split(':').map(Number); const suffix = hour >= 12 ? 'PM' : 'AM'; const displayHour = hour % 12 || 12; return `${displayHour}:${String(minute).padStart(2, '0')} ${suffix}`; };
+                const hoursLabel = schedule.windows.map((window) => `${formatTime(window.opening)} to ${formatTime(window.closing)}`).join(' or ');
+                const isWithinOperatingHours = (value) => value !== null && schedule.windows.some((window) => value >= minutes(window.opening) && value <= minutes(window.closing));
+                const sameWindow = start !== null && end !== null && schedule.windows.some((window) => start >= minutes(window.opening) && end <= minutes(window.closing));
+                fields.forEach((field) => { field.min = schedule.windows[0].opening; field.max = schedule.windows[schedule.windows.length - 1].closing; const value = field === startField ? start : end; const message = schedule.sunday ? 'Reservations are not available on Sundays.' : value !== null && !isWithinOperatingHours(value) ? `${field === startField ? 'Start' : 'End'} time must be within ${hoursLabel}.` : field === endField && start !== null && end !== null && end <= start ? 'End time must be after the start time.' : field === endField && start !== null && end !== null && !sameWindow ? 'Reservations cannot span the 12:00 PM to 1:00 PM break.' : ''; field.setCustomValidity(message); field.classList.toggle('is-invalid', show && Boolean(message)); const feedback = document.querySelector(`[data-time-validation-message="${field.name}"]`); if (feedback) { feedback.textContent = message; feedback.hidden = !show || !message; } });
             };
             dateField.addEventListener('change', () => validate(true)); fields.forEach((field) => field.addEventListener('change', () => validate(true))); form.addEventListener('invalid', () => validate(true), true); validate();
         });

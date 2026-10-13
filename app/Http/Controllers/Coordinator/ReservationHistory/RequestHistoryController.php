@@ -26,7 +26,7 @@ class RequestHistoryController extends Controller
                     ->whereHas('reservations')
                     ->orWhereHas('borrowTransactions');
             })
-            ->with('role')
+            ->with(['role', 'department'])
             ->withCount(['reservations', 'borrowTransactions']);
 
         $this->applyUserSearch($requestersQuery, $searchTerms);
@@ -59,7 +59,7 @@ class RequestHistoryController extends Controller
             : 'reservations';
         $search = trim((string) $request->query('search', ''));
 
-        $user->load('role');
+        $user->load(['role', 'department']);
         $reservations = $user->reservations()
             ->with(['laboratory', 'items.item', 'schoolYear', 'semester'])
             ->orderByDesc('created_at')

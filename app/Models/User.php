@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use App\Support\Campus;
 
 class User extends Authenticatable
@@ -107,6 +108,32 @@ class User extends Authenticatable
         }
 
         return Campus::normalize($this->campus);
+    }
+
+    /**
+     * Get the profile photo URL for display in authenticated layouts.
+     */
+    public function profilePhotoUrl(): ?string
+    {
+        $photo = trim((string) $this->profile_photo);
+
+        if ($photo === '') {
+            return null;
+        }
+
+        if (filter_var($photo, FILTER_VALIDATE_URL)) {
+            return $photo;
+        }
+
+        if (str_starts_with($photo, 'storage/')) {
+            return asset($photo);
+        }
+
+        if (Storage::disk('public')->exists($photo)) {
+            return asset('storage/' . $photo);
+        }
+
+        return asset($photo);
     }
 
     /**

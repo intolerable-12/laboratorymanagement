@@ -136,20 +136,32 @@
 
     <div class="section-card mt-4">
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
-            <div>
+            <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
                 <h3 class="h5 fw-semibold mb-1">Semester academic periods</h3>
-                <p class="mb-0 text-secondary">Set the exact date range for every semester in each school year. Report quantities stay blank until a semester has started.</p>
+                @if ($schoolYears->isNotEmpty())
+                    <form method="GET" action="{{ route('coordinator.academic-periods.index') }}" class="d-flex align-items-end gap-2">
+                        <div>
+                            <label for="academic-period-school-year" class="form-label small fw-semibold text-secondary mb-1">School year</label>
+                            <select id="academic-period-school-year" name="school_year_id" class="form-select" onchange="this.form.submit()">
+                                @foreach ($schoolYears as $schoolYear)
+                                    <option value="{{ $schoolYear->id }}" @selected($schoolYear->id === $selectedSchoolYearId)>{{ $schoolYear->school_year }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+                @endif
             </div>
+            <p class="mb-0 mt-2 text-secondary">Set the exact date range for each semester in the selected school year. Report quantities stay blank until a semester has started.</p>
         </div>
         <div class="card-body px-4 px-xl-5">
             @if ($schoolYears->isEmpty() || $semesters->isEmpty())
                 <div class="text-secondary">Add at least one school year and one semester before setting academic periods.</div>
             @else
-                <form method="POST" action="{{ route('coordinator.academic-periods.semester-periods.update') }}">
+                <form method="POST" action="{{ route('coordinator.academic-periods.semester-periods.update', ['school_year_id' => $selectedSchoolYearId]) }}">
                     @csrf
                     @method('PUT')
 
-                    @foreach ($schoolYears as $schoolYear)
+                    @foreach ($selectedSchoolYears as $schoolYear)
                         <div class="border rounded-3 p-3 p-xl-4 mb-3">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                 <div class="fw-semibold text-dark">{{ $schoolYear->school_year }}</div>

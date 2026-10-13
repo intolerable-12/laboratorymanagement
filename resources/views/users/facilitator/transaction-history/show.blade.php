@@ -10,6 +10,7 @@
     $borrowerName = $borrower
         ? trim(collect([$borrower->first_name, $borrower->middle_name, $borrower->last_name, $borrower->suffix])->filter()->implode(' '))
         : 'Student unavailable';
+    $requestedCampus = $borrowTransaction->laboratory?->campus;
     $activeItemType = $filters['item_type'] ?? '';
     $tabQuery = request()->except('page', 'item_type');
     $itemTabs = [
@@ -36,6 +37,8 @@
                     <span><i class="fa-solid fa-user me-1"></i>{{ $borrowerName }}</span>
                     <span>·</span>
                     <span><i class="fa-solid fa-flask-vial me-1"></i>{{ $borrowTransaction->laboratory?->laboratory_name ?? 'Laboratory not specified' }}</span>
+                    <span>·</span>
+                    <span><i class="fa-solid fa-location-dot me-1"></i>Requested from: {{ $requestedCampus ?? 'Campus not specified' }} campus</span>
                     <span>·</span>
                     <span><i class="fa-solid fa-circle-info me-1"></i>{{ $borrowTransaction->status }}</span>
                 </div>

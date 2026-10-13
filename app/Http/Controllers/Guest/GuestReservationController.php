@@ -132,6 +132,17 @@ class GuestReservationController extends Controller
             throw ValidationException::withMessages(['reservation_date' => 'Reservation dates must be at least 3 business days in advance.']);
         }
 
+        if ($this->hasReservationTimeConflict(
+            (int) $data['laboratory_id'],
+            $data['reservation_date'],
+            $data['start_time'],
+            $data['end_time']
+        )) {
+            throw ValidationException::withMessages([
+                'reservation_date' => 'This laboratory already has a reservation that overlaps the selected time on that date.',
+            ]);
+        }
+
         $previousDetails = $request->session()->get(self::DRAFT_DETAILS, []);
         $request->session()->put(self::DRAFT_DETAILS, $data);
 

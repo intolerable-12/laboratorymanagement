@@ -42,6 +42,7 @@
                             <th class="text-dark">Email</th>
                             <th class="text-dark">Reservations</th>
                             <th class="text-dark">Borrowing</th>
+                            <th class="text-dark">Student campus</th>
                             <th class="text-center text-dark">Actions</th>
                         </tr>
                     </thead>
@@ -54,6 +55,7 @@
                                     $requester->last_name,
                                     $requester->suffix,
                                 ])->filter()->implode(' '));
+                                $studentCampus = $requester->campusName();
                             @endphp
                             <tr>
                                 <td>
@@ -64,6 +66,11 @@
                                 <td>{{ $requester->email ?? '—' }}</td>
                                 <td class="text-center"><span class="badge text-bg-info">{{ number_format($requester->reservations_count) }}</span></td>
                                 <td class="text-center"><span class="badge text-bg-primary">{{ number_format($requester->borrow_transactions_count) }}</span></td>
+                                <td>
+                                    <span class="badge rounded-pill text-bg-light border text-secondary">
+                                        <i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>{{ $studentCampus ?? 'Campus not specified' }} campus
+                                    </span>
+                                </td>
                                 <td class="text-center">
                                     <a href="{{ route('coordinator.requesthistory.show', $requester) }}" class="btn btn-sm btn-outline-primary" title="View request history">
                                         <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>
@@ -72,7 +79,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-secondary py-5">No students or guests with request history found.</td>
+                                <td colspan="7" class="text-center text-secondary py-5">No students or guests with request history found.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -11,6 +11,7 @@
         $user->last_name,
         $user->suffix,
     ])->filter()->implode(' '));
+    $studentCampus = $user->campusName();
     $tabUrl = function (string $tab) use ($user, $search) {
         return route('coordinator.requesthistory.show', array_filter([
             'user' => $user,
@@ -35,6 +36,8 @@
         <div class="col-md-4">
             <div class="card admin-card border-0 h-100">
                 <div class="card-body p-4">
+                    <div class="small text-secondary mb-1">Student campus</div>
+                    <div class="fw-semibold text-dark">{{ $studentCampus ?? 'Campus not specified' }} campus</div>
                     <div class="small text-secondary mb-1">Student / Guest</div>
                     <div class="fw-semibold text-dark">{{ $user->userID ?? '—' }}</div>
                     <div class="small text-secondary">{{ $user->email ?? '—' }}</div>
@@ -88,6 +91,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-dark">Reservation</th>
+                                <th class="text-dark">Request campus</th>
                                 <th class="text-dark">Laboratory</th>
                                 <th class="text-dark">Schedule</th>
                                 <th class="text-dark">Items</th>
@@ -115,6 +119,11 @@
                                         <div class="fw-semibold text-dark">{{ $reservation->reservation_no }}</div>
                                         <div class="small text-secondary">Submitted {{ $reservation->created_at?->format('M d, Y') }}</div>
                                     </td>
+                                    <td>
+                                        <span class="badge rounded-pill text-bg-light border text-secondary">
+                                            {{ $reservation->laboratory?->campus ?? 'Campus not specified' }} campus
+                                        </span>
+                                    </td>
                                     <td>{{ $reservation->laboratory?->laboratory_name ?? '—' }}</td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $reservation->reservation_date?->format('M d, Y') ?? '—' }}</div>
@@ -130,7 +139,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center text-secondary py-5">No reservation requests found for this requester.</td></tr>
+                                <tr><td colspan="7" class="text-center text-secondary py-5">No reservation requests found for this requester.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -143,6 +152,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-dark">Borrow</th>
+                                <th class="text-dark">Request campus</th>
                                 <th class="text-dark">Laboratory</th>
                                 <th class="text-dark">Borrow Period</th>
                                 <th class="text-dark">Items</th>
@@ -172,6 +182,11 @@
                                         <div class="fw-semibold text-dark">{{ $borrow->borrow_no }}</div>
                                         <div class="small text-secondary">Submitted {{ $borrow->created_at?->format('M d, Y') }}</div>
                                     </td>
+                                    <td>
+                                        <span class="badge rounded-pill text-bg-light border text-secondary">
+                                            {{ $borrow->laboratory?->campus ?? 'Campus not specified' }} campus
+                                        </span>
+                                    </td>
                                     <td>{{ $borrow->laboratory?->laboratory_name ?? '—' }}</td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $borrow->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div>
@@ -187,7 +202,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center text-secondary py-5">No borrowing requests found for this requester.</td></tr>
+                                <tr><td colspan="7" class="text-center text-secondary py-5">No borrowing requests found for this requester.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

@@ -35,6 +35,7 @@
                     $borrowerName = $borrower
                         ? trim(collect([$borrower->first_name, $borrower->middle_name, $borrower->last_name, $borrower->suffix])->filter()->implode(' '))
                         : 'Student unavailable';
+                    $requestedCampus = $transaction?->laboratory?->campus;
                     $latestActivity = $firstLog?->is_voided ? $firstLog->voided_at : $firstLog?->scanned_at;
                     $itemCount = $transactionLogs->unique(fn ($log) => $log->item_type.':'.$log->item_id)->count();
                 @endphp
@@ -45,6 +46,10 @@
                                 <div class="small text-uppercase text-secondary mb-1">Borrowing request</div>
                                 <h2 class="h5 fw-semibold mb-1 text-dark">{{ $transaction?->borrow_no ?? 'Request unavailable' }}</h2>
                                 <div class="small text-secondary">{{ $borrowerName }} · {{ $transaction?->laboratory?->laboratory_name ?? 'Laboratory not specified' }}</div>
+                                <div class="small text-secondary mt-1">
+                                    <i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>
+                                    Requested from: <span class="fw-semibold text-dark">{{ $requestedCampus ?? 'Campus not specified' }} campus</span>
+                                </div>
                             </div>
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <span class="badge rounded-pill text-bg-light border text-secondary">{{ $transactionLogs->count() }} entr{{ $transactionLogs->count() === 1 ? 'y' : 'ies' }}</span>
