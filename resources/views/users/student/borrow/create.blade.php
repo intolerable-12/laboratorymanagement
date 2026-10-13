@@ -1,6 +1,10 @@
 @extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
 
-@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
+@php
+    $requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor'
+        ? 'instructor.my-borrow-requests'
+        : 'student.borrow';
+@endphp
 
 @section('title', 'New Borrow Request')
 @section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')

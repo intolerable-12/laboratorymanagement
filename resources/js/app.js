@@ -305,12 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
         field.addEventListener('change', () => validateDateInput(field));
     });
 
-    const flatpickrSelector = 'input[type="date"], input[type="time"], input[type="datetime-local"]';
+    const flatpickrSelector = 'input[type="date"], input[type="time"]';
     const normalizeTimeBound = (value) => /^\d{2}:\d{2}$/.test(value) ? `${value}:00` : value;
-    const normalizeDateTimeBound = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00` : value;
     const flatpickrPlaceholders = {
-        borrowed_at: 'Select Borrow Date',
-        due_at: 'Select Due Date',
         reservation_date: 'Select Reservation Date',
         start_time: 'Select Start Time',
         end_time: 'Select End Time',
@@ -350,6 +347,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const fallbackName = fieldName.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
         return fallbackName ? `Select ${fallbackName}` : 'Select date and time';
+    };
+
+    const addFlatpickrClearButton = (instance) => {
+        if (!instance.calendarContainer || instance.calendarContainer.querySelector('[data-flatpickr-clear]')) {
+            return;
+        }
+
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'flatpickr-clear-button';
+        clearButton.dataset.flatpickrClear = 'true';
+        clearButton.textContent = 'Clear';
+        clearButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            instance.clear();
+            instance.close();
+        });
+
+        instance.calendarContainer.prepend(clearButton);
     };
 
     const initializeFlatpickr = (root = document) => {
@@ -394,6 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 config.enableTime = true;
                 config.dateFormat = 'H:i';
                 config.altFormat = 'h:i K';
+                config.closeOnSelect = false;
+                config.onReady = (_, __, instance) => addFlatpickrClearButton(instance);
 
                 if (min) {
                     config.minTime = normalizeTimeBound(min);
@@ -407,18 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (Number.isFinite(step) && step > 0) {
                     config.minuteIncrement = Math.max(1, Math.round(step / 60));
-                }
-            } else {
-                config.enableTime = true;
-                config.dateFormat = 'Y-m-d\\TH:i';
-                config.altFormat = 'F j, Y h:i K';
-
-                if (min) {
-                    config.minDate = normalizeDateTimeBound(min);
-                }
-
-                if (max) {
-                    config.maxDate = normalizeDateTimeBound(max);
                 }
             }
 

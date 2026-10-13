@@ -290,9 +290,9 @@ class ReservationController extends Controller
 						$reservation
 					);
 				} else {
-					$notificationService->notifyDepartmentRoleUsers(
+					$notificationService->notifyCampusRoleUsers(
 						'Instructor',
-						(int) $request->user()->department_id,
+						$request->user()->campusName(),
 						'Reservation',
 						'New reservation request',
 						'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
@@ -324,9 +324,9 @@ class ReservationController extends Controller
 				]
 			);
 		} else {
-			$notificationService->emailDepartmentRoleUsers(
+			$notificationService->emailCampusRoleUsers(
 				'Instructor',
-				(int) $request->user()->department_id,
+				$request->user()->campusName(),
 				'Reservation',
 				$reservation->reservation_no,
 				'New reservation request',

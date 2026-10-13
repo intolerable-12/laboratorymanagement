@@ -25,12 +25,12 @@
             <div class="col-lg-6">
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
-                        <form method="POST" action="{{ route('student.myaccount.update') }}" enctype="multipart/form-data">
+                        <form id="student-profile-form" data-profile-form method="POST" action="{{ route('student.myaccount.update') }}" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
 
                             <div class="account-profile-header d-flex align-items-center gap-3 mb-4">
-                                <div class="account-avatar">
+                                <div class="account-avatar" data-profile-avatar>
                                     @if ($avatarUrl)
                                         <img src="{{ $avatarUrl }}" alt="Profile photo">
                                     @else
@@ -51,7 +51,8 @@
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label fw-semibold text-dark">Profile Photo</label>
-                                    <input type="file" name="profile_photo" class="form-control account-input" accept="image/*">
+                                    <input id="student-profile-photo" type="file" name="profile_photo" class="form-control account-input" accept="image/*" data-profile-photo>
+                                    <div class="form-text">Selecting an image previews it and saves it immediately.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-dark">First Name</label>
@@ -183,4 +184,45 @@
             </div>
         </section>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('[data-profile-form]');
+            const input = document.querySelector('[data-profile-photo]');
+            const avatar = document.querySelector('[data-profile-avatar]');
+
+            if (!form || !input || !avatar) {
+                return;
+            }
+
+            input.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+
+                if (!file || !file.type.startsWith('image/')) {
+                    return;
+                }
+
+                const previewUrl = URL.createObjectURL(file);
+                avatar.innerHTML = '';
+
+                const image = document.createElement('img');
+                image.src = previewUrl;
+                image.alt = 'Profile photo preview';
+                image.addEventListener('load', () => URL.revokeObjectURL(previewUrl), { once: true });
+                avatar.appendChild(image);
+
+                const submitButton = form.querySelector('button[type="submit"], button:not([type])');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Updating profile…';
+                }
+
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            });
+        });
+    </script>
 @endsection

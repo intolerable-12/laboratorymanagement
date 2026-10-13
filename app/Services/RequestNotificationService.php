@@ -15,6 +15,7 @@ use App\Models\Notification as UserNotification;
 use App\Mail\RequestReviewMail;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Support\Campus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Mail;
 
@@ -77,13 +78,19 @@ class RequestNotificationService
 
     public function notifyCampusRoleUsers(
         string $roleName,
-        string $campus,
+        ?string $campus,
         string $type,
         string $title,
         string $message,
         ?Model $reference = null,
         ?int $exceptUserNo = null
     ): void {
+        $campus = Campus::normalize($campus);
+
+        if ($campus === null) {
+            return;
+        }
+
         $this->roleUsers($roleName)
             ->where(function ($query) use ($campus): void {
                 $query->where('users.campus', $campus)
@@ -153,7 +160,7 @@ class RequestNotificationService
 
     public function emailCampusRoleUsers(
         string $roleName,
-        string $campus,
+        ?string $campus,
         string $requestType,
         string $requestNumber,
         string $headline,
@@ -163,6 +170,12 @@ class RequestNotificationService
         array $summaryRows = [],
         ?int $exceptUserNo = null
     ): void {
+        $campus = Campus::normalize($campus);
+
+        if ($campus === null) {
+            return;
+        }
+
         $this->emailUsers(
             $this->roleUsers($roleName)
                 ->where(function ($query) use ($campus): void {

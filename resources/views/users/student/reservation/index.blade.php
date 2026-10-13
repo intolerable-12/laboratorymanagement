@@ -1,6 +1,10 @@
 @extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
 
-@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-reservations' : 'student.reservations')
+@php
+    $requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor'
+        ? 'instructor.my-reservations'
+        : 'student.reservations';
+@endphp
 
 @section('title', 'My Reservations')
 @section('page-title', 'My Reservations')

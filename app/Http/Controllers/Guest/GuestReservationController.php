@@ -332,8 +332,11 @@ class GuestReservationController extends Controller
                 ]);
             }
 
-            $notificationService->notifyRoleUsers(
+            $reservation->loadMissing('laboratory');
+
+            $notificationService->notifyCampusRoleUsers(
                 'Instructor',
+                $reservation->laboratory?->campus,
                 'Reservation',
                 'New reservation request',
                 'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($requester) . ' is waiting for review.',
@@ -346,8 +349,9 @@ class GuestReservationController extends Controller
         $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
         $reservation->load(['user', 'laboratory']);
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Instructor',
+            $reservation->laboratory?->campus,
             'Reservation',
             $reservation->reservation_no,
             'New reservation request',

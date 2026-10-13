@@ -258,8 +258,11 @@ class GuestBorrowController extends Controller
                 ]);
             }
 
-            $notificationService->notifyRoleUsers(
+            $borrowTransaction->loadMissing('laboratory');
+
+            $notificationService->notifyCampusRoleUsers(
                 'Instructor',
+                $borrowTransaction->laboratory?->campus,
                 'Borrow',
                 'New borrow request',
                 'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($requester) . ' is waiting for review.',
@@ -272,8 +275,9 @@ class GuestBorrowController extends Controller
         $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
         $borrowTransaction->load(['borrower', 'laboratory']);
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Instructor',
+            $borrowTransaction->laboratory?->campus,
             'Borrow',
             $borrowTransaction->borrow_no,
             'New borrow request',

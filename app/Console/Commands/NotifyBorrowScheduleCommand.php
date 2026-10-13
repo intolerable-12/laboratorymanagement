@@ -230,8 +230,9 @@ class NotifyBorrowScheduleCommand extends Command
         array $summaryRows,
     ): void {
         foreach (['Coordinator', 'Laboratory In-charge'] as $roleName) {
-            $notificationService->notifyRoleUsers(
+            $notificationService->notifyCampusRoleUsers(
                 $roleName,
+                $transaction->laboratory?->campus,
                 $requestType,
                 $title,
                 $message,
@@ -239,8 +240,9 @@ class NotifyBorrowScheduleCommand extends Command
             );
         }
 
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Coordinator',
+            $transaction->laboratory?->campus,
             $requestType,
             $requestNumber,
             $title,
@@ -250,8 +252,9 @@ class NotifyBorrowScheduleCommand extends Command
             $summaryRows,
         );
 
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Laboratory In-charge',
+            $transaction->laboratory?->campus,
             $requestType,
             $requestNumber,
             $title,
@@ -335,8 +338,9 @@ class NotifyBorrowScheduleCommand extends Command
         array $summaryRows
     ): void {
         foreach (['Coordinator', 'Laboratory In-charge'] as $roleName) {
-            $notificationService->notifyRoleUsers(
+            $notificationService->notifyCampusRoleUsers(
                 $roleName,
+                $transaction->laboratory?->campus,
                 $type,
                 $title,
                 $message,
@@ -344,8 +348,9 @@ class NotifyBorrowScheduleCommand extends Command
             );
         }
 
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Coordinator',
+            $transaction->laboratory?->campus,
             $requestType,
             $transaction->borrow_no,
             $headline,
@@ -355,8 +360,9 @@ class NotifyBorrowScheduleCommand extends Command
             $summaryRows,
         );
 
-        $notificationService->emailRoleUsers(
+        $notificationService->emailCampusRoleUsers(
             'Laboratory In-charge',
+            $transaction->laboratory?->campus,
             $requestType,
             $transaction->borrow_no,
             $headline,
