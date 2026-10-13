@@ -190,7 +190,7 @@ class FacilitatorBorrowController extends Controller
 				'remarks' => $data['remarks'] ?? $borrowTransaction->remarks,
 				'borrowed_at' => $isIbed ? $data['borrowed_at'] : null,
 				'due_at' => $isIbed ? $data['due_at'] : null,
-			], static fn ($value, $key) => in_array($key, ['status', 'remarks'], true) || $value !== null));
+			], static fn ($value, $key) => in_array($key, ['status', 'remarks'], true) || $value !== null, ARRAY_FILTER_USE_BOTH));
 
 			$notificationService->notifyRequester(
 				$borrowTransaction,
@@ -202,8 +202,9 @@ class FacilitatorBorrowController extends Controller
 			);
 
 			if (! $isIbed) {
-				$notificationService->notifyRoleUsers(
+				$notificationService->notifyCampusRoleUsers(
 					'Coordinator',
+					$borrowTransaction->laboratory->campus,
 					'Borrow',
 					'Borrow request ready for review',
 					'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for coordinator review.',
@@ -216,8 +217,9 @@ class FacilitatorBorrowController extends Controller
 		if ($isIbed) {
 			app(FacilitatorBorrowEmailController::class)->sendApprovedToRequester($borrowTransaction, $request->user());
 		} else {
-			$notificationService->emailRoleUsers(
+			$notificationService->emailCampusRoleUsers(
 				'Coordinator',
+				$borrowTransaction->laboratory->campus,
 				'Borrow',
 				$borrowTransaction->borrow_no,
 				'Borrow request ready for review',

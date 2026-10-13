@@ -414,9 +414,9 @@ class StudentBorrowController extends Controller
 					$borrowTransaction
 				);
 			} else {
-				$notificationService->notifyDepartmentRoleUsers(
+				$notificationService->notifyCampusRoleUsers(
 					'Instructor',
-					(int) $request->user()->department_id,
+					$request->user()->campusName(),
 					'Borrow',
 					'New borrow request',
 					'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
@@ -446,9 +446,9 @@ class StudentBorrowController extends Controller
 				]
 			);
 		} else {
-			$notificationService->emailDepartmentRoleUsers(
+			$notificationService->emailCampusRoleUsers(
 				'Instructor',
-				(int) $request->user()->department_id,
+				$request->user()->campusName(),
 				'Borrow',
 				$borrowTransaction->borrow_no,
 				'New borrow request',

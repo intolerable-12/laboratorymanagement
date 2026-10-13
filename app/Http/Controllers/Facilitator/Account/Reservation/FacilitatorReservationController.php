@@ -234,7 +234,7 @@ class FacilitatorReservationController extends Controller
 				'reservation_date' => $isIbed ? $data['reservation_date'] : null,
 				'start_time' => $isIbed ? $data['start_time'] : null,
 				'end_time' => $isIbed ? $data['end_time'] : null,
-			], static fn ($value, $key) => $key === 'status' || $value !== null));
+			], static fn ($value, $key) => $key === 'status' || $value !== null, ARRAY_FILTER_USE_BOTH));
 
 			if ($isIbed) {
 				$this->createBorrowTransactionFromReservation($reservation);
@@ -259,8 +259,9 @@ class FacilitatorReservationController extends Controller
 			);
 
 			if (! $isIbed) {
-				$notificationService->notifyRoleUsers(
+				$notificationService->notifyCampusRoleUsers(
 					'Coordinator',
+					$reservation->laboratory->campus,
 					'Reservation',
 					'Reservation ready for review',
 					'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for coordinator review.',
@@ -274,8 +275,9 @@ class FacilitatorReservationController extends Controller
 		if ($isIbed) {
 			app(FacilitatorReservationEmailController::class)->sendApprovedToRequester($reservation, $request->user());
 		} else {
-			$notificationService->emailRoleUsers(
+			$notificationService->emailCampusRoleUsers(
 				'Coordinator',
+				$reservation->laboratory->campus,
 				'Reservation',
 				$reservation->reservation_no,
 				'Reservation ready for review',
