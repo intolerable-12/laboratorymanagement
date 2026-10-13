@@ -13,10 +13,10 @@ class FacilitatorReservationEmailController
 	{
 		$this->send(
 			reservation: $reservation,
-			reviewerRole: 'Facilitator',
-			decisionLabel: 'Approved by Facilitator',
+			reviewerRole: 'Laboratory In-charge',
+			decisionLabel: 'Approved by Laboratory In-charge',
 			subjectPrefix: 'Forwarded for coordinator review',
-			bodyMessage: 'Your reservation request has been approved by the facilitator and forwarded to the coordinator for final review.',
+			bodyMessage: 'Your reservation request has been approved by the Laboratory In-charge and forwarded to the coordinator for final review.',
 			reason: null,
 			actorName: $this->buildUserName($facilitator),
 		);
@@ -52,10 +52,10 @@ class FacilitatorReservationEmailController
 	{
 		$this->send(
 			reservation: $reservation,
-			reviewerRole: 'Facilitator',
-			decisionLabel: 'Rejected by Facilitator',
-			subjectPrefix: 'Facilitator rejection notice',
-			bodyMessage: 'Your reservation request was rejected by the facilitator.',
+			reviewerRole: 'Laboratory In-charge',
+			decisionLabel: 'Rejected by Laboratory In-charge',
+			subjectPrefix: 'Laboratory In-charge rejection notice',
+			bodyMessage: 'Your reservation request was rejected by the Laboratory In-charge.',
 			reason: $reason,
 			actorName: $this->buildUserName($facilitator),
 		);

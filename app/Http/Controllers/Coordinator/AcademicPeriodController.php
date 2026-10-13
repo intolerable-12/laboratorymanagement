@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class AcademicPeriodController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $schoolYears = SchoolYear::query()
             ->orderByDesc('is_current')
@@ -29,7 +29,19 @@ class AcademicPeriodController extends Controller
         $this->ensureAcademicPeriods($schoolYears, $semesters);
         $schoolYears->load('academicPeriods');
 
-        return view('users.coordinator.academic-periods.index', compact('schoolYears', 'semesters'));
+        $requestedSchoolYearId = (int) $request->query('school_year_id', 0);
+        $selectedSchoolYear = $schoolYears->firstWhere('id', $requestedSchoolYearId)
+            ?? $schoolYears->firstWhere('is_current', true)
+            ?? $schoolYears->first();
+        $selectedSchoolYearId = $selectedSchoolYear?->id;
+        $selectedSchoolYears = $selectedSchoolYear ? collect([$selectedSchoolYear]) : collect();
+
+        return view('users.coordinator.academic-periods.index', compact(
+            'schoolYears',
+            'semesters',
+            'selectedSchoolYearId',
+            'selectedSchoolYears',
+        ));
     }
 
     public function createSchoolYear()
@@ -220,7 +232,9 @@ class AcademicPeriodController extends Controller
             }
         });
 
-        return redirect()->route('coordinator.academic-periods.index')
+        $selectedSchoolYearId = array_key_first($data['periods']);
+
+        return redirect()->route('coordinator.academic-periods.index', ['school_year_id' => $selectedSchoolYearId])
             ->with('status', 'Semester academic periods updated successfully.');
     }
 

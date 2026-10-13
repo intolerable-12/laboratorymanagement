@@ -31,7 +31,15 @@
         --}}
 
         @if ($errors->any())
-            <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">Some requested items are no longer available. Return to Requested Items to update your selection.</div>
+            <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4" role="alert">
+                <div class="fw-semibold mb-1">This request cannot be submitted yet.</div>
+                <ul class="mb-0 ps-3">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <div class="small mt-2">Return to the relevant step to update your request.</div>
+            </div>
         @endif
 
         <div class="row g-4">

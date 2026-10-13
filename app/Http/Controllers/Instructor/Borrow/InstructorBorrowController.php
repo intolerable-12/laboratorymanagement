@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Instructor\Borrow;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowEmailController;
 use App\Models\BorrowTransaction;
+use App\Models\User;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,9 +33,7 @@ class InstructorBorrowController extends Controller
 		}
 
 		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
-			->forCampus($campus)
-			->forDepartment((int) $request->user()->department_id)
-			->whereHas('borrower.role', fn ($query) => $query->where('role_name', 'Student'))
+			->forInstructorApproval($campus)
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
@@ -164,13 +164,23 @@ class InstructorBorrowController extends Controller
 
 	private function ensureInstructorCanReview(Request $request, BorrowTransaction $borrowTransaction): void
 	{
-		$borrowTransaction->loadMissing(['borrower', 'laboratory']);
+		$borrowTransaction->loadMissing(['borrower.role', 'borrower.department', 'laboratory']);
+		$campus = $request->user()->campusName();
 
 		abort_unless(
-			$borrowTransaction->borrower?->role?->role_name === 'Student'
-				&& (int) $borrowTransaction->borrower?->department_id === (int) $request->user()->department_id
-				&& $borrowTransaction->laboratory?->campus === $request->user()->campusName(),
+			$this->canReviewRequester($borrowTransaction->borrower, $campus)
+				&& $borrowTransaction->laboratory?->campus === $campus,
 			403
 		);
+	}
+
+	private function canReviewRequester(?User $user, ?string $campus): bool
+	{
+		if ($user?->role?->role_name !== 'Student' || $user->campusName() !== $campus) {
+			return false;
+		}
+
+		return $campus !== Campus::IBED
+			|| strtoupper(trim((string) $user->department?->department_code)) === 'JHS';
 	}
 }

@@ -21,13 +21,22 @@ trait ValidatesBorrowSchedule
             ]);
         }
 
-        $opening = $dateTime->isSaturday() ? '08:00' : '07:30';
-        $closing = $dateTime->isSaturday() ? '12:00' : '17:00';
         $time = $dateTime->format('H:i');
+        $windows = $dateTime->isSaturday()
+            ? [['08:00', '12:00']]
+            : [['07:30', '12:00'], ['13:00', '17:00']];
 
-        if ($time < $opening || $time > $closing) {
+        $isWithinOperatingHours = collect($windows)->contains(
+            fn (array $window): bool => $time >= $window[0] && $time <= $window[1]
+        );
+
+        if (! $isWithinOperatingHours) {
+            $hours = collect($windows)
+                ->map(fn (array $window): string => $this->formatBorrowTime($window[0]) . ' and ' . $this->formatBorrowTime($window[1]))
+                ->implode(' or ');
+
             throw ValidationException::withMessages([
-                $field => "{$activity} on this day must be between {$this->formatBorrowTime($opening)} and {$this->formatBorrowTime($closing)}.",
+                $field => "{$activity} on this day must be between {$hours}.",
             ]);
         }
     }

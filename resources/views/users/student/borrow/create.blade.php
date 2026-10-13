@@ -41,7 +41,7 @@
                         <strong>Borrowing instructions:</strong>
                         <ul class="mb-0 mt-2">
                             <li>Submit your borrow request at least 3 business days in advance.</li>
-                            <li>Laboratory hours are Monday-Friday, 7:30 AM-5:00 PM, and Saturday, 8:00 AM-12:00 NN.</li>
+                            <li>Laboratory hours are Monday-Friday, 7:30 AM-12:00 PM and 1:00 PM-5:00 PM, and Saturday, 8:00 AM-12:00 PM.</li>
                             <li>Sundays are unavailable.</li>
                         </ul>
                     </div>

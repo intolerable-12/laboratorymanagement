@@ -274,13 +274,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const opening = day === 6 ? '08:00' : '07:30';
-            const closing = day === 6 ? '12:00' : '17:00';
-            const openingLabel = day === 6 ? '8:00 AM' : '7:30 AM';
-            const closingLabel = day === 6 ? '12:00 PM' : '5:00 PM';
+            const windows = day === 6
+                ? [{ opening: '08:00', closing: '12:00' }]
+                : [{ opening: '07:30', closing: '12:00' }, { opening: '13:00', closing: '17:00' }];
+            const hoursLabel = day === 6
+                ? '8:00 AM to 12:00 PM'
+                : '7:30 AM to 12:00 PM or 1:00 PM to 5:00 PM';
 
-            if (!time || time < opening || time > closing) {
-                setValidationMessage(`This day is available from ${openingLabel} to ${closingLabel}.`);
+            const isWithinOperatingHours = time && windows.some((window) => time >= window.opening && time <= window.closing);
+
+            if (!isWithinOperatingHours) {
+                setValidationMessage(`This day is available from ${hoursLabel}.`);
                 return;
             }
         }
@@ -305,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         field.addEventListener('change', () => validateDateInput(field));
     });
 
-    const flatpickrSelector = 'input[type="date"], input[type="time"]';
+    const flatpickrSelector = 'input[type="date"]:not([data-native-date-time]), input[type="time"]:not([data-native-date-time])';
     const normalizeTimeBound = (value) => /^\d{2}:\d{2}$/.test(value) ? `${value}:00` : value;
     const flatpickrPlaceholders = {
         reservation_date: 'Select Reservation Date',

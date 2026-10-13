@@ -477,10 +477,6 @@ class InventoryTraceabilityController extends Controller
                 ? (float) $matchingInventoryLog->quantity_after
                 : (float) $scan->quantity;
 
-            $quantityBefore = $matchingInventoryLog
-                ? (float) $matchingInventoryLog->quantity_after - (float) $matchingInventoryLog->quantity_changed
-                : null;
-
             $details = collect([
                 $transaction?->borrower ? 'Requested by '.$this->userName($transaction->borrower).'.' : null,
                 $borrowItem ? 'Requested quantity: '.$this->quantityText((float) $borrowItem->quantity_borrowed, $itemType, $itemUnit).'.' : null,
@@ -509,9 +505,6 @@ class InventoryTraceabilityController extends Controller
                 actorLabel: $isCheckout ? 'Checkout staff' : ($isCheckin ? 'Check-in staff' : 'Scanner'),
                 quantity: $quantityAfter,
                 quantityLabel: $this->quantityText($quantityAfter, $itemType, $itemUnit),
-                quantityBeforeLabel: $quantityBefore !== null
-                    ? $this->quantityText($quantityBefore, $itemType, $itemUnit)
-                    : null,
                 reference: $transaction ? 'Borrow '.$transaction->borrow_no : null,
                 details: $details ?: 'No additional details.',
                 quantityTitle: $matchingInventoryLog ? 'Total after' : null,

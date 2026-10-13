@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $decisionLabel }}</title>
 </head>
+@php
+    $statusLabel = $reservation->status === 'Facilitator Approved'
+        ? 'Laboratory In-charge Approved'
+        : $reservation->status;
+@endphp
 <body style="margin:0; padding:0; background:#f5f7fb; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
     <div style="max-width:720px; margin:0 auto; padding:32px 16px;">
         <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:20px; overflow:hidden; box-shadow:0 10px 30px rgba(15,23,42,0.08);">
@@ -45,7 +50,7 @@
                     </tr>
                     <tr>
                         <td style="padding:12px 16px; background:#f9fafb; font-weight:bold; width:40%;">Status</td>
-                        <td style="padding:12px 16px;">{{ $reservation->status }}</td>
+                        <td style="padding:12px 16px;">{{ $statusLabel }}</td>
                     </tr>
                 </table>
 

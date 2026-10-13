@@ -72,8 +72,14 @@
         $isFeedbackGroup = request()->routeIs('coordinator.feedback.*');
         $isCommunicationGroup = $isFeedbackGroup || $isForumGroup || $isAnnouncementsGroup;
 
-        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Facilitator Approved')->count();
-        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Facilitator Approved')->count();
+        $pendingReservationRequests = \App\Models\Reservation::query()
+            ->forCampus(\App\Support\Campus::MAIN)
+            ->where('status', 'Facilitator Approved')
+            ->count();
+        $pendingBorrowRequests = \App\Models\BorrowTransaction::query()
+            ->forCampus(\App\Support\Campus::MAIN)
+            ->where('status', 'Facilitator Approved')
+            ->count();
         $pendingUserAccountRequests = \App\Models\UserAccountRequest::pending()->count();
     @endphp
 

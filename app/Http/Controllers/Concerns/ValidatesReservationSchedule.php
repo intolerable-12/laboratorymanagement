@@ -18,19 +18,35 @@ trait ValidatesReservationSchedule
             ]);
         }
 
-        $opening = $date->isSaturday() ? '08:00' : '07:30';
-        $closing = $date->isSaturday() ? '12:00' : '17:00';
         $start = Carbon::createFromFormat('H:i', substr($startTime, 0, 5));
         $end = Carbon::createFromFormat('H:i', substr($endTime, 0, 5));
-        $opensAt = Carbon::createFromFormat('H:i', $opening);
-        $closesAt = Carbon::createFromFormat('H:i', $closing);
+        $windows = $date->isSaturday()
+            ? [['08:00', '12:00']]
+            : [['07:30', '12:00'], ['13:00', '17:00']];
 
-        if ($start->lt($opensAt) || $end->gt($closesAt)) {
+        $isWithinOperatingHours = collect($windows)->contains(function (array $window) use ($start, $end): bool {
+            $opensAt = Carbon::createFromFormat('H:i', $window[0]);
+            $closesAt = Carbon::createFromFormat('H:i', $window[1]);
+
+            return $start->gte($opensAt) && $end->lte($closesAt);
+        });
+
+        if (! $isWithinOperatingHours) {
+            $hours = collect($windows)
+                ->map(fn (array $window): string => $this->formatReservationTime($window[0]) . ' and ' . $this->formatReservationTime($window[1]))
+                ->implode(' or ');
+
+            $message = "Reservations for this day must be between {$hours}.";
             throw ValidationException::withMessages([
-                'start_time' => "Reservations for this day must be within {$opening} and {$closing}.",
-                'end_time' => "Reservations for this day must be within {$opening} and {$closing}.",
+                'start_time' => $message,
+                'end_time' => $message,
             ]);
         }
+    }
+
+    private function formatReservationTime(string $time): string
+    {
+        return Carbon::createFromFormat('H:i', $time)->format('g:i A');
     }
 
     protected function hasReservationTimeConflict(

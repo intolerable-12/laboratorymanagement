@@ -15,8 +15,8 @@ class InstructorReservationEmailController
 			reservation: $reservation,
 			reviewerRole: 'Instructor',
 			decisionLabel: 'Approved by Instructor',
-			subjectPrefix: 'Forwarded for facilitator review',
-			bodyMessage: 'Your reservation request has been approved by the instructor and forwarded to the facilitator for availability review.',
+			subjectPrefix: 'Forwarded for Laboratory In-charge review',
+			bodyMessage: 'Your reservation request has been approved by the instructor and forwarded to the Laboratory In-charge for availability review.',
 			reason: null,
 			actorName: $this->buildUserName($instructor),
 		);

@@ -17,8 +17,9 @@
     </div>
 
     @php
-        $sidebarUser = auth()->user()?->loadMissing('role');
+        $sidebarUser = auth()->user()?->loadMissing(['role', 'department']);
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Instructor';
+        $sidebarCampus = $sidebarUser?->campusName();
 
         $isDashboard = request()->routeIs('instructor.dashboard');
         $isReservationCalendar = request()->routeIs('instructor.reservations.calendar');
@@ -62,8 +63,14 @@
 
         $isInstructorCommunicationGroup = $isFeedbackActiveGroup || $isQuestionnairesGroup || $isForumGroup;
 
-        $pendingReservationRequests = \App\Models\Reservation::where('status', 'Pending')->count();
-        $pendingBorrowRequests = \App\Models\BorrowTransaction::where('status', 'Pending')->count();
+        $pendingReservationRequests = \App\Models\Reservation::query()
+            ->forInstructorApproval($sidebarCampus)
+            ->where('status', 'Pending')
+            ->count();
+        $pendingBorrowRequests = \App\Models\BorrowTransaction::query()
+            ->forInstructorApproval($sidebarCampus)
+            ->where('status', 'Pending')
+            ->count();
 
     @endphp
 
