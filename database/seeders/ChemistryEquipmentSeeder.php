@@ -532,14 +532,6 @@ class ChemistryEquipmentSeeder extends Seeder
                 'brand' => 'Generic',
                 'quantity' => 5,
             ],
-            [
-                'category' => 'Computer Equipment',
-                'equipment_code' => 'EQ-CHEM-064',
-                'barcode' => 'EQCHEM064',
-                'equipment_name' => 'CCTV',
-                'brand' => 'Generic',
-                'quantity' => 3,
-            ],
         ];
 
         foreach ($equipment as $item) {

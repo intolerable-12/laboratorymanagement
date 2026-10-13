@@ -45,9 +45,6 @@
                     <h2 class="h3 fw-semibold text-dark mb-2">Answer active feedback surveys</h2>
                     <p class="text-secondary mb-0">Each questionnaire can only be completed once. Open one to begin or review your submitted response.</p>
                 </div>
-                <a href="{{ route('instructor.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">
-                    <i class="fa-solid fa-arrow-left me-2"></i>Back to feedback
-                </a>
             </div>
         </div>
 

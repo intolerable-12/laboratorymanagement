@@ -41,16 +41,12 @@
 
 @section('content')
     <style>
-        .equipment-table .table-column-compact {
-            width: 7rem;
-            max-width: 7rem;
-            white-space: normal;
-            overflow-wrap: anywhere;
-        }
 
         .equipment-table .table-column-compact .stock-up-trigger {
+            width: 100%;
             min-width: 0;
             max-width: 100%;
+            margin: 0 auto;
         }
 
         .equipment-table .table-column-compact .badge {
@@ -60,13 +56,24 @@
         }
 
         .stock-up-trigger {
-            min-width: 9rem;
+            /* removed min-width so it can shrink to fit narrow columns */
+            display: block;
+            width: 100%;
+            max-width: 100%;
             border: 1px solid #b6d4fe;
             border-radius: .75rem;
-            padding: .55rem .75rem !important;
+            padding: .55rem .5rem !important;
             background: #f0f7ff;
             cursor: pointer;
+            text-align: center;
+            white-space: normal;
+            overflow-wrap: anywhere;
             transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .equipment-table td.table-column-compact {
+            padding-left: .35rem;
+            padding-right: .35rem;
         }
 
         .stock-up-trigger:hover,
@@ -175,6 +182,34 @@
         .stock-up-add-panel {
             background: #ffffff;
             border-color: #bfdbfe !important;
+        }
+
+        .equipment-table th[data-resizable] {
+            position: relative;
+            user-select: none;
+        }
+
+        .equipment-table th[data-resizable] .col-resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 6px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 2;
+            touch-action: none;
+        }
+
+        .equipment-table th[data-resizable] .col-resizer:hover,
+        .equipment-table th[data-resizable] .col-resizer.is-resizing {
+            background: rgba(13, 110, 253, .35);
+        }
+
+        /* Optional: disable the compact max-width once resized */
+        .equipment-table th[data-resizable].is-resized,
+        .equipment-table td[data-resizable] {
+            max-width: none;
         }
 
         @media (max-width: 575.98px) {
@@ -446,7 +481,7 @@
                                         <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
                                     </a>
                                 </th>
-                                <th scope="col" class="table-column-compact">
+                                <th scope="col" class="table-column-compact" data-resizable>
                                     <a href="{{ $sortUrl('quantity') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                         <span>Quantity</span>
                                         <i class="fa-solid {{ $sortIcon('quantity') }} small"></i>
@@ -458,7 +493,7 @@
                                         <i class="fa-solid {{ $sortIcon('status') }} small"></i>
                                     </a>
                                 </th>
-                                <th scope="col" class="table-column-compact">
+                                <th scope="col" class="table-column-compact" data-resizable>
                                     <a href="{{ $sortUrl('condition') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                         <span>Condition</span>
                                         <i class="fa-solid {{ $sortIcon('condition') }} small"></i>
@@ -513,7 +548,7 @@
                                         @if (!$archived && !$isReadOnly)
                                             <button
                                                 type="button"
-                                                class="btn text-start text-decoration-none stock-up-trigger d-inline-block w-auto p-0 lh-sm"
+                                                class="btn text-decoration-none stock-up-trigger w-100 p-0 lh-sm"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#stock-up-modal"
                                                 data-stock-up-url="{{ route('coordinator.equipment.stock-up', array_merge(['equipment' => $equipment], $listQuery)) }}"
@@ -531,9 +566,9 @@
                                                     <i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>
                                                 </span>
                                             </button>
-                                        @else
+                                        @else   
                                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
-                                            <div class="small text-secondary">Available / total quantity</div>
+                                            <div class="small text-secondary">Available / Total</div>
                                         @endif
                                     </td>
                                     <td>
@@ -546,7 +581,7 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="table-column-compact">
+                                    <td class="table-column-compact text-center">
                                         <span class="badge text-bg-light border text-dark">{{ $equipment->condition }}</span>
                                     </td>
                                     @if ($archived)
@@ -1178,6 +1213,97 @@
                     syncScope(nextScope);
                 }
             }).observe(document.body, { childList: true, subtree: true });
+
+            const table = document.querySelector('.equipment-table');
+            if (!table) return;
+
+            const STORAGE_KEY = 'labcentral.equipment.colWidths';
+            let savedWidths = {};
+
+            try {
+                savedWidths = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            } catch (e) {
+                savedWidths = {};
+            }
+
+            const headerRow = table.querySelector('thead tr');
+            const headers = [...headerRow.querySelectorAll('th')];
+
+            // Apply saved widths first
+            headers.forEach((th, index) => {
+                if (savedWidths[index]) {
+                    th.style.width = savedWidths[index] + 'px';
+                    th.style.maxWidth = 'none';
+                    th.classList.add('is-resized');
+                    applyToColumn(index, savedWidths[index]);
+                }
+            });
+
+            function applyToColumn(index, widthPx) {
+                // Apply width to every cell in that column (so body follows)
+                [...table.querySelectorAll('tr')].forEach(row => {
+                    const cell = row.children[index];
+                    if (cell) {
+                        cell.style.width = widthPx + 'px';
+                        cell.style.maxWidth = 'none';
+                        cell.setAttribute('data-resizable', '');
+                    }
+                });
+            }
+
+            function saveWidths() {
+                const widths = {};
+                headers.forEach((th, i) => {
+                    const w = th.style.width ? parseInt(th.style.width, 10) : null;
+                    if (w) widths[i] = w;
+                });
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(widths));
+                } catch (e) { /* ignore */ }
+            }
+
+            // Only attach handles to th[data-resizable]
+            headers.forEach((th, index) => {
+                if (!th.hasAttribute('data-resizable')) return;
+
+                const handle = document.createElement('span');
+                handle.className = 'col-resizer';
+                handle.setAttribute('aria-hidden', 'true');
+                th.appendChild(handle);
+
+                let startX = 0;
+                let startWidth = 0;
+
+                const onPointerDown = (e) => {
+                    e.preventDefault();
+                    startX = e.clientX;
+                    startWidth = th.getBoundingClientRect().width;
+                    handle.classList.add('is-resizing');
+                    document.body.style.cursor = 'col-resize';
+
+                    document.addEventListener('pointermove', onPointerMove);
+                    document.addEventListener('pointerup', onPointerUp);
+                };
+
+                const onPointerMove = (e) => {
+                    const delta = e.clientX - startX;
+                    const newWidth = Math.max(60, startWidth + delta);
+                    th.style.width = newWidth + 'px';
+                    th.style.maxWidth = 'none';
+                    th.classList.add('is-resized');
+                    applyToColumn(index, newWidth);
+                };
+
+                const onPointerUp = () => {
+                    handle.classList.remove('is-resizing');
+                    document.body.style.cursor = '';
+                    document.removeEventListener('pointermove', onPointerMove);
+                    document.removeEventListener('pointerup', onPointerUp);
+                    saveWidths();
+                };
+
+                handle.addEventListener('pointerdown', onPointerDown);
+            });
         })();
     </script>
 @endsection

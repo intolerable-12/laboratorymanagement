@@ -21,13 +21,6 @@
                             @endif
                         </div>
                     </div>
-                    <div class="d-flex align-items-center gap-2 min-w-0">
-                        <div class="small text-uppercase text-secondary text-nowrap">Add an item</div>
-                        <div class="input-group flex-grow-1">
-                            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i></span>
-                            <input type="search" class="form-control" data-review-item-search placeholder="Search items" aria-label="Search {{ $allowChemicals ? 'equipment or chemicals' : 'equipment' }} by name, code, or barcode" autocomplete="off">
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -93,15 +86,31 @@
 
             <div class="col-lg-5">
                 <div class="border-start ps-lg-4 h-100">
-            <div data-review-tab-pane="equipment">
-                <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $equipmentItems, 'itemType' => 'Equipment'])</div>
-            </div>
+                    {{-- Search bar — same column as the results table --}}
+                    <div class="d-flex align-items-center gap-2 mb-3 ps3">
+                        <div class="small text-uppercase text-secondary text-nowrap">Add an item</div>
+                        <div class="input-group flex-grow-1" style="width: 260px; max-width: 100%;">
+                            <span class="input-group-text bg-white">
+                                <i class="fa-solid fa-magnifying-glass text-secondary" aria-hidden="true"></i>
+                            </span>
+                            <input type="search"
+                                class="form-control review-search"
+                                data-review-item-search
+                                placeholder="Search items"
+                                aria-label="Search {{ $allowChemicals ? 'equipment or chemicals' : 'equipment' }} by name, code, or barcode"
+                                autocomplete="off">
+                        </div>
+                    </div>
 
-            @if ($allowChemicals)
-            <div data-review-tab-pane="chemical" class="d-none">
-                <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $chemicalItems, 'itemType' => 'Chemical'])</div>
-            </div>
-            @endif
+                    <div data-review-tab-pane="equipment">
+                        <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $equipmentItems, 'itemType' => 'Equipment'])</div>
+                    </div>
+
+                    @if ($allowChemicals)
+                        <div data-review-tab-pane="chemical" class="d-none">
+                            <div data-review-item-results>@include('users.facilitator.partials.review-item-results', ['items' => $chemicalItems, 'itemType' => 'Chemical'])</div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

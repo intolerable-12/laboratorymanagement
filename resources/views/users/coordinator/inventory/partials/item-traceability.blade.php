@@ -19,6 +19,71 @@
     );
 @endphp
 
+<style>
+    .traceability-view-tabs {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem;
+        background-color: #f1f5f9;
+        border-radius: 0.75rem;
+        gap: 0.25rem;
+    }
+
+    .traceability-view-tab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 9.5rem;
+        height: 2.75rem;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: 0.6rem;
+        background-color: transparent;
+        color: #64748b;
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1;
+        text-decoration: none;
+        box-sizing: border-box;
+        transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .traceability-view-tab i { font-size: 0.95rem; line-height: 1; }
+
+    .traceability-view-tab:hover,
+    .traceability-view-tab:focus-visible {
+        color: #0f172a;
+        background-color: rgba(255, 255, 255, 0.75);
+        text-decoration: none;
+    }
+
+    .traceability-view-tab.is-active {
+        background-color: #ffffff;
+        color: #0f172a;
+        font-weight: 600;
+        border-color: #e2e8f0;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Active (clicked) state — pink */
+    .traceability-view-tab.is-active {
+        background-color: #ec4899;          /* pink-500 */
+        color: #ffffff;
+        font-weight: 600;
+        border-color: #ec4899;
+        box-shadow: 0 2px 6px rgba(236, 72, 153, 0.35);
+    }
+
+    .traceability-view-tab.is-active i {
+        color: #ffffff;
+    }
+
+    @media (max-width: 420px) {
+        .traceability-view-tab { width: 7.5rem; font-size: 0.85rem; }
+    }
+</style>
+
 <div class="account-page reservation-calendar-page">
     <section class="card admin-card border-0 reservation-calendar-shell"
         data-traceability-calendar-shell
@@ -36,16 +101,18 @@
                     </p>
                 </div>
 
-                <div class="traceability-view-tabs btn-group" role="group" aria-label="Traceability view switcher">
+                <div class="traceability-view-tabs" role="group" aria-label="Traceability view switcher">
                     <a href="{{ $makeTraceabilityUrl(['view' => 'calendar', 'month' => $calendarMonth->format('Y-m')]) }}"
-                        class="btn rounded-pill {{ $activeTraceabilityView === 'calendar' ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2 shadow-sm"
+                        class="traceability-view-tab {{ $activeTraceabilityView === 'calendar' ? 'is-active' : '' }}"
                         aria-selected="{{ $activeTraceabilityView === 'calendar' ? 'true' : 'false' }}">
-                        <i class="fa-solid fa-calendar-days me-2" aria-hidden="true"></i>Calendar
+                        <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                        <span>Calendar</span>
                     </a>
                     <a href="{{ $makeTraceabilityUrl(['view' => 'list', 'search' => $listSearch, 'event_type' => $listEventType, 'list_from' => $listFromDate, 'list_to' => $listToDate]) }}"
-                        class="btn rounded-pill {{ $activeTraceabilityView === 'list' ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2 shadow-sm"
+                        class="traceability-view-tab {{ $activeTraceabilityView === 'list' ? 'is-active' : '' }}"
                         aria-selected="{{ $activeTraceabilityView === 'list' ? 'true' : 'false' }}">
-                        <i class="fa-solid fa-list me-2" aria-hidden="true"></i>List
+                        <i class="fa-solid fa-list" aria-hidden="true"></i>
+                        <span>List</span>
                     </a>
                 </div>
             </div>
@@ -165,7 +232,13 @@
                                                         <div class="small text-secondary mt-1">{{ $event['actorLabel'] }}: {{ $event['actor'] }}</div>
                                                     </div>
                                                     <div class="text-md-end">
-                                                        <div class="small fw-semibold text-dark">{{ $event['occurred_at']->format('h:i A') }}</div>
+                                                        <div class="small fw-semibold text-dark">
+                                                            <time datetime="{{ $event['occurred_at']->toIso8601String() }}"
+                                                                data-local-time
+                                                                data-local-time-format="time">
+                                                                {{ $event['occurred_at']->format('h:i A') }}
+                                                            </time>
+                                                        </div>
                                                         @if ($event['quantityLabel'])
                                                             <div class="small text-secondary">{{ $event['quantityTitle'] ?? 'Quantity' }}: {{ $event['quantityLabel'] }}</div>
                                                         @endif
