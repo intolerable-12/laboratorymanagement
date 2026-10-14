@@ -5,7 +5,7 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
-    $isReadOnly = $routePrefix === 'facilitator';
+    $isReadOnly = false;
     $tabQuery = request()->except('page');
     $listQuery = request()->query();
     $tableRoute = $archived ? $routePrefix.'.equipment.archived' : $routePrefix.'.equipment.index';
@@ -551,12 +551,12 @@
                                                 class="btn text-decoration-none stock-up-trigger w-100 p-0 lh-sm"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#stock-up-modal"
-                                                data-stock-up-url="{{ route('coordinator.equipment.stock-up', array_merge(['equipment' => $equipment], $listQuery)) }}"
+                                                data-stock-up-url="{{ route($routePrefix.'.equipment.stock-up', array_merge(['equipment' => $equipment], $listQuery)) }}"
                                                 data-stock-up-item="{{ $equipment->equipment_name }}"
                                                 data-stock-up-current="{{ $equipment->available_quantity }} available / {{ $equipment->quantity }} total"
                                                 data-stock-up-supplier="{{ $equipment->supplier?->supplier_name ?? 'Not set' }}"
                                                 data-stock-up-supplier-id="{{ $equipment->supplier_id }}"
-                                                data-stock-up-supplier-url="{{ route('coordinator.equipment.supplier.update', array_merge(['equipment' => $equipment], $listQuery)) }}"
+                                                data-stock-up-supplier-url="{{ route($routePrefix.'.equipment.supplier.update', array_merge(['equipment' => $equipment], $listQuery)) }}"
                                                 data-stock-up-date="{{ $equipment->purchase_date?->format('F j, Y') ?? 'Not set' }}"
                                                 data-stock-up-date-iso="{{ $equipment->purchase_date?->format('Y-m-d') ?? '' }}"
                                                 aria-label="Stock up {{ $equipment->equipment_name }}"
@@ -605,7 +605,7 @@
                                             </a>
                                             @if (!$isReadOnly && $archived)
                                                 @if ($canRestore)
-                                                    <form action="{{ route('coordinator.equipment.restore', $equipment) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route($routePrefix.'.equipment.restore', $equipment) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-success" title="Restore" aria-label="Restore" onclick="return confirm('Restore this equipment?');">
                                                             <i class="fa-solid fa-rotate-left"></i>
@@ -617,10 +617,10 @@
                                                     </button>
                                                 @endif
                                             @elseif (!$isReadOnly)
-                                                <a href="{{ route('coordinator.equipment.edit', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit">
+                                                <a href="{{ route($routePrefix.'.equipment.edit', array_merge(['equipment' => $equipment], $listQuery)) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit">
                                                     <i class="fa-solid fa-pen-to-square"></i>
                                                 </a>
-                                                <form action="{{ route('coordinator.equipment.destroy', $equipment) }}" method="POST" class="d-inline">
+                                                <form action="{{ route($routePrefix.'.equipment.destroy', $equipment) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Archive" aria-label="Archive" onclick="return confirm('Archive this equipment?');">
@@ -661,7 +661,7 @@
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" data-stock-up-form data-required-indicators="manual" data-stock-up-quick-store-url="{{ route('coordinator.suppliers.quick-store') }}">
+                    <form method="POST" data-stock-up-form data-required-indicators="manual" data-stock-up-quick-store-url="{{ route($routePrefix.'.suppliers.quick-store') }}">
                         @csrf
                         @method('PATCH')
                         <div class="modal-body">

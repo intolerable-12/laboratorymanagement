@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Forum Management')
 @section('page-title', 'Forum Management')
@@ -64,7 +68,7 @@
     {{-- Search & Filter Section --}}
     <div class="card social-card border-0 mb-4">
         <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route('coordinator.forum.index') }}" class="vstack gap-3">
+            <form method="GET" action="{{ route($routePrefix.'.forum.index') }}" class="vstack gap-3">
                 <div class="row g-3 align-items-end">
                     <div class="col-12 col-lg-8">
                         <label for="search" class="form-label fw-medium mb-1">Search</label>
@@ -83,9 +87,9 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('coordinator.forum.index', array_filter(['search' => $search], fn ($value) => $value !== null && $value !== '')) }}" class="btn btn-sm rounded-pill {{ $category === '' ? 'btn-primary' : 'btn-outline-secondary' }}">All</a>
+                    <a href="{{ route($routePrefix.'.forum.index', array_filter(['search' => $search], fn ($value) => $value !== null && $value !== '')) }}" class="btn btn-sm rounded-pill {{ $category === '' ? 'btn-primary' : 'btn-outline-secondary' }}">All</a>
                     @foreach ($categories as $option)
-                        <a href="{{ route('coordinator.forum.index', array_filter(['search' => $search, 'category' => $option], fn ($value) => $value !== null && $value !== '')) }}" class="btn btn-sm rounded-pill {{ $category === $option ? 'btn-primary' : 'btn-outline-secondary' }}">{{ $option }}</a>
+                        <a href="{{ route($routePrefix.'.forum.index', array_filter(['search' => $search, 'category' => $option], fn ($value) => $value !== null && $value !== '')) }}" class="btn btn-sm rounded-pill {{ $category === $option ? 'btn-primary' : 'btn-outline-secondary' }}">{{ $option }}</a>
                     @endforeach
                 </div>
 
@@ -104,7 +108,7 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('coordinator.forum.create') }}" class="btn btn-primary rounded-pill px-4">
+            <a href="{{ route($routePrefix.'.forum.create') }}" class="btn btn-primary rounded-pill px-4">
                 <i class="fa-solid fa-plus me-1"></i> New post
             </a>
 
@@ -126,7 +130,7 @@
             @php
                 $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Student';
                 $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
-                $postUrl = route('coordinator.forum.show', $forumPost);
+                        $postUrl = route($routePrefix.'.forum.show', $forumPost);
             @endphp
             <article class="card social-card post-card border-0 mb-3 position-relative clickable-card">
                 <div class="card-body p-3 p-xl-4">
@@ -172,26 +176,25 @@
                 @php
                     $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Student';
                     $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
-                    $postUrl = route('coordinator.forum.show', $forumPost);
+                    $postUrl = route($routePrefix.'.forum.show', $forumPost);
                 @endphp
                 <div class="col-12 col-md-6 col-xxl-4">
                     <article class="card social-card post-card h-100 border-0 position-relative clickable-card">
                         <div class="card-body p-4 d-flex flex-column">
-                            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-                                <div class="d-flex align-items-center gap-2 min-w-0">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
                                     <div class="feed-avatar feed-avatar-sm">{{ $authorInitial }}</div>
-                                    <div class="text-truncate">
+                                    <div class="text-truncate min-w-0">
                                         <div class="fw-semibold text-dark small text-truncate">{{ $authorName }}</div>
                                         <div class="text-secondary" style="font-size: 0.75rem;">{{ $forumPost->created_at?->format('M d, Y') }}</div>
                                     </div>
                                 </div>
-                                @include('partials.forum-post-badges', ['forumPost' => $forumPost])
+                                <div class="d-flex flex-wrap gap-2 ms-auto">
+                                    @include('partials.forum-post-badges', ['forumPost' => $forumPost])
+                                </div>
                             </div>
 
                             <div class="mb-2">
-                                <div class="d-flex flex-wrap gap-2 mb-2">
-                                    @include('partials.forum-post-badges', ['forumPost' => $forumPost])
-                                </div>
                                 <h4 class="h5 fw-semibold mb-2 text-dark">
                                     <a href="{{ $postUrl }}" class="text-dark text-decoration-none stretched-link">{{ $forumPost->title }}</a>
                                 </h4>

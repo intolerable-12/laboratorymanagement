@@ -1,3 +1,7 @@
+@php
+    $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
+@endphp
+
 <div class="row g-3">
     <div class="col-12">
         <label for="school_year" class="form-label fw-semibold">School year</label>
@@ -15,7 +19,7 @@
         @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-12 text-end mt-2">
-        <a href="{{ route('coordinator.academic-periods.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+        <a href="{{ route($routePrefix.'.academic-periods.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
         <button type="submit" class="btn btn-primary">{{ isset($schoolYear) ? 'Save changes' : 'Create school year' }}</button>
     </div>
 </div>

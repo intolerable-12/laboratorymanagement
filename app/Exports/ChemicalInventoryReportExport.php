@@ -14,11 +14,12 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
         private readonly Collection $schoolYears,
         private readonly Collection $semesters,
         private readonly array $signatories = [],
+        private readonly ?string $campus = null,
     ) {}
 
     public function sheets(): array
     {
-        $query = Chemical::query()->with('laboratory');
+        $query = Chemical::query()->with('laboratory')->forCampus($this->campus);
         $schoolYearIds = $this->schoolYears->pluck('id')->filter()->values();
         $semesterIds = $this->semesters->pluck('id')->filter()->values();
 

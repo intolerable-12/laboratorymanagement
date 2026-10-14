@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('coordinator.forum.comments.toggle-visibility', $comment) }}">
+        <form method="POST" action="{{ route(($routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator')).'.forum.comments.toggle-visibility', $comment) }}">
             @csrf
             <button type="submit" class="btn btn-sm btn-outline-{{ $comment->is_hidden ? 'success' : 'danger' }} rounded-pill">
                 {{ $comment->is_hidden ? 'Show' : 'Hide' }}
@@ -40,7 +40,7 @@
     <div class="mt-3 text-dark forum-comment-body">{!! $comment->comment !!}</div>
 
     @if (! $forumPost->is_locked)
-        <form method="POST" action="{{ route('coordinator.forum.comments.store', $forumPost) }}" class="mt-3 vstack gap-2">
+        <form method="POST" action="{{ route(($routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator')).'.forum.comments.store', $forumPost) }}" class="mt-3 vstack gap-2">
             @csrf
             <input type="hidden" name="parent_comment_id" value="{{ $comment->id }}">
 

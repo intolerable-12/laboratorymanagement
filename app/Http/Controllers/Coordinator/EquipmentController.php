@@ -50,14 +50,14 @@ class EquipmentController extends Controller
 
         if ($restoreDeadline && $restoreDeadline->isPast()) {
             return redirect()
-                ->route('coordinator.equipment.archived')
+                ->route($this->routePrefix().'.equipment.archived')
                 ->with('error', 'This equipment can no longer be restored because the 5-year archive window has expired.');
         }
 
         $equipment->restore();
 
         return redirect()
-            ->route('coordinator.equipment.archived')
+            ->route($this->routePrefix().'.equipment.archived')
             ->with('status', 'Equipment restored successfully.');
     }
 
@@ -168,8 +168,9 @@ class EquipmentController extends Controller
 
     public function create()
     {
+        $campus = $this->viewerCampus(request());
         $categories = EquipmentCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
         $storageLocations = self::STORAGE_LOCATIONS;
 
@@ -179,7 +180,7 @@ class EquipmentController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateEquipment($request);
-        $laboratory = Laboratory::findOrFail($data['laboratory_id']);
+        $laboratory = Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $data['equipment_code'] = $this->generateEquipmentCode($laboratory);
         $data['barcode'] = $this->generateBarcodeValue($data['equipment_code']);
         $data['available_quantity'] = $data['quantity'];
@@ -198,7 +199,7 @@ class EquipmentController extends Controller
             remarks: 'Equipment added to inventory by the coordinator.',
         );
 
-        return redirect()->route('coordinator.equipment.index')->with('status', 'Equipment created successfully.');
+        return redirect()->route($this->routePrefix().'.equipment.index')->with('status', 'Equipment created successfully.');
     }
 
     public function show(Request $request, Equipment $equipment)
@@ -212,8 +213,10 @@ class EquipmentController extends Controller
 
     public function edit(Equipment $equipment)
     {
+        $this->ensureViewerCanAccess(request(), $equipment);
+        $campus = $this->viewerCampus(request());
         $categories = EquipmentCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::query()
             ->where(fn ($query) => $query->where('status', 'Active')->orWhere('id', $equipment->supplier_id))
             ->orderBy('supplier_name')
@@ -225,7 +228,9 @@ class EquipmentController extends Controller
 
     public function update(Request $request, Equipment $equipment)
     {
+        $this->ensureViewerCanAccess($request, $equipment);
         $data = $this->validateEquipment($request, $equipment);
+        Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $previousAvailableQuantity = (int) $equipment->available_quantity;
         $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
 
@@ -251,11 +256,12 @@ class EquipmentController extends Controller
             remarks: 'Equipment quantity updated by the coordinator.',
         );
 
-        return redirect()->route('coordinator.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
+        return redirect()->route($this->routePrefix().'.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
     }
 
     public function stockUp(Request $request, Equipment $equipment)
     {
+        $this->ensureViewerCanAccess($request, $equipment);
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'integer', 'min:1'],
             'stock_up_mode'     => ['required', 'in:add,deduct'],
@@ -349,12 +355,13 @@ class EquipmentController extends Controller
         }
 
         return redirect()
-            ->route('coordinator.equipment.index', $request->query())
+            ->route($this->routePrefix().'.equipment.index', $request->query())
             ->with('status', $message);
     }
 
     public function updateSupplier(Request $request, Equipment $equipment)
     {
+        $this->ensureViewerCanAccess($request, $equipment);
         $data = $request->validate([
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
         ]);
@@ -376,14 +383,15 @@ class EquipmentController extends Controller
             ]);
         }
 
-        return redirect()->route('coordinator.equipment.index', $request->query())->with('status', $message);
+        return redirect()->route($this->routePrefix().'.equipment.index', $request->query())->with('status', $message);
     }
 
-    public function destroy(Equipment $equipment)
+    public function destroy(Request $request, Equipment $equipment)
     {
+        $this->ensureViewerCanAccess($request, $equipment);
         $equipment->delete();
 
-        return redirect()->route('coordinator.equipment.archived')->with('status', 'Equipment archived successfully.');
+        return redirect()->route($this->routePrefix().'.equipment.archived')->with('status', 'Equipment archived successfully.');
     }
 
     private function validateEquipment(Request $request, ?Equipment $equipment = null): array
@@ -486,6 +494,11 @@ class EquipmentController extends Controller
         return $request->user()?->role?->role_name === 'Laboratory In-charge'
             ? $request->user()->campusName()
             : null;
+    }
+
+    private function routePrefix(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
     private function ensureViewerCanAccess(Request $request, Equipment $equipment): void

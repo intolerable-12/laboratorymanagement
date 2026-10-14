@@ -1,6 +1,10 @@
 @extends(auth()->user()->role?->role_name === 'Instructor' ? 'users.instructor.layouts.app' : 'users.student.layouts.app')
 
-@php($requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor' ? 'instructor.my-borrow-requests' : 'student.borrow')
+@php
+    $requestRoutePrefix = auth()->user()->role?->role_name === 'Instructor'
+        ? 'instructor.my-borrow-requests'
+        : 'student.borrow';
+@endphp
 
 @section('title', 'Requested Items')
 @section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
@@ -58,7 +62,7 @@
             </div>
 
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
-                <a href="{{ route('student.borrow.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i>Borrow Details</a>
+                <a href="{{ route($requestRoutePrefix . '.create') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i>Borrow Details</a>
                 <button type="submit" class="btn btn-primary px-4">Review Request <i class="fa-solid fa-arrow-right ms-1"></i></button>
             </div>
         </form>

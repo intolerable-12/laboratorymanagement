@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Feedback Questionnaires')
 @section('page-title', 'Feedback Questionnaires')
@@ -49,14 +53,14 @@
 
     <div class="section-card mb-4">
         <div class="card-body p-3 p-lg-4">
-            <form method="GET" action="{{ route('coordinator.feedback.questionnaires.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-8">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input type="search" id="search" name="search" value="{{ $search }}" placeholder="Topic or description" class="form-control admin-form-control">
                 </div>
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
-                    <a href="{{ route('coordinator.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                    <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
             </form>
         </div>
@@ -68,7 +72,7 @@
                 <h3 class="h5 fw-semibold mb-0">
                     <i class="fa-solid fa-clipboard-question me-2"></i>Questionnaires
                 </h3>
-                <a href="{{ route('coordinator.feedback.questionnaires.create') }}" class="btn btn-primary px-4">
+                <a href="{{ route($routePrefix.'.feedback.questionnaires.create') }}" class="btn btn-primary px-4">
                     <i class="fa-solid fa-circle-plus me-2"></i>Create questionnaire
                 </a>
             </div>
@@ -103,7 +107,7 @@
                                 <td class="text-center pe-4">
                                     <div class="btn-group action-buttons" role="group" aria-label="Questionnaire actions">
                                         <!-- View Icon -->
-                                        <a href="{{ route('coordinator.feedback.questionnaires.show', $questionnaire) }}"
+                                        <a href="{{ route($routePrefix.'.feedback.questionnaires.show', $questionnaire) }}"
                                             class="btn btn-sm btn-outline-secondary"
                                             title="View"
                                             aria-label="View">
@@ -111,7 +115,7 @@
                                         </a>
 
                                         <!-- Edit Icon -->
-                                        <a href="{{ route('coordinator.feedback.questionnaires.edit', $questionnaire) }}"
+                                        <a href="{{ route($routePrefix.'.feedback.questionnaires.edit', $questionnaire) }}"
                                             class="btn btn-sm btn-outline-primary"
                                             title="Edit"
                                             aria-label="Edit">
@@ -119,7 +123,7 @@
                                         </a>
 
                                         <!-- Delete Icon -->
-                                        <form action="{{ route('coordinator.feedback.questionnaires.destroy', $questionnaire) }}"
+                                        <form action="{{ route($routePrefix.'.feedback.questionnaires.destroy', $questionnaire) }}"
                                             method="POST"
                                             class="d-inline">
                                             @csrf

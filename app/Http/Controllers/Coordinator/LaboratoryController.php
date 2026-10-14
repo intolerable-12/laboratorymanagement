@@ -12,15 +12,16 @@ use App\Support\Campus;
 
 class LaboratoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $laboratories = Laboratory::with('images')->latest()->paginate(9);
+        $campus = $this->viewerCampus($request);
+        $laboratories = Laboratory::forCampus($campus)->with('images')->latest()->paginate(9);
 
         $stats = [
-            'total' => Laboratory::count(),
-            'available' => Laboratory::where('status', 'Available')->count(),
-            'unavailable' => Laboratory::where('status', 'Unavailable')->count(),
-            'maintenance' => Laboratory::where('status', 'Under Maintenance')->count(),
+            'total' => Laboratory::forCampus($campus)->count(),
+            'available' => Laboratory::forCampus($campus)->where('status', 'Available')->count(),
+            'unavailable' => Laboratory::forCampus($campus)->where('status', 'Unavailable')->count(),
+            'maintenance' => Laboratory::forCampus($campus)->where('status', 'Under Maintenance')->count(),
         ];
 
         return view('users.coordinator.laboratory.index', compact('laboratories', 'stats'));
@@ -39,18 +40,20 @@ class LaboratoryController extends Controller
         $laboratory = Laboratory::create($data);
         $this->storeImages($request, $laboratory);
 
-        return redirect()->route('coordinator.laboratories.index')->with('status', 'Laboratory created successfully.');
+        return redirect()->route($this->routePrefix($request).'.laboratories.index')->with('status', 'Laboratory created successfully.');
     }
 
-    public function show(Laboratory $laboratory)
+    public function show(Request $request, Laboratory $laboratory)
     {
+        $this->ensureViewerCanAccess($request, $laboratory);
         $laboratory->load('images');
 
         return view('users.coordinator.laboratory.show', compact('laboratory'));
     }
 
-    public function edit(Laboratory $laboratory)
+    public function edit(Request $request, Laboratory $laboratory)
     {
+        $this->ensureViewerCanAccess($request, $laboratory);
         $laboratory->load('images');
 
         return view('users.coordinator.laboratory.edit', compact('laboratory'));
@@ -58,6 +61,7 @@ class LaboratoryController extends Controller
 
     public function update(Request $request, Laboratory $laboratory)
     {
+        $this->ensureViewerCanAccess($request, $laboratory);
         $data = $this->validateLaboratory($request, $laboratory);
 
         $data['laboratory_code'] = $laboratory->laboratory_code;
@@ -66,11 +70,12 @@ class LaboratoryController extends Controller
         $laboratory->update($data);
         $this->storeImages($request, $laboratory);
 
-        return redirect()->route('coordinator.laboratories.index')->with('status', 'Laboratory updated successfully.');
+        return redirect()->route($this->routePrefix($request).'.laboratories.index')->with('status', 'Laboratory updated successfully.');
     }
 
-    public function destroyImage(Laboratory $laboratory, LaboratoryImage $laboratoryImage)
+    public function destroyImage(Request $request, Laboratory $laboratory, LaboratoryImage $laboratoryImage)
     {
+        $this->ensureViewerCanAccess($request, $laboratory);
         abort_unless((int) $laboratoryImage->laboratory_id === (int) $laboratory->getKey(), 404);
 
         $imagePath = $laboratoryImage->image_path;
@@ -86,6 +91,7 @@ class LaboratoryController extends Controller
 
     public function destroyImages(Request $request, Laboratory $laboratory)
     {
+        $this->ensureViewerCanAccess($request, $laboratory);
         $data = $request->validate([
             'image_ids' => ['required', 'array', 'min:1'],
             'image_ids.*' => ['integer'],
@@ -109,8 +115,9 @@ class LaboratoryController extends Controller
         return back()->with('status', $images->count().' laboratory photo(s) deleted.');
     }
 
-    public function destroy(Laboratory $laboratory)
+    public function destroy(Request $request, Laboratory $laboratory)
     {
+        $this->ensureViewerCanAccess($request, $laboratory);
         $laboratory->load('images');
         $imagePaths = $laboratory->images->pluck('image_path')
             ->push($laboratory->image)
@@ -124,7 +131,7 @@ class LaboratoryController extends Controller
         $laboratory->images()->delete();
         $laboratory->delete();
 
-        return redirect()->route('coordinator.laboratories.index')->with('status', 'Laboratory deleted successfully.');
+        return redirect()->route($this->routePrefix($request).'.laboratories.index')->with('status', 'Laboratory deleted successfully.');
     }
 
     private function validateLaboratory(Request $request, ?Laboratory $laboratory = null): array
@@ -144,7 +151,7 @@ class LaboratoryController extends Controller
                 'max:255',
                 Rule::unique('laboratories', 'laboratory_name')->ignore($laboratoryKey),
             ],
-            'campus' => ['required', Rule::in(Campus::values())],
+            'campus' => ['required', Rule::in($this->viewerCampus($request) ? [$this->viewerCampus($request)] : Campus::values())],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'images' => ['nullable', 'array', 'max:20'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
@@ -211,5 +218,28 @@ class LaboratoryController extends Controller
         if ($oldImagePath && ! $laboratory->images()->where('image_path', $oldImagePath)->exists()) {
             Storage::disk('public')->delete($oldImagePath);
         }
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    }
+
+    private function viewerCampus(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
+    }
+
+    private function ensureViewerCanAccess(Request $request, Laboratory $laboratory): void
+    {
+        $campus = $this->viewerCampus($request);
+
+        if ($campus === null) {
+            return;
+        }
+
+        abort_unless($laboratory->campus === $campus, 404);
     }
 }

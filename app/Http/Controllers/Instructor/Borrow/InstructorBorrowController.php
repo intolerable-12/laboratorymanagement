@@ -168,15 +168,23 @@ class InstructorBorrowController extends Controller
 		$campus = $request->user()->campusName();
 
 		abort_unless(
-			$this->canReviewRequester($borrowTransaction->borrower, $campus)
+			$this->canReviewRequester($borrowTransaction->borrower, $campus, Campus::normalize($borrowTransaction->campus))
 				&& $borrowTransaction->laboratory?->campus === $campus,
 			403
 		);
 	}
 
-	private function canReviewRequester(?User $user, ?string $campus): bool
+	private function canReviewRequester(?User $user, ?string $campus, ?string $requestCampus = null): bool
 	{
-		if ($user?->role?->role_name !== 'Student' || $user->campusName() !== $campus) {
+		if ($user?->role?->role_name !== 'Student') {
+			return false;
+		}
+
+		if ($requestCampus === $campus) {
+			return true;
+		}
+
+		if ($user->campusName() !== $campus) {
 			return false;
 		}
 

@@ -5,7 +5,7 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
-    $isReadOnly = $routePrefix === 'facilitator';
+    $isReadOnly = false;
     $tabQuery = request()->except('page');
     $listQuery = request()->query();
     $tableRoute = $archived ? $routePrefix.'.chemicals.archived' : $routePrefix.'.chemicals.index';
@@ -540,12 +540,12 @@
                                             class="btn p-0 text-decoration-none stock-up-trigger w-100"
                                             data-bs-toggle="modal"
                                             data-bs-target="#stock-up-modal"
-                                            data-stock-up-url="{{ route('coordinator.chemicals.stock-up', array_merge(['chemical' => $chemical], $listQuery)) }}"
+                                            data-stock-up-url="{{ route($routePrefix.'.chemicals.stock-up', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                             data-stock-up-item="{{ $chemical->chemical_name }}"
                                             data-stock-up-current="{{ number_format((float) $chemical->quantity, 2) }} {{ $chemical->unit }}"
                                             data-stock-up-supplier="{{ $chemical->supplier?->supplier_name ?? 'Not set' }}"
                                             data-stock-up-supplier-id="{{ $chemical->supplier_id }}"
-                                            data-stock-up-supplier-url="{{ route('coordinator.chemicals.supplier.update', array_merge(['chemical' => $chemical], $listQuery)) }}"
+                                            data-stock-up-supplier-url="{{ route($routePrefix.'.chemicals.supplier.update', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                             data-stock-up-date="{{ $chemical->received_date?->format('F j, Y') ?? 'Not set' }}"
                                             data-stock-up-date-iso="{{ $chemical->received_date?->format('Y-m-d') ?? '' }}"
                                             data-stock-up-unit="{{ $chemical->unit }}"
@@ -601,7 +601,7 @@
                                         @if (!$isReadOnly && $archived)
                                             @if ($canRestore)
                                                 <!-- Restore Icon -->
-                                                <form action="{{ route('coordinator.chemicals.restore', $chemical) }}" method="POST" class="d-inline">
+                                                <form action="{{ route($routePrefix.'.chemicals.restore', $chemical) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-sm btn-outline-success"
                                                         onclick="return confirm('Restore this chemical?');"
@@ -618,14 +618,14 @@
                                             @endif
                                         @elseif (!$isReadOnly)
                                             <!-- Edit Icon -->
-                                            <a href="{{ route('coordinator.chemicals.edit', array_merge(['chemical' => $chemical], $listQuery)) }}"
+                                            <a href="{{ route($routePrefix.'.chemicals.edit', array_merge(['chemical' => $chemical], $listQuery)) }}"
                                                 class="btn btn-sm btn-outline-primary"
                                                 title="Edit" aria-label="Edit">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </a>
 
                                             <!-- Archive Icon -->
-                                            <form action="{{ route('coordinator.chemicals.destroy', $chemical) }}" method="POST" class="d-inline">
+                                            <form action="{{ route($routePrefix.'.chemicals.destroy', $chemical) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger"
@@ -670,7 +670,7 @@
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" data-stock-up-form data-required-indicators="manual" data-stock-up-quick-store-url="{{ route('coordinator.suppliers.quick-store') }}">
+                    <form method="POST" data-stock-up-form data-required-indicators="manual" data-stock-up-quick-store-url="{{ route($routePrefix.'.suppliers.quick-store') }}">
                         @csrf
                         @method('PATCH')
                         <div class="modal-body">

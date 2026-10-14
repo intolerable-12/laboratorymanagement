@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Requester History')
 @section('page-title', 'Requester History')
@@ -12,8 +16,8 @@
         $user->suffix,
     ])->filter()->implode(' '));
     $studentCampus = $user->campusName();
-    $tabUrl = function (string $tab) use ($user, $search) {
-        return route('coordinator.requesthistory.show', array_filter([
+    $tabUrl = function (string $tab) use ($routePrefix, $user, $search) {
+        return route($routePrefix . '.requesthistory.show', array_filter([
             'user' => $user,
             'tab' => $tab,
             'search' => $search,
@@ -27,7 +31,7 @@
             <h2 class="h4 fw-semibold mb-1 text-dark">{{ $requesterName !== '' ? $requesterName : 'Unknown requester' }}</h2>
             <p class="mb-0 text-secondary">All reservation and borrowing requests submitted by this student or guest.</p>
         </div>
-        <a href="{{ route('coordinator.requesthistory.index', ['search' => $search]) }}" class="btn btn-outline-secondary px-4">
+        <a href="{{ route($routePrefix . '.requesthistory.index', ['search' => $search]) }}" class="btn btn-outline-secondary px-4">
             <i class="fa-solid fa-arrow-left me-2" aria-hidden="true"></i>Back to Requesters
         </a>
     </div>
@@ -132,7 +136,7 @@
                                     <td>{{ $reservation->items->count() }}</td>
                                     <td><span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span></td>
                                     <td class="text-center">
-                                        <a href="{{ route('coordinator.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary" title="View reservation">
+                                        <a href="{{ route($routePrefix . '.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary" title="View reservation">
                                             <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                             <span class="visually-hidden">View reservation</span>
                                         </a>
@@ -195,7 +199,7 @@
                                     <td>{{ $borrow->items->count() }}</td>
                                     <td><span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span></td>
                                     <td class="text-center">
-                                        <a href="{{ route('coordinator.borrow.show', $borrow) }}" class="btn btn-sm btn-outline-primary" title="View borrow request">
+                                        <a href="{{ route($routePrefix . '.borrow.show', $borrow) }}" class="btn btn-sm btn-outline-primary" title="View borrow request">
                                             <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                             <span class="visually-hidden">View borrow request</span>
                                         </a>

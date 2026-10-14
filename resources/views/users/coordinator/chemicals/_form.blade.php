@@ -1,4 +1,5 @@
 @php
+    $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
     $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
     $statuses = \App\Models\Chemical::STATUSES;
     $unitOptions = $unitOptions ?? ['ml', 'cc', 'liter', 'kg', 'g'];
@@ -184,7 +185,7 @@
             </div>
 
             <div class="col-12 text-end mt-2">
-                <a href="{{ route('coordinator.chemicals.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <a href="{{ route($routePrefix.'.chemicals.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">{{ isset($chemical) ? 'Save changes' : 'Create chemical' }}</button>
             </div>
         </div>

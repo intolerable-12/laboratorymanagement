@@ -19,6 +19,7 @@
     @php
         $sidebarUser = auth()->user()?->loadMissing('role');
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Student';
+        $isIbedJhsStudent = $sidebarUser?->isIbedJhsStudent() ?? false;
 
         $isDashboard = request()->routeIs('student.dashboard');
 
@@ -120,6 +121,7 @@
                     <span class="sidebar-item__label">Laboratories</span>
                 </a>
 
+                @unless ($isIbedJhsStudent)
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#studentReservationMenu"
@@ -148,7 +150,9 @@
                         </a>
                     </div>
                 </div>
+                @endunless
 
+                @unless ($isIbedJhsStudent)
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#studentBorrowMenu"
@@ -177,6 +181,7 @@
                         </a>
                     </div>
                 </div>
+                @endunless
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"

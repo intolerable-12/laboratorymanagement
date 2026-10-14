@@ -145,6 +145,9 @@ class StudentBorrowController extends Controller
 			'entries' => $paginator->items(),
 			'paginator' => $paginator,
 			'viewMode' => $viewMode,
+			'requestRoutePrefix' => $this->isInstructorRequester($request)
+				? 'instructor.my-borrow-requests'
+				: 'student.borrow',
 			'sectionMeta' => [
 				'current' => ['label' => 'Current Borrowing', 'tone' => 'primary'],
 				'pending' => ['label' => 'Pending', 'tone' => 'warning'],
@@ -168,6 +171,7 @@ class StudentBorrowController extends Controller
 	public function create(Request $request)
 	{
 		$this->ensureStudent($request);
+		$this->ensureCanSubmitRequest($request);
 		$campus = $this->campusForUser($request);
 
 		$details = $request->session()->get(self::DRAFT_DETAILS, []);
@@ -230,6 +234,7 @@ class StudentBorrowController extends Controller
 	public function details(Request $request)
 	{
 		$this->ensureStudent($request);
+		$this->ensureCanSubmitRequest($request);
 
 		$data = $this->validateBorrowDetails($request);
 		$previousDetails = $request->session()->get(self::DRAFT_DETAILS, []);
@@ -245,6 +250,7 @@ class StudentBorrowController extends Controller
 	public function items(Request $request)
 	{
 		$this->ensureStudent($request);
+		$this->ensureCanSubmitRequest($request);
 
 		if (! $request->session()->has(self::DRAFT_DETAILS)) {
 			return redirect()->route($this->requesterRoute($request, 'create'));
@@ -292,6 +298,7 @@ class StudentBorrowController extends Controller
 	public function itemsStore(Request $request)
 	{
 		$this->ensureStudent($request);
+		$this->ensureCanSubmitRequest($request);
 
 		$details = $request->session()->get(self::DRAFT_DETAILS);
 		if (! $details) {
@@ -320,6 +327,7 @@ class StudentBorrowController extends Controller
 	public function review(Request $request)
 	{
 		$this->ensureStudent($request);
+		$this->ensureCanSubmitRequest($request);
 
 		$details = $request->session()->get(self::DRAFT_DETAILS);
 		$items = (array) $request->session()->get(self::DRAFT_ITEMS, []);
@@ -346,6 +354,7 @@ class StudentBorrowController extends Controller
 	public function store(Request $request)
 	{
 		$this->ensureStudent($request);
+		$this->ensureCanSubmitRequest($request);
 
 		$data = $request->session()->get(self::DRAFT_DETAILS);
 		$draftItems = (array) $request->session()->get(self::DRAFT_ITEMS, []);
@@ -642,6 +651,11 @@ class StudentBorrowController extends Controller
 	private function ensureStudent(Request $request): void
 	{
 		abort_unless(in_array(optional($request->user()->role)->role_name, ['Student', 'Instructor'], true), 403);
+	}
+
+	private function ensureCanSubmitRequest(Request $request): void
+	{
+		abort_unless(! $request->user()->isIbedJhsStudent(), 403);
 	}
 
 	private function isInstructorRequester(Request $request): bool

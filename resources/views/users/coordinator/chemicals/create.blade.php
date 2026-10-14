@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Add Chemical')
 @section('page-title', 'Add Chemical')
@@ -13,7 +17,7 @@
 
     <div class="section-card">
         <div class="card-body p-4 p-xl-5">
-            <form method="POST" action="{{ route('coordinator.chemicals.store') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route($routePrefix.'.chemicals.store') }}" enctype="multipart/form-data">
                 @csrf
 
                 @include('users.coordinator.chemicals._form', [

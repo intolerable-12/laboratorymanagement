@@ -1,4 +1,5 @@
 @php
+    $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
     $storageLocations = $storageLocations ?? [
         'Cabinet 1',
         'Cabinet 2',
@@ -194,7 +195,7 @@
             </div>
 
             <div class="col-12 text-end mt-2">
-                <a href="{{ route('coordinator.equipment.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <a href="{{ route($routePrefix.'.equipment.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">{{ isset($equipment) ? 'Save changes' : 'Create equipment' }}</button>
             </div>
         </div>

@@ -1,4 +1,5 @@
 @php
+    $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
     $selectedAudiences = collect(old('audiences', $announcement->audiences ?? []))
         ->filter()
         ->values()
@@ -124,7 +125,7 @@
                     </div>
 
                     <div class="col-12 text-end pt-2">
-                        <a href="{{ route('coordinator.announcements.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                        <a href="{{ route($routePrefix.'.announcements.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
                         <button type="submit" class="btn btn-primary">{{ isset($announcement?->id) ? 'Save changes' : 'Create announcement' }}</button>
                     </div>
                 </div>

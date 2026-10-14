@@ -45,6 +45,7 @@ use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckoutController;
 use App\Http\Controllers\Facilitator\Checkout\FacilitatorCheckinController;
 use App\Http\Controllers\Facilitator\Checkout\FacilitatorTransactionHistoryController;
 use App\Http\Controllers\Facilitator\Forum\LaboratoryInchargeForumController;
+use App\Http\Controllers\Facilitator\ReservationHistory\RequestHistoryController as FacilitatorRequestHistoryController;
 use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardController;
 use App\Http\Controllers\Instructor\Reservation\ReservationController as InstructorReservationController;
 use App\Http\Controllers\Instructor\Reservation\InstructorReservationCalendarController;
@@ -447,19 +448,68 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
     ->name('facilitator.')
     ->group(function () {
         Route::get('/dashboard', [FacilitatorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/request-history', [FacilitatorRequestHistoryController::class, 'index'])->name('requesthistory.index');
+        Route::get('/request-history/{user}', [FacilitatorRequestHistoryController::class, 'show'])->name('requesthistory.show');
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', fn () => redirect()->route('facilitator.reports.equipment.index'))->name('index');
+            Route::get('/equipment', [EquipmentReportController::class, 'index'])->name('equipment.index');
+            Route::get('/equipment/export', [EquipmentReportController::class, 'export'])->name('equipment.export');
+            Route::get('/chemicals', [ChemicalReportController::class, 'index'])->name('chemicals.index');
+            Route::get('/chemicals/export', [ChemicalReportController::class, 'export'])->name('chemicals.export');
+        });
+
+        Route::prefix('academic-periods')->name('academic-periods.')->group(function () {
+            Route::get('/', [AcademicPeriodController::class, 'index'])->name('index');
+            Route::get('/school-years/create', [AcademicPeriodController::class, 'createSchoolYear'])->name('school-years.create');
+            Route::post('/school-years', [AcademicPeriodController::class, 'storeSchoolYear'])->name('school-years.store');
+            Route::get('/school-years/{schoolYear}/edit', [AcademicPeriodController::class, 'editSchoolYear'])->name('school-years.edit');
+            Route::put('/school-years/{schoolYear}', [AcademicPeriodController::class, 'updateSchoolYear'])->name('school-years.update');
+            Route::delete('/school-years/{schoolYear}', [AcademicPeriodController::class, 'destroySchoolYear'])->name('school-years.destroy');
+            Route::post('/school-years/{schoolYear}/current', [AcademicPeriodController::class, 'setCurrentSchoolYear'])->name('school-years.current');
+            Route::get('/semesters/create', [AcademicPeriodController::class, 'createSemester'])->name('semesters.create');
+            Route::post('/semesters', [AcademicPeriodController::class, 'storeSemester'])->name('semesters.store');
+            Route::get('/semesters/{semester}/edit', [AcademicPeriodController::class, 'editSemester'])->name('semesters.edit');
+            Route::put('/semesters/{semester}', [AcademicPeriodController::class, 'updateSemester'])->name('semesters.update');
+            Route::put('/semester-periods', [AcademicPeriodController::class, 'updateSemesterPeriods'])->name('semester-periods.update');
+            Route::delete('/semesters/{semester}', [AcademicPeriodController::class, 'destroySemester'])->name('semesters.destroy');
+            Route::post('/semesters/{semester}/current', [AcademicPeriodController::class, 'setCurrentSemester'])->name('semesters.current');
+        });
 
         Route::get('/inventory/traceability', [InventoryTraceabilityController::class, 'index'])->name('inventory-traceability.index');
+
+        Route::prefix('laboratories')
+            ->name('laboratories.')
+            ->group(function () {
+                Route::get('/', [LaboratoryController::class, 'index'])->name('index');
+                Route::get('/create', [LaboratoryController::class, 'create'])->name('create');
+                Route::post('/', [LaboratoryController::class, 'store'])->name('store');
+                Route::delete('/{laboratory}/images', [LaboratoryController::class, 'destroyImages'])->name('images.destroy');
+                Route::delete('/{laboratory}/images/{laboratoryImage}', [LaboratoryController::class, 'destroyImage'])->name('images.destroy.single');
+                Route::get('/{laboratory}', [LaboratoryController::class, 'show'])->name('show');
+                Route::get('/{laboratory}/edit', [LaboratoryController::class, 'edit'])->name('edit');
+                Route::put('/{laboratory}', [LaboratoryController::class, 'update'])->name('update');
+                Route::delete('/{laboratory}', [LaboratoryController::class, 'destroy'])->name('destroy');
+            });
 
         Route::prefix('equipment')
             ->name('equipment.')
             ->group(function () {
                 Route::get('/', [EquipmentController::class, 'index'])->name('index');
                 Route::get('/archived', [EquipmentController::class, 'archived'])->name('archived');
+                Route::get('/create', [EquipmentController::class, 'create'])->name('create');
+                Route::post('/', [EquipmentController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::patch('/{equipment}/stock-up', [EquipmentController::class, 'stockUp'])->name('stock-up');
+                Route::patch('/{equipment}/supplier', [EquipmentController::class, 'updateSupplier'])->name('supplier.update');
                 Route::get('/{equipment}/traceability/details', [InventoryTraceabilityController::class, 'equipmentDetails'])->withTrashed()->name('traceability.details');
                 Route::get('/{equipment}/traceability', [InventoryTraceabilityController::class, 'equipment'])->withTrashed()->name('traceability');
                 Route::get('/{equipment}', [EquipmentController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{equipment}/barcode-print', EquipmentBarcodePrintController::class)->withTrashed()->name('barcode-print');
+                Route::post('/{equipment}/restore', [EquipmentController::class, 'restore'])->withTrashed()->name('restore');
+                Route::get('/{equipment}/edit', [EquipmentController::class, 'edit'])->name('edit');
+                Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
+                Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
             });
 
         Route::prefix('equipment-categories')
@@ -474,11 +524,19 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
             ->group(function () {
                 Route::get('/', [ChemicalController::class, 'index'])->name('index');
                 Route::get('/archived', [ChemicalController::class, 'archived'])->name('archived');
+                Route::get('/create', [ChemicalController::class, 'create'])->name('create');
+                Route::post('/', [ChemicalController::class, 'store'])->name('store');
                 Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
+                Route::patch('/{chemical}/stock-up', [ChemicalController::class, 'stockUp'])->name('stock-up');
+                Route::patch('/{chemical}/supplier', [ChemicalController::class, 'updateSupplier'])->name('supplier.update');
                 Route::get('/{chemical}/traceability/details', [InventoryTraceabilityController::class, 'chemicalDetails'])->withTrashed()->name('traceability.details');
                 Route::get('/{chemical}/traceability', [InventoryTraceabilityController::class, 'chemical'])->withTrashed()->name('traceability');
                 Route::get('/{chemical}', [ChemicalController::class, 'show'])->withTrashed()->name('show');
                 Route::get('/{chemical}/barcode-print', ChemicalBarcodePrintController::class)->withTrashed()->name('barcode-print');
+                Route::post('/{chemical}/restore', [ChemicalController::class, 'restore'])->withTrashed()->name('restore');
+                Route::get('/{chemical}/edit', [ChemicalController::class, 'edit'])->name('edit');
+                Route::put('/{chemical}', [ChemicalController::class, 'update'])->name('update');
+                Route::delete('/{chemical}', [ChemicalController::class, 'destroy'])->name('destroy');
             });
 
         Route::prefix('chemical-categories')
@@ -488,8 +546,12 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/{chemicalCategory}', [ChemicalCategoryController::class, 'show'])->name('show');
             });
 
-        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+        Route::post('/suppliers/quick-store', [SupplierController::class, 'quickStore'])->name('suppliers.quick-store');
+        Route::resource('suppliers', SupplierController::class)->except(['show']);
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
+        Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
+        Route::put('/inventory-alerts/chemicals/{chemical}', [InventoryAlertController::class, 'updateChemical'])->name('inventory-alerts.chemical.update');
+        Route::put('/inventory-alerts/chemicals/{chemical}/threshold', [InventoryAlertController::class, 'updateChemicalThreshold'])->name('inventory-alerts.chemical-threshold.update');
 
         Route::prefix('reservations')
             ->name('reservations.')
@@ -538,14 +600,37 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::post('/{borrowTransaction}/scan/{barcodeLog}/remove', [FacilitatorCheckinController::class, 'remove'])->name('remove');
             });
 
+    Route::resource('announcements', CoordinatorAnnouncementController::class);
+
+    Route::prefix('feedback')
+        ->name('feedback.')
+        ->group(function () {
+            Route::get('/', [CoordinatorFeedbackController::class, 'index'])->name('index');
+            Route::prefix('questionnaires')
+                ->name('questionnaires.')
+                ->group(function () {
+                    Route::get('/', [CoordinatorFeedbackQuestionnaireController::class, 'index'])->name('index');
+                    Route::get('/create', [CoordinatorFeedbackQuestionnaireController::class, 'create'])->name('create');
+                    Route::post('/', [CoordinatorFeedbackQuestionnaireController::class, 'store'])->name('store');
+                    Route::get('/{feedbackQuestionnaire}', [CoordinatorFeedbackQuestionnaireController::class, 'show'])->whereNumber('feedbackQuestionnaire')->name('show');
+                    Route::get('/{feedbackQuestionnaire}/responses/{feedbackQuestionnaireResponse}', [CoordinatorFeedbackQuestionnaireController::class, 'showResponse'])->whereNumber(['feedbackQuestionnaire', 'feedbackQuestionnaireResponse'])->name('responses.show');
+                    Route::get('/{feedbackQuestionnaire}/edit', [CoordinatorFeedbackQuestionnaireController::class, 'edit'])->whereNumber('feedbackQuestionnaire')->name('edit');
+                    Route::put('/{feedbackQuestionnaire}', [CoordinatorFeedbackQuestionnaireController::class, 'update'])->whereNumber('feedbackQuestionnaire')->name('update');
+                    Route::delete('/{feedbackQuestionnaire}', [CoordinatorFeedbackQuestionnaireController::class, 'destroy'])->whereNumber('feedbackQuestionnaire')->name('destroy');
+                });
+            Route::get('/{feedback}', [CoordinatorFeedbackController::class, 'show'])->whereNumber('feedback')->name('show');
+        });
+
     Route::prefix('forum')
             ->name('forum.')
             ->group(function () {
-                Route::get('/', [LaboratoryInchargeForumController::class, 'index'])->name('index');
-                Route::get('/create', [LaboratoryInchargeForumController::class, 'create'])->name('create');
-                Route::post('/', [LaboratoryInchargeForumController::class, 'store'])->name('store');
-                Route::get('/{forumPost}', [LaboratoryInchargeForumController::class, 'show'])->whereNumber('forumPost')->name('show');
-                Route::post('/{forumPost}/comments', [LaboratoryInchargeForumController::class, 'storeComment'])->whereNumber('forumPost')->name('comments.store');
+                Route::get('/', [CoordinatorForumController::class, 'index'])->name('index');
+                Route::get('/create', [CoordinatorForumController::class, 'create'])->name('create');
+                Route::post('/', [CoordinatorForumController::class, 'store'])->name('store');
+                Route::get('/{forumPost}', [CoordinatorForumController::class, 'show'])->whereNumber('forumPost')->name('show');
+                Route::put('/{forumPost}', [CoordinatorForumController::class, 'update'])->name('update');
+                Route::post('/{forumPost}/comments', [CoordinatorForumCommentController::class, 'store'])->whereNumber('forumPost')->name('comments.store');
+                Route::post('/comments/{forumComment}/toggle-visibility', [CoordinatorForumCommentController::class, 'toggleVisibility'])->name('comments.toggle-visibility');
             });
 
         Route::get('/my-account', [\App\Http\Controllers\Facilitator\Account\MyAccountController::class, 'index'])->name('myaccount');

@@ -57,6 +57,6 @@ class FeedbackController extends Controller
 
     private function ensureCoordinator(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Coordinator', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
     }
 }

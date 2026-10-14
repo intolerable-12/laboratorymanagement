@@ -49,7 +49,7 @@ class SupplierController extends Controller
 
         Supplier::create($data);
 
-        return redirect()->route('coordinator.suppliers.index')->with('status', 'Supplier created successfully.');
+        return redirect()->route($this->routePrefix().'.suppliers.index')->with('status', 'Supplier created successfully.');
     }
 
     public function quickStore(Request $request)
@@ -76,7 +76,7 @@ class SupplierController extends Controller
             ], 201);
         }
 
-        return redirect()->route('coordinator.suppliers.index')->with('status', 'Supplier created successfully.');
+        return redirect()->route($this->routePrefix().'.suppliers.index')->with('status', 'Supplier created successfully.');
     }
 
     public function edit(Supplier $supplier)
@@ -89,19 +89,19 @@ class SupplierController extends Controller
         $data = $this->validateSupplier($request, $supplier);
         $supplier->update($data);
 
-        return redirect()->route('coordinator.suppliers.index')->with('status', 'Supplier updated successfully.');
+        return redirect()->route($this->routePrefix().'.suppliers.index')->with('status', 'Supplier updated successfully.');
     }
 
     public function destroy(Supplier $supplier)
     {
         if ($supplier->equipment()->exists() || $supplier->chemicals()->exists()) {
-            return redirect()->route('coordinator.suppliers.index')
+            return redirect()->route($this->routePrefix().'.suppliers.index')
                 ->with('error', 'This supplier is assigned to inventory items. Reassign those items before archiving the supplier.');
         }
 
         $supplier->delete();
 
-        return redirect()->route('coordinator.suppliers.index')->with('status', 'Supplier archived successfully.');
+        return redirect()->route($this->routePrefix().'.suppliers.index')->with('status', 'Supplier archived successfully.');
     }
 
     private function validateSupplier(Request $request, ?Supplier $supplier = null): array
@@ -127,5 +127,10 @@ class SupplierController extends Controller
             ->max() ?? 0;
 
         return $prefix.str_pad((string) ($lastNumber + 1), 5, '0', STR_PAD_LEFT);
+    }
+
+    private function routePrefix(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 }

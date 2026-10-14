@@ -78,7 +78,7 @@
                     <div class="mt-3 d-flex justify-content-between align-items-center border-top pt-3">
                         <span class="small text-secondary fw-medium">{{ $entry['borrow_no'] }}</span>
                         <div class="d-flex align-items-center gap-2">
-                            <a href="{{ route('student.borrow.show', $transaction) }}"
+                            <a href="{{ route($requestRoutePrefix . '.show', $transaction) }}"
                                 class="btn btn-sm btn-outline-primary"
                                 title="View"
                                 aria-label="View {{ $entry['borrow_no'] }}">

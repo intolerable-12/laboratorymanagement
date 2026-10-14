@@ -95,7 +95,7 @@ class ForumController extends Controller
         $notificationService->notifyForumPostCreated($forumPost, $request->user());
 
         return redirect()
-            ->route('coordinator.forum.show', $forumPost)
+            ->route($this->routePrefix($request).'.forum.show', $forumPost)
             ->with('status', 'Forum post created successfully.');
     }
 
@@ -126,7 +126,7 @@ class ForumController extends Controller
         ]);
 
         return redirect()
-            ->route('coordinator.forum.show', $forumPost)
+            ->route($this->routePrefix($request).'.forum.show', $forumPost)
             ->with('status', 'Forum post updated successfully.');
     }
 
@@ -146,6 +146,11 @@ class ForumController extends Controller
 
     private function ensureCoordinator(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Coordinator', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 }

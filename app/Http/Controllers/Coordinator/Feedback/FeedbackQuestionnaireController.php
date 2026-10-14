@@ -91,7 +91,7 @@ class FeedbackQuestionnaireController extends Controller
         $notificationService->notifyQuestionnaireCreated($questionnaire, $request->user());
 
         return redirect()
-            ->route('coordinator.feedback.questionnaires.show', $questionnaire)
+            ->route($this->routePrefix($request).'.feedback.questionnaires.show', $questionnaire)
             ->with('status', 'Questionnaire created successfully.');
     }
 
@@ -180,7 +180,7 @@ class FeedbackQuestionnaireController extends Controller
         });
 
         return redirect()
-            ->route('coordinator.feedback.questionnaires.show', $feedbackQuestionnaire)
+            ->route($this->routePrefix($request).'.feedback.questionnaires.show', $feedbackQuestionnaire)
             ->with('status', 'Questionnaire updated successfully.');
     }
 
@@ -195,7 +195,7 @@ class FeedbackQuestionnaireController extends Controller
         $feedbackQuestionnaire->delete();
 
         return redirect()
-            ->route('coordinator.feedback.questionnaires.index')
+            ->route($this->routePrefix($request).'.feedback.questionnaires.index')
             ->with('status', 'Questionnaire deleted successfully.');
     }
 
@@ -221,6 +221,11 @@ class FeedbackQuestionnaireController extends Controller
 
     private function ensureCoordinator(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Coordinator', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 }

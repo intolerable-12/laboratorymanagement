@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Feedback Management')
 @section('page-title', 'Feedback Management')
@@ -16,7 +20,7 @@
                 <p class="lead text-secondary mb-0">{{ $feedback->laboratory?->laboratory_name ?? 'System' }} · {{ $feedback->rating }}/5 rating</p>
             </div>
 
-            <a href="{{ route('coordinator.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Back to feed</a>
+            <a href="{{ route($routePrefix.'.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Back to feed</a>
         </div>
     </div>
 

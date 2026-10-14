@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Equipment Inventory Reports')
 @section('page-title', 'Equipment Inventory Reports')
@@ -41,7 +45,7 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('coordinator.reports.equipment.export') }}">
+    <form method="GET" action="{{ route($routePrefix.'.reports.equipment.export') }}">
         <div class="row g-4">
             <div class="col-xl-5">
                 <div class="section-card h-100">
@@ -121,7 +125,7 @@
                         <button type="submit" class="btn btn-primary" @disabled($schoolYears->isEmpty() || $equipmentCount === 0)>
                             <i class="fa-solid fa-file-excel me-1"></i>Generate XLSX report
                         </button>
-                        <a href="{{ route('coordinator.dashboard') }}" class="btn btn-outline-secondary ms-2">Back to dashboard</a>
+                        <a href="{{ route($routePrefix.'.dashboard') }}" class="btn btn-outline-secondary ms-2">Back to dashboard</a>
                     </div>
                 </div>
             </div>
@@ -130,7 +134,7 @@
 
     <script>
         (() => {
-            const form = document.querySelector('form[action="{{ route('coordinator.reports.equipment.export') }}"]');
+            const form = document.querySelector('form[action="{{ route($routePrefix.'.reports.equipment.export') }}"]');
 
             if (!form) {
                 return;

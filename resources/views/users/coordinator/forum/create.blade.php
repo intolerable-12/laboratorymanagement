@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'New Forum Post')
 @section('page-title', 'New Forum Post')
@@ -12,7 +16,7 @@
                 <p class="lead text-secondary mb-0">Create a post and share an update, question, or laboratory discussion.</p>
             </div>
 
-            <a href="{{ route('coordinator.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">
+            <a href="{{ route($routePrefix.'.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">
                 <i class="fa-solid fa-arrow-left me-1"></i> Back to feed
             </a>
         </div>
@@ -22,7 +26,7 @@
         <div class="col-xl-8">
             <div class="card social-card border-0">
                 <div class="card-body p-4 p-xl-5">
-                    <form method="POST" action="{{ route('coordinator.forum.store') }}" class="vstack gap-4">
+                    <form method="POST" action="{{ route($routePrefix.'.forum.store') }}" class="vstack gap-4">
                         @csrf
 
                         <div>
@@ -52,7 +56,7 @@
                         ])
 
                         <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
-                            <a href="{{ route('coordinator.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Cancel</a>
+                            <a href="{{ route($routePrefix.'.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Cancel</a>
                             <button type="submit" class="btn btn-primary px-4 rounded-pill">Publish post</button>
                         </div>
                     </form>

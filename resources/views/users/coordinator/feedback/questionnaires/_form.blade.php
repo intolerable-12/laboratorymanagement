@@ -109,7 +109,7 @@
 </div>
 
 <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
-    <a href="{{ route('coordinator.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+    <a href="{{ route(($routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator')).'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
     <button type="submit" class="btn btn-primary px-4">
         <i class="fa-solid fa-floppy-disk me-2"></i>Save questionnaire
     </button>

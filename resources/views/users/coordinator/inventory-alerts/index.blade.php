@@ -6,6 +6,7 @@
 @php
     $tabQuery = request()->except('page', 'tab');
     $activeFilterCount = count($filters);
+    $canManage = in_array($routePrefix, ['coordinator', 'facilitator'], true);
 @endphp
 
 @section('content')
@@ -22,8 +23,8 @@
             <div class="small text-uppercase text-secondary">Inventory threshold controls</div>
             <div class="text-secondary">Set when equipment and chemicals are marked low stock and when replenishment notifications are sent.</div>
         </div>
-        @if ($routePrefix === 'coordinator')
-            <a href="{{ route('coordinator.suppliers.index') }}" class="btn btn-outline-primary"><i class="fa-solid fa-address-book me-2"></i>Manage suppliers</a>
+        @if ($canManage)
+            <a href="{{ route($routePrefix.'.suppliers.index') }}" class="btn btn-outline-primary"><i class="fa-solid fa-address-book me-2"></i>Manage suppliers</a>
         @endif
     </div>
 

@@ -2,6 +2,7 @@
 
 use App\Models\Department;
 use App\Models\Laboratory;
+use App\Support\Campus;
 
 it('guest borrow requests flow through the step-by-step form', function () {
     $department = Department::factory()->create([
@@ -12,6 +13,7 @@ it('guest borrow requests flow through the step-by-step form', function () {
     $laboratory = Laboratory::factory()->create([
         'laboratory_name' => 'Computer Lab',
         'laboratory_code' => 'CLB',
+        'campus' => Campus::MAIN,
         'status' => 'Active',
     ]);
 
@@ -27,6 +29,7 @@ it('guest borrow requests flow through the step-by-step form', function () {
         'email' => 'jane@lccdo.edu.ph',
         'contact_number' => '09123456789',
         'department_id' => $department->id,
+        'campus' => Campus::MAIN,
         'laboratory_id' => $laboratory->id,
         'borrowed_at' => $borrowedAt->format('Y-m-d\TH:i'),
         'due_at' => $dueAt->format('Y-m-d\TH:i'),
@@ -43,6 +46,7 @@ it('guest reservation requests flow through the step-by-step form', function () 
     $laboratory = Laboratory::factory()->create([
         'laboratory_name' => 'Chemistry Lab',
         'laboratory_code' => 'CHM',
+        'campus' => Campus::MAIN,
         'status' => 'Active',
     ]);
 
@@ -57,6 +61,7 @@ it('guest reservation requests flow through the step-by-step form', function () 
         'email' => 'jane@lccdo.edu.ph',
         'contact_number' => '09123456789',
         'department_id' => $department->id,
+        'campus' => Campus::MAIN,
         'laboratory_id' => $laboratory->id,
         'experiment_title' => 'Acid analysis',
         'purpose' => 'Testing and observation',

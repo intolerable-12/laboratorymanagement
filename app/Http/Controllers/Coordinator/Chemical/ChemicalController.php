@@ -52,14 +52,14 @@ class ChemicalController extends Controller
 
         if ($restoreDeadline && $restoreDeadline->isPast()) {
             return redirect()
-                ->route('coordinator.chemicals.archived')
+                ->route($this->routePrefix().'.chemicals.archived')
                 ->with('error', 'This chemical can no longer be restored because the 5-year archive window has expired.');
         }
 
         $chemical->restore();
 
         return redirect()
-            ->route('coordinator.chemicals.archived')
+            ->route($this->routePrefix().'.chemicals.archived')
             ->with('status', 'Chemical restored successfully.');
     }
 
@@ -197,8 +197,9 @@ class ChemicalController extends Controller
 
     public function create()
     {
+        $campus = $this->viewerCampus(request());
         $categories = ChemicalCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
         $unitOptions = self::UNIT_OPTIONS;
         $storageLocations = self::STORAGE_LOCATIONS;
@@ -209,6 +210,7 @@ class ChemicalController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateChemical($request);
+        Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $data['chemical_code'] = $this->generateChemicalCode();
         $data['barcode'] = $this->generateBarcodeValue();
         $data['supplier_alert_sent_at'] = null;
@@ -226,7 +228,7 @@ class ChemicalController extends Controller
             remarks: 'Chemical added to inventory by the coordinator.',
         );
 
-        return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical created successfully.');
+        return redirect()->route($this->routePrefix().'.chemicals.index')->with('status', 'Chemical created successfully.');
     }
 
     public function show(Request $request, Chemical $chemical)
@@ -240,8 +242,10 @@ class ChemicalController extends Controller
 
     public function edit(Chemical $chemical)
     {
+        $this->ensureViewerCanAccess(request(), $chemical);
+        $campus = $this->viewerCampus(request());
         $categories = ChemicalCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::query()
             ->where(fn ($query) => $query->where('status', 'Active')->orWhere($chemical->supplier_id))
             ->orderBy('supplier_name')
@@ -254,7 +258,9 @@ class ChemicalController extends Controller
 
     public function update(Request $request, Chemical $chemical)
     {
+        $this->ensureViewerCanAccess($request, $chemical);
         $data = $this->validateChemical($request, $chemical);
+        Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $previousQuantity = (float) $chemical->quantity;
 
         if ((float) $chemical->minimum_stock !== (float) $data['minimum_stock']) {
@@ -290,11 +296,12 @@ class ChemicalController extends Controller
             performedAt: now(),   // ✅ explicit
         );
 
-        return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', 'Chemical updated successfully.');
+        return redirect()->route($this->routePrefix().'.chemicals.index', $request->query())->with('status', 'Chemical updated successfully.');
     }
 
     public function stockUp(Request $request, Chemical $chemical)
     {
+        $this->ensureViewerCanAccess($request, $chemical);
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'stock_up_mode'     => ['required', 'in:add,deduct'],
@@ -384,12 +391,13 @@ class ChemicalController extends Controller
         }
 
         return redirect()
-            ->route('coordinator.chemicals.index', $request->query())
+            ->route($this->routePrefix().'.chemicals.index', $request->query())
             ->with('status', $message);
     }
 
     public function updateSupplier(Request $request, Chemical $chemical)
     {
+        $this->ensureViewerCanAccess($request, $chemical);
         $data = $request->validate([
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
         ]);
@@ -412,14 +420,15 @@ class ChemicalController extends Controller
             ]);
         }
 
-        return redirect()->route('coordinator.chemicals.index', $request->query())->with('status', $message);
+        return redirect()->route($this->routePrefix().'.chemicals.index', $request->query())->with('status', $message);
     }
 
-    public function destroy(Chemical $chemical)
+    public function destroy(Request $request, Chemical $chemical)
     {
+        $this->ensureViewerCanAccess($request, $chemical);
         $chemical->delete();
 
-        return redirect()->route('coordinator.chemicals.index')->with('status', 'Chemical archived successfully.');
+        return redirect()->route($this->routePrefix().'.chemicals.archived')->with('status', 'Chemical archived successfully.');
     }
 
     private function validateChemical(Request $request, ?Chemical $chemical = null): array
@@ -565,6 +574,11 @@ class ChemicalController extends Controller
         return $request->user()?->role?->role_name === 'Laboratory In-charge'
             ? $request->user()->campusName()
             : null;
+    }
+
+    private function routePrefix(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
     private function ensureViewerCanAccess(Request $request, Chemical $chemical): void

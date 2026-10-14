@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'View Announcement')
 @section('page-title', 'View Announcement')
@@ -11,8 +15,8 @@
             <p class="mb-0 text-secondary">Posted by {{ $announcement['posted_by'] }}</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('coordinator.announcements.edit', $model) }}" class="btn btn-primary px-4">Edit</a>
-            <a href="{{ route('coordinator.announcements.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
+            <a href="{{ route($routePrefix.'.announcements.edit', $model) }}" class="btn btn-primary px-4">Edit</a>
+            <a href="{{ route($routePrefix.'.announcements.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
         </div>
     </div>
 

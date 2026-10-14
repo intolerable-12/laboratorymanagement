@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Edit Equipment')
 @section('page-title', 'Edit Equipment')
@@ -13,7 +17,7 @@
 
     <div class="section-card">
         <div class="card-body p-4 p-xl-5">
-            <form method="POST" action="{{ route('coordinator.equipment.update', array_merge(['equipment' => $equipment], request()->query())) }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route($routePrefix.'.equipment.update', array_merge(['equipment' => $equipment], request()->query())) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -23,7 +27,7 @@
                     'laboratories' => $laboratories,
                     'suppliers' => $suppliers,
                     'storageLocations' => $storageLocations,
-                    'formAction' => route('coordinator.equipment.update', $equipment),
+                    'formAction' => route($routePrefix.'.equipment.update', $equipment),
                     'formMethod' => 'PUT',
                 ])
             </form>

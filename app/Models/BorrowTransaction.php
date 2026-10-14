@@ -22,6 +22,7 @@ class BorrowTransaction extends Model
     protected $fillable = [
         'borrow_no',
         'laboratory_id',
+        'campus',
         'reservation_id',
         'borrower_id',
         'released_by',
@@ -74,15 +75,20 @@ class BorrowTransaction extends Model
 
         return $query
             ->forCampus($campus)
-            ->whereHas('borrower', function (Builder $userQuery) use ($campus): void {
-                $userQuery
-                    ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'))
-                    ->whereHas('department', function (Builder $departmentQuery) use ($campus): void {
-                        $departmentQuery->where('campus', $campus)
-                            ->when(
-                                $campus === Campus::IBED,
-                                fn (Builder $query) => $query->whereRaw("UPPER(TRIM(department_code)) = 'JHS'")
-                            );
+            ->whereHas('borrower', function (Builder $userQuery): void {
+                $userQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'));
+            })
+            ->where(function (Builder $requestQuery) use ($campus): void {
+                $requestQuery
+                    ->where('borrow_transactions.campus', $campus)
+                    ->orWhereHas('borrower', function (Builder $userQuery) use ($campus): void {
+                        $userQuery->whereHas('department', function (Builder $departmentQuery) use ($campus): void {
+                            $departmentQuery->where('campus', $campus)
+                                ->when(
+                                    $campus === Campus::IBED,
+                                    fn (Builder $query) => $query->whereRaw("UPPER(TRIM(department_code)) = 'JHS'")
+                                );
+                        });
                     });
             });
     }
