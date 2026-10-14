@@ -52,7 +52,7 @@ class ForumCommentController extends Controller
         $notificationService->notifyForumCommentCreated($comment, $request->user());
 
         return redirect()
-            ->route('coordinator.forum.show', $forumPost)
+            ->route($this->routePrefix($request).'.forum.show', $forumPost)
             ->with('status', 'Comment posted successfully.');
     }
 
@@ -69,6 +69,11 @@ class ForumCommentController extends Controller
 
     private function ensureCoordinator(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Coordinator', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 }

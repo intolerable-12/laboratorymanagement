@@ -1,3 +1,6 @@
+@php
+    $canManage = in_array($routePrefix, ['coordinator', 'facilitator'], true);
+@endphp
 <div data-live-search-results="supplier-alerts">
 <div class="section-card">
     <div class="card-body p-0">
@@ -36,7 +39,7 @@
                                     @if ($item->supplier_alert_sent_at)<div class="small text-secondary mt-1">Sent {{ $item->supplier_alert_sent_at->format('M j, Y') }}</div>@endif
                                 </td>
                                 <td>
-                                    @if ($routePrefix === 'coordinator')
+                                    @if ($canManage)
                                         <form method="POST" action="{{ route($routePrefix.'.inventory-alerts.equipment.update', $item) }}" class="d-flex gap-2">@csrf @method('PUT')<input type="number" name="low_stock_threshold" value="{{ $item->low_stock_threshold }}" min="0" placeholder="Disabled" class="form-control form-control-sm admin-form-control"><button class="btn btn-sm btn-primary">Save</button></form>
                                     @else
                                         <span class="fw-semibold">{{ $item->low_stock_threshold !== null ? number_format((int) $item->low_stock_threshold).' available units' : 'Disabled' }}</span>
@@ -50,7 +53,7 @@
                                 <td>{{ number_format((float) $item->quantity, 2) }} {{ $item->unit }}</td>
                                 <td>
                                     <div class="fw-semibold">{{ number_format((float) $item->minimum_stock, 2) }} {{ $item->unit }}</div>
-                                    @if ($routePrefix === 'coordinator')
+                                    @if ($canManage)
                                     <button
                                         type="button"
                                         class="btn btn-sm btn-outline-primary mt-1"
@@ -73,7 +76,7 @@
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $item->expiration_alert_days !== null ? $item->expiration_alert_days.' day(s)' : 'Disabled' }}</div>
-                                    @if ($routePrefix === 'coordinator')
+                                    @if ($canManage)
                                     <button
                                         type="button"
                                         class="btn btn-sm btn-outline-primary mt-1"
@@ -103,7 +106,7 @@
     @endif
 </div>
 
-@if ($tab === 'chemicals' && $routePrefix === 'coordinator')
+@if ($tab === 'chemicals' && $canManage)
     <div class="modal fade" id="chemicalThresholdModal" tabindex="-1" aria-labelledby="chemicalThresholdModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">

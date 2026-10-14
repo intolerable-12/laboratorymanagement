@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Request History')
 @section('page-title', 'Request History')
@@ -15,7 +19,7 @@
 
     <div class="card admin-card border-0">
         <div class="card-body p-4">
-            <form method="GET" action="{{ route('coordinator.requesthistory.index') }}" class="row g-3 align-items-end mb-4">
+            <form method="GET" action="{{ route($routePrefix . '.requesthistory.index') }}" class="row g-3 align-items-end mb-4">
                 <div class="col-lg-8">
                     <label for="request-history-search" class="form-label fw-semibold text-dark">Search student or guest</label>
                     <input
@@ -29,7 +33,7 @@
                 </div>
                 <div class="col-lg-4 d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
-                    <a href="{{ route('coordinator.requesthistory.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                    <a href="{{ route($routePrefix . '.requesthistory.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
             </form>
 
@@ -72,7 +76,7 @@
                                     </span>
                                 </td>
                                 <td class="text-center">
-                                    <a href="{{ route('coordinator.requesthistory.show', $requester) }}" class="btn btn-sm btn-outline-primary" title="View request history">
+                                    <a href="{{ route($routePrefix . '.requesthistory.show', $requester) }}" class="btn btn-sm btn-outline-primary" title="View request history">
                                         <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>
                                     </a>
                                 </td>

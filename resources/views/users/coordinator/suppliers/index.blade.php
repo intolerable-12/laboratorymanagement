@@ -2,7 +2,7 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
-    $isReadOnly = $routePrefix === 'facilitator';
+    $isReadOnly = false;
 @endphp
 
 @section('title', 'Suppliers')
@@ -22,7 +22,7 @@
             <div class="text-secondary">Manage the suppliers available in equipment and chemical forms.</div>
         </div>
         @if (!$isReadOnly)
-            <a href="{{ route('coordinator.suppliers.create') }}" class="btn btn-primary px-4"><i class="fa-solid fa-plus me-2"></i>Add supplier</a>
+            <a href="{{ route($routePrefix.'.suppliers.create') }}" class="btn btn-primary px-4"><i class="fa-solid fa-plus me-2"></i>Add supplier</a>
         @endif
     </div>
 
@@ -64,7 +64,7 @@
                         <td>{{ $supplier->equipment_count }} equipment · {{ $supplier->chemicals_count }} chemicals</td>
                         <td class="text-center pe-4">
                             @if (!$isReadOnly)
-                                <div class="btn-group action-buttons"><a href="{{ route('coordinator.suppliers.edit', $supplier) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a><form action="{{ route('coordinator.suppliers.destroy', $supplier) }}" method="POST">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this supplier?');" title="Archive"><i class="fa-solid fa-box-archive"></i></button></form></div>
+                                <div class="btn-group action-buttons"><a href="{{ route($routePrefix.'.suppliers.edit', $supplier) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a><form action="{{ route($routePrefix.'.suppliers.destroy', $supplier) }}" method="POST">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this supplier?');" title="Archive"><i class="fa-solid fa-box-archive"></i></button></form></div>
                             @else
                                 <span class="small text-secondary">View only</span>
                             @endif

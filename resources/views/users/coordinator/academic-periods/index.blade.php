@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'School Year & Semester')
 @section('page-title', 'School Year & Semester')
@@ -24,7 +28,7 @@
                         <div>
                             <h3 class="h5 fw-semibold mb-2  ">School years</h3>
                         </div>
-                        <a href="{{ route('coordinator.academic-periods.school-years.create') }}" class="btn btn-primary mb-2">
+                        <a href="{{ route($routePrefix.'.academic-periods.school-years.create') }}" class="btn btn-primary mb-2">
                             <i class="fa-solid fa-plus me-1"></i>Add school year
                         </a>
                     </div>
@@ -52,13 +56,13 @@
                                         <td class="text-center pe-4">
                                             <div class="btn-group action-buttons" role="group" aria-label="School year actions">
                                                 @unless ($schoolYear->is_current)
-                                                    <form method="POST" action="{{ route('coordinator.academic-periods.school-years.current', $schoolYear) }}">
+                                                    <form method="POST" action="{{ route($routePrefix.'.academic-periods.school-years.current', $schoolYear) }}">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-success" title="Set current" aria-label="Set current"><i class="fa-solid fa-check"></i></button>
                                                     </form>
                                                 @endunless
-                                                <a href="{{ route('coordinator.academic-periods.school-years.edit', $schoolYear) }}" class="btn btn-sm btn-outline-primary" title="Edit school year period" aria-label="Edit school year period"><i class="fa-solid fa-pen-to-square"></i><span class="d-none d-lg-inline ms-1">Edit period</span></a>
-                                                <form method="POST" action="{{ route('coordinator.academic-periods.school-years.destroy', $schoolYear) }}">
+                                                <a href="{{ route($routePrefix.'.academic-periods.school-years.edit', $schoolYear) }}" class="btn btn-sm btn-outline-primary" title="Edit school year period" aria-label="Edit school year period"><i class="fa-solid fa-pen-to-square"></i><span class="d-none d-lg-inline ms-1">Edit period</span></a>
+                                                <form method="POST" action="{{ route($routePrefix.'.academic-periods.school-years.destroy', $schoolYear) }}">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" aria-label="Delete" onclick="return confirm('Delete this school year?');" @disabled($schoolYear->is_current)><i class="fa-solid fa-trash"></i></button>
                                                 </form>
@@ -82,7 +86,7 @@
                         <div>
                             <h3 class="h5 fw-semibold mb-2">Semesters</h3>
                         </div>
-                        <a href="{{ route('coordinator.academic-periods.semesters.create') }}" class="btn btn-primary mb-2">
+                        <a href="{{ route($routePrefix.'.academic-periods.semesters.create') }}" class="btn btn-primary mb-2">
                             <i class="fa-solid fa-plus me-1"></i>Add semester
                         </a>
                     </div>
@@ -110,13 +114,13 @@
                                         <td class="text-center pe-4">
                                             <div class="btn-group action-buttons" role="group" aria-label="Semester actions">
                                                 @unless ($semester->is_current)
-                                                    <form method="POST" action="{{ route('coordinator.academic-periods.semesters.current', $semester) }}">
+                                                    <form method="POST" action="{{ route($routePrefix.'.academic-periods.semesters.current', $semester) }}">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-success" title="Set current" aria-label="Set current"><i class="fa-solid fa-check"></i></button>
                                                     </form>
                                                 @endunless
-                                                <a href="{{ route('coordinator.academic-periods.semesters.edit', $semester) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
-                                                <form method="POST" action="{{ route('coordinator.academic-periods.semesters.destroy', $semester) }}">
+                                                <a href="{{ route($routePrefix.'.academic-periods.semesters.edit', $semester) }}" class="btn btn-sm btn-outline-primary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                                                <form method="POST" action="{{ route($routePrefix.'.academic-periods.semesters.destroy', $semester) }}">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" aria-label="Delete" onclick="return confirm('Delete this semester?');" @disabled($semester->is_current)><i class="fa-solid fa-trash"></i></button>
                                                 </form>
@@ -139,7 +143,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
                 <h3 class="h5 fw-semibold mb-1">Semester academic periods</h3>
                 @if ($schoolYears->isNotEmpty())
-                    <form method="GET" action="{{ route('coordinator.academic-periods.index') }}" class="d-flex align-items-end gap-2">
+                    <form method="GET" action="{{ route($routePrefix.'.academic-periods.index') }}" class="d-flex align-items-end gap-2">
                         <div>
                             <label for="academic-period-school-year" class="form-label small fw-semibold text-secondary mb-1">School year</label>
                             <select id="academic-period-school-year" name="school_year_id" class="form-select" onchange="this.form.submit()">
@@ -157,7 +161,7 @@
             @if ($schoolYears->isEmpty() || $semesters->isEmpty())
                 <div class="text-secondary">Add at least one school year and one semester before setting academic periods.</div>
             @else
-                <form method="POST" action="{{ route('coordinator.academic-periods.semester-periods.update', ['school_year_id' => $selectedSchoolYearId]) }}">
+                <form method="POST" action="{{ route($routePrefix.'.academic-periods.semester-periods.update', ['school_year_id' => $selectedSchoolYearId]) }}">
                     @csrf
                     @method('PUT')
 

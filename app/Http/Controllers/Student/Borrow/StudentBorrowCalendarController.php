@@ -13,6 +13,7 @@ class StudentBorrowCalendarController extends Controller
 
     public function index(Request $request): View
     {
+        abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
         abort_unless($request->user()->campusName(), 403);
 
         $calendarEvents = $this->borrowTransactionsForCalendar($request->user())

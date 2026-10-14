@@ -14,6 +14,7 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
         private readonly Collection $schoolYears,
         private readonly Collection $semesters,
         private readonly array $signatories = [],
+        private readonly ?string $campus = null,
     ) {}
 
     /**
@@ -23,7 +24,7 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
      */
     public function sheets(): array
     {
-        $query = Equipment::query()->with('laboratory');
+        $query = Equipment::query()->with('laboratory')->forCampus($this->campus);
         $schoolYearIds = $this->schoolYears->pluck('id')->filter()->values();
         $semesterIds = $this->semesters->pluck('id')->filter()->values();
 

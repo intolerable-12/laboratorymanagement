@@ -87,8 +87,9 @@ class User extends Authenticatable
 
     /**
      * Resolve the campus this account is allowed to work with.
-     * Students and instructors inherit it from their department; laboratory
-     * in-charges use their explicit assignment. Coordinators are cross-campus.
+     * Students and instructors inherit their campus from their department;
+     * laboratory in-charges use their explicit assignment. Coordinators are
+     * cross-campus.
      */
     public function campusName(): ?string
     {
@@ -108,6 +109,21 @@ class User extends Authenticatable
         }
 
         return Campus::normalize($this->campus);
+    }
+
+    /**
+     * IBED JHS students are not allowed to submit reservation or borrow requests.
+     */
+    public function isIbedJhsStudent(): bool
+    {
+        $this->loadMissing(['role', 'department']);
+
+        $departmentCode = strtoupper(trim((string) $this->department?->department_code));
+        $departmentName = strtoupper(trim((string) $this->department?->department_name));
+
+        return strtolower((string) $this->role?->role_name) === 'student'
+            && $this->campusName() === Campus::IBED
+            && ($departmentCode === 'JHS' || str_contains($departmentName, 'JUNIOR HIGH'));
     }
 
     /**

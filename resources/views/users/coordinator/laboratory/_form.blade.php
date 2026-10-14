@@ -1,4 +1,6 @@
 @php
+    $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
+    $viewerCampus = $viewerCampus ?? (request()->user()?->role?->role_name === 'Laboratory In-charge' ? request()->user()->campusName() : null);
     $statuses = ['Available', 'Unavailable', 'Under Maintenance'];
     $imageUrl = $laboratory?->primaryImagePath() ? asset('storage/' . $laboratory->primaryImagePath()) : null;
     $isEditing = filled($laboratory?->getKey());
@@ -53,11 +55,16 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="campus">Campus</label>
-                <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror" required>
-                    @foreach (\App\Support\Campus::values() as $campus)
-                        <option value="{{ $campus }}" @selected(old('campus', $laboratory->campus ?? 'Main') === $campus)>{{ $campus }} campus</option>
-                    @endforeach
-                </select>
+                @if ($viewerCampus)
+                    <input type="hidden" name="campus" value="{{ $viewerCampus }}">
+                    <input type="text" id="campus" value="{{ $viewerCampus }} campus" class="form-control admin-form-control" readonly aria-readonly="true">
+                @else
+                    <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror" required>
+                        @foreach (\App\Support\Campus::values() as $campus)
+                            <option value="{{ $campus }}" @selected(old('campus', $laboratory->campus ?? 'Main') === $campus)>{{ $campus }} campus</option>
+                        @endforeach
+                    </select>
+                @endif
                 @error('campus') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
@@ -90,7 +97,7 @@
             </div>
 
             <div class="col-12 text-end mt-2">
-                <a href="{{ route('coordinator.laboratories.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <a href="{{ route($routePrefix.'.laboratories.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">{{ isset($laboratory) ? 'Save changes' : 'Create laboratory' }}</button>
             </div>
         </div>

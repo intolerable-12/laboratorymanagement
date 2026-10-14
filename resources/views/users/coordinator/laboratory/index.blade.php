@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Laboratories')
 @section('page-title', 'Laboratories')
@@ -63,7 +67,7 @@
                 </button>
             </div>
 
-            <a href="{{ route('coordinator.laboratories.create') }}" class="btn btn-primary px-4">Add laboratory</a>
+            <a href="{{ route($routePrefix.'.laboratories.create') }}" class="btn btn-primary px-4">Add laboratory</a>
         </div>
     </div>
 
@@ -110,21 +114,21 @@
                                     <td class="text-center pe-4">
                                         <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
                                             <!-- View Icon -->
-                                            <a href="{{ route('coordinator.laboratories.show', $laboratory) }}"
+                                            <a href="{{ route($routePrefix.'.laboratories.show', $laboratory) }}"
                                                 class="btn btn-sm btn-outline-secondary"
                                                 title="View" aria-label="View">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
 
                                             <!-- Edit Icon -->
-                                            <a href="{{ route('coordinator.laboratories.edit', $laboratory) }}"
+                                            <a href="{{ route($routePrefix.'.laboratories.edit', $laboratory) }}"
                                                 class="btn btn-sm btn-outline-primary"
                                                 title="Edit" aria-label="Edit">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </a>
 
                                             <!-- Delete Icon -->
-                                            <form action="{{ route('coordinator.laboratories.destroy', $laboratory) }}" method="POST">
+                                            <form action="{{ route($routePrefix.'.laboratories.destroy', $laboratory) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger"
@@ -186,14 +190,14 @@
 
                                 <div class="btn-group" role="group" aria-label="Laboratory actions">
                                     <!-- View Icon -->
-                                    <a href="{{ route('coordinator.laboratories.show', $laboratory) }}"
+                                    <a href="{{ route($routePrefix.'.laboratories.show', $laboratory) }}"
                                         class="btn btn-sm btn-outline-secondary"
                                         title="View" aria-label="View">
                                         <i class="fa-solid fa-eye"></i>
                                     </a>
 
                                     <!-- Edit Icon -->
-                                    <a href="{{ route('coordinator.laboratories.edit', $laboratory) }}"
+                                    <a href="{{ route($routePrefix.'.laboratories.edit', $laboratory) }}"
                                         class="btn btn-sm btn-outline-primary"
                                         title="Edit" aria-label="Edit">
                                         <i class="fa-solid fa-pen-to-square"></i>

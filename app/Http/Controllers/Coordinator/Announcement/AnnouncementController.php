@@ -97,7 +97,7 @@ class AnnouncementController extends Controller
         $this->notifyAudienceUsers($announcement, sendEmail: $announcement->send_email);
 
         return redirect()
-            ->route('coordinator.announcements.index')
+            ->route($this->routePrefix($request).'.announcements.index')
             ->with('status', 'Announcement created successfully.');
     }
 
@@ -141,7 +141,7 @@ class AnnouncementController extends Controller
         }
 
         return redirect()
-            ->route('coordinator.announcements.edit', $announcement)
+            ->route($this->routePrefix($request).'.announcements.edit', $announcement)
             ->with('status', 'Announcement updated successfully.');
     }
 
@@ -153,7 +153,7 @@ class AnnouncementController extends Controller
         $announcement->delete();
 
         return redirect()
-            ->route('coordinator.announcements.index')
+            ->route($this->routePrefix($request).'.announcements.index')
             ->with('status', 'Announcement deleted successfully.');
     }
 
@@ -260,6 +260,11 @@ class AnnouncementController extends Controller
 
     private function ensureCoordinator(Request $request): void
     {
-        abort_unless(optional($request->user()->role)->role_name === 'Coordinator', 403);
+        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 }

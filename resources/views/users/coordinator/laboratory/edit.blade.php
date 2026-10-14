@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Edit Laboratory')
 @section('page-title', 'Edit Laboratory')
@@ -43,12 +47,12 @@
 
     <div class="section-card">
         <div class="card-body p-4 p-xl-5">
-            <form method="POST" action="{{ route('coordinator.laboratories.update', $laboratory) }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route($routePrefix.'.laboratories.update', $laboratory) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 @include('users.coordinator.laboratory._form', [
                     'laboratory' => $laboratory,
-                    'formAction' => route('coordinator.laboratories.update', $laboratory),
+                    'formAction' => route($routePrefix.'.laboratories.update', $laboratory),
                     'formMethod' => 'PUT',
                 ])
             </form>
@@ -65,7 +69,7 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('coordinator.laboratories.images.destroy', $laboratory) }}" onsubmit="return confirm('Delete the selected laboratory photos?');">
+                <form method="POST" action="{{ route($routePrefix.'.laboratories.images.destroy', $laboratory) }}" onsubmit="return confirm('Delete the selected laboratory photos?');">
                     @csrf
                     @method('DELETE')
                     <div class="row g-3">

@@ -15,8 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ChemicalReportController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
             ->orderByDesc('start_date')
             ->orderByDesc('id')
@@ -26,8 +27,8 @@ class ChemicalReportController extends Controller
         return view('users.coordinator.reports.chemicals', [
             'schoolYears' => $schoolYears,
             'semesters' => $this->reportSemesters(),
-            'chemicalCount' => Chemical::query()->count(),
-            'laboratoryCount' => Chemical::query()->distinct('laboratory_id')->count('laboratory_id'),
+            'chemicalCount' => Chemical::query()->forCampus($campus)->count(),
+            'laboratoryCount' => Chemical::query()->forCampus($campus)->distinct('laboratory_id')->count('laboratory_id'),
         ]);
     }
 
@@ -50,9 +51,11 @@ class ChemicalReportController extends Controller
             ->with('academicPeriods')
             ->get();
 
-        if (! Chemical::query()->exists()) {
+        $campus = $this->viewerCampus($request);
+
+        if (! Chemical::query()->forCampus($campus)->exists()) {
             return redirect()
-                ->route('coordinator.reports.chemicals.index')
+                ->route($this->routePrefix($request).'.reports.chemicals.index')
                 ->withInput()
                 ->with('error', 'No chemical is available to include in the report.');
         }
@@ -75,9 +78,22 @@ class ChemicalReportController extends Controller
                 schoolYears: $schoolYears,
                 semesters: $this->reportSemesters(),
                 signatories: $signatories,
+                campus: $campus,
             ),
             $filename,
         );
+    }
+
+    private function viewerCampus(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
     private function reportSemesters(): Collection

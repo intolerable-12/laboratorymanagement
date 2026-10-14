@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'View Laboratory')
 @section('page-title', 'View Laboratory')
@@ -23,8 +27,8 @@
             </div>
 
             <div class="col-lg-4 d-flex justify-content-lg-end gap-2 flex-wrap">
-                <a href="{{ route('coordinator.laboratories.edit', $laboratory) }}" class="btn btn-primary px-4">Edit laboratory</a>
-                <a href="{{ route('coordinator.laboratories.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
+                <a href="{{ route($routePrefix.'.laboratories.edit', $laboratory) }}" class="btn btn-primary px-4">Edit laboratory</a>
+                <a href="{{ route($routePrefix.'.laboratories.index') }}" class="btn btn-outline-secondary px-4">Back to list</a>
             </div>
         </div>
     </div>
@@ -119,7 +123,7 @@
             <div class="card-body p-4 p-xl-5">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="h5 fw-semibold mb-0">Laboratory photos</h3>
-                    <a href="{{ route('coordinator.laboratories.edit', $laboratory) }}" class="btn btn-sm btn-outline-primary">Manage photos</a>
+                    <a href="{{ route($routePrefix.'.laboratories.edit', $laboratory) }}" class="btn btn-sm btn-outline-primary">Manage photos</a>
                 </div>
                 <div class="row g-3">
                     @foreach ($laboratory->images as $image)

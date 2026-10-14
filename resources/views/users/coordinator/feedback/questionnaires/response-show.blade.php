@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Student Response')
 @section('page-title', 'Student Response')
@@ -17,7 +21,7 @@
             </div>
         </div>
 
-        <a href="{{ route('coordinator.feedback.questionnaires.show', $feedbackQuestionnaire) }}" class="btn btn-outline-secondary px-4">
+        <a href="{{ route($routePrefix.'.feedback.questionnaires.show', $feedbackQuestionnaire) }}" class="btn btn-outline-secondary px-4">
             <i class="fa-solid fa-arrow-left me-2"></i>Back to questionnaire
         </a>
     </div>

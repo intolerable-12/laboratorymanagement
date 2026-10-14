@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'View Questionnaire')
 @section('page-title', 'View Questionnaire')
@@ -20,10 +24,10 @@
             <div class="text-secondary small">{{ $feedbackQuestionnaire->questions_count }} questions, {{ $feedbackQuestionnaire->responses_count }} responses</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('coordinator.feedback.questionnaires.edit', $feedbackQuestionnaire) }}" class="btn btn-primary px-4">
+            <a href="{{ route($routePrefix.'.feedback.questionnaires.edit', $feedbackQuestionnaire) }}" class="btn btn-primary px-4">
                 <i class="fa-solid fa-pen-to-square me-2"></i>Edit questionnaire
             </a>
-            <a href="{{ route('coordinator.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">
+            <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">
                 <i class="fa-solid fa-arrow-left me-2"></i>Back to list
             </a>
         </div>
@@ -110,7 +114,7 @@
                                         </td>
                                         <td>{{ $response->created_at?->format('M d, Y h:i A') }}</td>
                                         <td class="text-end pe-3">
-                                            <a href="{{ route('coordinator.feedback.questionnaires.responses.show', [$feedbackQuestionnaire, $response]) }}" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ route($routePrefix.'.feedback.questionnaires.responses.show', [$feedbackQuestionnaire, $response]) }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="fa-solid fa-eye me-1"></i>View response
                                             </a>
                                         </td>

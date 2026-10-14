@@ -56,10 +56,12 @@
 
                     <p class="text-secondary mb-4">{{ $laboratory->description ?: 'No additional laboratory description has been provided.' }}</p>
 
-                    <div class="row g-2 mt-auto">
-                        <div class="col-6"><a href="{{ route('student.reservations.create', ['laboratory_id' => $laboratory->id]) }}" class="btn btn-primary w-100">Reserve</a></div>
-                        <div class="col-6"><a href="{{ route('student.borrow.create', ['laboratory_id' => $laboratory->id]) }}" class="btn btn-outline-primary w-100">Borrow equipment</a></div>
-                    </div>
+                    @unless (auth()->user()->isIbedJhsStudent())
+                        <div class="row g-2 mt-auto">
+                            <div class="col-6"><a href="{{ route('student.reservations.create', ['laboratory_id' => $laboratory->id]) }}" class="btn btn-primary w-100">Reserve</a></div>
+                            <div class="col-6"><a href="{{ route('student.borrow.create', ['laboratory_id' => $laboratory->id]) }}" class="btn btn-outline-primary w-100">Borrow equipment</a></div>
+                        </div>
+                    @endunless
                 </div>
             </div>
         </div>

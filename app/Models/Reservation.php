@@ -23,6 +23,7 @@ class Reservation extends Model
         'reservation_no',
         'user_no',
         'laboratory_id',
+        'campus',
         'experiment_title',
         'purpose',
         'reservation_date',
@@ -67,15 +68,20 @@ class Reservation extends Model
 
         return $query
             ->forCampus($campus)
-            ->whereHas('user', function (Builder $userQuery) use ($campus): void {
-                $userQuery
-                    ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'))
-                    ->whereHas('department', function (Builder $departmentQuery) use ($campus): void {
-                        $departmentQuery->where('campus', $campus)
-                            ->when(
-                                $campus === Campus::IBED,
-                                fn (Builder $query) => $query->whereRaw("UPPER(TRIM(department_code)) = 'JHS'")
-                            );
+            ->whereHas('user', function (Builder $userQuery): void {
+                $userQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'));
+            })
+            ->where(function (Builder $requestQuery) use ($campus): void {
+                $requestQuery
+                    ->where('reservations.campus', $campus)
+                    ->orWhereHas('user', function (Builder $userQuery) use ($campus): void {
+                        $userQuery->whereHas('department', function (Builder $departmentQuery) use ($campus): void {
+                            $departmentQuery->where('campus', $campus)
+                                ->when(
+                                    $campus === Campus::IBED,
+                                    fn (Builder $query) => $query->whereRaw("UPPER(TRIM(department_code)) = 'JHS'")
+                                );
+                        });
                     });
             });
     }

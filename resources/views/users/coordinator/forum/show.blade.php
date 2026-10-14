@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Forum Management')
 @section('page-title', 'Forum Management')
@@ -21,7 +25,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('coordinator.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">
+            <a href="{{ route($routePrefix.'.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">
                 <i class="fa-solid fa-arrow-left me-1"></i> Back to feed
             </a>
         </div>
@@ -49,7 +53,7 @@
                         {!! $forumPost->content !!}
                     </div>
 
-                    <form method="POST" action="{{ route('coordinator.forum.update', $forumPost) }}" class="moderation-panel vstack gap-3">
+                    <form method="POST" action="{{ route($routePrefix.'.forum.update', $forumPost) }}" class="moderation-panel vstack gap-3">
                         @csrf
                         @method('PUT')
 
@@ -87,7 +91,7 @@
                         <div class="social-eyebrow mb-2">Join the thread</div>
                         <h3 class="h5 fw-semibold mb-4 text-dark">Add a reply</h3>
 
-                        <form method="POST" action="{{ route('coordinator.forum.comments.store', $forumPost) }}" class="vstack gap-3">
+                        <form method="POST" action="{{ route($routePrefix.'.forum.comments.store', $forumPost) }}" class="vstack gap-3">
                             @csrf
 
                             @include('partials.rich-text-editor', [

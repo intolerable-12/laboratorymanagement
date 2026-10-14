@@ -15,8 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EquipmentReportController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
             ->orderByDesc('start_date')
             ->orderByDesc('id')
@@ -27,8 +28,8 @@ class EquipmentReportController extends Controller
         return view('users.coordinator.reports.equipment', [
             'schoolYears' => $schoolYears,
             'semesters' => $semesters,
-            'equipmentCount' => Equipment::query()->count(),
-            'laboratoryCount' => Equipment::query()->distinct('laboratory_id')->count('laboratory_id'),
+            'equipmentCount' => Equipment::query()->forCampus($campus)->count(),
+            'laboratoryCount' => Equipment::query()->forCampus($campus)->distinct('laboratory_id')->count('laboratory_id'),
         ]);
     }
 
@@ -50,11 +51,12 @@ class EquipmentReportController extends Controller
             ->orderBy('id')
             ->with('academicPeriods')
             ->get();
-        $equipmentExists = Equipment::query()->exists();
+        $campus = $this->viewerCampus($request);
+        $equipmentExists = Equipment::query()->forCampus($campus)->exists();
 
         if (! $equipmentExists) {
             return redirect()
-                ->route('coordinator.reports.equipment.index')
+                ->route($this->routePrefix($request).'.reports.equipment.index')
                 ->withInput()
                 ->with('error', 'No equipment is available to include in the report.');
         }
@@ -77,9 +79,22 @@ class EquipmentReportController extends Controller
                 schoolYears: $schoolYears,
                 semesters: $this->reportSemesters(),
                 signatories: $signatories,
+                campus: $campus,
             ),
             $filename,
         );
+    }
+
+    private function viewerCampus(Request $request): ?string
+    {
+        return $request->user()?->role?->role_name === 'Laboratory In-charge'
+            ? $request->user()->campusName()
+            : null;
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
     private function reportSemesters(): Collection

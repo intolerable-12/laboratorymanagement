@@ -190,15 +190,23 @@ class ReservationController extends Controller
 		$campus = $request->user()->campusName();
 
 		abort_unless(
-			$this->canReviewRequester($reservation->user, $campus)
+			$this->canReviewRequester($reservation->user, $campus, Campus::normalize($reservation->campus))
 				&& $reservation->laboratory?->campus === $campus,
 			403
 		);
     }
 
-	private function canReviewRequester(?User $user, ?string $campus): bool
+	private function canReviewRequester(?User $user, ?string $campus, ?string $requestCampus = null): bool
 	{
-		if ($user?->role?->role_name !== 'Student' || $user->campusName() !== $campus) {
+		if ($user?->role?->role_name !== 'Student') {
+			return false;
+		}
+
+		if ($requestCampus === $campus) {
+			return true;
+		}
+
+		if ($user->campusName() !== $campus) {
 			return false;
 		}
 

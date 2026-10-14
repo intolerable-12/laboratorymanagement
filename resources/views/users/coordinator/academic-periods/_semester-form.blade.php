@@ -1,3 +1,7 @@
+@php
+    $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
+@endphp
+
 <div class="row g-3">
     <div class="col-md-8">
         <label for="semester_name" class="form-label fw-semibold">Semester name</label>
@@ -10,7 +14,7 @@
         @error('display_order')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-12 text-end mt-2">
-        <a href="{{ route('coordinator.academic-periods.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+        <a href="{{ route($routePrefix.'.academic-periods.index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
         <button type="submit" class="btn btn-primary">{{ isset($semester) ? 'Save changes' : 'Create semester' }}</button>
     </div>
 </div>

@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Announcement Management')
 @section('page-title', 'Announcement Management')
@@ -11,7 +15,7 @@
             <p class="mb-0 text-secondary">Manage who sees each announcement and keep the dashboard feeds current.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('coordinator.announcements.create') }}" class="btn btn-primary px-4">
+            <a href="{{ route($routePrefix.'.announcements.create') }}" class="btn btn-primary px-4">
                 <i class="fa-solid fa-plus me-2"></i>Create announcement
             </a>
         </div>
@@ -53,7 +57,7 @@
 
     <div class="card admin-card border-0 mb-4">
         <div class="card-body p-4">
-            <form method="GET" action="{{ route('coordinator.announcements.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($routePrefix.'.announcements.index') }}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label fw-semibold text-dark" for="audience">Audience</label>
                     <select id="audience" name="audience" class="form-select admin-form-control">
@@ -131,14 +135,14 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group action-buttons" role="group" aria-label="Announcement actions">
-                                        <a href="{{ route('coordinator.announcements.show', $announcement) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                        <a href="{{ route($routePrefix.'.announcements.show', $announcement) }}" class="btn btn-sm btn-outline-secondary" title="View">
                                             <i class="fa-solid fa-eye me-1"></i>
                                         </a>
-                                        <a href="{{ route('coordinator.announcements.edit', $announcement) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <a href="{{ route($routePrefix.'.announcements.edit', $announcement) }}" class="btn btn-sm btn-outline-primary" title="Edit">
                                             <i class="fa-solid fa-pen-to-square me-1"></i>
                                         </a>
                                     </div>
-                                    <form action="{{ route('coordinator.announcements.destroy', $announcement) }}" method="POST" class="d-inline">
+                                    <form action="{{ route($routePrefix.'.announcements.destroy', $announcement) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" onclick="return confirm('Delete this announcement?');">

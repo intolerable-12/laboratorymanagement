@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Feedback Management')
 @section('page-title', 'Feedback Management')
@@ -15,7 +19,7 @@
                 <h2 class="h3 fw-semibold text-dark mb-2">Review submitted feedback and manage surveys</h2>
                 <p class="text-secondary mb-0">Search, filter, and open cards that surface the important context immediately.</p>
             </div>
-            <a href="{{ route('coordinator.feedback.questionnaires.index') }}" class="btn btn-primary px-4 rounded-pill">Manage questionnaires</a>
+            <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-primary px-4 rounded-pill">Manage questionnaires</a>
         </div>
     </div>
 
@@ -40,7 +44,7 @@
 
     <div class="card social-card border-0 mb-4">
         <div class="card-body p-4 p-xl-5">
-            <form method="GET" action="{{ route('coordinator.feedback.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($routePrefix.'.feedback.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-5">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
                     <input type="search" id="search" name="search" value="{{ $search }}" placeholder="Student, laboratory, or comment" class="form-control social-input">
@@ -58,7 +62,7 @@
 
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4 rounded-pill">Search</button>
-                    <a href="{{ route('coordinator.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Clear</a>
+                    <a href="{{ route($routePrefix.'.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Clear</a>
                 </div>
             </form>
         </div>
@@ -87,7 +91,7 @@
                                 <div class="small text-secondary">{{ $authorName }} · {{ $feedback->created_at?->format('M d, Y h:i A') }}</div>
                             </div>
 
-                            <a href="{{ route('coordinator.feedback.show', $feedback) }}" class="btn btn-outline-primary rounded-pill align-self-start">Review feedback</a>
+                            <a href="{{ route($routePrefix.'.feedback.show', $feedback) }}" class="btn btn-outline-primary rounded-pill align-self-start">Review feedback</a>
                         </div>
 
                         <div class="rating-compact mt-3">

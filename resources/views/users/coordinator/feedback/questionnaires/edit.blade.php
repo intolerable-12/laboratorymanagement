@@ -1,4 +1,8 @@
-@extends('users.coordinator.layouts.app')
+@extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
+
+@php
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+@endphp
 
 @section('title', 'Edit Questionnaire')
 @section('page-title', 'Edit Questionnaire')
@@ -12,7 +16,7 @@
 
     <div class="section-card">
         <div class="card-body p-3 p-lg-4">
-            <form method="POST" action="{{ route('coordinator.feedback.questionnaires.update', $feedbackQuestionnaire) }}" id="questionnaireForm" class="vstack gap-4">
+            <form method="POST" action="{{ route($routePrefix.'.feedback.questionnaires.update', $feedbackQuestionnaire) }}" id="questionnaireForm" class="vstack gap-4">
                 @csrf
                 @method('PUT')
 

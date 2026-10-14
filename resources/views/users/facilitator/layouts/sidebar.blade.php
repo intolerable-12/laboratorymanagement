@@ -22,6 +22,7 @@
         $facilitatorCampus = $sidebarUser?->campusName();
 
         $isDashboard = request()->routeIs('facilitator.dashboard');
+        $isLaboratoriesGroup = request()->routeIs('facilitator.laboratories.*');
         $isEquipmentGroup = request()->routeIs('facilitator.equipment.*', 'facilitator.equipment.categories.*')
             && ! request()->routeIs('facilitator.equipment.traceability*');
         $isChemicalGroup = request()->routeIs('facilitator.chemicals.*', 'facilitator.chemical.categories.*')
@@ -39,7 +40,15 @@
         $isCheckoutGroup = request()->routeIs('facilitator.checkout.*');
         $isCheckinGroup = request()->routeIs('facilitator.checkin.*');
         $isTransactionHistory = request()->routeIs('facilitator.transaction-history.*');
+        $isRequestHistory = request()->routeIs('facilitator.requesthistory.*');
         $isForumGroup = request()->routeIs('facilitator.forum.*');
+        $isAnnouncementsGroup = request()->routeIs('facilitator.announcements.*');
+        $isFeedbackIndex = request()->routeIs('facilitator.feedback.index');
+        $isFeedbackQuestionnaires = request()->routeIs('facilitator.feedback.questionnaires.*');
+        $isFeedbackGroup = request()->routeIs('facilitator.feedback.*');
+        $isCommunicationGroup = $isFeedbackGroup || $isForumGroup || $isAnnouncementsGroup;
+        $isAcademicPeriods = request()->routeIs('facilitator.academic-periods.*');
+        $isReports = request()->routeIs('facilitator.reports.*');
         $isMyAccount = request()->routeIs('facilitator.myaccount');
 
         $isReservationRequestActive = request()->routeIs(
@@ -91,6 +100,12 @@
                     <span class="sidebar-item__label">Dashboard</span>
                 </a>
 
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isLaboratoriesGroup ? 'active' : '' }}"
+                    href="{{ route('facilitator.laboratories.index') }}" title="Laboratory">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-flask-vial"></i></span>
+                    <span class="sidebar-item__label">Laboratory</span>
+                </a>
+
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
                     type="button" data-bs-toggle="collapse" data-bs-target="#facilitatorInventoryMenu"
@@ -131,6 +146,12 @@
                         </a>
                     </div>
                 </div>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isRequestHistory ? 'active' : '' }}"
+                    href="{{ route('facilitator.requesthistory.index') }}" title="Request History">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <span class="sidebar-item__label">Request History</span>
+                </a>
 
                 <button
                     class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
@@ -234,10 +255,52 @@
                     </div>
                 </div>
 
-                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"
-                    href="{{ route('facilitator.forum.index') }}" title="Forum">
-                    <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
-                    <span class="sidebar-item__label">Forum</span>
+                <button
+                    class="nav-link rounded-3 py-2 px-3 border-0 text-start d-flex align-items-center justify-content-between"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#facilitatorCommunicationMenu"
+                    aria-expanded="{{ $isCommunicationGroup ? 'true' : 'false' }}"
+                    aria-controls="facilitatorCommunicationMenu" title="Communication">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
+                        <span class="sidebar-item__label">Communication</span>
+                    </span>
+                    <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="collapse {{ $isCommunicationGroup ? 'show' : '' }}" id="facilitatorCommunicationMenu">
+                    <div class="nav nav-pills flex-column gap-1 ms-3 ps-2 border-start">
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAnnouncementsGroup ? 'active' : '' }}"
+                            href="{{ route('facilitator.announcements.index') }}" title="Announcements">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
+                            <span class="sidebar-item__label">Announcements</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"
+                            href="{{ route('facilitator.forum.index') }}" title="Forum">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
+                            <span class="sidebar-item__label">Forum</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackIndex ? 'active' : '' }}"
+                            href="{{ route('facilitator.feedback.index') }}" title="Feedback">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
+                            <span class="sidebar-item__label">Feedback</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackQuestionnaires ? 'active' : '' }}"
+                            href="{{ route('facilitator.feedback.questionnaires.index') }}" title="Questionnaires">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-clipboard-question"></i></span>
+                            <span class="sidebar-item__label">Questionnaire</span>
+                        </a>
+                    </div>
+                </div>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isAcademicPeriods ? 'active' : '' }}"
+                    href="{{ route('facilitator.academic-periods.index') }}" title="School Year & Semester">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span class="sidebar-item__label">School Year & Semester</span>
+                </a>
+
+                <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReports ? 'active' : '' }}"
+                    href="{{ route('facilitator.reports.index') }}" title="Reports">
+                    <span class="sidebar-item__icon"><i class="fa-solid fa-chart-column"></i></span>
+                    <span class="sidebar-item__label">Reports</span>
                 </a>
 
                 <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isMyAccount ? 'active' : '' }}"

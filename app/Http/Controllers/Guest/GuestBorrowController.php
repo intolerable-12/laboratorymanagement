@@ -15,9 +15,11 @@ use App\Services\GuestRequestEmailService;
 use App\Services\GuestRequesterService;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class GuestBorrowController extends Controller
@@ -34,7 +36,15 @@ class GuestBorrowController extends Controller
         $selectedLaboratoryId = filter_var(old('laboratory_id', $details['laboratory_id'] ?? $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]) ?: null;
-        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
+        $selectedCampus = Campus::normalize((string) old('campus', $details['campus'] ?? $request->query('campus')));
+        $laboratories = Laboratory::query()
+            ->orderBy('campus')
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name', 'laboratory_code', 'campus']);
+        if (! $selectedCampus && $selectedLaboratoryId) {
+            $selectedCampus = Campus::normalize((string) $laboratories->firstWhere('id', $selectedLaboratoryId)?->campus);
+        }
+        $campuses = Campus::values();
         $minimumBorrowDate = $this->minimumBorrowDateTime();
         $borrowDateMin = $minimumBorrowDate->format('Y-m-d\TH:i');
         $borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
@@ -76,6 +86,8 @@ class GuestBorrowController extends Controller
         return view('guest.borrow.create', compact(
             'departments',
             'laboratories',
+            'campuses',
+            'selectedCampus',
             'equipmentItems',
             'activeTab',
             'selectedLaboratoryId',
@@ -89,11 +101,14 @@ class GuestBorrowController extends Controller
     public function details(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
+            'campus' => ['required', Rule::in(Campus::values())],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]));
+
+        $this->ensureLaboratoryBelongsToCampus($data);
 
         $previousDetails = $request->session()->get(self::DRAFT_DETAILS, []);
         $request->session()->put(self::DRAFT_DETAILS, $data);
@@ -115,7 +130,7 @@ class GuestBorrowController extends Controller
 
         $details = $request->session()->get(self::DRAFT_DETAILS);
         $selectedLaboratoryId = (int) $details['laboratory_id'];
-        $laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+        $laboratory = $this->laboratoryFromDetails($details);
         $search = trim((string) $request->query('search', ''));
         $equipmentQuery = Equipment::query()->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
 
@@ -137,7 +152,11 @@ class GuestBorrowController extends Controller
                     'remarks' => $item['remarks'] ?? null,
                 ],
             ])->all();
-        $selectedEquipmentItems = Equipment::query()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+        $selectedEquipmentItems = Equipment::query()
+            ->whereIn('id', array_keys($oldEquipmentSelections))
+            ->where('laboratory_id', $selectedLaboratoryId)
+            ->get()
+            ->keyBy('id');
 
         if ($request->ajax()) {
             return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
@@ -183,8 +202,11 @@ class GuestBorrowController extends Controller
             return redirect()->route('guest.borrow.items');
         }
 
-        $laboratory = Laboratory::findOrFail($details['laboratory_id']);
-        $equipment = Equipment::whereIn('id', collect($items)->pluck('item_id'))->get()->keyBy('id');
+        $laboratory = $this->laboratoryFromDetails($details);
+        $equipment = Equipment::whereIn('id', collect($items)->pluck('item_id'))
+            ->where('laboratory_id', $laboratory->id)
+            ->get()
+            ->keyBy('id');
         $requestedItems = collect($items)->map(function (array $item) use ($equipment) {
             $item['item'] = $equipment->get($item['item_id']);
             return $item;
@@ -206,6 +228,8 @@ class GuestBorrowController extends Controller
             return redirect()->route('guest.borrow.items');
         }
 
+        $laboratory = $this->laboratoryFromDetails($data);
+
         $itemsRequest = Request::create('/', 'POST', [
             'equipment_items' => collect($draftItems)->mapWithKeys(fn (array $item) => [
                 (string) $item['item_id'] => [
@@ -221,7 +245,7 @@ class GuestBorrowController extends Controller
         }
 
         $this->ensureBorrowDates($data);
-        $laboratoryId = (int) $data['laboratory_id'];
+        $laboratoryId = $laboratory->id;
         $notificationService = app(RequestNotificationService::class);
 
         $borrowTransaction = DB::transaction(function () use ($data, $items, $laboratoryId, $notificationService) {
@@ -232,6 +256,7 @@ class GuestBorrowController extends Controller
             $borrowTransaction = BorrowTransaction::create([
                 'borrow_no' => app(SequentialCodeGenerator::class)->borrowNumber($schoolYear),
                 'laboratory_id' => $laboratoryId,
+                'campus' => $data['campus'],
                 'reservation_id' => null,
                 'borrower_id' => $requester->userNo,
                 'released_by' => null,
@@ -297,6 +322,26 @@ class GuestBorrowController extends Controller
             'requestNumber' => $borrowTransaction->borrow_no,
             'email' => $borrowTransaction->borrower->email,
         ]);
+    }
+
+    private function ensureLaboratoryBelongsToCampus(array $data): void
+    {
+        if (! Laboratory::query()
+            ->whereKey((int) $data['laboratory_id'])
+            ->where('campus', $data['campus'])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'laboratory_id' => 'Select a laboratory from the selected campus.',
+            ]);
+        }
+    }
+
+    private function laboratoryFromDetails(array $details): Laboratory
+    {
+        return Laboratory::query()
+            ->whereKey((int) ($details['laboratory_id'] ?? 0))
+            ->where('campus', $details['campus'] ?? null)
+            ->firstOrFail();
     }
 
     private function ensureBorrowDates(array $data): void

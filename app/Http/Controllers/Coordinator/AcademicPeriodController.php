@@ -54,7 +54,7 @@ class AcademicPeriodController extends Controller
         $schoolYear = SchoolYear::create($this->validateSchoolYear($request));
         $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters());
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year created successfully.');
     }
 
@@ -68,7 +68,7 @@ class AcademicPeriodController extends Controller
         $schoolYear->update($this->validateSchoolYear($request, $schoolYear));
         $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters());
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year updated successfully.');
     }
 
@@ -84,7 +84,7 @@ class AcademicPeriodController extends Controller
 
         $schoolYear->delete();
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year deleted successfully.');
     }
 
@@ -95,7 +95,7 @@ class AcademicPeriodController extends Controller
             $schoolYear->update(['is_current' => true]);
         });
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', $schoolYear->school_year.' is now the current school year.');
     }
 
@@ -109,7 +109,7 @@ class AcademicPeriodController extends Controller
         Semester::create($this->validateSemester($request));
         $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters());
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester created successfully.');
     }
 
@@ -123,7 +123,7 @@ class AcademicPeriodController extends Controller
         $semester->update($this->validateSemester($request, $semester));
         $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters());
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester updated successfully.');
     }
 
@@ -139,7 +139,7 @@ class AcademicPeriodController extends Controller
 
         $semester->delete();
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester deleted successfully.');
     }
 
@@ -150,7 +150,7 @@ class AcademicPeriodController extends Controller
             $semester->update(['is_current' => true]);
         });
 
-        return redirect()->route('coordinator.academic-periods.index')
+        return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', $semester->semester_name.' is now the current semester.');
     }
 
@@ -234,7 +234,7 @@ class AcademicPeriodController extends Controller
 
         $selectedSchoolYearId = array_key_first($data['periods']);
 
-        return redirect()->route('coordinator.academic-periods.index', ['school_year_id' => $selectedSchoolYearId])
+        return redirect()->route($this->routePrefix().'.academic-periods.index', ['school_year_id' => $selectedSchoolYearId])
             ->with('status', 'Semester academic periods updated successfully.');
     }
 
@@ -284,6 +284,11 @@ class AcademicPeriodController extends Controller
 
     private function periodError(string $message)
     {
-        return redirect()->route('coordinator.academic-periods.index')->with('error', $message);
+        return redirect()->route($this->routePrefix().'.academic-periods.index')->with('error', $message);
+    }
+
+    private function routePrefix(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 }

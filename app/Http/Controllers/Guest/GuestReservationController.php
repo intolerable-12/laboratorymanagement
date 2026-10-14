@@ -17,9 +17,11 @@ use App\Services\GuestRequestEmailService;
 use App\Services\GuestRequesterService;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class GuestReservationController extends Controller
@@ -38,7 +40,15 @@ class GuestReservationController extends Controller
             'options' => ['min_range' => 1],
         ]) ?: null;
         $search = trim((string) $request->query('search', ''));
-        $laboratories = Laboratory::orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
+        $selectedCampus = Campus::normalize((string) old('campus', $details['campus'] ?? $request->query('campus')));
+        $laboratories = Laboratory::query()
+            ->orderBy('campus')
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name', 'laboratory_code', 'campus']);
+        if (! $selectedCampus && $selectedLaboratoryId) {
+            $selectedCampus = Campus::normalize((string) $laboratories->firstWhere('id', $selectedLaboratoryId)?->campus);
+        }
+        $campuses = Campus::values();
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->orderBy('chemical_name');
@@ -68,9 +78,14 @@ class GuestReservationController extends Controller
         $chemicalItems = $chemicalQuery->paginate(10, ['*'], 'chemical_page');
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
         $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
-        $selectedEquipmentItems = Equipment::whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+        $selectedEquipmentItems = Equipment::query()
+            ->whereIn('id', array_keys($oldEquipmentSelections))
+            ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
+            ->get()
+            ->keyBy('id');
         $selectedChemicalItems = Chemical::availableForRequest()
             ->whereIn('id', array_keys($oldChemicalSelections))
+            ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
             ->get()
             ->keyBy('id');
         $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
@@ -90,6 +105,8 @@ class GuestReservationController extends Controller
         return view('guest.reservation.create', compact(
             'departments',
             'laboratories',
+            'campuses',
+            'selectedCampus',
             'equipmentItems',
             'chemicalItems',
             'currentSchoolYear',
@@ -107,6 +124,7 @@ class GuestReservationController extends Controller
     public function details(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
+            'campus' => ['required', Rule::in(Campus::values())],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'experiment_title' => ['required', 'string', 'max:255'],
             'purpose' => ['required', 'string'],
@@ -116,6 +134,8 @@ class GuestReservationController extends Controller
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]));
+
+        $this->ensureLaboratoryBelongsToCampus($data);
 
         if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
             throw ValidationException::withMessages(['end_time' => 'The end time must be after the start time.']);
@@ -162,7 +182,7 @@ class GuestReservationController extends Controller
         $details = $request->session()->get(self::DRAFT_DETAILS);
         $activeTab = $request->query('tab', 'equipment');
         $selectedLaboratoryId = (int) $details['laboratory_id'];
-        $laboratory = Laboratory::findOrFail($selectedLaboratoryId);
+        $laboratory = $this->laboratoryFromDetails($details);
         $search = trim((string) $request->query('search', ''));
         $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->where('laboratory_id', $selectedLaboratoryId)->orderBy('chemical_name');
@@ -189,8 +209,16 @@ class GuestReservationController extends Controller
         $oldChemicalSelections = $request->session()->hasOldInput('chemical_items')
             ? (array) $request->session()->getOldInput('chemical_items', [])
             : collect($draftItems)->where('item_type', 'Chemical')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all();
-        $selectedEquipmentItems = Equipment::whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
-        $selectedChemicalItems = Chemical::availableForRequest()->whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
+        $selectedEquipmentItems = Equipment::query()
+            ->whereIn('id', array_keys($oldEquipmentSelections))
+            ->where('laboratory_id', $selectedLaboratoryId)
+            ->get()
+            ->keyBy('id');
+        $selectedChemicalItems = Chemical::availableForRequest()
+            ->whereIn('id', array_keys($oldChemicalSelections))
+            ->where('laboratory_id', $selectedLaboratoryId)
+            ->get()
+            ->keyBy('id');
 
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
@@ -247,9 +275,15 @@ class GuestReservationController extends Controller
             return redirect()->route('guest.reservations.items');
         }
 
-        $laboratory = Laboratory::findOrFail($details['laboratory_id']);
-        $equipment = Equipment::whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
-        $chemicals = Chemical::whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
+        $laboratory = $this->laboratoryFromDetails($details);
+        $equipment = Equipment::whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))
+            ->where('laboratory_id', $laboratory->id)
+            ->get()
+            ->keyBy('id');
+        $chemicals = Chemical::whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))
+            ->where('laboratory_id', $laboratory->id)
+            ->get()
+            ->keyBy('id');
         $requestedItems = collect($items)->map(function (array $item) use ($equipment, $chemicals) {
             $item['item'] = $item['item_type'] === 'Equipment'
                 ? $equipment->get($item['item_id'])
@@ -272,6 +306,8 @@ class GuestReservationController extends Controller
         if ($draftItems === []) {
             return redirect()->route('guest.reservations.items');
         }
+
+        $laboratory = $this->laboratoryFromDetails($data);
 
         $itemsRequest = Request::create('/', 'POST', [
             'equipment_items' => collect($draftItems)->where('item_type', 'Equipment')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all(),
@@ -310,7 +346,10 @@ class GuestReservationController extends Controller
                 ]);
             }
 
-            $laboratory = Laboratory::query()->lockForUpdate()->findOrFail($data['laboratory_id']);
+            $laboratory = Laboratory::query()
+                ->where('campus', $data['campus'])
+                ->lockForUpdate()
+                ->findOrFail($data['laboratory_id']);
 
             if ($this->hasReservationTimeConflict((int) $data['laboratory_id'], $data['reservation_date'], $data['start_time'], $data['end_time'])) {
                 throw ValidationException::withMessages(['reservation_date' => 'This laboratory already has a reservation that overlaps the selected time.']);
@@ -320,6 +359,7 @@ class GuestReservationController extends Controller
                 'reservation_no' => app(SequentialCodeGenerator::class)->reservationNumber($schoolYear, $laboratory),
                 'user_no' => $requester->userNo,
                 'laboratory_id' => $data['laboratory_id'],
+                'campus' => $data['campus'],
                 'experiment_title' => $data['experiment_title'],
                 'purpose' => $data['purpose'],
                 'reservation_date' => $data['reservation_date'],
@@ -382,6 +422,26 @@ class GuestReservationController extends Controller
             'requestNumber' => $reservation->reservation_no,
             'email' => $reservation->user->email,
         ]);
+    }
+
+    private function ensureLaboratoryBelongsToCampus(array $data): void
+    {
+        if (! Laboratory::query()
+            ->whereKey((int) $data['laboratory_id'])
+            ->where('campus', $data['campus'])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'laboratory_id' => 'Select a laboratory from the selected campus.',
+            ]);
+        }
+    }
+
+    private function laboratoryFromDetails(array $details): Laboratory
+    {
+        return Laboratory::query()
+            ->whereKey((int) ($details['laboratory_id'] ?? 0))
+            ->where('campus', $details['campus'] ?? null)
+            ->firstOrFail();
     }
 
     private function minimumReservationDate(): Carbon
