@@ -5,14 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 
 class FeedbackQuestionnaire extends Model
 {
     use HasFactory;
 
+    public const AUDIENCE_STUDENT = 'Student';
+    public const AUDIENCE_INSTRUCTOR = 'Instructor';
+    public const AUDIENCE_BOTH = 'Both';
+
     protected $fillable = [
         'topic',
         'description',
+        'campus',
+        'audience',
         'is_active',
     ];
 
@@ -31,5 +38,24 @@ class FeedbackQuestionnaire extends Model
     public function responses(): HasMany
     {
         return $this->hasMany(FeedbackQuestionnaireResponse::class);
+    }
+
+    public function scopeForCampus(Builder $query, string $campus): Builder
+    {
+        return $query->where('campus', $campus);
+    }
+
+    public function targetsAudience(string $audience): bool
+    {
+        return in_array($this->audience, [$audience, self::AUDIENCE_BOTH], true);
+    }
+
+    public static function audiences(): array
+    {
+        return [
+            self::AUDIENCE_STUDENT,
+            self::AUDIENCE_INSTRUCTOR,
+            self::AUDIENCE_BOTH,
+        ];
     }
 }

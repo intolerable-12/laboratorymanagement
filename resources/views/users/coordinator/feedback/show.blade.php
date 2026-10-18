@@ -2,6 +2,7 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $reviewerLabel = $routePrefix === 'facilitator' ? 'IBED Laboratory In-charge' : 'MAIN Campus Coordinator';
 @endphp
 
 @section('title', 'Feedback Management')
@@ -74,7 +75,7 @@
 
                     <div class="social-summary-card">
                         <div class="small text-secondary">Access</div>
-                        <div class="fw-semibold text-dark">Coordinator only</div>
+                        <div class="fw-semibold text-dark">{{ $reviewerLabel }} only</div>
                     </div>
                 </div>
             </div>

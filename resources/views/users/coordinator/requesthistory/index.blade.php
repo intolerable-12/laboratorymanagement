@@ -6,13 +6,13 @@
 
 @section('title', 'Request History')
 @section('page-title', 'Request History')
-@section('page-subtitle', 'Review request history by student or guest')
+@section('page-subtitle', 'Review request history by requester')
 
 @section('content')
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">Request History</h2>
-            <p class="mb-0 text-secondary">Select a student or guest to view all of their reservation and borrowing requests.</p>
+            <p class="mb-0 text-secondary">Select a requester to view all of their reservation and borrowing requests.</p>
         </div>
         <span class="badge text-bg-light border text-secondary align-self-start">{{ number_format($requesterCount) }} requester{{ $requesterCount === 1 ? '' : 's' }}</span>
     </div>
@@ -21,7 +21,7 @@
         <div class="card-body p-4">
             <form method="GET" action="{{ route($routePrefix . '.requesthistory.index') }}" class="row g-3 align-items-end mb-4">
                 <div class="col-lg-8">
-                    <label for="request-history-search" class="form-label fw-semibold text-dark">Search student or guest</label>
+                    <label for="request-history-search" class="form-label fw-semibold text-dark">Search requester</label>
                     <input
                         type="search"
                         id="request-history-search"
@@ -41,7 +41,7 @@
                 <table class="table align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-dark">Student / Guest</th>
+                            <th class="text-dark">Name</th>
                             <th class="text-dark">Student ID</th>
                             <th class="text-dark">Email</th>
                             <th class="text-dark">Reservations</th>
@@ -60,11 +60,24 @@
                                     $requester->suffix,
                                 ])->filter()->implode(' '));
                                 $studentCampus = $requester->campusName();
+                                $requesterType = $requester->is_guest
+                                    ? 'Guest'
+                                    : match ($requester->role?->role_name) {
+                                        'Instructor' => 'Instructor',
+                                        'Student' => 'Student',
+                                        default => 'Requester',
+                                    };
+                                $requesterTypeTone = match ($requesterType) {
+                                    'Instructor' => 'primary',
+                                    'Student' => 'info',
+                                    'Guest' => 'secondary',
+                                    default => 'light border text-secondary',
+                                };
                             @endphp
                             <tr>
                                 <td>
                                     <div class="fw-semibold text-dark">{{ $requesterName !== '' ? $requesterName : 'Unknown requester' }}</div>
-                                    <div class="small text-secondary">{{ $requester->role?->role_name === 'Student' ? 'Student / Guest account' : ($requester->role?->role_name ?? 'Requester') }}</div>
+                                    <span class="badge rounded-pill text-bg-{{ $requesterTypeTone }}">{{ $requesterType }}</span>
                                 </td>
                                 <td>{{ $requester->userID ?? '—' }}</td>
                                 <td>{{ $requester->email ?? '—' }}</td>
@@ -83,7 +96,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-secondary py-5">No students or guests with request history found.</td>
+                                <td colspan="7" class="text-center text-secondary py-5">No requesters with request history found.</td>
                             </tr>
                         @endforelse
                     </tbody>

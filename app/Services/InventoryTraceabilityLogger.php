@@ -17,6 +17,7 @@ class InventoryTraceabilityLogger
         int $performedBy,
         string $remarks,
         ?Carbon $performedAt = null,
+        ?string $action = null,
     ): ?InventoryLog {
         $quantityBefore = (float) $quantityBefore;
         $quantityAfter = (float) $quantityAfter;
@@ -29,7 +30,7 @@ class InventoryTraceabilityLogger
         return InventoryLog::create([
             'item_type'        => $this->itemType($item),
             'item_id'          => $item->getKey(),
-            'action'           => $quantityChanged > 0 ? 'Stock In' : 'Stock Out',
+            'action'           => $action ?? ($quantityChanged > 0 ? 'Stock In' : 'Stock Out'),
             'quantity_before'  => $quantityBefore,
             'quantity_changed' => $quantityChanged,
             'quantity_after'   => $quantityAfter,

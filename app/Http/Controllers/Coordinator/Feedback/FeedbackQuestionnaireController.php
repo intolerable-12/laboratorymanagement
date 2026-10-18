@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FeedbackQuestionnaire;
 use App\Models\FeedbackQuestionnaireResponse;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,11 +17,13 @@ class FeedbackQuestionnaireController extends Controller
 {
     public function index(Request $request)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
 
         $search = trim((string) $request->query('search', ''));
 
-        $questionnaires = FeedbackQuestionnaire::query()
+        $campusQuestionnaires = FeedbackQuestionnaire::query()->forCampus($campus);
+
+        $questionnaires = (clone $campusQuestionnaires)
             ->withCount(['questions', 'responses'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($nestedQuery) use ($search) {
@@ -33,28 +36,31 @@ class FeedbackQuestionnaireController extends Controller
             ->withQueryString();
 
         $stats = [
-            'total' => FeedbackQuestionnaire::count(),
-            'active' => FeedbackQuestionnaire::where('is_active', true)->count(),
-            'inactive' => FeedbackQuestionnaire::where('is_active', false)->count(),
-            'responses' => DB::table('feedback_questionnaire_responses')->count(),
+            'total' => (clone $campusQuestionnaires)->count(),
+            'active' => (clone $campusQuestionnaires)->where('is_active', true)->count(),
+            'inactive' => (clone $campusQuestionnaires)->where('is_active', false)->count(),
+            'responses' => FeedbackQuestionnaireResponse::query()
+                ->whereHas('questionnaire', fn ($query) => $query->forCampus($campus))
+                ->count(),
         ];
 
-        return view('users.coordinator.feedback.questionnaires.index', compact('questionnaires', 'search', 'stats'));
+        return view('users.coordinator.feedback.questionnaires.index', compact('questionnaires', 'search', 'stats', 'campus'));
     }
 
     public function create(Request $request)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
 
         return view('users.coordinator.feedback.questionnaires.create', [
             'questionnaire' => null,
             'questionRows' => [],
+            'campus' => $campus,
         ]);
     }
 
     public function store(Request $request, RequestNotificationService $notificationService)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
 
         $validated = $this->validateQuestionnaire($request);
         $questionRows = $this->normalizeQuestionRows($validated['questions']);
@@ -67,10 +73,12 @@ class FeedbackQuestionnaireController extends Controller
             ]);
         }
 
-        $questionnaire = DB::transaction(function () use ($validated, $questionRows, $isActive, $description) {
+        $questionnaire = DB::transaction(function () use ($validated, $questionRows, $isActive, $description, $campus) {
             $questionnaire = FeedbackQuestionnaire::create([
                 'topic' => $validated['topic'],
                 'description' => $description,
+                'campus' => $campus,
+                'audience' => $validated['audience'],
                 'is_active' => $isActive,
             ]);
 
@@ -97,13 +105,23 @@ class FeedbackQuestionnaireController extends Controller
 
     public function show(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
+        $this->ensureQuestionnaireBelongsToCampus($feedbackQuestionnaire, $campus);
+        $audienceRoles = $this->audienceRoles($feedbackQuestionnaire->audience);
 
-        $feedbackQuestionnaire->loadCount(['questions', 'responses']);
+        $feedbackQuestionnaire->loadCount('questions');
+        $feedbackQuestionnaire->loadCount([
+            'responses' => function ($query) use ($campus, $audienceRoles) {
+                $query->whereHas('user.department', fn ($departmentQuery) => $departmentQuery->where('campus', $campus))
+                    ->whereHas('user.role', fn ($roleQuery) => $roleQuery->whereIn('role_name', $audienceRoles));
+            },
+        ]);
         $feedbackQuestionnaire->load(['questions' => fn ($query) => $query->orderBy('sort_order')]);
 
         $responses = $feedbackQuestionnaire->responses()
             ->with(['user', 'answers.question'])
+            ->whereHas('user.department', fn ($query) => $query->where('campus', $campus))
+            ->whereHas('user.role', fn ($query) => $query->whereIn('role_name', $audienceRoles))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -113,9 +131,10 @@ class FeedbackQuestionnaireController extends Controller
 
     public function showResponse(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire, FeedbackQuestionnaireResponse $feedbackQuestionnaireResponse)
     {
-        $this->ensureCoordinator($request);
+        $this->ensureQuestionnaireBelongsToCampus($feedbackQuestionnaire, $this->viewerCampus($request));
 
         abort_unless($feedbackQuestionnaireResponse->feedback_questionnaire_id === $feedbackQuestionnaire->id, 404);
+        abort_unless($this->responseBelongsToQuestionnaireAudience($feedbackQuestionnaireResponse, $feedbackQuestionnaire), 404);
 
         $feedbackQuestionnaire->load(['questions' => fn ($query) => $query->orderBy('sort_order')]);
         $feedbackQuestionnaireResponse->load(['user', 'answers.question']);
@@ -125,7 +144,8 @@ class FeedbackQuestionnaireController extends Controller
 
     public function edit(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
+        $this->ensureQuestionnaireBelongsToCampus($feedbackQuestionnaire, $campus);
 
         $feedbackQuestionnaire->load(['questions' => fn ($query) => $query->orderBy('sort_order')]);
         $questionRows = $feedbackQuestionnaire->questions->map(function ($question) {
@@ -136,12 +156,13 @@ class FeedbackQuestionnaireController extends Controller
             ];
         })->values()->all();
 
-        return view('users.coordinator.feedback.questionnaires.edit', compact('feedbackQuestionnaire', 'questionRows'));
+        return view('users.coordinator.feedback.questionnaires.edit', compact('feedbackQuestionnaire', 'questionRows', 'campus'));
     }
 
     public function update(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
+        $this->ensureQuestionnaireBelongsToCampus($feedbackQuestionnaire, $campus);
 
         if ($feedbackQuestionnaire->responses()->exists()) {
             return back()->with('error', 'Questionnaires with responses can no longer be edited.');
@@ -162,6 +183,7 @@ class FeedbackQuestionnaireController extends Controller
             $feedbackQuestionnaire->update([
                 'topic' => $validated['topic'],
                 'description' => $description,
+                'audience' => $validated['audience'],
                 'is_active' => $isActive,
             ]);
 
@@ -186,7 +208,7 @@ class FeedbackQuestionnaireController extends Controller
 
     public function destroy(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire)
     {
-        $this->ensureCoordinator($request);
+        $this->ensureQuestionnaireBelongsToCampus($feedbackQuestionnaire, $this->viewerCampus($request));
 
         if ($feedbackQuestionnaire->responses()->exists()) {
             return back()->with('error', 'Remove all responses before deleting this questionnaire.');
@@ -204,6 +226,7 @@ class FeedbackQuestionnaireController extends Controller
         return $request->validate([
             'topic' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
+            'audience' => ['required', Rule::in(FeedbackQuestionnaire::audiences())],
             'is_active' => ['nullable', 'boolean'],
             'questions' => ['required', 'array', 'min:1'],
             'questions.*.question_type' => ['required', Rule::in(['likert', 'raw'])],
@@ -219,9 +242,42 @@ class FeedbackQuestionnaireController extends Controller
         }));
     }
 
-    private function ensureCoordinator(Request $request): void
+    private function viewerCampus(Request $request): string
     {
-        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+        $roleName = optional($request->user()->role)->role_name;
+
+        if ($roleName === 'Coordinator') {
+            return Campus::MAIN;
+        }
+
+        abort_unless($roleName === 'Laboratory In-charge', 403);
+
+        $campus = $request->user()->campusName();
+        abort_unless($campus === Campus::IBED, 403);
+
+        return Campus::IBED;
+    }
+
+    private function ensureQuestionnaireBelongsToCampus(FeedbackQuestionnaire $questionnaire, string $campus): void
+    {
+        abort_unless($questionnaire->campus === $campus, 404);
+    }
+
+    private function responseBelongsToQuestionnaireAudience(
+        FeedbackQuestionnaireResponse $response,
+        FeedbackQuestionnaire $questionnaire
+    ): bool {
+        $response->loadMissing(['user.role', 'user.department']);
+
+        return $response->user?->campusName() === $questionnaire->campus
+            && $questionnaire->targetsAudience($response->user?->role?->role_name ?? '');
+    }
+
+    private function audienceRoles(string $audience): array
+    {
+        return $audience === FeedbackQuestionnaire::AUDIENCE_BOTH
+            ? [FeedbackQuestionnaire::AUDIENCE_STUDENT, FeedbackQuestionnaire::AUDIENCE_INSTRUCTOR]
+            : [$audience];
     }
 
     private function routePrefix(Request $request): string

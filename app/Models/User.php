@@ -40,6 +40,7 @@ class User extends Authenticatable
         'password',
         'profile_photo',
         'role_id',
+        'is_guest',
         'department_id',
         'campus',
         'status',
@@ -66,6 +67,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'password' => 'hashed',
+            'is_guest' => 'boolean',
         ];
     }
 

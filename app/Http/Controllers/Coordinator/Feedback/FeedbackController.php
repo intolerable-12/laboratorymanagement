@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Coordinator\Feedback;
 
 use App\Http\Controllers\Controller;
 use App\Models\Feedback;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 
 class FeedbackController extends Controller
 {
     public function index(Request $request)
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->viewerCampus($request);
 
         $search = trim((string) $request->query('search', ''));
         $type = trim((string) $request->query('type', ''));
 
-        $feedbacks = Feedback::with(['user', 'laboratory', 'reservation'])
+        $campusFeedback = Feedback::query()
+            ->whereHas('user.department', fn ($query) => $query->where('campus', $campus));
+
+        $feedbacks = (clone $campusFeedback)
+            ->with(['user', 'laboratory', 'reservation'])
             ->when($type !== '', fn ($query) => $query->where('feedback_type', $type))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($nestedQuery) use ($search) {
@@ -36,9 +41,9 @@ class FeedbackController extends Controller
             ->withQueryString();
 
         $stats = [
-            'total' => Feedback::count(),
-            'lab_service' => Feedback::where('feedback_type', 'Lab Service')->count(),
-            'system' => Feedback::where('feedback_type', 'System')->count(),
+            'total' => (clone $campusFeedback)->count(),
+            'lab_service' => (clone $campusFeedback)->where('feedback_type', 'Lab Service')->count(),
+            'system' => (clone $campusFeedback)->where('feedback_type', 'System')->count(),
         ];
 
         $types = ['Lab Service', 'System'];
@@ -48,15 +53,30 @@ class FeedbackController extends Controller
 
     public function show(Request $request, Feedback $feedback)
     {
-        $this->ensureCoordinator($request);
-
         $feedback->load(['user', 'laboratory', 'reservation']);
+        abort_unless($this->feedbackBelongsToCampus($feedback, $this->viewerCampus($request)), 404);
 
         return view('users.coordinator.feedback.show', compact('feedback'));
     }
 
-    private function ensureCoordinator(Request $request): void
+    private function viewerCampus(Request $request): string
     {
-        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+        $roleName = optional($request->user()->role)->role_name;
+
+        if ($roleName === 'Coordinator') {
+            return Campus::MAIN;
+        }
+
+        abort_unless($roleName === 'Laboratory In-charge', 403);
+
+        $campus = $request->user()->campusName();
+        abort_unless($campus === Campus::IBED, 403);
+
+        return Campus::IBED;
+    }
+
+    private function feedbackBelongsToCampus(Feedback $feedback, string $campus): bool
+    {
+        return $feedback->user?->campusName() === $campus;
     }
 }

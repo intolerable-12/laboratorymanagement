@@ -13,7 +13,7 @@
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Feedback composer</div>
                     <h2 class="display-6 fw-semibold mb-3 text-dark">Write feedback that reads like a real review</h2>
-                    <p class="lead text-secondary mb-0">Explain the experience clearly so the coordinator can review it.</p>
+                    <p class="lead text-secondary mb-0">Explain the experience clearly so your campus feedback reviewer can review it.</p>
                 </div>
                 <a href="{{ route('student.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Back to feedback</a>
             </div>
@@ -105,8 +105,8 @@
                         </div>
 
                         <div class="social-promo-item">
-                            <div class="fw-semibold text-dark">Coordinator review</div>
-                            <div class="small text-secondary">Only coordinators can view submitted feedback.</div>
+                            <div class="fw-semibold text-dark">{{ $reviewerLabel }} review</div>
+                            <div class="small text-secondary">Only the assigned {{ $reviewerLabel }} can view submitted feedback.</div>
                         </div>
                     </div>
                 </div>

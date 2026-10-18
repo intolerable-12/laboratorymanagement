@@ -1,6 +1,8 @@
 @php
     $existingRows = is_array($questionRows ?? null) ? $questionRows : [];
     $oldQuestionRows = old('questions');
+    $questionnaireCampus = $campus ?? ($questionnaire->campus ?? 'Main');
+    $audienceOptions = \App\Models\FeedbackQuestionnaire::audiences();
 
     if (is_array($oldQuestionRows) && count($oldQuestionRows) > 0) {
         $questionRows = $oldQuestionRows;
@@ -39,6 +41,26 @@
             'hint' => 'Use this to give the questionnaire a short context.',
             'compact' => true,
         ])
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label for="campus" class="form-label mb-1">Campus</label>
+        <input type="text" id="campus" class="form-control admin-form-control" value="{{ $questionnaireCampus }}" readonly>
+        <div class="form-text">This questionnaire is limited to users assigned to this campus.</div>
+    </div>
+
+    <div class="col-md-6">
+        <label for="audience" class="form-label mb-1">Questionnaire for</label>
+        <select id="audience" name="audience" class="form-select admin-form-control @error('audience') is-invalid @enderror" required>
+            @foreach ($audienceOptions as $audienceOption)
+                <option value="{{ $audienceOption }}" @selected(old('audience', $questionnaire->audience ?? \App\Models\FeedbackQuestionnaire::AUDIENCE_BOTH) === $audienceOption)>
+                    {{ $audienceOption === 'Both' ? 'Students and instructors' : $audienceOption . 's' }}
+                </option>
+            @endforeach
+        </select>
+        @error('audience')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
 </div>
 

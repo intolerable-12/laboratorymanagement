@@ -18,9 +18,15 @@ class FeedbackQuestionnaireController extends Controller
         $this->ensureStudent($request);
 
         $studentNo = $request->user()->userNo;
+        $campus = $request->user()->campusName();
+        $audience = FeedbackQuestionnaire::AUDIENCE_STUDENT;
 
-        $questionnaires = FeedbackQuestionnaire::query()
+        $availableQuestionnaires = FeedbackQuestionnaire::query()
             ->where('is_active', true)
+            ->forCampus($campus)
+            ->whereIn('audience', [$audience, FeedbackQuestionnaire::AUDIENCE_BOTH]);
+
+        $questionnaires = (clone $availableQuestionnaires)
             ->withCount('questions')
             ->withCount([
                 'responses as user_response_count' => fn ($query) => $query->where('user_no', $studentNo),
@@ -30,8 +36,14 @@ class FeedbackQuestionnaireController extends Controller
             ->withQueryString();
 
         $stats = [
-            'available' => FeedbackQuestionnaire::where('is_active', true)->count(),
-            'completed' => FeedbackQuestionnaireResponse::where('user_no', $studentNo)->count(),
+            'available' => (clone $availableQuestionnaires)->count(),
+            'completed' => FeedbackQuestionnaireResponse::query()
+                ->where('user_no', $studentNo)
+                ->whereHas('questionnaire', function ($query) use ($campus, $audience) {
+                    $query->forCampus($campus)
+                        ->whereIn('audience', [$audience, FeedbackQuestionnaire::AUDIENCE_BOTH]);
+                })
+                ->count(),
         ];
 
         return view('users.student.feedback.questionnaires.index', compact('questionnaires', 'stats'));
@@ -40,6 +52,7 @@ class FeedbackQuestionnaireController extends Controller
     public function show(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire)
     {
         $this->ensureStudent($request);
+        $this->ensureQuestionnaireForStudent($request, $feedbackQuestionnaire);
 
         $studentNo = $request->user()->userNo;
 
@@ -59,6 +72,7 @@ class FeedbackQuestionnaireController extends Controller
     public function store(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire, RequestNotificationService $notificationService)
     {
         $this->ensureStudent($request);
+        $this->ensureQuestionnaireForStudent($request, $feedbackQuestionnaire);
 
         abort_unless($feedbackQuestionnaire->is_active, 404);
 
@@ -158,5 +172,15 @@ class FeedbackQuestionnaireController extends Controller
     private function ensureStudent(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
+        abort_unless($request->user()->campusName(), 403);
+    }
+
+    private function ensureQuestionnaireForStudent(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire): void
+    {
+        abort_unless(
+            $feedbackQuestionnaire->campus === $request->user()->campusName()
+                && $feedbackQuestionnaire->targetsAudience(FeedbackQuestionnaire::AUDIENCE_STUDENT),
+            404,
+        );
     }
 }

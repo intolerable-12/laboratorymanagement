@@ -20,7 +20,7 @@ class RequestHistoryController extends Controller
         $searchTerms = $this->searchTerms($search);
 
         $requestersQuery = User::query()
-            ->whereHas('role', fn (Builder $query) => $query->where('role_name', 'Student'))
+            ->whereHas('role', fn (Builder $query) => $query->whereIn('role_name', ['Student', 'Instructor']))
             ->where(function (Builder $query): void {
                 $query
                     ->whereHas('reservations')

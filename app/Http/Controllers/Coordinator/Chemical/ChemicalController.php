@@ -305,6 +305,7 @@ class ChemicalController extends Controller
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'stock_up_mode'     => ['required', 'in:add,deduct'],
+            'stock_up_status'   => ['required_if:stock_up_mode,deduct', 'nullable', Rule::in(['Expired', 'For Disposal'])],
             'transaction_date'  => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'received_date'     => ['nullable', 'date'],
             'supplier_id'       => ['nullable', 'exists:suppliers,id'],
@@ -355,9 +356,10 @@ class ChemicalController extends Controller
                     quantityAfter: (float) $chemical->quantity,
                     performedBy: (int) $request->user()->userNo,
                     remarks: $mode === 'deduct'
-                        ? 'Chemical stock decreased by the coordinator.'
+                        ? 'Chemical stock decreased by the coordinator and marked '.$data['stock_up_status'].'.'
                         : 'Chemical stock increased by the coordinator.',
                     performedAt: $transactionAt,
+                    action: $mode === 'deduct' ? $data['stock_up_status'] : null,
                 );
             });
         } catch (ValidationException $e) {

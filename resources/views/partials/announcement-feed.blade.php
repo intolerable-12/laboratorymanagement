@@ -47,8 +47,8 @@
 
                                 <div class="announcement-feed-card__body">
                                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                                        <span class="badge text-bg-light border text-dark">{{ $announcement['posted_by'] }}</span>
-                                        <span class="badge {{ $announcement['is_published'] ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $announcement['is_published'] ? 'Published' : 'Draft' }}</span>
+                                        <span class="badge text-bg-primary">{{ $announcement['posted_by_role'] }}</span>
+                                        <span class="badge text-bg-light border text-dark">{{ $announcement['posted_by_campus'] }}</span>
                                     </div>
 
                                     <h4 class="h5 fw-semibold text-dark mb-2">{{ $announcement['title'] }}</h4>
@@ -96,8 +96,8 @@
 
                     <div class="modal-body vstack gap-4">
                         <div class="d-flex flex-wrap align-items-center gap-2">
-                            <span class="badge text-bg-primary" data-announcement-status>Published</span>
-                            <span class="badge text-bg-light border text-dark" data-announcement-author>-</span>
+                            <span class="badge text-bg-primary" data-announcement-position>-</span>
+                            <span class="badge text-bg-light border text-dark" data-announcement-campus>-</span>
                             <span class="small text-secondary" data-announcement-schedule>-</span>
                         </div>
 

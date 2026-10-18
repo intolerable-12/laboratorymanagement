@@ -752,6 +752,16 @@
                                 >
                                 <div class="form-text" data-stock-up-quantity-hint>Enter the amount to add to this chemical’s stock.</div>
 
+                                <div class="mt-3 d-none" data-stock-up-deduction-status-wrap>
+                                    <label for="stock-up-status" class="form-label small fw-semibold">Status for deduction</label>
+                                    <select id="stock-up-status" name="stock_up_status" class="form-select" data-stock-up-deduction-status disabled>
+                                        <option value="">Select status</option>
+                                        <option value="Expired">Expired</option>
+                                        <option value="For Disposal">For disposal</option>
+                                    </select>
+                                    <div class="form-text">Choose the status of the chemical stock being removed.</div>
+                                </div>
+
                                 <hr class="my-3">
 
                                 <div class="mb-3">
@@ -835,6 +845,8 @@
                 const receivedDate = modal.querySelector('[data-stock-up-date]');
                 const current = modal.querySelector('[data-stock-up-current]');
                 const quantity = modal.querySelector('#stock-up-quantity');
+                const deductionStatusWrap = modal.querySelector('[data-stock-up-deduction-status-wrap]');
+                const deductionStatus = modal.querySelector('[data-stock-up-deduction-status]');
                 const quantityHint = modal.querySelector('[data-stock-up-quantity-hint]');
                 const transactionDateInput = modal.querySelector('#stock-up-transaction-date');
                 const receivedDateInput = modal.querySelector('#stock-up-received-date');
@@ -927,6 +939,14 @@
                     const verb = isDeduct ? 'deduct from' : 'add to';
                     quantityHint.textContent = `Enter the amount to ${verb} this chemical’s stock in ${currentUnit()}.`;
                     quantity.placeholder = isDeduct ? 'Enter quantity to deduct' : 'Enter quantity to add';
+                    deductionStatusWrap?.classList.toggle('d-none', !isDeduct);
+                    if (deductionStatus) {
+                        deductionStatus.disabled = !isDeduct;
+                        deductionStatus.required = isDeduct;
+                        if (!isDeduct) {
+                            deductionStatus.value = '';
+                        }
+                    }
                 };
 
                 const requestJson = async (url, formData, method = 'POST') => {
@@ -981,6 +1001,7 @@
                     current.textContent = trigger.dataset.stockUpCurrent;
                     quantity.value = '';
                     modeAdd.checked = true;
+                    deductionStatus.value = '';
                     transactionDateInput.value = transactionDateInput.defaultValue;
                     receivedDateInput.value = trigger.dataset.stockUpDateIso || '';
                     updateQuantityHint();
@@ -1054,6 +1075,12 @@
                     const amount = quantity.value.trim();
                     const isDeduct = modeDeduct?.checked;
                     const verb = isDeduct ? 'Deduct' : 'Add';
+                    const status = isDeduct ? deductionStatus?.value : '';
+
+                    if (isDeduct && !status) {
+                        showFeedback('Select the status for the chemical deduction.');
+                        return;
+                    }
 
                     if (!transactionDateInput.value) {
                         showFeedback('Select the transaction date.');
@@ -1066,7 +1093,7 @@
                     }
 
                     const confirmed = await askForConfirmation(
-                        `${verb} ${amount} ${currentUnit()} ${isDeduct ? 'from' : 'to'} ${item.textContent.trim()}?`,
+                        `${verb} ${amount} ${currentUnit()} ${isDeduct ? `from ${item.textContent.trim()} as ${status}` : `to ${item.textContent.trim()}`}?`,
                         'Confirm stock update'
                     );
                     if (!confirmed) return;
