@@ -11,8 +11,8 @@ class GuestRequesterService
 {
     /**
      * Resolve the submitted person to the user record used by the request workflow.
-     * Existing account emails are reused; new visitors receive a non-login Student
-     * record with a generated password so existing foreign keys and approval flows stay intact.
+     * Existing account emails are reused; new visitors receive a marked non-login
+     * Student record with a generated password so existing foreign keys and approval flows stay intact.
      */
     public function resolve(array $data): User
     {
@@ -57,6 +57,7 @@ class GuestRequesterService
             'contact_number' => $data['contact_number'],
             'password' => Str::random(64),
             'role_id' => $studentRoleId,
+            'is_guest' => true,
             'department_id' => $data['department_id'],
             'status' => 'Active',
         ]);

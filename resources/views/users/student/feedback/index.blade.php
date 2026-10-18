@@ -5,6 +5,10 @@
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
+@php
+    $reviewerLabel = $campus === 'IBED' ? 'IBED laboratory in-charge' : 'MAIN campus coordinator';
+@endphp
+
 
 
 @section('content')
@@ -13,8 +17,8 @@
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Student feedback</div>
-                    <h2 class="h3 fw-semibold mb-3 text-dark">A polished review feed for lab and system feedback</h2>
-                    <p class="text-secondary mb-0">Track your submitted feedback as cards and open questionnaires directly from the same page.</p>
+                    <h2>Write your feedback about the laboratories and the system</h2>
+
                 </div>
                 <div class="d-flex flex-wrap">
                     <a href="{{ route('student.feedback.create') }}" class="btn btn-primary px-4 rounded-pill">New feedback</a>
@@ -56,7 +60,7 @@
                                             <div class="small text-secondary">Submitted {{ $feedback->created_at?->format('M d, Y h:i A') }}</div>
                                         </div>
 
-                                        <span class="small text-secondary align-self-start">Coordinator review only</span>
+                                        <span class="small text-secondary align-self-start">{{ $reviewerLabel }} review only</span>
                                     </div>
 
                                     <div class="rating-compact mt-3">
@@ -73,8 +77,8 @@
                 @empty
                     <div class="card social-card border-0">
                         <div class="card-body p-5 text-center">
-                            <div class="display-6 mb-3">Feedback is coordinator-only</div>
-                            <p class="text-secondary mb-4">Submitted feedback is sent directly to the coordinator for review.</p>
+                            <div class="display-6 mb-3">Feedback is campus-scoped</div>
+                            <p class="text-secondary mb-4">Submitted feedback is sent directly to the {{ $reviewerLabel }} for review.</p>
                             <a href="{{ route('student.feedback.create') }}" class="btn btn-primary rounded-pill px-4">Write feedback</a>
                         </div>
                     </div>
@@ -105,8 +109,8 @@
                         </div>
 
                         <div class="social-promo-item">
-                            <div class="fw-semibold text-dark">Coordinator review</div>
-                            <div class="small text-secondary">Submitted feedback is visible only to coordinators.</div>
+                            <div class="fw-semibold text-dark">{{ $reviewerLabel }} review</div>
+                            <div class="small text-secondary">Submitted feedback is visible only to the assigned campus reviewer.</div>
                         </div>
                     </div>
                 </div>

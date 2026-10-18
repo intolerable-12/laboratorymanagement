@@ -680,6 +680,8 @@ class InventoryTraceabilityController extends Controller
             'Stock Out' => 'Stock deducted / removed',
             'Damage' => 'Damaged stock deducted',
             'Lost' => 'Lost stock deducted',
+            'Expired' => 'Expired chemical stock deducted',
+            'For Disposal' => 'Chemical stock marked for disposal',
             'Maintenance' => 'Stock moved to maintenance',
             'Adjustment' => $changed >= 0 ? 'Stock restored / adjusted' : 'Stock deducted / adjusted',
             default => $log->action.' recorded',
@@ -699,6 +701,8 @@ class InventoryTraceabilityController extends Controller
             'Stock Out' => 'Stock removed by the coordinator.',
             'Damage' => 'Damaged.',
             'Lost' => 'Lost.',
+            'Expired' => 'Expired chemical stock deducted.',
+            'For Disposal' => 'Chemical stock marked for disposal and deducted.',
             'Maintenance' => 'Moved to maintenance.',
             'Adjustment' => $changed >= 0
                 ? 'Inventory correction added stock.'

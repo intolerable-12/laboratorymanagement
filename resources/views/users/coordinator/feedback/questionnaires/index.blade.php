@@ -95,6 +95,9 @@
                             <tr>
                                 <td class="ps-3">
                                     <div class="fw-semibold text-dark">{{ $questionnaire->topic }}</div>
+                                    <div class="small text-secondary">
+                                        {{ $questionnaire->campus }} campus · {{ $questionnaire->audience === 'Both' ? 'Students and instructors' : $questionnaire->audience . 's' }}
+                                    </div>
                                     <div class="small text-secondary">{{ \Illuminate\Support\Str::limit(strip_tags($questionnaire->description ?? ''), 100) ?: '-' }}</div>
                                 </td>
                                 <td><span class="badge text-bg-light border text-dark">{{ $questionnaire->questions_count }}</span></td>

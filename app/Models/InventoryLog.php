@@ -21,6 +21,8 @@ class InventoryLog extends Model
         'Maintenance',
         'Stock In',
         'Stock Out',
+        'Expired',
+        'For Disposal',
     ];
 
     /**
@@ -76,6 +78,7 @@ class InventoryLog extends Model
         return match ($this->action) {
             'Return', 'Purchase', 'Stock In' => 'Added',
             'Borrow', 'Damage', 'Lost', 'Stock Out' => 'Deducted',
+            'Expired', 'For Disposal' => 'Deducted',
             'Adjustment' => (float) $this->quantity_changed >= 0 ? 'Added' : 'Deducted',
             default => $this->action,
         };
@@ -92,6 +95,7 @@ class InventoryLog extends Model
             'Borrow' => 'Student request',
             'Return' => 'Student return',
             'Stock In', 'Stock Out' => 'Coordinator update',
+            'Expired', 'For Disposal' => 'Coordinator update',
             default => 'Inventory action',
         };
     }

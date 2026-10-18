@@ -138,18 +138,18 @@
                         </div>
                         <div class="col-md-4">
                             <label for="guest-reservation-date" class="form-label fw-semibold">Reservation date</label>
-                            <input id="guest-reservation-date" type="date" name="reservation_date" value="{{ old('reservation_date', session('guest.reservation.draft.details.reservation_date')) }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" class="form-control @error('reservation_date') is-invalid @enderror" aria-describedby="guest-reservation-date-feedback" required>
+                            <input id="guest-reservation-date" type="date" name="reservation_date" value="{{ old('reservation_date', session('guest.reservation.draft.details.reservation_date')) }}" min="{{ $reservationMinDate }}" data-business-days-min="{{ $reservationMinDate }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" aria-describedby="guest-reservation-date-feedback" required>
                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div id="guest-reservation-date-feedback" class="invalid-feedback" data-date-validation-message hidden></div>
                         </div>
                         <div class="col-md-4">
                             <label for="guest-start-time" class="form-label fw-semibold">Start time</label>
-                            <input id="guest-start-time" type="time" name="start_time" value="{{ old('start_time', session('guest.reservation.draft.details.start_time')) }}" min="07:30" max="17:00" step="60" class="form-control @error('start_time') is-invalid @enderror" required>
+                            <input id="guest-start-time" type="time" name="start_time" value="{{ old('start_time', session('guest.reservation.draft.details.start_time')) }}" min="07:30" max="17:00" step="60" data-native-date-time class="form-control @error('start_time') is-invalid @enderror" required>
                             @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
                             <label for="guest-end-time" class="form-label fw-semibold">End time</label>
-                            <input id="guest-end-time" type="time" name="end_time" value="{{ old('end_time', session('guest.reservation.draft.details.end_time')) }}" min="07:30" max="17:00" step="60" class="form-control @error('end_time') is-invalid @enderror" required>
+                            <input id="guest-end-time" type="time" name="end_time" value="{{ old('end_time', session('guest.reservation.draft.details.end_time')) }}" min="07:30" max="17:00" step="60" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">

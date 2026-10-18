@@ -50,6 +50,14 @@
                             <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-circle-info me-1"></i>Status</div>
                             <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->is_active ? 'Active' : 'Inactive' }}</div>
                         </div>
+                        <div>
+                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-building-columns me-1"></i>Campus</div>
+                            <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->campus }}</div>
+                        </div>
+                        <div>
+                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-users me-1"></i>Audience</div>
+                            <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->audience === 'Both' ? 'Students and instructors' : $feedbackQuestionnaire->audience . 's' }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -101,7 +109,7 @@
                         <table class="table table-hover align-middle mb-0 table-sm">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col" class="ps-3">Student</th>
+                                    <th scope="col" class="ps-3">Participant</th>
                                     <th scope="col">Submitted</th>
                                     <th scope="col" class="text-end pe-3">Action</th>
                                 </tr>

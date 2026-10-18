@@ -265,6 +265,7 @@ class EquipmentController extends Controller
         $data = $request->validate([
             'stock_up_quantity' => ['required', 'integer', 'min:1'],
             'stock_up_mode'     => ['required', 'in:add,deduct'],
+            'stock_up_condition' => ['required_if:stock_up_mode,deduct', 'nullable', Rule::in(['Damaged', 'Lost'])],
             'transaction_date'  => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'purchase_date'     => ['nullable', 'date', 'before_or_equal:today'],
             'supplier_id'       => ['nullable', 'exists:suppliers,id'],
@@ -317,9 +318,10 @@ class EquipmentController extends Controller
                     quantityAfter: (int) $equipment->available_quantity,
                     performedBy: (int) $request->user()->userNo,
                     remarks: $mode === 'deduct'
-                        ? 'Equipment stock decreased by the coordinator.'
+                        ? 'Equipment stock decreased by the coordinator and tagged '.$data['stock_up_condition'].'.'
                         : 'Equipment stock increased by the coordinator.',
                     performedAt: $transactionAt,
+                    action: $mode === 'deduct' ? $data['stock_up_condition'] : null,
                 );
             });
         } catch (ValidationException $e) {

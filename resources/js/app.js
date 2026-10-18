@@ -1035,8 +1035,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         const modalSelectors = {
             title: modalElement.querySelector('[data-announcement-title]'),
-            status: modalElement.querySelector('[data-announcement-status]'),
-            author: modalElement.querySelector('[data-announcement-author]'),
+            position: modalElement.querySelector('[data-announcement-position]'),
+            campus: modalElement.querySelector('[data-announcement-campus]'),
             schedule: modalElement.querySelector('[data-announcement-schedule]'),
             audiences: modalElement.querySelector('[data-announcement-audiences]'),
             content: modalElement.querySelector('[data-announcement-content]'),
@@ -1049,12 +1049,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const openAnnouncement = (announcement) => {
             setTextContent(modalSelectors.title, announcement.title, 'Announcement details');
 
-            if (modalSelectors.status) {
-                modalSelectors.status.className = `badge ${announcement.is_published ? 'text-bg-success' : 'text-bg-secondary'}`;
-                modalSelectors.status.textContent = announcement.is_published ? 'Published' : 'Draft';
-            }
-
-            setTextContent(modalSelectors.author, `${announcement.posted_by ?? 'System'}${announcement.posted_by_role ? ` - ${announcement.posted_by_role}` : ''}`);
+            setTextContent(modalSelectors.position, announcement.posted_by_role ?? 'Coordinator');
+            setTextContent(modalSelectors.campus, announcement.posted_by_campus ?? 'MAIN');
             setTextContent(modalSelectors.schedule, announcement.start_date || announcement.end_date ? `${announcement.start_date || 'Anytime'} - ${announcement.end_date || 'Open ended'}` : `Updated ${announcement.updated_at || announcement.created_at || '-'}`);
             renderAnnouncementBadges(modalSelectors.audiences, announcement.audiences || []);
 

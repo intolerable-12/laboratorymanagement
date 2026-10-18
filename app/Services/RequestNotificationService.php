@@ -383,51 +383,180 @@ class RequestNotificationService
     public function notifyQuestionnaireCreated(FeedbackQuestionnaire $questionnaire, User $creator): void
     {
         $title = 'New feedback questionnaire';
-        $message = 'Coordinator ' . $this->displayName($creator) . ' created a new questionnaire: "' . $questionnaire->topic . '".';
-        $actionUrl = route('coordinator.feedback.questionnaires.show', $questionnaire);
+        $creatorRole = $creator->role?->role_name ?? 'User';
+        $message = $creatorRole . ' ' . $this->displayName($creator) . ' created a new questionnaire: "' . $questionnaire->topic . '".';
+        $requestNumber = 'Questionnaire #' . $questionnaire->id;
+        $summaryRows = [
+            ['label' => 'Topic', 'value' => $questionnaire->topic],
+            ['label' => 'Campus', 'value' => $questionnaire->campus],
+            ['label' => 'Audience', 'value' => $questionnaire->audience],
+            ['label' => 'Status', 'value' => $questionnaire->is_active ? 'Active' : 'Inactive'],
+        ];
+
+        if ($questionnaire->campus === Campus::IBED) {
+            $this->notifyCampusRoleUsers(
+                'Laboratory In-charge',
+                Campus::IBED,
+                'System',
+                $title,
+                $message,
+                $questionnaire,
+            );
+            $this->emailCampusRoleUsers(
+                'Laboratory In-charge',
+                Campus::IBED,
+                'Questionnaire',
+                $requestNumber,
+                $title,
+                $message . ' Review it in LabCentral.',
+                route('facilitator.feedback.questionnaires.show', $questionnaire),
+                'Review questionnaire',
+                $summaryRows,
+            );
+
+            return;
+        }
+
+        if ($questionnaire->campus !== Campus::MAIN) {
+            return;
+        }
 
         $this->notifyRoleUsers('Coordinator', 'System', $title, $message, $questionnaire);
         $this->emailRoleUsers(
             'Coordinator',
             'Questionnaire',
-            'Questionnaire #' . $questionnaire->id,
+            $requestNumber,
             $title,
             $message . ' Review it in LabCentral.',
-            $actionUrl,
+            route('coordinator.feedback.questionnaires.show', $questionnaire),
             'Review questionnaire',
+            $summaryRows,
+        );
+    }
+
+    /**
+     * Notify the feedback reviewer assigned to the submitter's campus.
+     */
+    public function notifyFeedbackSubmitted(Feedback $feedback, string $submitterRole): void
+    {
+        $feedback->loadMissing(['user.role', 'user.department', 'laboratory']);
+
+        $submitterName = $feedback->is_anonymous
+            ? 'Anonymous'
+            : ($feedback->user ? $this->displayName($feedback->user) : $submitterRole);
+        $target = $feedback->laboratory?->laboratory_name ?? 'System';
+        $requestNumber = 'Feedback #' . $feedback->id;
+        $title = 'New feedback submitted';
+        $message = $submitterRole . ' ' . $submitterName . ' submitted ' . strtolower($feedback->feedback_type) . ' feedback for ' . $target . '.';
+        $campus = $feedback->user?->campusName();
+
+        if ($campus === Campus::IBED) {
+            $this->notifyCampusRoleUsers(
+                'Laboratory In-charge',
+                Campus::IBED,
+                'System',
+                $title,
+                $message,
+                $feedback,
+            );
+            $this->emailCampusRoleUsers(
+                'Laboratory In-charge',
+                Campus::IBED,
+                'Feedback',
+                $requestNumber,
+                $title,
+                $message . ' Please review it in LabCentral.',
+                route('facilitator.feedback.show', $feedback),
+                'Review feedback',
+                [
+                    ['label' => 'Submitted by', 'value' => $submitterName],
+                    ['label' => 'Feedback type', 'value' => $feedback->feedback_type],
+                    ['label' => 'Target', 'value' => $target],
+                    ['label' => 'Rating', 'value' => $feedback->rating . '/5'],
+                ],
+            );
+
+            return;
+        }
+
+        if ($campus !== Campus::MAIN) {
+            return;
+        }
+
+        $this->notifyRoleUsers('Coordinator', 'System', $title, $message, $feedback);
+        $this->emailRoleUsers(
+            'Coordinator',
+            'Feedback',
+            $requestNumber,
+            $title,
+            $message . ' Please review it in LabCentral.',
+            route('coordinator.feedback.show', $feedback),
+            'Review feedback',
             [
-                ['label' => 'Topic', 'value' => $questionnaire->topic],
-                ['label' => 'Status', 'value' => $questionnaire->is_active ? 'Active' : 'Inactive'],
+                ['label' => 'Submitted by', 'value' => $submitterName],
+                ['label' => 'Feedback type', 'value' => $feedback->feedback_type],
+                ['label' => 'Target', 'value' => $target],
+                ['label' => 'Rating', 'value' => $feedback->rating . '/5'],
             ],
         );
     }
 
     public function notifyQuestionnaireResponseSubmitted(FeedbackQuestionnaireResponse $response): void
     {
-        $response->loadMissing(['questionnaire', 'user.role']);
+        $response->loadMissing(['questionnaire', 'user.role', 'user.department']);
 
         $questionnaire = $response->questionnaire;
+        if (! $questionnaire || ! in_array($questionnaire->campus, [Campus::MAIN, Campus::IBED], true)) {
+            return;
+        }
+
         $respondent = $response->user;
         $respondentName = $respondent ? $this->displayName($respondent) : 'A user';
         $respondentRole = $respondent?->role?->role_name ?? 'User';
         $title = 'New questionnaire response';
         $message = $respondentRole . ' ' . $respondentName . ' submitted a response to "' . $questionnaire->topic . '".';
-        $actionUrl = route('coordinator.feedback.questionnaires.responses.show', [$questionnaire, $response]);
+        $requestNumber = 'Response #' . $response->id;
+        $summaryRows = [
+            ['label' => 'Questionnaire', 'value' => $questionnaire->topic],
+            ['label' => 'Campus', 'value' => $questionnaire->campus],
+            ['label' => 'Respondent', 'value' => $respondentName],
+            ['label' => 'Submitted', 'value' => $response->created_at?->format('M d, Y h:i A') ?? 'Just now'],
+        ];
+
+        if ($questionnaire->campus === Campus::IBED) {
+            $this->notifyCampusRoleUsers(
+                'Laboratory In-charge',
+                Campus::IBED,
+                'System',
+                $title,
+                $message,
+                $response,
+            );
+            $this->emailCampusRoleUsers(
+                'Laboratory In-charge',
+                Campus::IBED,
+                'Questionnaire response',
+                $requestNumber,
+                $title,
+                $message . ' Review the submitted answers in LabCentral.',
+                route('facilitator.feedback.questionnaires.responses.show', [$questionnaire, $response]),
+                'Review response',
+                $summaryRows,
+            );
+
+            return;
+        }
 
         $this->notifyRoleUsers('Coordinator', 'System', $title, $message, $response);
         $this->emailRoleUsers(
             'Coordinator',
             'Questionnaire response',
-            'Response #' . $response->id,
+            $requestNumber,
             $title,
             $message . ' Review the submitted answers in LabCentral.',
-            $actionUrl,
+            route('coordinator.feedback.questionnaires.responses.show', [$questionnaire, $response]),
             'Review response',
-            [
-                ['label' => 'Questionnaire', 'value' => $questionnaire->topic],
-                ['label' => 'Respondent', 'value' => $respondentName],
-                ['label' => 'Submitted', 'value' => $response->created_at?->format('M d, Y h:i A') ?? 'Just now'],
-            ],
+            $summaryRows,
         );
     }
 
@@ -495,9 +624,11 @@ class RequestNotificationService
         }
 
         if ($reference instanceof Feedback) {
-            return $user->role?->role_name === 'Coordinator'
-                ? route('coordinator.feedback.show', $reference)
-                : route('notifications.index');
+            return match ($user->role?->role_name) {
+                'Coordinator' => route('coordinator.feedback.show', $reference),
+                'Laboratory In-charge' => route('facilitator.feedback.show', $reference),
+                default => route('notifications.index'),
+            };
         }
 
         if ($reference instanceof ForumPost) {
@@ -505,17 +636,21 @@ class RequestNotificationService
         }
 
         if ($reference instanceof FeedbackQuestionnaire) {
-            return $user->role?->role_name === 'Coordinator'
-                ? route('coordinator.feedback.questionnaires.show', $reference)
-                : route('notifications.index');
+            return match ($user->role?->role_name) {
+                'Coordinator' => route('coordinator.feedback.questionnaires.show', $reference),
+                'Laboratory In-charge' => route('facilitator.feedback.questionnaires.show', $reference),
+                default => route('notifications.index'),
+            };
         }
 
         if ($reference instanceof FeedbackQuestionnaireResponse) {
             $reference->loadMissing('questionnaire');
 
-            return $user->role?->role_name === 'Coordinator'
-                ? route('coordinator.feedback.questionnaires.responses.show', [$reference->questionnaire, $reference])
-                : route('notifications.index');
+            return match ($user->role?->role_name) {
+                'Coordinator' => route('coordinator.feedback.questionnaires.responses.show', [$reference->questionnaire, $reference]),
+                'Laboratory In-charge' => route('facilitator.feedback.questionnaires.responses.show', [$reference->questionnaire, $reference]),
+                default => route('notifications.index'),
+            };
         }
 
         if ($reference instanceof Reservation) {

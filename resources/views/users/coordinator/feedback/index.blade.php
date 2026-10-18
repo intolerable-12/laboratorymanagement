@@ -2,6 +2,7 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $reviewerLabel = $routePrefix === 'facilitator' ? 'IBED Laboratory In-charge' : 'MAIN Campus Coordinator';
 @endphp
 
 @section('title', 'Feedback Management')
@@ -16,7 +17,7 @@
         <div class="card-body p-4 p-xl-5 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
             <div>
                 <div class="social-eyebrow mb-3">Feedback management</div>
-                <h2 class="h3 fw-semibold text-dark mb-2">Review submitted feedback and manage surveys</h2>
+                <h2 class="h3 fw-semibold text-dark mb-2">{{ $reviewerLabel }} feedback</h2>
                 <p class="text-secondary mb-0">Search, filter, and open cards that surface the important context immediately.</p>
             </div>
             <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-primary px-4 rounded-pill">Manage questionnaires</a>

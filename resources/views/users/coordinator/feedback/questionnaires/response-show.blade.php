@@ -4,8 +4,8 @@
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
 @endphp
 
-@section('title', 'Student Response')
-@section('page-title', 'Student Response')
+@section('title', 'Questionnaire Response')
+@section('page-title', 'Questionnaire Response')
 
 @section('content')
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -29,7 +29,7 @@
     <div class="section-card">
         <div class="card-header bg-white border-0 pt-3 px-3 px-lg-4">
             <h3 class="h5 fw-semibold mb-0">
-                <i class="fa-solid fa-circle-check me-2 text-success"></i>Student answers
+                <i class="fa-solid fa-circle-check me-2 text-success"></i>Participant answers
             </h3>
         </div>
 

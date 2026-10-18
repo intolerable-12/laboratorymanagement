@@ -733,6 +733,16 @@
                                 <input type="text" inputmode="numeric" pattern="[0-9]+" class="form-control form-control-lg" id="stock-up-quantity" name="stock_up_quantity" placeholder="Enter quantity to add" autocomplete="off" required>
                                 <div class="form-text" data-stock-up-quantity-hint>Enter the number of units to add to this equipment’s stock.</div>
 
+                                <div class="mt-3 d-none" data-stock-up-deduction-condition-wrap>
+                                    <label for="stock-up-condition" class="form-label small fw-semibold">Condition for deduction</label>
+                                    <select id="stock-up-condition" name="stock_up_condition" class="form-select" data-stock-up-deduction-condition disabled>
+                                        <option value="">Select condition</option>
+                                        <option value="Damaged">Damaged</option>
+                                        <option value="Lost">Lost</option>
+                                    </select>
+                                    <div class="form-text">Choose why these equipment units are being removed from inventory.</div>
+                                </div>
+
                                 <hr class="my-3">
 
                                 <div class="mb-3">
@@ -816,6 +826,8 @@
                 const purchaseDate = modal.querySelector('[data-stock-up-date]');
                 const current = modal.querySelector('[data-stock-up-current]');
                 const quantity = modal.querySelector('#stock-up-quantity');
+                const deductionConditionWrap = modal.querySelector('[data-stock-up-deduction-condition-wrap]');
+                const deductionCondition = modal.querySelector('[data-stock-up-deduction-condition]');
                 const feedback = modal.querySelector('[data-stock-up-feedback]');
                 const submitButton = form.querySelector('[type="submit"]');
                 const confirmationModal = document.getElementById('stock-up-confirm-modal');
@@ -903,6 +915,14 @@
                         ? 'Enter the number of units to deduct from this equipment’s stock.'
                         : 'Enter the number of units to add to this equipment’s stock.';
                     quantity.placeholder = isDeduct ? 'Enter quantity to deduct' : 'Enter quantity to add';
+                    deductionConditionWrap?.classList.toggle('d-none', !isDeduct);
+                    if (deductionCondition) {
+                        deductionCondition.disabled = !isDeduct;
+                        deductionCondition.required = isDeduct;
+                        if (!isDeduct) {
+                            deductionCondition.value = '';
+                        }
+                    }
                 };
 
                 const updateSupplierLabel = () => {
@@ -970,6 +990,7 @@
                     current.textContent = trigger.dataset.stockUpCurrent;
                     quantity.value = '';
                     modeAdd.checked = true;
+                    deductionCondition.value = '';
                     transactionDateInput.value = transactionDateInput.defaultValue;
                     updateQuantityHint();
                     purchaseDateInput.value = trigger.dataset.stockUpDateIso || '';
@@ -1038,6 +1059,12 @@
                     const amount = quantity.value.trim();
                     const isDeduct = modeDeduct?.checked;
                     const verb = isDeduct ? 'Deduct' : 'Add';
+                    const condition = isDeduct ? deductionCondition?.value : '';
+
+                    if (isDeduct && !condition) {
+                        showFeedback('Select the condition for the equipment deduction.');
+                        return;
+                    }
 
                     if (!transactionDateInput.value) {
                         showFeedback('Select the transaction date.');
@@ -1055,7 +1082,7 @@
                     }
 
                     const confirmed = await askForConfirmation(
-                        `${verb} ${amount} unit(s) ${isDeduct ? 'from' : 'to'} ${item.textContent.trim()}?`,
+                        `${verb} ${amount} unit(s) ${isDeduct ? `from ${item.textContent.trim()} as ${condition}` : `to ${item.textContent.trim()}`}?`,
                         'Confirm stock update'
                     );
 
