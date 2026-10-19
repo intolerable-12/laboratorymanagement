@@ -350,17 +350,23 @@ class ChemicalController extends Controller
 
                 $chemical->update($updates);
 
-                app(InventoryTraceabilityLogger::class)->record(
-                    item: $chemical,
-                    quantityBefore: $previousQuantity,
-                    quantityAfter: (float) $chemical->quantity,
-                    performedBy: (int) $request->user()->userNo,
-                    remarks: $mode === 'deduct'
-                        ? 'Chemical stock decreased by the coordinator and marked '.$data['stock_up_status'].'.'
-                        : 'Chemical stock increased by the coordinator.',
-                    performedAt: $transactionAt,
-                    action: $mode === 'deduct' ? $data['stock_up_status'] : null,
-                );
+                try {
+                    app(InventoryTraceabilityLogger::class)->record(
+                        item: $chemical,
+                        quantityBefore: $previousQuantity,
+                        quantityAfter: (float) $chemical->quantity,
+                        performedBy: (int) $request->user()->userNo,
+                        remarks: $mode === 'deduct'
+                            ? 'Chemical stock decreased by the '.$this->actorLabel().' and marked '.$data['stock_up_status'].'.'
+                            : 'Chemical stock increased by the '.$this->actorLabel().'.',
+                        performedAt: $transactionAt,
+                        action: $mode === 'deduct' ? 'Stock Out' : 'Stock In',
+                    );
+                } catch (\Throwable $loggerException) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'stock_up_quantity' => 'Stock updated but traceability log failed: '.$loggerException->getMessage(),
+                    ]);
+                }
             });
         } catch (ValidationException $e) {
             if ($request->expectsJson()) {
@@ -593,5 +599,9 @@ class ChemicalController extends Controller
 
         $chemical->loadMissing('laboratory');
         abort_unless($chemical->laboratory?->campus === $campus, 404);
+    }
+    private function actorLabel(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'in-charge' : 'coordinator';
     }
 }

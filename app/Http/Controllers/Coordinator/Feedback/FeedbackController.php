@@ -66,13 +66,11 @@ class FeedbackController extends Controller
         if ($roleName === 'Coordinator') {
             return Campus::MAIN;
         }
-
+    
         abort_unless($roleName === 'Laboratory In-charge', 403);
 
-        $campus = $request->user()->campusName();
-        abort_unless($campus === Campus::IBED, 403);
-
-        return Campus::IBED;
+        // Facilitator: scope strictly to their own campus (MAIN or IBED).
+        return $request->user()->campusName();
     }
 
     private function feedbackBelongsToCampus(Feedback $feedback, string $campus): bool

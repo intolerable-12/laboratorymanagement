@@ -272,10 +272,11 @@ class EquipmentController extends Controller
         ]);
 
         $mode = $data['stock_up_mode'];
+        $condition = $mode === 'deduct' ? $data['stock_up_condition'] : null;
         $transactionAt = Carbon::parse($data['transaction_date'], config('app.timezone'))->setTimeFrom(now());
 
         try {
-            DB::transaction(function () use ($equipment, $data, $request, $mode, $transactionAt): void {
+                DB::transaction(function () use ($equipment, $data, $request, $mode, $condition, $transactionAt): void {
                 $equipment = Equipment::query()->lockForUpdate()->findOrFail($equipment->getKey());
                 $amount = (int) $data['stock_up_quantity'];
                 $previousAvailableQuantity = (int) $equipment->available_quantity;
@@ -312,17 +313,22 @@ class EquipmentController extends Controller
 
                 $equipment->update($updates);
 
-                app(InventoryTraceabilityLogger::class)->record(
-                    item: $equipment,
-                    quantityBefore: $previousAvailableQuantity,
-                    quantityAfter: (int) $equipment->available_quantity,
-                    performedBy: (int) $request->user()->userNo,
-                    remarks: $mode === 'deduct'
-                        ? 'Equipment stock decreased by the coordinator and tagged '.$data['stock_up_condition'].'.'
-                        : 'Equipment stock increased by the coordinator.',
-                    performedAt: $transactionAt,
-                    action: $mode === 'deduct' ? $data['stock_up_condition'] : null,
-                );
+                try {
+                    app(InventoryTraceabilityLogger::class)->record(
+                        item: $equipment,
+                        quantityBefore: $previousAvailableQuantity,
+                        quantityAfter: (int) $equipment->available_quantity,
+                        performedBy: (int) $request->user()->userNo,
+                        remarks: $mode === 'deduct'
+                            ? 'Equipment stock decreased by the '.$this->actorLabel().' and tagged '.$condition.'.'
+                            : 'Equipment stock increased by the '.$this->actorLabel().'.',
+                        performedAt: $transactionAt,
+                    );
+                } catch (\Throwable $loggerException) {
+                    throw ValidationException::withMessages([
+                        'stock_up_quantity' => 'Stock updated but traceability log failed: '.$loggerException->getMessage(),
+                    ]);
+                }
             });
         } catch (ValidationException $e) {
             if ($request->expectsJson()) {
@@ -513,5 +519,9 @@ class EquipmentController extends Controller
 
         $equipment->loadMissing('laboratory');
         abort_unless($equipment->laboratory?->campus === $campus, 404);
+    }
+    private function actorLabel(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'in-charge' : 'coordinator';
     }
 }

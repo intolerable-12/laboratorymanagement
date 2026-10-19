@@ -221,6 +221,11 @@ class InventoryTraceabilityController extends Controller
         return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
+    private function actorLabel(): string
+    {
+        return request()->routeIs('facilitator.*') ? 'in-charge' : 'coordinator';
+    }
+
     private function viewerCampus(Request $request): ?string
     {
         return $request->user()?->role?->role_name === 'Laboratory In-charge'
@@ -695,10 +700,10 @@ class InventoryTraceabilityController extends Controller
         $reason = match ($log->action) {
             'Borrow' => 'Borrowed / checked out.',
             'Return' => $changed > 0
-                ? 'Returned after check-in and added back to available stock.'
+                ? 'Returned after check-in and added back to available stock.'  
                 : 'Returned after check-in but not added back to available stock'.($condition ? ' because it was '.$condition.'.' : '.'),
-            'Purchase', 'Stock In' => 'Restocked / quantity added by the coordinator.',
-            'Stock Out' => 'Stock removed by the coordinator.',
+            'Purchase', 'Stock In' => 'Restocked / quantity added by the '.$this->actorLabel().'.',
+            'Stock Out' => 'Stock removed by the '.$this->actorLabel().'.',
             'Damage' => 'Damaged.',
             'Lost' => 'Lost.',
             'Expired' => 'Expired chemical stock deducted.',
