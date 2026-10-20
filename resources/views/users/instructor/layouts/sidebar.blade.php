@@ -197,7 +197,7 @@
                     aria-controls="instructorCommunicationMenu" title="Feedback">
                     <span class="d-flex align-items-center gap-2">
                         <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>
-                        <span class="sidebar-item__label">Feedback</span>
+                        <span class="sidebar-item__label">Communication</span>
                     </span>
                     <span class="sidebar-item__chevron small" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
                 </button>
