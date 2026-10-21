@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -114,17 +115,23 @@ class User extends Authenticatable
     }
 
     /**
-     * IBED JHS students are not allowed to submit reservation or borrow requests.
+     * IBED students are not allowed to submit reservation or borrow requests.
      */
-    public function isIbedJhsStudent(): bool
+    public function isIbedStudent(): bool
     {
         $this->loadMissing(['role', 'department']);
 
+        return strtolower((string) $this->role?->role_name) === 'student'
+            && $this->campusName() === Campus::IBED;
+    }
+
+    public function isIbedJhsStudent(): bool
+    {
+        $this->loadMissing(['role', 'department']);
         $departmentCode = strtoupper(trim((string) $this->department?->department_code));
         $departmentName = strtoupper(trim((string) $this->department?->department_name));
 
-        return strtolower((string) $this->role?->role_name) === 'student'
-            && $this->campusName() === Campus::IBED
+        return $this->isIbedStudent()
             && ($departmentCode === 'JHS' || str_contains($departmentName, 'JUNIOR HIGH'));
     }
 
@@ -168,5 +175,18 @@ class User extends Authenticatable
     public function borrowTransactions(): HasMany
     {
         return $this->hasMany(BorrowTransaction::class, 'borrower_id', 'userNo');
+    }
+
+    /**
+     * Instructors who may be selected to review student and guest requests.
+     * Instructor campus is inherited from the department, so this deliberately
+     * filters the department campus instead of the users.campus fallback field.
+     */
+    public function scopeMainCampusInstructors(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'Active')
+            ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Instructor'))
+            ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', Campus::MAIN));
     }
 }

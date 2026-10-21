@@ -136,6 +136,17 @@
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
                         </div>
                         <div class="col-12">
+                            <label for="guest-borrow-instructor" class="form-label fw-semibold">Instructor reviewer</label>
+                            <select id="guest-borrow-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
+                                <option value="">Select a Main campus instructor</option>
+                                @foreach ($instructors as $instructor)
+                                    <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', session('guest.borrow.draft.details.instructor_id')) == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
+                                @endforeach
+                            </select>
+                            @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="form-text">Only the selected instructor will receive and approve this request.</div>
+                        </div>
+                        <div class="col-12">
                             <label for="guest-borrow-remarks" class="form-label fw-semibold">Remarks <span class="text-secondary fw-normal">(optional)</span></label>
                             <textarea id="guest-borrow-remarks" name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Optional notes for the instructor">{{ old('remarks', session('guest.borrow.draft.details.remarks')) }}</textarea>
                             @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

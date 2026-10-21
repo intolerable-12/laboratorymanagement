@@ -31,9 +31,7 @@
                     $item = $entry['item'];
                     $image = $entry['image'];
                     $statusTone = $entry['status_tone'];
-                    $statusLabel = $entry['status'] === 'Facilitator Approved'
-                        ? 'Laboratory In-charge Approved'
-                        : $entry['status'];
+                    $statusLabel = $transaction->statusLabel();
                 @endphp
 
                 <article class="borrow-equipment-card {{ $viewMode === 'list' ? 'borrow-list-item' : '' }}">

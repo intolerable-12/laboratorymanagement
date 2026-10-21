@@ -13,6 +13,7 @@ use App\Models\Reservation;
 use App\Models\ReservationItem;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\User;
 use App\Services\GuestRequestEmailService;
 use App\Services\GuestRequesterService;
 use App\Services\RequestNotificationService;
@@ -90,6 +91,7 @@ class GuestReservationController extends Controller
             ->keyBy('id');
         $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
         $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
+        $instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
 
@@ -117,7 +119,8 @@ class GuestReservationController extends Controller
             'oldEquipmentSelections',
             'oldChemicalSelections',
             'selectedEquipmentItems',
-            'selectedChemicalItems'
+            'selectedChemicalItems',
+            'instructors'
         ));
     }
 
@@ -126,6 +129,7 @@ class GuestReservationController extends Controller
         $data = $request->validate(array_merge($this->requesterRules(), [
             'campus' => ['required', Rule::in(Campus::values())],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
+            'instructor_id' => ['required', 'integer'],
             'experiment_title' => ['required', 'string', 'max:255'],
             'purpose' => ['required', 'string'],
             'reservation_date' => ['required', 'date'],
@@ -134,6 +138,8 @@ class GuestReservationController extends Controller
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]));
+
+        $this->ensureMainCampusInstructor((int) $data['instructor_id']);
 
         $this->ensureLaboratoryBelongsToCampus($data);
 
@@ -307,6 +313,8 @@ class GuestReservationController extends Controller
             return redirect()->route('guest.reservations.items');
         }
 
+        $this->ensureMainCampusInstructor((int) ($data['instructor_id'] ?? 0));
+
         $laboratory = $this->laboratoryFromDetails($data);
 
         $itemsRequest = Request::create('/', 'POST', [
@@ -360,6 +368,7 @@ class GuestReservationController extends Controller
                 'user_no' => $requester->userNo,
                 'laboratory_id' => $data['laboratory_id'],
                 'campus' => $data['campus'],
+                'instructor_id' => $data['instructor_id'],
                 'experiment_title' => $data['experiment_title'],
                 'purpose' => $data['purpose'],
                 'reservation_date' => $data['reservation_date'],
@@ -384,10 +393,10 @@ class GuestReservationController extends Controller
             }
 
             $reservation->loadMissing('laboratory');
+			$reservation->loadMissing('assignedInstructor');
 
-            $notificationService->notifyCampusRoleUsers(
-                'Instructor',
-                $reservation->laboratory?->campus,
+			$notificationService->notifyUser(
+				$reservation->assignedInstructor,
                 'Reservation',
                 'New reservation request',
                 'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($requester) . ' is waiting for review.',
@@ -399,10 +408,9 @@ class GuestReservationController extends Controller
 
         $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
-        $reservation->load(['user', 'laboratory']);
-        $notificationService->emailCampusRoleUsers(
-            'Instructor',
-            $reservation->laboratory?->campus,
+        $reservation->load(['user', 'laboratory', 'assignedInstructor']);
+		$notificationService->emailUser(
+			$reservation->assignedInstructor,
             'Reservation',
             $reservation->reservation_no,
             'New reservation request',
@@ -432,6 +440,15 @@ class GuestReservationController extends Controller
             ->exists()) {
             throw ValidationException::withMessages([
                 'laboratory_id' => 'Select a laboratory from the selected campus.',
+            ]);
+        }
+    }
+
+    private function ensureMainCampusInstructor(int $instructorId): void
+    {
+        if (! User::query()->mainCampusInstructors()->whereKey($instructorId)->exists()) {
+            throw ValidationException::withMessages([
+                'instructor_id' => 'Select an active Main campus instructor.',
             ]);
         }
     }

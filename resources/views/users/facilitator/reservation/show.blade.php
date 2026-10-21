@@ -21,9 +21,7 @@
 							'Cancelled' => 'danger',
             default => 'secondary',
         };
-        $statusLabel = $reservation->status === 'Facilitator Approved'
-            ? 'Laboratory In-charge Approved'
-            : $reservation->status;
+        $statusLabel = $reservation->statusLabel();
     @endphp
     <div class="account-page">
 

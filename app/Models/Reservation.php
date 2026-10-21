@@ -24,6 +24,7 @@ class Reservation extends Model
         'user_no',
         'laboratory_id',
         'campus',
+        'instructor_id',
         'experiment_title',
         'purpose',
         'reservation_date',
@@ -47,6 +48,17 @@ class Reservation extends Model
             'reservation_date' => 'date',
             'expected_participants' => 'integer',
         ];
+    }
+
+    public function statusLabel(): string
+    {
+        if ($this->status === 'Coordinator Approved' && $this->laboratory?->campus === Campus::IBED) {
+            return 'IBED Laboratory In-charge approved';
+        }
+
+        return $this->status === 'Facilitator Approved'
+            ? 'Laboratory In-charge Approved'
+            : $this->status;
     }
 
     public function scopeForCampus(Builder $query, ?string $campus): Builder
@@ -99,6 +111,11 @@ class Reservation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_no', 'userNo');
+    }
+
+    public function assignedInstructor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'instructor_id', 'userNo');
     }
 
     /**

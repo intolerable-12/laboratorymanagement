@@ -32,8 +32,9 @@ class InstructorBorrowController extends Controller
 			$sort = 'borrowed_at';
 		}
 
-		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
-			->forInstructorApproval($campus)
+		$borrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy'])
+			->where('borrow_transactions.instructor_id', $request->user()->userNo)
+			->whereHas('borrower', fn ($query) => $query->whereHas('role', fn ($roleQuery) => $roleQuery->where('role_name', 'Student')))
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
@@ -168,8 +169,12 @@ class InstructorBorrowController extends Controller
 		$campus = $request->user()->campusName();
 
 		abort_unless(
-			$this->canReviewRequester($borrowTransaction->borrower, $campus, Campus::normalize($borrowTransaction->campus))
-				&& $borrowTransaction->laboratory?->campus === $campus,
+			$campus === Campus::MAIN
+			&&
+			$borrowTransaction->instructor_id === $request->user()->userNo
+			&& ($borrowTransaction->borrower?->is_guest
+				|| ($this->canReviewRequester($borrowTransaction->borrower, $campus, Campus::normalize($borrowTransaction->campus))
+					&& $borrowTransaction->laboratory?->campus === $campus)),
 			403
 		);
 	}

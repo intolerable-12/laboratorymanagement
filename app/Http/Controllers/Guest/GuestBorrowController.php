@@ -11,6 +11,7 @@ use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\SchoolYear;
+use App\Models\User;
 use App\Services\GuestRequestEmailService;
 use App\Services\GuestRequesterService;
 use App\Services\RequestNotificationService;
@@ -68,6 +69,7 @@ class GuestBorrowController extends Controller
 
         $equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
+        $instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
         $selectedEquipmentItems = Equipment::query()
             ->whereIn('id', array_keys($oldEquipmentSelections))
@@ -94,7 +96,8 @@ class GuestBorrowController extends Controller
             'borrowDateMin',
             'borrowDateMinLabel',
             'oldEquipmentSelections',
-            'selectedEquipmentItems'
+            'selectedEquipmentItems',
+            'instructors'
         ));
     }
 
@@ -103,10 +106,13 @@ class GuestBorrowController extends Controller
         $data = $request->validate(array_merge($this->requesterRules(), [
             'campus' => ['required', Rule::in(Campus::values())],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
+            'instructor_id' => ['required', 'integer'],
             'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]));
+
+        $this->ensureMainCampusInstructor((int) $data['instructor_id']);
 
         $this->ensureLaboratoryBelongsToCampus($data);
 
@@ -228,6 +234,8 @@ class GuestBorrowController extends Controller
             return redirect()->route('guest.borrow.items');
         }
 
+        $this->ensureMainCampusInstructor((int) ($data['instructor_id'] ?? 0));
+
         $laboratory = $this->laboratoryFromDetails($data);
 
         $itemsRequest = Request::create('/', 'POST', [
@@ -257,6 +265,7 @@ class GuestBorrowController extends Controller
                 'borrow_no' => app(SequentialCodeGenerator::class)->borrowNumber($schoolYear),
                 'laboratory_id' => $laboratoryId,
                 'campus' => $data['campus'],
+                'instructor_id' => $data['instructor_id'],
                 'reservation_id' => null,
                 'borrower_id' => $requester->userNo,
                 'released_by' => null,
@@ -284,10 +293,10 @@ class GuestBorrowController extends Controller
             }
 
             $borrowTransaction->loadMissing('laboratory');
+			$borrowTransaction->loadMissing('assignedInstructor');
 
-            $notificationService->notifyCampusRoleUsers(
-                'Instructor',
-                $borrowTransaction->laboratory?->campus,
+			$notificationService->notifyUser(
+				$borrowTransaction->assignedInstructor,
                 'Borrow',
                 'New borrow request',
                 'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($requester) . ' is waiting for review.',
@@ -299,10 +308,9 @@ class GuestBorrowController extends Controller
 
         $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
-        $borrowTransaction->load(['borrower', 'laboratory']);
-        $notificationService->emailCampusRoleUsers(
-            'Instructor',
-            $borrowTransaction->laboratory?->campus,
+        $borrowTransaction->load(['borrower', 'laboratory', 'assignedInstructor']);
+		$notificationService->emailUser(
+			$borrowTransaction->assignedInstructor,
             'Borrow',
             $borrowTransaction->borrow_no,
             'New borrow request',
@@ -332,6 +340,15 @@ class GuestBorrowController extends Controller
             ->exists()) {
             throw ValidationException::withMessages([
                 'laboratory_id' => 'Select a laboratory from the selected campus.',
+            ]);
+        }
+    }
+
+    private function ensureMainCampusInstructor(int $instructorId): void
+    {
+        if (! User::query()->mainCampusInstructors()->whereKey($instructorId)->exists()) {
+            throw ValidationException::withMessages([
+                'instructor_id' => 'Select an active Main campus instructor.',
             ]);
         }
     }

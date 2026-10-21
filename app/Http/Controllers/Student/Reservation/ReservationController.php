@@ -11,6 +11,7 @@ use App\Models\Reservation;
 use App\Models\ReservationItem;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\User;
 use App\Services\SequentialCodeGenerator;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
@@ -49,12 +50,14 @@ class ReservationController extends Controller
         $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
         $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
         $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
+        $instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
 
         return view('users.student.reservation.create', compact(
             'laboratories',
             'currentSchoolYear',
             'currentSemester',
-            'reservationMinDate'
+            'reservationMinDate',
+            'instructors'
         ));
     }
 
@@ -223,6 +226,10 @@ class ReservationController extends Controller
 			return redirect()->route($this->requesterRoute($request, 'items'));
         }
 
+		if (! $this->isInstructorRequester($request)) {
+			$this->ensureMainCampusInstructor((int) ($data['instructor_id'] ?? 0));
+		}
+
         $itemsRequest = Request::create('/', 'POST', $this->draftItemsInput($draftItems));
 		$itemsRequest->setUserResolver(fn () => $request->user());
         $items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id']);
@@ -263,6 +270,8 @@ class ReservationController extends Controller
                 'reservation_no' => $codeGenerator->reservationNumber($schoolYear, $laboratory),
                 'user_no' => $request->user()->userNo,
                 'laboratory_id' => $data['laboratory_id'],
+				'campus' => $request->user()->campusName(),
+				'instructor_id' => $data['instructor_id'] ?? null,
                 'experiment_title' => $data['experiment_title'],
                 'purpose' => $data['purpose'],
                 'reservation_date' => $data['reservation_date'],
@@ -286,6 +295,8 @@ class ReservationController extends Controller
                 ]);
             }
 
+			$reservation->loadMissing('assignedInstructor');
+
 				if ($this->isInstructorRequester($request)) {
 					$notificationService->notifyCampusRoleUsers(
 						'Laboratory In-charge',
@@ -296,9 +307,8 @@ class ReservationController extends Controller
 						$reservation
 					);
 				} else {
-					$notificationService->notifyCampusRoleUsers(
-						'Instructor',
-						$request->user()->campusName(),
+					$notificationService->notifyUser(
+						$reservation->assignedInstructor,
 						'Reservation',
 						'New reservation request',
 						'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
@@ -309,7 +319,7 @@ class ReservationController extends Controller
             return $reservation;
         });
 
-        $reservation->loadMissing('laboratory');
+        $reservation->loadMissing(['laboratory', 'assignedInstructor']);
 
         $request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
 
@@ -330,9 +340,8 @@ class ReservationController extends Controller
 				]
 			);
 		} else {
-			$notificationService->emailCampusRoleUsers(
-				'Instructor',
-				$request->user()->campusName(),
+			$notificationService->emailUser(
+				$reservation->assignedInstructor,
 				'Reservation',
 				$reservation->reservation_no,
 				'New reservation request',
@@ -402,8 +411,13 @@ class ReservationController extends Controller
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i'],
             'expected_participants' => ['required', 'integer', 'min:1'],
+			'instructor_id' => $this->isInstructorRequester($request) ? ['nullable', 'integer'] : ['required', 'integer'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
+
+		if (! $this->isInstructorRequester($request)) {
+			$this->ensureMainCampusInstructor((int) $data['instructor_id']);
+		}
 
 		$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 
@@ -589,7 +603,7 @@ class ReservationController extends Controller
 
     private function ensureCanSubmitRequest(Request $request): void
     {
-        abort_unless(! $request->user()->isIbedJhsStudent(), 403);
+        abort_unless(! $request->user()->isIbedStudent(), 403);
     }
 
 	private function isInstructorRequester(Request $request): bool
@@ -616,6 +630,15 @@ class ReservationController extends Controller
 	private function ensureStudentLaboratory(Request $request, int $laboratoryId): void
 	{
 		abort_unless(Laboratory::forCampus($this->campusForUser($request))->whereKey($laboratoryId)->exists(), 403);
+	}
+
+	private function ensureMainCampusInstructor(int $instructorId): void
+	{
+		if (! User::query()->mainCampusInstructors()->whereKey($instructorId)->exists()) {
+			throw ValidationException::withMessages([
+				'instructor_id' => 'Select an active Main campus instructor.',
+			]);
+		}
 	}
 
     private function minimumReservationDate(): Carbon

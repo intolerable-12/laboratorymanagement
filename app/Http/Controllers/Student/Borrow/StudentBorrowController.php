@@ -10,6 +10,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\SchoolYear;
+use App\Models\User;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -204,6 +205,7 @@ class StudentBorrowController extends Controller
 		}
 
 		$equipmentItems = $equipmentQuery->paginate(10, ['*'], 'equipment_page');
+		$instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
 		$oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
 		$selectedEquipmentItems = Equipment::query()
 			->forCampus($campus)
@@ -227,7 +229,8 @@ class StudentBorrowController extends Controller
 			'borrowDateMin',
 			'borrowDateMinLabel',
 			'oldEquipmentSelections',
-			'selectedEquipmentItems'
+			'selectedEquipmentItems',
+			'instructors'
 		));
 	}
 
@@ -367,6 +370,10 @@ class StudentBorrowController extends Controller
 			return redirect()->route($this->requesterRoute($request, 'items'));
 		}
 
+		if (! $this->isInstructorRequester($request)) {
+			$this->ensureMainCampusInstructor((int) ($data['instructor_id'] ?? 0));
+		}
+
 		$itemsRequest = Request::create('/', 'POST', $this->draftItemsInput($draftItems));
 		$itemsRequest->setUserResolver(fn () => $request->user());
 		$items = $this->collectRequestedItems($itemsRequest, (int) $data['laboratory_id']);
@@ -387,6 +394,8 @@ class StudentBorrowController extends Controller
 			$borrowTransaction = BorrowTransaction::create([
 				'borrow_no' => $codeGenerator->borrowNumber($schoolYear),
 				'laboratory_id' => (int) $data['laboratory_id'],
+				'campus' => $request->user()->campusName(),
+				'instructor_id' => $data['instructor_id'] ?? null,
 				'reservation_id' => null,
 				'borrower_id' => $request->user()->userNo,
 				'released_by' => null,
@@ -413,6 +422,8 @@ class StudentBorrowController extends Controller
 				]);
 			}
 
+			$borrowTransaction->loadMissing('assignedInstructor');
+
 			if ($this->isInstructorRequester($request)) {
 				$notificationService->notifyCampusRoleUsers(
 					'Laboratory In-charge',
@@ -423,9 +434,8 @@ class StudentBorrowController extends Controller
 					$borrowTransaction
 				);
 			} else {
-				$notificationService->notifyCampusRoleUsers(
-					'Instructor',
-					$request->user()->campusName(),
+				$notificationService->notifyUser(
+					$borrowTransaction->assignedInstructor,
 					'Borrow',
 					'New borrow request',
 					'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($request->user()) . ' is waiting for review.',
@@ -437,6 +447,7 @@ class StudentBorrowController extends Controller
 		});
 
 		$request->session()->forget([self::DRAFT_DETAILS, self::DRAFT_ITEMS]);
+		$borrowTransaction->loadMissing('assignedInstructor');
 
 		if ($this->isInstructorRequester($request)) {
 			$notificationService->emailCampusRoleUsers(
@@ -455,9 +466,8 @@ class StudentBorrowController extends Controller
 				]
 			);
 		} else {
-			$notificationService->emailCampusRoleUsers(
-				'Instructor',
-				$request->user()->campusName(),
+			$notificationService->emailUser(
+				$borrowTransaction->assignedInstructor,
 				'Borrow',
 				$borrowTransaction->borrow_no,
 				'New borrow request',
@@ -527,8 +537,13 @@ class StudentBorrowController extends Controller
 			'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
 			'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
 			'laboratory_id' => ['required', 'exists:laboratories,id'],
+			'instructor_id' => $this->isInstructorRequester($request) ? ['nullable', 'integer'] : ['required', 'integer'],
 			'remarks' => ['nullable', 'string', 'max:1000'],
 		]);
+
+		if (! $this->isInstructorRequester($request)) {
+			$this->ensureMainCampusInstructor((int) $data['instructor_id']);
+		}
 
 		$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 
@@ -655,7 +670,7 @@ class StudentBorrowController extends Controller
 
 	private function ensureCanSubmitRequest(Request $request): void
 	{
-		abort_unless(! $request->user()->isIbedJhsStudent(), 403);
+		abort_unless(! $request->user()->isIbedStudent(), 403);
 	}
 
 	private function isInstructorRequester(Request $request): bool
@@ -682,6 +697,15 @@ class StudentBorrowController extends Controller
 	private function ensureStudentLaboratory(Request $request, int $laboratoryId): void
 	{
 		abort_unless(Laboratory::forCampus($this->campusForUser($request))->whereKey($laboratoryId)->exists(), 403);
+	}
+
+	private function ensureMainCampusInstructor(int $instructorId): void
+	{
+		if (! User::query()->mainCampusInstructors()->whereKey($instructorId)->exists()) {
+			throw ValidationException::withMessages([
+				'instructor_id' => 'Select an active Main campus instructor.',
+			]);
+		}
 	}
 
 	private function minimumBorrowDateTime(): Carbon
