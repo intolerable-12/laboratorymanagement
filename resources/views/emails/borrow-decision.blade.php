@@ -6,9 +6,7 @@
     <title>{{ $decisionLabel }}</title>
 </head>
 @php
-    $statusLabel = $borrowTransaction->status === 'Facilitator Approved'
-        ? 'Laboratory In-charge Approved'
-        : $borrowTransaction->status;
+    $statusLabel = $borrowTransaction->statusLabel();
 @endphp
 <body style="margin:0; padding:0; background:#f5f7fb; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
     <div style="max-width:720px; margin:0 auto; padding:32px 16px;">

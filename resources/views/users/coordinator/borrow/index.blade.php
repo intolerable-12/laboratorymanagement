@@ -67,9 +67,7 @@
 									'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
-                                $statusLabel = $borrow->status === 'Facilitator Approved'
-                                    ? 'Laboratory In-charge Approved'
-                                    : $borrow->status;
+                                $statusLabel = $borrow->statusLabel();
                             @endphp
                             <tr>
                                 <td>

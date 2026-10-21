@@ -86,6 +86,19 @@
                             <input type="number" min="1" name="expected_participants" value="{{ old('expected_participants', $details['expected_participants'] ?? 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
                             @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
+                        @if (optional(auth()->user()->role)->role_name !== 'Instructor')
+                            <div class="col-12">
+                                <label for="reservation-instructor" class="form-label fw-semibold text-dark">Instructor reviewer</label>
+                                <select id="reservation-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
+                                    <option value="">Select a Main campus instructor</option>
+                                    @foreach ($instructors as $instructor)
+                                        <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', $details['instructor_id'] ?? '') == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                <div class="form-text">Only the selected instructor will receive and approve this request.</div>
+                            </div>
+                        @endif
                         <div class="col-12">
                             <div class="form-text">Academic period:
                                 @if ($currentSchoolYear && $currentSemester)

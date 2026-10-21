@@ -30,7 +30,7 @@ class CoordinatorBorrowController extends Controller
 			$sort = 'borrowed_at';
 		}
 
-		$borrows = BorrowTransaction::with(['borrower', 'items.item', 'releasedBy', 'receivedBy'])
+		$borrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy'])
 			->forCampus(Campus::MAIN)
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')

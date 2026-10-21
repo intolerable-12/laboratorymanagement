@@ -23,6 +23,7 @@ class BorrowTransaction extends Model
         'borrow_no',
         'laboratory_id',
         'campus',
+        'instructor_id',
         'reservation_id',
         'borrower_id',
         'released_by',
@@ -54,6 +55,17 @@ class BorrowTransaction extends Model
             'overdue_notified_at' => 'datetime',
             'returned_at' => 'datetime',
         ];
+    }
+
+    public function statusLabel(): string
+    {
+        if ($this->status === 'Coordinator Approved' && $this->laboratory?->campus === Campus::IBED) {
+            return 'IBED Laboratory In-charge approved';
+        }
+
+        return $this->status === 'Facilitator Approved'
+            ? 'Laboratory In-charge Approved'
+            : $this->status;
     }
 
     public function scopeForCampus(Builder $query, ?string $campus): Builder
@@ -122,6 +134,11 @@ class BorrowTransaction extends Model
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_id', 'userNo');
+    }
+
+    public function assignedInstructor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'instructor_id', 'userNo');
     }
 
     /**

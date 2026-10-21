@@ -35,7 +35,8 @@ class ReservationController extends Controller
         }
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
-			->forInstructorApproval($campus)
+			->where('reservations.instructor_id', $request->user()->userNo)
+			->whereHas('user', fn ($query) => $query->whereHas('role', fn ($roleQuery) => $roleQuery->where('role_name', 'Student')))
             ->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
             ->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
             ->select('reservations.*')
@@ -190,8 +191,12 @@ class ReservationController extends Controller
 		$campus = $request->user()->campusName();
 
 		abort_unless(
-			$this->canReviewRequester($reservation->user, $campus, Campus::normalize($reservation->campus))
-				&& $reservation->laboratory?->campus === $campus,
+			$campus === Campus::MAIN
+			&&
+			$reservation->instructor_id === $request->user()->userNo
+			&& ($reservation->user?->is_guest
+				|| ($this->canReviewRequester($reservation->user, $campus, Campus::normalize($reservation->campus))
+					&& $reservation->laboratory?->campus === $campus)),
 			403
 		);
     }

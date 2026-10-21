@@ -114,9 +114,7 @@
                                         'Rejected', 'Cancelled' => 'danger',
                                         default => 'secondary',
                                     };
-                                    $statusLabel = $reservation->status === 'Facilitator Approved'
-                                        ? 'Laboratory In-charge Approved'
-                                        : $reservation->status;
+                                    $statusLabel = $reservation->statusLabel();
                                 @endphp
                                 <tr>
                                     <td>
@@ -177,9 +175,7 @@
                                         'Overdue', 'Rejected', 'Cancelled' => 'danger',
                                         default => 'secondary',
                                     };
-                                    $statusLabel = $borrow->status === 'Facilitator Approved'
-                                        ? 'Laboratory In-charge Approved'
-                                        : $borrow->status;
+                                    $statusLabel = $borrow->statusLabel();
                                 @endphp
                                 <tr>
                                     <td>

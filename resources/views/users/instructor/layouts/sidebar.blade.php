@@ -20,6 +20,10 @@
         $sidebarUser = auth()->user()?->loadMissing(['role', 'department']);
         $sidebarRole = $sidebarUser?->role?->role_name ?? 'Instructor';
         $sidebarCampus = $sidebarUser?->campusName();
+        $showApprovalRequests = ! (
+            $sidebarRole === 'Instructor'
+            && $sidebarCampus === \App\Support\Campus::IBED
+        );
 
         $isDashboard = request()->routeIs('instructor.dashboard');
         $isReservationCalendar = request()->routeIs('instructor.reservations.calendar');
@@ -63,14 +67,18 @@
 
         $isInstructorCommunicationGroup = $isFeedbackActiveGroup || $isQuestionnairesGroup || $isForumGroup;
 
-        $pendingReservationRequests = \App\Models\Reservation::query()
-            ->forInstructorApproval($sidebarCampus)
-            ->where('status', 'Pending')
-            ->count();
-        $pendingBorrowRequests = \App\Models\BorrowTransaction::query()
-            ->forInstructorApproval($sidebarCampus)
-            ->where('status', 'Pending')
-            ->count();
+        $pendingReservationRequests = $showApprovalRequests
+            ? \App\Models\Reservation::query()
+                ->forInstructorApproval($sidebarCampus)
+                ->where('status', 'Pending')
+                ->count()
+            : 0;
+        $pendingBorrowRequests = $showApprovalRequests
+            ? \App\Models\BorrowTransaction::query()
+                ->forInstructorApproval($sidebarCampus)
+                ->where('status', 'Pending')
+                ->count()
+            : 0;
 
     @endphp
 
@@ -131,18 +139,20 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-days"></i></span>
                             <span class="sidebar-item__label">Reservation Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
-                            href="{{ route('instructor.reservations.index') }}" title="Reservation Requests">
-                            <span class="d-flex align-items-center gap-2 flex-grow-1">
-                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
-                                <span class="sidebar-item__label">Reservation Requests</span>
-                            </span>
-                            @if ($pendingReservationRequests > 0)
-                                <span class="badge rounded-pill text-bg-danger ms-auto">
-                                    {{ $pendingReservationRequests > 99 ? '99+' : $pendingReservationRequests }}
+                        @if ($showApprovalRequests)
+                            <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
+                                href="{{ route('instructor.reservations.index') }}" title="Reservation Requests">
+                                <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                    <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                    <span class="sidebar-item__label">Reservation Requests</span>
                                 </span>
-                            @endif
-                        </a>
+                                @if ($pendingReservationRequests > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-auto">
+                                        {{ $pendingReservationRequests > 99 ? '99+' : $pendingReservationRequests }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endif
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isMyReservationsGroup ? 'active' : '' }}"
                             href="{{ route('instructor.my-reservations.index') }}" title="My Reservations">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-user-clock"></i></span>
@@ -170,18 +180,20 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-plus"></i></span>
                             <span class="sidebar-item__label">Borrow Calendar</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
-                            href="{{ route('instructor.borrow.index') }}" title="Borrow Requests">
-                            <span class="d-flex align-items-center gap-2 flex-grow-1">
-                                <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
-                                <span class="sidebar-item__label">Borrow Requests</span>
-                            </span>
-                            @if ($pendingBorrowRequests > 0)
-                                <span class="badge rounded-pill text-bg-danger ms-auto">
-                                    {{ $pendingBorrowRequests > 99 ? '99+' : $pendingBorrowRequests }}
+                        @if ($showApprovalRequests)
+                            <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
+                                href="{{ route('instructor.borrow.index') }}" title="Borrow Requests">
+                                <span class="d-flex align-items-center gap-2 flex-grow-1">
+                                    <span class="sidebar-item__icon"><i class="fa-solid fa-boxes-stacked"></i></span>
+                                    <span class="sidebar-item__label">Borrow Requests</span>
                                 </span>
-                            @endif
-                        </a>
+                                @if ($pendingBorrowRequests > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-auto">
+                                        {{ $pendingBorrowRequests > 99 ? '99+' : $pendingBorrowRequests }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endif
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isMyBorrowRequestsGroup ? 'active' : '' }}"
                             href="{{ route('instructor.my-borrow-requests.index') }}" title="My Borrow Requests">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-user-clock"></i></span>
