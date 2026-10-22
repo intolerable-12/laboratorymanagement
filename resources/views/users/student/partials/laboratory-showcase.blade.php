@@ -1,4 +1,4 @@
-<section class="section-card border-0 mb-4">
+<section class="section-card bg-white mb-4">
     <div class="card-body p-4 p-xl-5">
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4">
             <div>

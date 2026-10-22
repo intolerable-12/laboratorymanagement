@@ -13,17 +13,6 @@
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
 
-    <div class="section-card mb-4">
-        <div class="card-body p-4 p-xl-5 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <div>
-                <div class="social-eyebrow mb-3">Feedback management</div>
-                <h2 class="h3 fw-semibold text-dark mb-2">{{ $reviewerLabel }} feedback</h2>
-                <p class="text-secondary mb-0">Search, filter, and open cards that surface the important context immediately.</p>
-            </div>
-            <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-primary px-4 rounded-pill">Manage questionnaires</a>
-        </div>
-    </div>
-
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card metric-card h-100">

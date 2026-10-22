@@ -225,7 +225,7 @@ class ChemicalController extends Controller
             item: $chemical,
             quantity: $chemical->quantity,
             performedBy: (int) $request->user()->userNo,
-            remarks: 'Chemical added to inventory by the coordinator.',
+            remarks: 'Chemical added to inventory by the '.$this->actorLabel().'.',
         );
 
         return redirect()->route($this->routePrefix().'.chemicals.index')->with('status', 'Chemical created successfully.');
@@ -247,7 +247,13 @@ class ChemicalController extends Controller
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::query()
-            ->where(fn ($query) => $query->where('status', 'Active')->orWhere($chemical->supplier_id))
+            ->where(function ($query) use ($chemical) {
+                $query->where('status', 'Active');
+
+                if ($chemical->supplier_id) {
+                    $query->orWhere('id', $chemical->supplier_id);
+                }
+            })
             ->orderBy('supplier_name')
             ->get();
         $unitOptions = $this->unitOptions($chemical);

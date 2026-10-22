@@ -80,11 +80,6 @@
                                                 <div class="small text-uppercase text-secondary">{{ $requestedItem['item_type'] }}</div>
                                                 <div class="fw-semibold text-dark">{{ $requestedItem['item_type'] === 'Equipment' ? $item->equipment_name : $item->chemical_name }}</div>
                                                 <div class="small text-secondary">{{ $requestedItem['item_type'] === 'Equipment' ? $item->equipment_code : $item->chemical_code }}</div>
-                                                @if ($requestedItem['item_type'] === 'Equipment')
-                                                    <span class="badge rounded-pill text-bg-warning text-dark mt-1"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacturing: {{ $item->manufacturing_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                @else
-                                                    <span class="badge rounded-pill {{ $item->is_expired ? 'text-bg-danger' : ($item->expiration_date ? 'text-bg-warning text-dark' : 'text-bg-secondary') }} mt-1"><i class="fa-solid fa-calendar-xmark me-1" aria-hidden="true"></i>Expiration: {{ $item->expiration_date?->format('M d, Y') ?? 'Not set' }}</span>
-                                                @endif
                                             </td>
                                             <td>{{ $requestedItem['quantity'] }}</td><td>{{ $requestedItem['unit'] }}</td>
                                         </tr>
@@ -102,7 +97,7 @@
             <a href="{{ route('guest.reservations.items') }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-arrow-left me-1"></i>Requested Items</a>
             <form id="guest-reservation-request-form" method="POST" action="{{ route('guest.reservations.store') }}">
                 @csrf
-                <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#guestReservationRequestSubmitModal">Submit Reservation Request <i class="fa-solid fa-check ms-1"></i></button>
+                <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#guestReservationRequestSubmitModal">Submit Request <i class="fa-solid fa-check ms-1"></i></button>
             </form>
         </div>
     </div>

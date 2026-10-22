@@ -196,7 +196,7 @@ class EquipmentController extends Controller
             item: $equipment,
             quantity: $equipment->available_quantity,
             performedBy: (int) $request->user()->userNo,
-            remarks: 'Equipment added to inventory by the coordinator.',
+            remarks: 'Equipment added to inventory by the '.$this->actorLabel().'.',
         );
 
         return redirect()->route($this->routePrefix().'.equipment.index')->with('status', 'Equipment created successfully.');
