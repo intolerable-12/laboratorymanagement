@@ -40,6 +40,32 @@ class InventoryTraceabilityLogger
         ]);
     }
 
+    public function recordInitialStock(
+        Model $item,
+        float|int $quantity,
+        int $performedBy,
+        string $remarks,
+        ?Carbon $performedAt = null,
+    ): ?InventoryLog {
+        $quantity = (float) $quantity;
+
+        if ($quantity == 0.0) {
+            return null;
+        }
+
+        return InventoryLog::create([
+            'item_type'        => $this->itemType($item),
+            'item_id'          => $item->getKey(),
+            'action'           => 'Stock In',
+            'quantity_before'  => 0.0,
+            'quantity_changed' => $quantity,
+            'quantity_after'   => $quantity,
+            'performed_by'     => $performedBy,
+            'performed_at'     => $performedAt ?? now(),
+            'remarks'          => $remarks,
+        ]);
+    }
+
     private function itemType(Model $item): string
     {
         return match (true) {

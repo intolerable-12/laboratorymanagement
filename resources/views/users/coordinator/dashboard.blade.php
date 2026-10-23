@@ -5,15 +5,18 @@
 @section('page-subtitle', 'Monitor laboratory operations, inventory, and maintenance at a glance')
 
 @section('content')
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
-        <div>
-            <h2 class="h4 fw-semibold mb-1 text-dark">Welcome back, Coordinator</h2>
-            <p class="mb-0 text-secondary">Here's a quick overview of the laboratory system today.</p>
-        </div>
+    <div class="section-card bg-white mb-4">
+        <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+            <div class="hero-copy">
+                <div class="social-eyebrow mb-3">Coordinator dashboard</div>
+                <h2>Welcome back, Coordinator</h2>
+                <p class="mb-0 text-secondary">Here's a quick overview of the laboratory system today.</p>
+            </div>
 
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('coordinator.announcements.index') }}" class="btn btn-outline-secondary">Manage announcements</a>
-            <a href="{{ route('coordinator.announcements.create') }}" class="btn btn-primary">Create announcement</a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('coordinator.borrow.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Manage Borrow</a>
+                <a href="{{ route('coordinator.reservations.index') }}" class="btn btn-primary px-4 rounded-pill">Manage Reservation</a>
+            </div>
         </div>
     </div>
 
@@ -133,12 +136,12 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4">Date</th>
-                            <th>Item</th>
-                            <th>Movement</th>
-                            <th>Quantity</th>
-                            <th>Recorded by</th>
-                            <th class="pe-4">Details</th>
+                            <th class="text-dark ps-4">Date</th>
+                            <th class="text-dark">Item</th>
+                            <th class="text-dark">Movement</th>
+                            <th class="text-dark">Quantity</th>
+                            <th class="text-dark">Recorded by</th>
+                            <th class="text-dark pe-4">Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -208,10 +211,10 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">Time</th>
-                                    <th scope="col">User</th>
-                                    <th scope="col">Activity</th>
-                                    <th scope="col">Status</th>
+                                    <th class="text-dark">Time</th>
+                                    <th class="text-dark">User</th>
+                                    <th class="text-dark">Activity</th>
+                                    <th class="text-dark">Status</th>
                                 </tr>
                             </thead>
                             <tbody>

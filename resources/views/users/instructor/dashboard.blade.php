@@ -11,15 +11,18 @@
 
 @section('content')
     <div class="instructor-dashboard">
-        <section class="hero-banner card border-0 mb-4">
-            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                <div>
-                    <h2 class="h3 fw-semibold mb-2 text-dark">Welcome back, Instructor</h2>
+        <div class="section-card bg-white mb-4">
+            <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div class="hero-copy">
+                    <div class="social-eyebrow mb-3">Instructor dashboard</div>
+                    <h2>Welcome back, Instructor</h2>
                     <p class="mb-0 text-secondary">Here's your classes, inventory viewing, and laboratory equipment requests.</p>
                 </div>
-                <a href="{{ route('instructor.inventory.index') }}" class="btn btn-light border px-3 px-lg-4">Browse Inventory</a>
+                <div class="d-flex flex-wrap">
+                    <a href="{{ route('instructor.inventory.index') }}" class="btn btn-primary px-4 rounded-pill">Browse Inventory</a>
+                </div>
             </div>
-        </section>
+        </div>
 
         @include('partials.announcement-feed', [
             'announcements' => $announcements,

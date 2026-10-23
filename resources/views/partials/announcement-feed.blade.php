@@ -9,21 +9,22 @@
     $manageLabel = $manageLabel ?? 'Manage announcements';
 @endphp
 
-<section class="card section-card border-0 announcement-feed-shell mb-4" data-announcement-feed-shell>
+<section class="card section-card announcement-feed-shell bg-white mb-4" data-announcement-feed-shell>
     <div class="card-body p-4 p-xl-5">
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-            <div>
-                <h3 class="h4 fw-semibold mb-1 text-dark">{{ $feedTitle }}</h3>
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4 mb-4">
+            <div class="hero-copy">
+                <div class="social-eyebrow mb-3">Announcements</div>
+                <h2>{{ $feedTitle }}</h2>
                 <p class="mb-0 text-secondary">{{ $feedSubtitle }}</p>
             </div>
 
             @if ($createUrl || $manageUrl)
                 <div class="d-flex flex-wrap gap-2">
                     @if ($manageUrl)
-                        <a href="{{ $manageUrl }}" class="btn btn-outline-secondary px-4">{{ $manageLabel }}</a>
+                        <a href="{{ $manageUrl }}" class="btn btn-outline-secondary px-4 rounded-pill">{{ $manageLabel }}</a>
                     @endif
                     @if ($createUrl)
-                        <a href="{{ $createUrl }}" class="btn btn-primary px-4">{{ $createLabel }}</a>
+                        <a href="{{ $createUrl }}" class="btn btn-primary px-4 rounded-pill">{{ $createLabel }}</a>
                     @endif
                 </div>
             @endif
