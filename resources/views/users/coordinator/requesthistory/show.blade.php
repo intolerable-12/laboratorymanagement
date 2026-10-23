@@ -6,7 +6,7 @@
 
 @section('title', 'Requester History')
 @section('page-title', 'Requester History')
-@section('page-subtitle', 'View all reservation and borrowing requests from this student or guest')
+@section('page-subtitle', 'View request history within the assigned campus')
 
 @php
     $requesterName = trim(collect([
@@ -15,7 +15,9 @@
         $user->last_name,
         $user->suffix,
     ])->filter()->implode(' '));
-    $studentCampus = $user->campusName();
+    $campusLabel = $campus ?? 'Main';
+    $requesterCampus = $user->is_guest ? $campusLabel : ($user->campusName() ?? $campusLabel);
+    $requesterType = $user->is_guest ? 'Guest' : ($user->role?->role_name ?? 'Requester');
     $tabUrl = function (string $tab) use ($routePrefix, $user, $search) {
         return route($routePrefix . '.requesthistory.show', array_filter([
             'user' => $user,
@@ -29,7 +31,7 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">{{ $requesterName !== '' ? $requesterName : 'Unknown requester' }}</h2>
-            <p class="mb-0 text-secondary">All reservation and borrowing requests submitted by this student or guest.</p>
+            <p class="mb-0 text-secondary">All {{ $requesterType }} reservation and borrowing requests visible to the {{ $campusLabel }} campus office.</p>
         </div>
         <a href="{{ route($routePrefix . '.requesthistory.index', ['search' => $search]) }}" class="btn btn-outline-secondary px-4">
             <i class="fa-solid fa-arrow-left me-2" aria-hidden="true"></i>Back to Requesters
@@ -40,9 +42,11 @@
         <div class="col-md-4">
             <div class="card admin-card border-0 h-100">
                 <div class="card-body p-4">
-                    <div class="small text-secondary mb-1">Student campus</div>
-                    <div class="fw-semibold text-dark">{{ $studentCampus ?? 'Campus not specified' }} campus</div>
-                    <div class="small text-secondary mb-1">Student / Guest</div>
+                    <div class="small text-secondary mb-1">Requester campus</div>
+                    <div class="fw-semibold text-dark">{{ $requesterCampus }} campus</div>
+                    <div class="small text-secondary mb-1">Requester type</div>
+                    <div class="fw-semibold text-dark">{{ $requesterType }}</div>
+                    <div class="small text-secondary mb-1">Requester ID</div>
                     <div class="fw-semibold text-dark">{{ $user->userID ?? '—' }}</div>
                     <div class="small text-secondary">{{ $user->email ?? '—' }}</div>
                 </div>

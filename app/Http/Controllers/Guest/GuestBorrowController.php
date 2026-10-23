@@ -20,7 +20,6 @@ use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class GuestBorrowController extends Controller
@@ -37,15 +36,10 @@ class GuestBorrowController extends Controller
         $selectedLaboratoryId = filter_var(old('laboratory_id', $details['laboratory_id'] ?? $request->query('laboratory_id')), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]) ?: null;
-        $selectedCampus = Campus::normalize((string) old('campus', $details['campus'] ?? $request->query('campus')));
         $laboratories = Laboratory::query()
-            ->orderBy('campus')
+            ->where('campus', Campus::MAIN)
             ->orderBy('laboratory_name')
             ->get(['id', 'laboratory_name', 'laboratory_code', 'campus']);
-        if (! $selectedCampus && $selectedLaboratoryId) {
-            $selectedCampus = Campus::normalize((string) $laboratories->firstWhere('id', $selectedLaboratoryId)?->campus);
-        }
-        $campuses = Campus::values();
         $minimumBorrowDate = $this->minimumBorrowDateTime();
         $borrowDateMin = $minimumBorrowDate->format('Y-m-d\TH:i');
         $borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
@@ -88,8 +82,6 @@ class GuestBorrowController extends Controller
         return view('guest.borrow.create', compact(
             'departments',
             'laboratories',
-            'campuses',
-            'selectedCampus',
             'equipmentItems',
             'activeTab',
             'selectedLaboratoryId',
@@ -104,13 +96,13 @@ class GuestBorrowController extends Controller
     public function details(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
-            'campus' => ['required', Rule::in(Campus::values())],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'instructor_id' => ['required', 'integer'],
             'borrowed_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'due_at' => ['required', 'date_format:Y-m-d\TH:i', 'after:borrowed_at'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]));
+        $data['campus'] = Campus::MAIN;
 
         $this->ensureMainCampusInstructor((int) $data['instructor_id']);
 
@@ -230,6 +222,8 @@ class GuestBorrowController extends Controller
             return redirect()->route('guest.borrow.create');
         }
 
+        $data['campus'] = Campus::MAIN;
+
         if ($draftItems === []) {
             return redirect()->route('guest.borrow.items');
         }
@@ -336,11 +330,9 @@ class GuestBorrowController extends Controller
     {
         if (! Laboratory::query()
             ->whereKey((int) $data['laboratory_id'])
-            ->where('campus', $data['campus'])
+            ->where('campus', Campus::MAIN)
             ->exists()) {
-            throw ValidationException::withMessages([
-                'laboratory_id' => 'Select a laboratory from the selected campus.',
-            ]);
+            throw ValidationException::withMessages(['laboratory_id' => 'Select a Main campus laboratory.']);
         }
     }
 
@@ -357,7 +349,7 @@ class GuestBorrowController extends Controller
     {
         return Laboratory::query()
             ->whereKey((int) ($details['laboratory_id'] ?? 0))
-            ->where('campus', $details['campus'] ?? null)
+            ->where('campus', Campus::MAIN)
             ->firstOrFail();
     }
 

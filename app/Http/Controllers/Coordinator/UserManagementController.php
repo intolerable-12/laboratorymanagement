@@ -18,6 +18,10 @@ use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
+    private const STUDENT_DEPARTMENT_CODES = ['SHS', 'COL'];
+
+    private const STAFF_DEPARTMENT_CODES = ['JHS', 'SHS', 'COL'];
+
     public function index(Request $request)
     {
         return $this->renderIndex($request, false);
@@ -31,7 +35,7 @@ class UserManagementController extends Controller
     public function create()
     {
         $roles = $this->manageableRoles();
-        $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
+        $departments = $this->manageableDepartments();
 
         return view('users.coordinator.usermanagement.create', compact('roles', 'departments'));
     }
@@ -66,7 +70,7 @@ class UserManagementController extends Controller
     public function edit(User $user)
     {
         $roles = $this->manageableRoles();
-        $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
+        $departments = $this->manageableDepartments();
 
         return view('users.coordinator.usermanagement.edit', compact('user', 'roles', 'departments'));
     }
@@ -174,7 +178,7 @@ class UserManagementController extends Controller
             ->paginate(12);
 
         $roles = $this->manageableRoles();
-        $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
+        $departments = $this->manageableDepartments();
         $pendingAccountRequests = UserAccountRequest::pending()->count();
         $statuses = ['Active', 'Archived'];
 
@@ -223,6 +227,13 @@ class UserManagementController extends Controller
             ->where('role_name', '!=', 'Coordinator')
             ->orderBy('role_name')
             ->get(['id', 'role_name']);
+    }
+
+    private function manageableDepartments()
+    {
+        return Department::query()
+            ->orderBy('department_name')
+            ->get(['id', 'department_code', 'department_name']);
     }
 
     private function validateUserData(Request $request, ?User $user = null): array
@@ -283,9 +294,15 @@ class UserManagementController extends Controller
 
         if ($roleName === 'student') {
             $request->validate([
-                'department_id' => ['required', 'integer', 'exists:departments,id'],
+                'department_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('departments', 'id')
+                        ->where(fn (QueryBuilder $query) => $query->whereIn('department_code', self::STUDENT_DEPARTMENT_CODES)),
+                ],
             ], [
                 'department_id.required' => 'A department is required for student accounts.',
+                'department_id.exists' => 'Student accounts may only be assigned to SHS or College departments.',
             ]);
 
             $department = Department::query()->findOrFail($validated['department_id']);
@@ -304,15 +321,32 @@ class UserManagementController extends Controller
             ]);
         } elseif ($roleName === 'instructor') {
             $request->validate([
-                'department_id' => ['required', 'integer', 'exists:departments,id'],
+                'department_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('departments', 'id')
+                        ->where(fn (QueryBuilder $query) => $query->whereIn('department_code', self::STAFF_DEPARTMENT_CODES)),
+                ],
             ], [
                 'department_id.required' => 'A department is required for instructor accounts.',
+                'department_id.exists' => 'Instructor accounts may only be assigned to JHS, SHS, or College departments.',
             ]);
 
             $request->validate([
                 'userID' => ['regex:/^[1-9][0-9]{0,3}$/'],
             ], [
                 'userID.regex' => 'Instructor User ID must be a number from 1 to 9999.',
+            ]);
+        } elseif ($roleName === 'laboratory in-charge') {
+            $request->validate([
+                'department_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('departments', 'id')
+                        ->where(fn (QueryBuilder $query) => $query->whereIn('department_code', self::STAFF_DEPARTMENT_CODES)),
+                ],
+            ], [
+                'department_id.exists' => 'Laboratory in-charge accounts may only be assigned to JHS, SHS, or College departments.',
             ]);
         }
 

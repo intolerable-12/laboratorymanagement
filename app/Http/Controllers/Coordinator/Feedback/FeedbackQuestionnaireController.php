@@ -119,7 +119,7 @@ class FeedbackQuestionnaireController extends Controller
         $feedbackQuestionnaire->load(['questions' => fn ($query) => $query->orderBy('sort_order')]);
 
         $responses = $feedbackQuestionnaire->responses()
-            ->with(['user', 'answers.question'])
+            ->with(['user.role', 'user.department', 'answers.question'])
             ->whereHas('user.department', fn ($query) => $query->where('campus', $campus))
             ->whereHas('user.role', fn ($query) => $query->whereIn('role_name', $audienceRoles))
             ->latest()
@@ -137,7 +137,7 @@ class FeedbackQuestionnaireController extends Controller
         abort_unless($this->responseBelongsToQuestionnaireAudience($feedbackQuestionnaireResponse, $feedbackQuestionnaire), 404);
 
         $feedbackQuestionnaire->load(['questions' => fn ($query) => $query->orderBy('sort_order')]);
-        $feedbackQuestionnaireResponse->load(['user', 'answers.question']);
+        $feedbackQuestionnaireResponse->load(['user.role', 'user.department', 'answers.question']);
 
         return view('users.coordinator.feedback.questionnaires.response-show', compact('feedbackQuestionnaire', 'feedbackQuestionnaireResponse'));
     }

@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
 it('rejects malformed user data before creating a user', function () {
     $coordinatorRole = Role::create(['role_name' => 'Coordinator']);
     $instructorRole = Role::create(['role_name' => 'Instructor']);
-    Department::create(['department_name' => 'Computer Studies']);
+    Department::create(['department_code' => 'CS', 'department_name' => 'Computer Studies']);
 
     $coordinator = User::create([
         'userID' => 'C-1001',
@@ -47,7 +47,7 @@ it('rejects malformed user data before creating a user', function () {
 it('accepts well-formed user data', function () {
     $coordinatorRole = Role::create(['role_name' => 'Coordinator']);
     $instructorRole = Role::create(['role_name' => 'Instructor']);
-    $department = Department::create(['department_name' => 'Computer Studies']);
+    $department = Department::create(['department_code' => 'COL', 'department_name' => 'College']);
 
     $coordinator = User::create([
         'userID' => 'C-1002',

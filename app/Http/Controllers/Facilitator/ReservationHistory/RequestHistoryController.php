@@ -17,8 +17,7 @@ class RequestHistoryController extends Controller
         $searchTerms = $this->searchTerms($search);
 
         $requestersQuery = User::query()
-            ->whereHas('role', fn (Builder $query) => $query->where('role_name', 'Student'))
-            ->whereHas('department', fn (Builder $query) => $query->where('campus', $campus))
+            ->forRequestHistory($campus)
             ->where(function (Builder $query) use ($campus): void {
                 $query
                     ->whereHas('reservations', fn (Builder $reservationQuery) => $reservationQuery->forCampus($campus))
@@ -43,6 +42,7 @@ class RequestHistoryController extends Controller
             'search' => $search,
             'requesters' => $requesters,
             'requesterCount' => $requesterCount,
+            'campus' => $campus,
         ]);
     }
 
@@ -51,17 +51,7 @@ class RequestHistoryController extends Controller
         $campus = $this->campusForUser($request);
         $user->load(['role', 'department']);
 
-        abort_unless(
-            $user->role?->role_name === 'Student'
-                && $user->campusName() === $campus,
-            404
-        );
-
-        abort_unless(
-            $user->reservations()->forCampus($campus)->exists()
-                || $user->borrowTransactions()->forCampus($campus)->exists(),
-            404
-        );
+        abort_unless($this->canViewRequester($user, $campus), 404);
 
         $activeTab = in_array($request->query('tab'), ['reservations', 'borrowing'], true)
             ? $request->query('tab')
@@ -89,7 +79,21 @@ class RequestHistoryController extends Controller
             'activeTab' => $activeTab,
             'reservations' => $reservations,
             'borrowings' => $borrowings,
+            'campus' => $campus,
         ]);
+    }
+
+    private function canViewRequester(User $user, string $campus): bool
+    {
+        return User::query()
+            ->whereKey($user->getKey())
+            ->forRequestHistory($campus)
+            ->where(function (Builder $query) use ($campus): void {
+                $query
+                    ->whereHas('reservations', fn (Builder $reservationQuery) => $reservationQuery->forCampus($campus))
+                    ->orWhereHas('borrowTransactions', fn (Builder $borrowQuery) => $borrowQuery->forCampus($campus));
+            })
+            ->exists();
     }
 
     private function applyUserSearch(Builder $query, array $searchTerms): void

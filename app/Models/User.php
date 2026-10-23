@@ -178,6 +178,40 @@ class User extends Authenticatable
     }
 
     /**
+     * Limit request-history requesters to the audience handled by a campus.
+     *
+     * IBED laboratories accept request history from IBED instructors. Main
+     * campus laboratories accept Main students and instructors, together with
+     * guest requests, which are submitted against Main campus laboratories.
+     */
+    public function scopeForRequestHistory(Builder $query, string $campus): Builder
+    {
+        $campus = Campus::normalize($campus);
+
+        if (! in_array($campus, Campus::values(), true)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($campus === Campus::IBED) {
+            return $query
+                ->where('is_guest', false)
+                ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Instructor'))
+                ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', Campus::IBED));
+        }
+
+        return $query->where(function (Builder $requesterQuery) use ($campus): void {
+            $requesterQuery
+                ->where('is_guest', true)
+                ->orWhere(function (Builder $accountQuery) use ($campus): void {
+                    $accountQuery
+                        ->where('is_guest', false)
+                        ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->whereIn('role_name', ['Student', 'Instructor']))
+                        ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
+                });
+        });
+    }
+
+    /**
      * Instructors who may be selected to review student and guest requests.
      * Instructor campus is inherited from the department, so this deliberately
      * filters the department campus instead of the users.campus fallback field.

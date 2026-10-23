@@ -61,7 +61,7 @@ class DashboardController extends Controller
         $borrowedChemicalQuantity = $this->borrowedChemicalQuantityBreakdown($activeBorrowItems);
 
         return view('users.facilitator.dashboard', [
-            'announcements' => $this->publishedAnnouncements('facilitator', 6),
+            'announcements' => $this->publishedAnnouncements('facilitator', 6, $campus),
             'checkoutBorrows' => $checkoutBorrows,
             'equipmentStats' => [
                 ['label' => 'Unique equipment', 'value' => number_format($uniqueEquipment), 'note' => 'Distinct equipment records in inventory'],
