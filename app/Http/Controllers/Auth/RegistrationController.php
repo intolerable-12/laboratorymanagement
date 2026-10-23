@@ -42,6 +42,11 @@ class RegistrationController extends Controller
 		}
 
 		$departments = Department::query()
+			->where(function ($query): void {
+				$query
+					->whereNull('department_code')
+					->orWhereRaw("UPPER(TRIM(department_code)) <> 'JHS'");
+			})
 			->orderBy('department_name')
 			->get();
 
@@ -66,7 +71,14 @@ class RegistrationController extends Controller
 			'email' => ['required', 'email', 'max:255'],
 			'user_id' => ['required', 'string', 'max:30'],
 			'contact_number' => ['required', 'string', 'max:20'],
-			'department_id' => ['required', 'exists:departments,id'],
+			'department_id' => [
+				'required',
+				Rule::exists('departments', 'id')->where(function ($query): void {
+					$query
+						->whereNull('department_code')
+						->orWhereRaw("UPPER(TRIM(department_code)) <> 'JHS'");
+				}),
+			],
 			'password' => ['required', 'string', 'min:8', 'confirmed'],
 		]);
 

@@ -76,16 +76,6 @@
                             @error('department_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="guest-borrow-campus" class="form-label fw-semibold">Campus</label>
-                            <select id="guest-borrow-campus" name="campus" class="form-select @error('campus') is-invalid @enderror" required>
-                                <option value="">Select campus</option>
-                                @foreach ($campuses as $campusOption)
-                                    <option value="{{ $campusOption }}" @selected(old('campus', session('guest.borrow.draft.details.campus', $selectedCampus)) === $campusOption)>{{ $campusOption }}</option>
-                                @endforeach
-                            </select>
-                            @error('campus')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
                             <label for="guest-borrow-email" class="form-label fw-semibold">Email address</label>
                             <input id="guest-borrow-email" type="email" name="email" value="{{ old('email', session('guest.borrow.draft.details.email')) }}" pattern="[^@\s]+@lccdo\.edu\.ph" placeholder="name@lccdo.edu.ph" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
                             @error('email')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -116,11 +106,11 @@
                             <select id="guest-borrow-laboratory" name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
                                 @foreach ($laboratories as $laboratory)
-                                    <option value="{{ $laboratory->id }}" data-campus="{{ $laboratory->campus }}" @selected(old('laboratory_id', session('guest.borrow.draft.details.laboratory_id', $selectedLaboratoryId)) == $laboratory->id) @disabled($selectedCampus && $laboratory->campus !== $selectedCampus)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
+                                    <option value="{{ $laboratory->id }}" @selected(old('laboratory_id', session('guest.borrow.draft.details.laboratory_id', $selectedLaboratoryId)) == $laboratory->id)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
                                 @endforeach
                             </select>
                             @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <div class="form-text">Only available items from the selected laboratory will be shown.</div>
+                            <div class="form-text">Only Main campus laboratories are available for guest requests.</div>
                         </div>
 
                         <div class="col-md-6">
@@ -161,36 +151,4 @@
             </div>
         </form>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const campusField = document.getElementById('guest-borrow-campus');
-            const laboratoryField = document.getElementById('guest-borrow-laboratory');
-
-            if (!campusField || !laboratoryField) {
-                return;
-            }
-
-            const syncLaboratories = () => {
-                const campus = campusField.value;
-                const options = Array.from(laboratoryField.options).filter((option) => option.value !== '');
-
-                options.forEach((option) => {
-                    const visible = campus !== '' && option.dataset.campus === campus;
-                    option.hidden = !visible;
-                    option.disabled = !visible;
-
-                    if (!visible && option.selected) {
-                        option.selected = false;
-                    }
-                });
-
-                if (laboratoryField.value === '' || !options.some((option) => option.selected && !option.disabled)) {
-                    laboratoryField.value = '';
-                }
-            };
-
-            campusField.addEventListener('change', syncLaboratories);
-            syncLaboratories();
-        });
-    </script>
 @endsection

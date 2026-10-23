@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Coordinator\ReservationHistory;
 
 use App\Http\Controllers\Controller;
-use App\Models\BorrowTransaction;
-use App\Models\Reservation;
 use App\Models\User;
+use App\Support\Campus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,18 +15,22 @@ class RequestHistoryController extends Controller
     {
         $this->ensureCoordinator($request);
 
+        $campus = Campus::MAIN;
         $search = trim((string) $request->query('search', ''));
         $searchTerms = $this->searchTerms($search);
 
         $requestersQuery = User::query()
-            ->whereHas('role', fn (Builder $query) => $query->whereIn('role_name', ['Student', 'Instructor']))
-            ->where(function (Builder $query): void {
+            ->forRequestHistory($campus)
+            ->where(function (Builder $query) use ($campus): void {
                 $query
-                    ->whereHas('reservations')
-                    ->orWhereHas('borrowTransactions');
+                    ->whereHas('reservations', fn (Builder $reservationQuery) => $reservationQuery->forCampus($campus))
+                    ->orWhereHas('borrowTransactions', fn (Builder $borrowQuery) => $borrowQuery->forCampus($campus));
             })
             ->with(['role', 'department'])
-            ->withCount(['reservations', 'borrowTransactions']);
+            ->withCount([
+                'reservations as reservations_count' => fn (Builder $query) => $query->forCampus($campus),
+                'borrowTransactions as borrow_transactions_count' => fn (Builder $query) => $query->forCampus($campus),
+            ]);
 
         $this->applyUserSearch($requestersQuery, $searchTerms);
 
@@ -42,6 +45,7 @@ class RequestHistoryController extends Controller
             'search' => $search,
             'requesters' => $requesters,
             'requesterCount' => $requesterCount,
+            'campus' => $campus,
         ]);
     }
 
@@ -49,24 +53,25 @@ class RequestHistoryController extends Controller
     {
         $this->ensureCoordinator($request);
 
-        abort_unless(
-            $user->reservations()->exists() || $user->borrowTransactions()->exists(),
-            404
-        );
+        $campus = Campus::MAIN;
+        $user->load(['role', 'department']);
+
+        abort_unless($this->canViewRequester($user, $campus), 404);
 
         $activeTab = in_array($request->query('tab'), ['reservations', 'borrowing'], true)
             ? $request->query('tab')
             : 'reservations';
         $search = trim((string) $request->query('search', ''));
 
-        $user->load(['role', 'department']);
         $reservations = $user->reservations()
+            ->forCampus($campus)
             ->with(['laboratory', 'items.item', 'schoolYear', 'semester'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(10, ['*'], 'reservation_page')
             ->withQueryString();
         $borrowings = $user->borrowTransactions()
+            ->forCampus($campus)
             ->with(['laboratory', 'items.item'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -79,7 +84,21 @@ class RequestHistoryController extends Controller
             'activeTab' => $activeTab,
             'reservations' => $reservations,
             'borrowings' => $borrowings,
+            'campus' => $campus,
         ]);
+    }
+
+    private function canViewRequester(User $user, string $campus): bool
+    {
+        return User::query()
+            ->whereKey($user->getKey())
+            ->forRequestHistory($campus)
+            ->where(function (Builder $query) use ($campus): void {
+                $query
+                    ->whereHas('reservations', fn (Builder $reservationQuery) => $reservationQuery->forCampus($campus))
+                    ->orWhereHas('borrowTransactions', fn (Builder $borrowQuery) => $borrowQuery->forCampus($campus));
+            })
+            ->exists();
     }
 
     private function applyUserSearch(Builder $query, array $searchTerms): void

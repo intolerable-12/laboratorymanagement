@@ -22,7 +22,6 @@ use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class GuestReservationController extends Controller
@@ -41,15 +40,10 @@ class GuestReservationController extends Controller
             'options' => ['min_range' => 1],
         ]) ?: null;
         $search = trim((string) $request->query('search', ''));
-        $selectedCampus = Campus::normalize((string) old('campus', $details['campus'] ?? $request->query('campus')));
         $laboratories = Laboratory::query()
-            ->orderBy('campus')
+            ->where('campus', Campus::MAIN)
             ->orderBy('laboratory_name')
             ->get(['id', 'laboratory_name', 'laboratory_code', 'campus']);
-        if (! $selectedCampus && $selectedLaboratoryId) {
-            $selectedCampus = Campus::normalize((string) $laboratories->firstWhere('id', $selectedLaboratoryId)?->campus);
-        }
-        $campuses = Campus::values();
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->orderBy('chemical_name');
@@ -107,8 +101,6 @@ class GuestReservationController extends Controller
         return view('guest.reservation.create', compact(
             'departments',
             'laboratories',
-            'campuses',
-            'selectedCampus',
             'equipmentItems',
             'chemicalItems',
             'currentSchoolYear',
@@ -127,7 +119,6 @@ class GuestReservationController extends Controller
     public function details(Request $request)
     {
         $data = $request->validate(array_merge($this->requesterRules(), [
-            'campus' => ['required', Rule::in(Campus::values())],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'instructor_id' => ['required', 'integer'],
             'experiment_title' => ['required', 'string', 'max:255'],
@@ -138,6 +129,7 @@ class GuestReservationController extends Controller
             'expected_participants' => ['required', 'integer', 'min:1'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]));
+        $data['campus'] = Campus::MAIN;
 
         $this->ensureMainCampusInstructor((int) $data['instructor_id']);
 
@@ -309,6 +301,8 @@ class GuestReservationController extends Controller
             return redirect()->route('guest.reservations.create');
         }
 
+        $data['campus'] = Campus::MAIN;
+
         if ($draftItems === []) {
             return redirect()->route('guest.reservations.items');
         }
@@ -436,11 +430,9 @@ class GuestReservationController extends Controller
     {
         if (! Laboratory::query()
             ->whereKey((int) $data['laboratory_id'])
-            ->where('campus', $data['campus'])
+            ->where('campus', Campus::MAIN)
             ->exists()) {
-            throw ValidationException::withMessages([
-                'laboratory_id' => 'Select a laboratory from the selected campus.',
-            ]);
+            throw ValidationException::withMessages(['laboratory_id' => 'Select a Main campus laboratory.']);
         }
     }
 
@@ -457,7 +449,7 @@ class GuestReservationController extends Controller
     {
         return Laboratory::query()
             ->whereKey((int) ($details['laboratory_id'] ?? 0))
-            ->where('campus', $details['campus'] ?? null)
+            ->where('campus', Campus::MAIN)
             ->firstOrFail();
     }
 

@@ -21,6 +21,7 @@ use App\Models\Notification;
 use App\Models\Reservation;
 use App\Models\SchoolYear;
 use App\Models\User;
+use App\Support\Campus;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -71,11 +72,12 @@ class DashboardController extends Controller
         ];
 
         $maintenance = $this->maintenanceSummary();
+        $announcementCampus = Campus::MAIN;
 
         return view('users.coordinator.dashboard', [
-            'announcements' => $this->latestAnnouncements(4),
-            'announcementCount' => Announcement::count(),
-            'publishedAnnouncementCount' => Announcement::published()->count(),
+            'announcements' => $this->latestAnnouncements(4, $announcementCampus),
+            'announcementCount' => Announcement::forCampus($announcementCampus)->count(),
+            'publishedAnnouncementCount' => Announcement::forCampus($announcementCampus)->published()->count(),
             'stats' => $stats,
             'laboratoryUsage' => $laboratoryUsage,
             'usagePeriodLabel' => $weekStart->format('M d').'â€“'.$weekEnd->format('M d, Y'),

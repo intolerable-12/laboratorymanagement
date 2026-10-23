@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Support\Campus;
 
 class Announcement extends Model
 {
@@ -53,6 +54,50 @@ class Announcement extends Model
     public function postedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'posted_by', 'userNo');
+    }
+
+    /**
+     * Limit announcements to the campus where they were created.
+     *
+     * Coordinators are the MAIN-campus coordinators. Laboratory in-charges
+     * use their explicit campus assignment, with the department campus as a
+     * fallback for older accounts.
+     */
+    public function scopeForCampus(Builder $query, ?string $campus): Builder
+    {
+        $campus = Campus::normalize($campus);
+
+        if (! filled($campus)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas('postedBy', function (Builder $userQuery) use ($campus): void {
+            $laboratoryInCharge = function (Builder $laboratoryInChargeQuery) use ($campus): void {
+                $laboratoryInChargeQuery
+                    ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Laboratory In-charge'))
+                    ->where(function (Builder $campusQuery) use ($campus): void {
+                        $campusQuery
+                            ->where('users.campus', $campus)
+                            ->orWhere(function (Builder $fallbackCampusQuery) use ($campus): void {
+                                $fallbackCampusQuery
+                                    ->whereNull('users.campus')
+                                    ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
+                            });
+                    });
+            };
+
+            if ($campus === Campus::MAIN) {
+                $userQuery->where(function (Builder $authorQuery) use ($laboratoryInCharge): void {
+                    $authorQuery
+                        ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Coordinator'))
+                        ->orWhere($laboratoryInCharge);
+                });
+
+                return;
+            }
+
+            $userQuery->where($laboratoryInCharge);
+        });
     }
 
     /**

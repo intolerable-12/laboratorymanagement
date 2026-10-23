@@ -1,6 +1,7 @@
 @php
     $statuses = ['Active'];
     $genders = ['Male', 'Female'];
+    $selectedRoleId = old('role_id', $user->role_id ?? '');
 @endphp
 
 <div class="row g-3">
@@ -68,20 +69,21 @@
         <select id="role_id" name="role_id" class="form-select admin-form-control @error('role_id') is-invalid @enderror" required>
             <option value="">Select role</option>
             @foreach ($roles as $roleOption)
-                <option value="{{ $roleOption->id }}" @selected(old('role_id', $user->role_id ?? '') == $roleOption->id)>{{ $roleOption->role_name }}</option>
+                <option value="{{ $roleOption->id }}" data-role-name="{{ strtolower($roleOption->role_name) }}" @selected(old('role_id', $user->role_id ?? '') == $roleOption->id)>{{ $roleOption->role_name }}</option>
             @endforeach
         </select>
         @error('role_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-4">
+    <div id="department-field" class="col-md-4" @if (!filled($selectedRoleId)) hidden @endif>
         <label class="form-label" for="department_id">Department</label>
         <select id="department_id" name="department_id" class="form-select admin-form-control @error('department_id') is-invalid @enderror">
             <option value="">No department</option>
             @foreach ($departments as $department)
-                <option value="{{ $department->id }}" @selected(old('department_id', $user->department_id ?? '') == $department->id)>{{ $department->department_name }}</option>
+                <option value="{{ $department->id }}" data-department-code="{{ strtoupper($department->department_code) }}" data-department-name="{{ strtoupper($department->department_name) }}" @selected(old('department_id', $user->department_id ?? '') == $department->id)>{{ $department->department_name }}</option>
             @endforeach
         </select>
+        <div id="department-help" class="form-text"></div>
         @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -121,3 +123,97 @@
         <button type="submit" class="btn btn-primary">{{ isset($user) ? 'Save changes' : 'Create user' }}</button>
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const roleSelect = document.getElementById('role_id');
+            const departmentField = document.getElementById('department-field');
+            const departmentSelect = document.getElementById('department_id');
+            const departmentHelp = document.getElementById('department-help');
+
+            if (!roleSelect || !departmentField || !departmentSelect) {
+                return;
+            }
+
+            const restrictedDepartments = {
+                student: new Set(['SHS', 'COL']),
+                instructor: new Set(['JHS', 'SHS', 'COL']),
+                'laboratory in-charge': new Set(['JHS', 'SHS', 'COL']),
+            };
+            const departmentOptions = Array.from(departmentSelect.options).map(function (option) {
+                return option.cloneNode(true);
+            });
+
+            const departmentType = function (option) {
+                const code = (option.dataset.departmentCode || '').trim().toUpperCase();
+                const name = (option.dataset.departmentName || '').trim().toUpperCase();
+
+                if (code === 'JHS' || name.includes('JUNIOR HIGH')) {
+                    return 'JHS';
+                }
+
+                if (code === 'SHS' || name.includes('SENIOR HIGH')) {
+                    return 'SHS';
+                }
+
+                if (code === 'COL' || name.includes('COLLEGE')) {
+                    return 'COL';
+                }
+
+                return code;
+            };
+
+            const updateDepartments = function () {
+                const selectedRole = roleSelect.options[roleSelect.selectedIndex]?.dataset.roleName || '';
+                const allowedDepartments = restrictedDepartments[selectedRole] || null;
+                const selectedDepartment = departmentSelect.value;
+
+                departmentField.hidden = selectedRole === '';
+                departmentField.setAttribute('aria-hidden', selectedRole === '' ? 'true' : 'false');
+
+                if (selectedRole === '') {
+                    departmentSelect.value = '';
+                    departmentSelect.required = false;
+                    departmentHelp.textContent = '';
+                    return;
+                }
+
+                const visibleOptions = departmentOptions.filter(function (option) {
+                    return !option.value || !allowedDepartments || allowedDepartments.has(departmentType(option));
+                });
+
+                while (departmentSelect.firstChild) {
+                    departmentSelect.removeChild(departmentSelect.firstChild);
+                }
+
+                visibleOptions.forEach(function (option) {
+                    departmentSelect.appendChild(option.cloneNode(true));
+                });
+
+                if (selectedDepartment && allowedDepartments) {
+                    if (Array.from(departmentSelect.options).some(function (option) {
+                        return option.value === selectedDepartment;
+                    })) {
+                        departmentSelect.value = selectedDepartment;
+                    } else {
+                        departmentSelect.value = '';
+                    }
+                }
+
+                departmentSelect.required = selectedRole === 'student' || selectedRole === 'instructor';
+
+                if (selectedRole === 'student') {
+                    departmentHelp.textContent = 'Student accounts may be assigned to SHS or College only.';
+                } else if (selectedRole === 'instructor' || selectedRole === 'laboratory in-charge') {
+                    departmentHelp.textContent = 'Available departments: JHS, SHS, and College.';
+                } else {
+                    departmentHelp.textContent = '';
+                }
+            };
+
+            roleSelect.addEventListener('change', updateDepartments);
+            updateDepartments();
+        });
+    </script>
+@endpush

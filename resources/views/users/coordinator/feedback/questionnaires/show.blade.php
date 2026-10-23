@@ -2,6 +2,9 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $audienceLabel = $feedbackQuestionnaire->audience === 'Both'
+        ? 'Students and instructors'
+        : $feedbackQuestionnaire->audience . 's';
 @endphp
 
 @section('title', 'View Questionnaire')
@@ -16,131 +19,190 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-        <div>
-            <h2 class="h4 fw-semibold mb-1 text-dark">
-                <i class="fa-solid fa-clipboard-question me-2"></i>{{ $feedbackQuestionnaire->topic }}
-            </h2>
-            <div class="text-secondary small">{{ $feedbackQuestionnaire->questions_count }} questions, {{ $feedbackQuestionnaire->responses_count }} responses</div>
+    <div class="feedback-questionnaire-page">
+        <div class="feedback-page-heading mb-4">
+            <div>
+                <div class="feedback-eyebrow">Questionnaire overview</div>
+                <h2 class="h3 fw-semibold mb-2 text-dark">{{ $feedbackQuestionnaire->topic }}</h2>
+                <div class="text-secondary small d-flex flex-wrap gap-2 align-items-center">
+                    <span><i class="fa-solid fa-comments me-1"></i>{{ $feedbackQuestionnaire->responses_count }} responses</span>
+                    <span class="text-secondary" aria-hidden="true">·</span>
+                    <span><i class="fa-solid fa-list-check me-1"></i>{{ $feedbackQuestionnaire->questions_count }} questions</span>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route($routePrefix.'.feedback.questionnaires.edit', $feedbackQuestionnaire) }}" class="btn btn-primary px-4">
+                    <i class="fa-solid fa-pen-to-square me-2"></i>Edit questionnaire
+                </a>
+                <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Back to list
+                </a>
+            </div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route($routePrefix.'.feedback.questionnaires.edit', $feedbackQuestionnaire) }}" class="btn btn-primary px-4">
-                <i class="fa-solid fa-pen-to-square me-2"></i>Edit questionnaire
-            </a>
-            <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">
-                <i class="fa-solid fa-arrow-left me-2"></i>Back to list
-            </a>
+
+        <section class="section-card feedback-table-section mb-4">
+            <div class="feedback-section-heading">
+                <div>
+                    <div class="feedback-eyebrow">Configuration</div>
+                    <h3 class="h5 fw-semibold mb-0">Questionnaire details</h3>
+                </div>
+                <span class="feedback-status-pill {{ $feedbackQuestionnaire->is_active ? 'feedback-status-pill--active' : 'feedback-status-pill--inactive' }}">
+                    <i class="fa-solid fa-circle"></i>{{ $feedbackQuestionnaire->is_active ? 'Active' : 'Inactive' }}
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table feedback-details-table align-middle mb-0">
+                    <tbody>
+                        <tr>
+                            <th scope="row">Campus</th>
+                            <td>{{ $feedbackQuestionnaire->campus }}</td>
+                            <th scope="row">Audience</th>
+                            <td><span class="feedback-audience-pill"><i class="fa-solid fa-users me-1"></i>{{ $audienceLabel }}</span></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Description</th>
+                            <td colspan="3" class="rte-content">{!! $feedbackQuestionnaire->description ?: '<span class="text-secondary">No description provided.</span>' !!}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section-card feedback-table-section mb-4 feedback-question-summary">
+            <div class="feedback-section-heading">
+                <div>
+                    <div class="feedback-eyebrow">Question set</div>
+                    <h3 class="h5 fw-semibold mb-0">Questions</h3>
+                </div>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#questionnaireQuestionsModal" aria-controls="questionnaireQuestionsModal">
+                    <i class="fa-solid fa-list-check me-2"></i>View questions
+                </button>
+            </div>
+        </section>
+
+        <section class="section-card feedback-table-section">
+            <div class="feedback-section-heading">
+                <div>
+                    <div class="feedback-eyebrow">Submitted feedback</div>
+                    <h3 class="h5 fw-semibold mb-0">Responses</h3>
+                </div>
+                <span class="feedback-section-count">{{ $feedbackQuestionnaire->responses_count }} total</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover feedback-data-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Respondent</th>
+                            <th scope="col">Indication</th>
+                            <th scope="col">Submitted</th>
+                            <th scope="col" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($responses as $response)
+                            @php
+                                $roleName = $response->user?->role?->role_name;
+                                $roleIsStudent = $roleName === 'Student';
+                                $roleLabel = in_array($roleName, ['Student', 'Instructor'], true) ? $roleName : 'Unknown';
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="feedback-respondent">
+                                        <div class="feedback-respondent-avatar">{{ strtoupper(substr((string) ($response->user?->first_name ?? '?'), 0, 1)) }}</div>
+                                        <div>
+                                            <div class="fw-semibold text-dark">{{ $response->user?->last_name }}, {{ $response->user?->first_name }}</div>
+                                            <div class="small text-secondary">{{ $response->user?->userID ?? 'Account unavailable' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="feedback-role-pill {{ $roleIsStudent ? 'feedback-role-pill--student' : ($roleName === 'Instructor' ? 'feedback-role-pill--instructor' : 'feedback-role-pill--unknown') }}">
+                                        <i class="fa-solid fa-{{ $roleIsStudent ? 'graduation-cap' : ($roleName === 'Instructor' ? 'chalkboard-user' : 'user') }} me-1"></i>{{ $roleLabel }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-dark">{{ $response->created_at?->format('M d, Y') ?? '—' }}</div>
+                                    <div class="small text-secondary">{{ $response->created_at?->format('h:i A') ?? '' }}</div>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ route($routePrefix.'.feedback.questionnaires.responses.show', [$feedbackQuestionnaire, $response]) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>View response
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="text-center text-secondary py-5">
+                                    <i class="fa-regular fa-comment-dots d-block fs-3 mb-2"></i>
+                                    No responses yet.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="mt-4">
+            {{ $responses->withQueryString()->links('pagination::bootstrap-5') }}
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-xl-4">
-            <div class="section-card h-100">
-                <div class="card-body p-3 p-lg-4">
-                    <div class="vstack gap-3">
-                        <div>
-                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-tag me-1"></i>Topic</div>
-                            <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->topic }}</div>
-                        </div>
-                        <div>
-                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-align-left me-1"></i>Description</div>
-                            <div class="text-dark">{!! $feedbackQuestionnaire->description ?: '-' !!}</div>
-                        </div>
-                        <div>
-                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-circle-info me-1"></i>Status</div>
-                            <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->is_active ? 'Active' : 'Inactive' }}</div>
-                        </div>
-                        <div>
-                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-building-columns me-1"></i>Campus</div>
-                            <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->campus }}</div>
-                        </div>
-                        <div>
-                            <div class="small text-uppercase text-secondary mb-1"><i class="fa-solid fa-users me-1"></i>Audience</div>
-                            <div class="fw-semibold text-dark">{{ $feedbackQuestionnaire->audience === 'Both' ? 'Students and instructors' : $feedbackQuestionnaire->audience . 's' }}</div>
-                        </div>
+    <div class="modal fade feedback-questions-modal" id="questionnaireQuestionsModal" tabindex="-1" aria-labelledby="questionnaireQuestionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0">
+                <div class="modal-header">
+                    <div>
+                        <div class="feedback-eyebrow">Question set</div>
+                        <h2 class="modal-title h5 mb-0" id="questionnaireQuestionsModalLabel">{{ $feedbackQuestionnaire->topic }}</h2>
                     </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-xl-8">
-            <div class="section-card mb-4">
-                <div class="card-header bg-white border-0 pt-3 px-3 px-lg-4">
-                    <h3 class="h5 fw-semibold mb-1">
-                        <i class="fa-solid fa-list-check me-2"></i>Questions
-                    </h3>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        @foreach ($feedbackQuestionnaire->questions as $question)
-                            <div class="list-group-item px-3 px-lg-4 py-3">
-                                <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                                            <span class="badge text-bg-light border text-dark">
-                                                <i class="fa-solid fa-{{ $question->question_type === 'likert' ? 'sliders' : 'keyboard' }} me-1"></i>{{ $question->question_type === 'likert' ? 'Likert' : 'Raw answer' }}
-                                            </span>
-                                            <span class="badge text-bg-light border text-dark">
-                                                <i class="fa-solid fa-asterisk me-1"></i>{{ $question->is_required ? 'Required' : 'Optional' }}
-                                            </span>
-                                        </div>
-                                        <div class="fw-semibold text-dark">{!! $question->question_text !!}</div>
-                                    </div>
-                                    @if ($question->question_type === 'likert')
-                                        <div class="small text-secondary text-md-end">Scale: 1 to 5</div>
-                                    @else
-                                        <div class="small text-secondary text-md-end">Rich text answer</div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="section-card">
-                <div class="card-header bg-white border-0 pt-3 px-3 px-lg-4">
-                    <h3 class="h5 fw-semibold mb-1">
-                        <i class="fa-solid fa-comments me-2"></i>Responses
-                    </h3>
-                </div>
-                <div class="card-body p-0">
+                <div class="modal-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 table-sm">
-                            <thead class="table-light">
+                        <table class="table table-hover feedback-data-table align-middle mb-0">
+                            <thead>
                                 <tr>
-                                    <th scope="col" class="ps-3">Participant</th>
-                                    <th scope="col">Submitted</th>
-                                    <th scope="col" class="text-end pe-3">Action</th>
+                                    <th scope="col" class="feedback-index-column">#</th>
+                                    <th scope="col">Question</th>
+                                    <th scope="col">Format</th>
+                                    <th scope="col">Requirement</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($responses as $response)
+                                @forelse ($feedbackQuestionnaire->questions as $question)
                                     <tr>
-                                        <td class="ps-3 fw-semibold text-dark">
-                                            {{ $response->user?->last_name }}, {{ $response->user?->first_name }}
+                                        <td class="feedback-index-column text-secondary fw-semibold">{{ $loop->iteration }}</td>
+                                        <td class="feedback-question-cell rte-content">{!! $question->question_text !!}</td>
+                                        <td>
+                                            <span class="feedback-type-pill">
+                                                <i class="fa-solid fa-{{ $question->question_type === 'likert' ? 'sliders' : 'keyboard' }} me-1"></i>
+                                                {{ $question->question_type === 'likert' ? 'Likert scale' : 'Written response' }}
+                                            </span>
                                         </td>
-                                        <td>{{ $response->created_at?->format('M d, Y h:i A') }}</td>
-                                        <td class="text-end pe-3">
-                                            <a href="{{ route($routePrefix.'.feedback.questionnaires.responses.show', [$feedbackQuestionnaire, $response]) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="fa-solid fa-eye me-1"></i>View response
-                                            </a>
+                                        <td>
+                                            <span class="feedback-requirement-pill {{ $question->is_required ? 'feedback-requirement-pill--required' : '' }}">
+                                                <i class="fa-solid fa-{{ $question->is_required ? 'asterisk' : 'minus' }} me-1"></i>
+                                                {{ $question->is_required ? 'Required' : 'Optional' }}
+                                            </span>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-center text-secondary py-5">No responses yet.</td>
+                                        <td colspan="4" class="text-center text-secondary py-5">No questions added yet.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div class="mt-4">
-        {{ $responses->withQueryString()->links('pagination::bootstrap-5') }}
     </div>
 @endsection

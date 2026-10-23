@@ -8,10 +8,14 @@ use Illuminate\Support\Collection;
 
 trait LoadsAnnouncements
 {
-    protected function publishedAnnouncements(?string $audience = null, int $limit = 6): Collection
+    protected function publishedAnnouncements(?string $audience = null, int $limit = 6, ?string $campus = null): Collection
     {
         $query = Announcement::with(['postedBy.role', 'postedBy.department'])
             ->latest();
+
+        if (filled($campus)) {
+            $query->forCampus($campus);
+        }
 
         if ($audience === null) {
             $query->published();
@@ -26,11 +30,14 @@ trait LoadsAnnouncements
             ->values();
     }
 
-    protected function latestAnnouncements(int $limit = 4): Collection
+    protected function latestAnnouncements(int $limit = 4, ?string $campus = null): Collection
     {
-        return Announcement::with(['postedBy.role', 'postedBy.department'])
+        $query = Announcement::with(['postedBy.role', 'postedBy.department'])
             ->latest()
-            ->limit($limit)
+            ->when(filled($campus), fn ($announcementQuery) => $announcementQuery->forCampus($campus))
+            ->limit($limit);
+
+        return $query
             ->get()
             ->map(fn (Announcement $announcement) => $this->announcementData($announcement))
             ->values();

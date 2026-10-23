@@ -8,6 +8,7 @@ use App\Mail\AnnouncementPublishedMail;
 use App\Models\Announcement;
 use App\Models\User;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -27,12 +28,13 @@ class AnnouncementController extends Controller
 
     public function index(Request $request): View
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->managedCampus($request);
 
         $audience = $request->query('audience', 'all');
         $status = $request->query('status', 'all');
 
-        $query = Announcement::with(['postedBy'])->latest();
+        $campusAnnouncements = Announcement::query()->forCampus($campus);
+        $query = (clone $campusAnnouncements)->with(['postedBy'])->latest();
 
         if ($audience !== 'all') {
             $query->where(function ($announcementQuery) use ($audience) {
@@ -62,16 +64,16 @@ class AnnouncementController extends Controller
                 'draft' => 'Draft',
             ],
             'totals' => [
-                'all' => Announcement::count(),
-                'published' => Announcement::published()->count(),
-                'draft' => Announcement::where('is_published', false)->count(),
+                'all' => (clone $campusAnnouncements)->count(),
+                'published' => (clone $campusAnnouncements)->published()->count(),
+                'draft' => (clone $campusAnnouncements)->where('is_published', false)->count(),
             ],
         ]);
     }
 
     public function create(Request $request): View
     {
-        $this->ensureCoordinator($request);
+        $this->managedCampus($request);
 
         return view('users.coordinator.announcement.create', [
             'announcement' => new Announcement([
@@ -86,7 +88,7 @@ class AnnouncementController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->ensureCoordinator($request);
+        $this->managedCampus($request);
 
         $data = $this->validatedData($request);
         $data['posted_by'] = $request->user()->userNo;
@@ -103,7 +105,8 @@ class AnnouncementController extends Controller
 
     public function show(Request $request, Announcement $announcement): View
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->managedCampus($request);
+        $this->ensureAnnouncementBelongsToCampus($announcement, $campus);
 
         $announcement->load(['postedBy.role']);
 
@@ -115,7 +118,8 @@ class AnnouncementController extends Controller
 
     public function edit(Request $request, Announcement $announcement): View
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->managedCampus($request);
+        $this->ensureAnnouncementBelongsToCampus($announcement, $campus);
 
         return view('users.coordinator.announcement.edit', [
             'announcement' => $announcement,
@@ -125,7 +129,8 @@ class AnnouncementController extends Controller
 
     public function update(Request $request, Announcement $announcement): RedirectResponse
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->managedCampus($request);
+        $this->ensureAnnouncementBelongsToCampus($announcement, $campus);
 
         $wasPublished = (bool) $announcement->is_published;
         $data = $this->validatedData($request);
@@ -147,7 +152,8 @@ class AnnouncementController extends Controller
 
     public function destroy(Request $request, Announcement $announcement): RedirectResponse
     {
-        $this->ensureCoordinator($request);
+        $campus = $this->managedCampus($request);
+        $this->ensureAnnouncementBelongsToCampus($announcement, $campus);
 
         $this->deleteAnnouncementImages($announcement);
         $announcement->delete();
@@ -258,9 +264,32 @@ class AnnouncementController extends Controller
         };
     }
 
-    private function ensureCoordinator(Request $request): void
+    private function managedCampus(Request $request): string
     {
-        abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+        $user = $request->user()->loadMissing(['role', 'department']);
+        $roleName = $user->role?->role_name;
+
+        if ($roleName === 'Coordinator') {
+            return Campus::MAIN;
+        }
+
+        abort_unless($roleName === 'Laboratory In-charge', 403);
+
+        $campus = $user->campusName();
+        abort_unless(filled($campus), 403);
+
+        return $campus;
+    }
+
+    private function ensureAnnouncementBelongsToCampus(Announcement $announcement, string $campus): void
+    {
+        abort_unless(
+            Announcement::query()
+                ->forCampus($campus)
+                ->whereKey($announcement->getKey())
+                ->exists(),
+            404,
+        );
     }
 
     private function routePrefix(Request $request): string

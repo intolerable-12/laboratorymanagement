@@ -76,16 +76,6 @@
                             @error('department_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="guest-reservation-campus" class="form-label fw-semibold">Campus</label>
-                            <select id="guest-reservation-campus" name="campus" class="form-select @error('campus') is-invalid @enderror" required>
-                                <option value="">Select campus</option>
-                                @foreach ($campuses as $campusOption)
-                                    <option value="{{ $campusOption }}" @selected(old('campus', session('guest.reservation.draft.details.campus', $selectedCampus)) === $campusOption)>{{ $campusOption }}</option>
-                                @endforeach
-                            </select>
-                            @error('campus')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
                             <label for="guest-reservation-email" class="form-label fw-semibold">Email address</label>
                             <input id="guest-reservation-email" type="email" name="email" value="{{ old('email', session('guest.reservation.draft.details.email')) }}" pattern="[^@\s]+@lccdo\.edu\.ph" placeholder="name@lccdo.edu.ph" class="form-control @error('email') is-invalid @enderror" autocomplete="email" required>
                             @error('email')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -112,21 +102,18 @@
                         </ul>
                     </div>
                     <div class="row g-3">
-                        <div class="col-lg-4">
-                            <label for="guest-reservation-campus-details" class="form-label fw-semibold">Campus selected</label>
-                            <div id="guest-reservation-campus-details" class="form-control-plaintext text-secondary">Choose a campus above.</div>
-                        </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-6">
                             <label for="guest-reservation-laboratory" class="form-label fw-semibold">Laboratory</label>
                             <select id="guest-reservation-laboratory" name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
                                 @foreach ($laboratories as $laboratory)
-                                    <option value="{{ $laboratory->id }}" data-campus="{{ $laboratory->campus }}" @selected(old('laboratory_id', session('guest.reservation.draft.details.laboratory_id', $selectedLaboratoryId)) == $laboratory->id) @disabled($selectedCampus && $laboratory->campus !== $selectedCampus)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
+                                    <option value="{{ $laboratory->id }}" @selected(old('laboratory_id', session('guest.reservation.draft.details.laboratory_id', $selectedLaboratoryId)) == $laboratory->id)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
                                 @endforeach
                             </select>
                             @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="form-text">Only Main campus laboratories are available for guest requests.</div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-6">
                             <label for="guest-experiment-title" class="form-label fw-semibold">Experiment / Activity Title</label>
                             <input id="guest-experiment-title" type="text" name="experiment_title" value="{{ old('experiment_title', session('guest.reservation.draft.details.experiment_title')) }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity" required>
                             @error('experiment_title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -252,43 +239,6 @@
             form.addEventListener('invalid', () => validateDate(true), true);
             validateDate();
             updateReservationHours();
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const campusField = document.getElementById('guest-reservation-campus');
-            const campusDetails = document.getElementById('guest-reservation-campus-details');
-            const laboratoryField = document.getElementById('guest-reservation-laboratory');
-
-            if (!campusField || !laboratoryField) {
-                return;
-            }
-
-            const syncLaboratories = () => {
-                const campus = campusField.value;
-                const options = Array.from(laboratoryField.options).filter((option) => option.value !== '');
-
-                options.forEach((option) => {
-                    const visible = campus !== '' && option.dataset.campus === campus;
-                    option.hidden = !visible;
-                    option.disabled = !visible;
-
-                    if (!visible && option.selected) {
-                        option.selected = false;
-                    }
-                });
-
-                if (laboratoryField.value === '' || !options.some((option) => option.selected && !option.disabled)) {
-                    laboratoryField.value = '';
-                }
-
-                if (campusDetails) {
-                    campusDetails.textContent = campus !== '' ? `${campus} campus laboratories are available.` : 'Choose a campus above.';
-                }
-            };
-
-            campusField.addEventListener('change', syncLaboratories);
-            syncLaboratories();
         });
     </script>
 @endsection
