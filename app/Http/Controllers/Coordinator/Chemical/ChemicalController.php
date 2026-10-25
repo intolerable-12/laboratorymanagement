@@ -67,6 +67,7 @@ class ChemicalController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $status = $request->query('status', '');
+        $type = $request->query('type', '');
         $categoryId = $request->query('category_id', '');
         $laboratoryId = $request->query('laboratory_id', '');
         $hazard = $request->query('hazard_classification', '');
@@ -76,6 +77,7 @@ class ChemicalController extends Controller
 
         $sortableColumns = [
             'item' => 'chemical_name',
+            'type' => 'type',
             'category' => 'category_name',
             'laboratory' => 'laboratory_name',
             'stock' => 'quantity',
@@ -126,12 +128,14 @@ class ChemicalController extends Controller
 
                 return $query->where('chemicals.status', $status);
             })
+            ->when($type !== '', fn($query) => $query->where('chemicals.type', $type))
             ->when($categoryId !== '', fn($query) => $query->where('chemicals.category_id', $categoryId))
             ->when($laboratoryId !== '', fn($query) => $query->where('chemicals.laboratory_id', $laboratoryId))
             ->when($hazard !== '', fn($query) => $query->where('chemicals.hazard_classification', $hazard))
             ->when($lowStock === '1', fn($query) => $query->whereColumn('chemicals.quantity', '<=', 'chemicals.minimum_stock'));
 
         $chemicals = $chemicalsQuery
+            ->when($sort === 'type', fn($query) => $query->orderBy('chemicals.type', $direction))
             ->when($sort === 'category', fn($query) => $query->orderBy('chemical_categories.category_name', $direction))
             ->when($sort === 'laboratory', fn($query) => $query->orderBy('laboratories.laboratory_name', $direction))
             ->when($sort === 'archived_at' && $archived, fn($query) => $query->orderBy('chemicals.deleted_at', $direction))
@@ -146,6 +150,7 @@ class ChemicalController extends Controller
         $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name']);
         $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = Chemical::STATUSES;
+        $types = Chemical::TYPES;
         $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
 
         $stats = [
@@ -168,6 +173,7 @@ class ChemicalController extends Controller
         $filters = array_filter([
             'search' => $search,
             'status' => $status,
+            'type' => $type,
             'category_id' => $categoryId,
             'laboratory_id' => $laboratoryId,
             'hazard_classification' => $hazard,
@@ -181,9 +187,11 @@ class ChemicalController extends Controller
             'laboratories',
             'suppliers',
             'statuses',
+            'types',
             'hazards',
             'search',
             'status',
+            'type',
             'categoryId',
             'laboratoryId',
             'hazard',
@@ -201,10 +209,11 @@ class ChemicalController extends Controller
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
+        $types = Chemical::TYPES;
         $unitOptions = self::UNIT_OPTIONS;
         $storageLocations = self::STORAGE_LOCATIONS;
 
-        return view('users.coordinator.chemicals.create', compact('categories', 'laboratories', 'suppliers', 'unitOptions', 'storageLocations'));
+        return view('users.coordinator.chemicals.create', compact('categories', 'laboratories', 'suppliers', 'types', 'unitOptions', 'storageLocations'));
     }
 
     public function store(Request $request)
@@ -246,6 +255,7 @@ class ChemicalController extends Controller
         $campus = $this->viewerCampus(request());
         $categories = ChemicalCategory::orderBy('category_name')->get();
         $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
+        $types = Chemical::TYPES;
         $suppliers = Supplier::query()
             ->where(function ($query) use ($chemical) {
                 $query->where('status', 'Active');
@@ -259,7 +269,7 @@ class ChemicalController extends Controller
         $unitOptions = $this->unitOptions($chemical);
         $storageLocations = $this->storageLocations($chemical);
 
-        return view('users.coordinator.chemicals.edit', compact('chemical', 'categories', 'laboratories', 'suppliers', 'unitOptions', 'storageLocations'));
+        return view('users.coordinator.chemicals.edit', compact('chemical', 'categories', 'laboratories', 'suppliers', 'types', 'unitOptions', 'storageLocations'));
     }
 
     public function update(Request $request, Chemical $chemical)
@@ -449,6 +459,7 @@ class ChemicalController extends Controller
     {
         $rules = [
             'chemical_name' => ['required', 'string', 'max:255'],
+            'type' => ['required', Rule::in(Chemical::TYPES)],
             'category_id' => ['required', 'exists:chemical_categories,id'],
             'laboratory_id' => ['required', 'exists:laboratories,id'],
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
@@ -482,6 +493,8 @@ class ChemicalController extends Controller
         $messages = [
             'chemical_name.required' => 'Please enter the chemical name.',
             'chemical_name.max' => 'Chemical name cannot exceed 255 characters.',
+            'type.required' => 'Please select whether the chemical is organic or inorganic.',
+            'type.in' => 'The selected chemical type is invalid.',
             'category_id.required' => 'Please select a chemical category.',
             'category_id.exists' => 'The selected chemical category is invalid.',
             'laboratory_id.required' => 'Please select a laboratory.',

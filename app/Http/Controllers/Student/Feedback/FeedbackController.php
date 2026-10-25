@@ -60,6 +60,8 @@ class FeedbackController extends Controller
             'laboratory_id' => ['nullable', 'exists:laboratories,id'],
             'rating' => ['required', 'integer', 'between:1,5'],
             'comments' => ['nullable', 'string', 'max:15000'],
+            'images' => ['nullable', 'array', 'max:3'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'is_anonymous' => ['nullable', 'boolean'],
         ]);
 
@@ -85,6 +87,7 @@ class FeedbackController extends Controller
             'reservation_id' => null,
             'rating' => $data['rating'],
             'comments' => $comments,
+            'images' => $this->storeUploadedImages($request),
             'is_anonymous' => $request->boolean('is_anonymous'),
         ]);
 
@@ -94,6 +97,24 @@ class FeedbackController extends Controller
         return redirect()
             ->route('student.feedback.index')
             ->with('status', 'Feedback submitted successfully. The appropriate campus feedback reviewer has been notified.');
+    }
+
+    /**
+     * Keep feedback attachments private; reviewer image routes enforce campus access.
+     *
+     * @return array<int, string>
+     */
+    private function storeUploadedImages(Request $request): array
+    {
+        if (! $request->hasFile('images')) {
+            return [];
+        }
+
+        return collect($request->file('images'))
+            ->filter()
+            ->map(fn ($image) => $image->store('feedback', 'local'))
+            ->values()
+            ->all();
     }
 
     private function ensureStudent(Request $request): void

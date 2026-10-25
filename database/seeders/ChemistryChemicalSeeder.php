@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Chemical;
 use App\Models\ChemicalCategory;
 use App\Models\Laboratory;
+use App\Support\ChemicalType;
 use Illuminate\Database\Seeder;
 
 class ChemistryChemicalSeeder extends Seeder
@@ -269,6 +270,7 @@ class ChemistryChemicalSeeder extends Seeder
                 [
                     'barcode' => $barcode,
                     'chemical_name' => $item['chemical_name'],
+                    'type' => ChemicalType::fromName($item['chemical_name']),
                     'category_id' => $categoryId,
                     'laboratory_id' => $chemistryLab->id,
                     'supplier_id' => null,

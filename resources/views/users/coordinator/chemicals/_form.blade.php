@@ -2,6 +2,7 @@
     $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
     $hazards = ['Non-Hazardous', 'Flammable', 'Corrosive', 'Oxidizer', 'Toxic', 'Explosive', 'Compressed Gas', 'Irritant', 'Environmental Hazard'];
     $statuses = \App\Models\Chemical::STATUSES;
+    $types = $types ?? \App\Models\Chemical::TYPES;
     $unitOptions = $unitOptions ?? ['ml', 'cc', 'liter', 'kg', 'g'];
     $storageLocations = $storageLocations ?? ['Cabinet 1', 'Cabinet 2', 'Flammable storage', 'Freezers', 'Racks', 'Shelf A', 'Shelf B', 'Cold room', 'Other'];
     $imageUrl = !empty($chemical?->image) ? asset('storage/' . $chemical->image) : null;
@@ -51,6 +52,18 @@
                 <label class="form-label" for="chemical_name">Chemical name</label>
                 <input type="text" id="chemical_name" name="chemical_name" value="{{ old('chemical_name', $chemical->chemical_name ?? '') }}" class="form-control admin-form-control @error('chemical_name') is-invalid @enderror" required>
                 @error('chemical_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label" for="type">Chemical type</label>
+                <select id="type" name="type" class="form-select admin-form-control @error('type') is-invalid @enderror" required>
+                    <option value="">Select type</option>
+                    @foreach ($types as $type)
+                        <option value="{{ $type }}" @selected(old('type', $chemical->type ?? '') === $type)>{{ $type }}</option>
+                    @endforeach
+                </select>
+                <div class="form-text">Classify the chemical as organic or inorganic.</div>
+                @error('type') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-6">

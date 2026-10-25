@@ -320,6 +320,9 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
             ->name('feedback.')
             ->group(function () {
                 Route::get('/', [CoordinatorFeedbackController::class, 'index'])->name('index');
+                Route::get('/{feedback}/images/{image}', [CoordinatorFeedbackController::class, 'image'])
+                    ->whereNumber(['feedback', 'image'])
+                    ->name('image');
                 Route::prefix('questionnaires')
                     ->name('questionnaires.')
                     ->group(function () {
@@ -380,7 +383,10 @@ Route::middleware(['auth', 'role:Student', 'audit'])
                     ->name('chemicals.')
                     ->group(function () {
                         Route::get('/', [StudentChemicalInventoryController::class, 'index'])->name('index');
-                        Route::get('/categories/{chemicalCategory}', [StudentChemicalInventoryController::class, 'category'])->name('categories.show');
+                        Route::get('/laboratories/{laboratory}/types', [StudentChemicalInventoryController::class, 'types'])->name('types.index');
+                        Route::get('/laboratories/{laboratory}/types/{type}/categories', [StudentChemicalInventoryController::class, 'categories'])->name('categories.index');
+                        Route::get('/laboratories/{laboratory}/types/{type}/categories/{chemicalCategory}', [StudentChemicalInventoryController::class, 'categoryItems'])->name('categories.show');
+                        Route::get('/categories/{chemicalCategory}', [StudentChemicalInventoryController::class, 'category'])->name('legacy-categories.show');
                         Route::get('/items/{chemical}', [StudentChemicalInventoryController::class, 'show'])->name('show');
                     });
             });
@@ -612,6 +618,9 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
         ->name('feedback.')
         ->group(function () {
             Route::get('/', [CoordinatorFeedbackController::class, 'index'])->name('index');
+            Route::get('/{feedback}/images/{image}', [CoordinatorFeedbackController::class, 'image'])
+                ->whereNumber(['feedback', 'image'])
+                ->name('image');
             Route::prefix('questionnaires')
                 ->name('questionnaires.')
                 ->group(function () {
@@ -668,7 +677,10 @@ Route::middleware(['auth', 'role:Instructor', 'audit'])
                     ->name('chemicals.')
                     ->group(function () {
                         Route::get('/', [InstructorChemicalInventoryController::class, 'index'])->name('index');
-                        Route::get('/categories/{chemicalCategory}', [InstructorChemicalInventoryController::class, 'category'])->name('categories.show');
+                        Route::get('/laboratories/{laboratory}/types', [InstructorChemicalInventoryController::class, 'types'])->name('types.index');
+                        Route::get('/laboratories/{laboratory}/types/{type}/categories', [InstructorChemicalInventoryController::class, 'categories'])->name('categories.index');
+                        Route::get('/laboratories/{laboratory}/types/{type}/categories/{chemicalCategory}', [InstructorChemicalInventoryController::class, 'categoryItems'])->name('categories.show');
+                        Route::get('/categories/{chemicalCategory}', [InstructorChemicalInventoryController::class, 'category'])->name('legacy-categories.show');
                         Route::get('/items/{chemical}', [InstructorChemicalInventoryController::class, 'show'])->name('show');
                     });
             });

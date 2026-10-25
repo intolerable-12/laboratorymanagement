@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Feedback;
 use App\Support\Campus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class FeedbackController extends Controller
 {
@@ -44,19 +45,36 @@ class FeedbackController extends Controller
             'total' => (clone $campusFeedback)->count(),
             'lab_service' => (clone $campusFeedback)->where('feedback_type', 'Lab Service')->count(),
             'system' => (clone $campusFeedback)->where('feedback_type', 'System')->count(),
+            'average_rating' => round((float) ((clone $campusFeedback)->avg('rating') ?? 0), 1),
         ];
 
         $types = ['Lab Service', 'System'];
 
-        return view('users.coordinator.feedback.index', compact('feedbacks', 'search', 'type', 'stats', 'types'));
+        return view('users.coordinator.feedback.index', compact('feedbacks', 'search', 'type', 'stats', 'types', 'campus'));
     }
 
     public function show(Request $request, Feedback $feedback)
     {
         $feedback->load(['user', 'laboratory', 'reservation']);
-        abort_unless($this->feedbackBelongsToCampus($feedback, $this->viewerCampus($request)), 404);
+        $campus = $this->viewerCampus($request);
+        abort_unless($this->feedbackBelongsToCampus($feedback, $campus), 404);
 
-        return view('users.coordinator.feedback.show', compact('feedback'));
+        return view('users.coordinator.feedback.show', compact('feedback', 'campus'));
+    }
+
+    public function image(Request $request, Feedback $feedback, int $image)
+    {
+        $feedback->loadMissing('user');
+        $campus = $this->viewerCampus($request);
+        abort_unless($this->feedbackBelongsToCampus($feedback, $campus), 404);
+
+        $path = collect($feedback->images ?? [])->get($image);
+        abort_unless(is_string($path) && $path !== '', 404);
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'private, max-age=300',
+        ]);
     }
 
     private function viewerCampus(Request $request): string

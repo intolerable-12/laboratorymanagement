@@ -394,6 +394,7 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
         }
 
         return collect([
+            $chemical->type ? 'Type: '.$chemical->type : null,
             trim((string) ($chemical->description ?? '')),
             $chemical->expiration_date ? 'Expiration: '.$chemical->expiration_date->format('n/j/Y') : null,
         ])->filter()->implode("\n");

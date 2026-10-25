@@ -30,6 +30,10 @@
         return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
     };
 
+    $selectedLaboratory = $laboratoryId !== ''
+        ? $laboratories->firstWhere('id', (int) $laboratoryId)
+        : null;
+
     $onEquipment  = request()->routeIs($routePrefix.'.equipment.index',
                                        $routePrefix.'.equipment.archived',
                                        $routePrefix.'.equipment.show',
@@ -450,7 +454,29 @@
             <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                     <div>
-                        <h3 class="h5 fw-semibold mb-3">{{ $archived ? 'Archived equipment' : 'Equipment list' }}</h3>
+                        <h3 class="h5 fw-semibold mb-0">
+                            {{ $archived ? 'Archived Equipment' : 'Equipment List' }} - {{ $selectedLaboratory?->laboratory_name ?? 'All Laboratories' }}
+                        </h3>
+                    </div>
+                    <form method="GET" action="{{ route($tableRoute) }}" class="d-flex align-items-center gap-2">
+                        @foreach (request()->except(['page', 'laboratory_id']) as $queryName => $queryValue)
+                            @if (is_scalar($queryValue))
+                                <input type="hidden" name="{{ $queryName }}" value="{{ $queryValue }}">
+                            @endif
+                        @endforeach
+                        <label for="equipment-table-laboratory" class="small text-secondary text-nowrap">Laboratory</label>
+                        <select
+                            id="equipment-table-laboratory"
+                            name="laboratory_id"
+                            class="form-select form-select-sm admin-form-control"
+                            data-live-search-filter
+                            aria-label="Select laboratory for equipment list"
+                        >
+                            <option value="">All Laboratories</option>
+                            @foreach ($laboratories as $laboratory)
+                                <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
             </div>

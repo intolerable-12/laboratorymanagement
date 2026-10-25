@@ -30,6 +30,7 @@ class Feedback extends Model
         'reservation_id',
         'rating',
         'comments',
+        'images',
         'is_anonymous',
     ];
 
@@ -42,6 +43,7 @@ class Feedback extends Model
     {
         return [
             'rating' => 'integer',
+            'images' => 'array',
             'is_anonymous' => 'boolean',
         ];
     }

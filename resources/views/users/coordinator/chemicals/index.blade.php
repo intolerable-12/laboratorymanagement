@@ -29,6 +29,10 @@
 
         return $currentDirection === 'asc' ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
     };
+
+    $selectedLaboratory = $laboratoryId !== ''
+        ? $laboratories->firstWhere('id', (int) $laboratoryId)
+        : null;
 @endphp
 
 @section('content')
@@ -343,6 +347,16 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
+                                        <label for="chemical-filter-type" class="form-label fw-medium">Chemical type</label>
+                                        <select id="chemical-filter-type" name="type" class="form-select admin-form-control">
+                                            <option value="">All types</option>
+                                            @foreach ($types as $option)
+                                                <option value="{{ $option }}" @selected($type === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
                                         <label for="chemical-filter-category" class="form-label fw-medium">Category</label>
                                         <select id="chemical-filter-category" name="category_id" class="form-select admin-form-control">
                                             <option value="">All categories</option>
@@ -432,7 +446,29 @@
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h3 class="h5 fw-semibold mb-3">{{ $archived ? 'Archived chemicals' : 'Chemical list' }}</h3>
+                    <h3 class="h5 fw-semibold mb-0">
+                        {{ $archived ? 'Archived Chemicals' : 'Chemical List' }} - {{ $selectedLaboratory?->laboratory_name ?? 'All Laboratories' }}
+                    </h3>
+                </div>
+                <form method="GET" action="{{ route($tableRoute) }}" class="d-flex align-items-center gap-2">
+                    @foreach (request()->except(['page', 'laboratory_id']) as $queryName => $queryValue)
+                        @if (is_scalar($queryValue))
+                            <input type="hidden" name="{{ $queryName }}" value="{{ $queryValue }}">
+                        @endif
+                    @endforeach
+                    <label for="chemical-table-laboratory" class="small text-secondary text-nowrap">Laboratory</label>
+                    <select
+                        id="chemical-table-laboratory"
+                        name="laboratory_id"
+                        class="form-select form-select-sm admin-form-control"
+                        data-live-search-filter
+                        aria-label="Select laboratory for chemical list"
+                    >
+                        <option value="">All Laboratories</option>
+                        @foreach ($laboratories as $laboratory)
+                            <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
         </div>
@@ -451,16 +487,16 @@
                                     <i class="fa-solid {{ $sortIcon('item') }} small"></i>
                                 </a>
                             </th>
+                            <th scope="col" class="table-column-compact">
+                                <span class="d-inline-flex flex-column align-items-start gap-1 lh-sm">
+                                    <a href="{{ $sortUrl('type') }}" class="text-decoration-none text-dark">Type <i class="fa-solid {{ $sortIcon('type') }} small"></i></a>
+                                    <a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark">Hazard <i class="fa-solid {{ $sortIcon('hazard') }} small"></i></a>
+                                </span>
+                            </th>
                             <th scope="col">
                                 <a href="{{ $sortUrl('category') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>Category</span>
                                     <i class="fa-solid {{ $sortIcon('category') }} small"></i>
-                                </a>
-                            </th>
-                            <th scope="col">
-                                <a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
-                                    <span>Laboratory</span>
-                                    <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
                                 </a>
                             </th>
                             <th scope="col" class="table-column-compact">
@@ -473,12 +509,6 @@
                                 <a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>Status</span>
                                     <i class="fa-solid {{ $sortIcon('status') }} small"></i>
-                                </a>
-                            </th>
-                            <th scope="col" class="table-column-compact">
-                                <a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
-                                    <span>Hazard</span>
-                                    <i class="fa-solid {{ $sortIcon('hazard') }} small"></i>
                                 </a>
                             </th>
                             @if ($archived)
@@ -531,8 +561,13 @@
                                         </div>
                                     </div>
                                 </td>
+                                <td class="table-column-compact">
+                                    <div class="d-flex flex-column align-items-start gap-1">
+                                        <span class="badge rounded-pill text-bg-{{ $chemical->type === 'Organic' ? 'success' : 'secondary' }}">{{ $chemical->type }}</span>
+                                        <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification ?? '-' }}</span>
+                                    </div>
+                                </td>
                                 <td>{{ $chemical->category->category_name ?? '-' }}</td>
-                                <td>{{ $chemical->laboratory->laboratory_name ?? '-' }}</td>
                                 <td class="table-column-compact">
                                     @if (!$archived && !$isReadOnly)
                                         <button
@@ -567,9 +602,6 @@
                                     <span class="badge text-bg-{{ $statusTone }}">
                                         {{ $statusLabel }}
                                     </span>
-                                </td>
-                                <td class="table-column-compact text-center">
-                                    <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
                                 </td>
                                 @if ($archived)
                                     <td>
@@ -640,7 +672,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $archived ? 9 : 8 }}" class="text-center text-secondary py-5">No chemicals found.</td>
+                                <td colspan="{{ $archived ? 10 : 9 }}" class="text-center text-secondary py-5">No chemicals found.</td>
                             </tr>
                         @endforelse
                     </tbody>

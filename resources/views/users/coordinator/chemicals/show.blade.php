@@ -87,6 +87,7 @@
                             <span class="badge text-bg-warning">Below minimum stock</span>
                         @endif
                         <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification }}</span>
+                        <span class="badge text-bg-light border text-dark">{{ $chemical->type }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $chemical->chemical_code }}</span>
                     </div>
 
@@ -98,6 +99,10 @@
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Category</div>
                             <div class="fw-semibold text-dark">{{ $chemical->category->category_name ?? '-' }}</div>
+                        </div>
+                        <div>
+                            <div class="small text-uppercase text-secondary mb-1">Type</div>
+                            <div class="fw-semibold text-dark">{{ $chemical->type }}</div>
                         </div>
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Laboratory</div>

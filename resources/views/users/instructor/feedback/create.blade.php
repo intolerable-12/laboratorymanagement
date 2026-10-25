@@ -27,7 +27,7 @@
             <div class="col-xl-8">
                 <div class="card social-card border-0">
                     <div class="card-body p-4 p-xl-5">
-                        <form method="POST" action="{{ route('instructor.feedback.store') }}" class="vstack gap-4">
+                        <form method="POST" action="{{ route('instructor.feedback.store') }}" enctype="multipart/form-data" class="vstack gap-4">
                             @csrf
 
                             <div class="row g-3">
@@ -80,6 +80,8 @@
                                 'placeholder' => 'Describe the experience, what worked, what did not, and any suggestion for improvement.',
                                 'hint' => 'Use rich text if you want to format your feedback like a short review.',
                             ])
+
+                            @include('partials.feedback-image-upload')
 
                             <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
                                 <a href="{{ route('instructor.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Cancel</a>
