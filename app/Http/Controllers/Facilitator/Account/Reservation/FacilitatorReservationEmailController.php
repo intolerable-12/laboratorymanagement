@@ -70,13 +70,15 @@ class FacilitatorReservationEmailController
 		?string $reason,
 		?string $actorName,
 	): void {
-		if (! $reservation->user?->email) {
+		$email = $reservation->requesterEmail();
+
+		if (! $email) {
 			return;
 		}
 
-		Mail::to($reservation->user->email)->queue(new ReservationDecisionMail(
+		Mail::to($email)->queue(new ReservationDecisionMail(
 			reservation: $reservation,
-			recipientName: $this->buildUserName($reservation->user),
+			recipientName: $reservation->requesterName(),
 			reviewerRole: $reviewerRole,
 			decisionLabel: $decisionLabel,
 			bodyMessage: $bodyMessage,

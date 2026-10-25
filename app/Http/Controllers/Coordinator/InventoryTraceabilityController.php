@@ -380,7 +380,7 @@ class InventoryTraceabilityController extends Controller
                 tone: 'primary',
                 icon: 'fa-file-signature',
                 title: 'Reservation request submitted',
-                actor: $this->userName($reservation->user),
+                actor: $reservation->requesterName() ?: 'Guest requester',
                 actorLabel: 'Requester',
                 quantity: (float) $reservationItem->quantity,
                 quantityLabel: $this->quantityText((float) $reservationItem->quantity, $itemType, $reservationItem->unit ?: $itemUnit),
@@ -422,7 +422,7 @@ class InventoryTraceabilityController extends Controller
                 tone: 'primary',
                 icon: 'fa-hand-holding',
                 title: 'Borrow request submitted',
-                actor: $this->userName($transaction->borrower),
+                actor: $transaction->requesterName() ?: 'Guest requester',
                 actorLabel: 'Requester',
                 quantity: (float) $borrowItem->quantity_borrowed,
                 quantityLabel: $this->quantityText((float) $borrowItem->quantity_borrowed, $itemType, $itemUnit),
@@ -483,7 +483,7 @@ class InventoryTraceabilityController extends Controller
                 : (float) $scan->quantity;
 
             $details = collect([
-                $transaction?->borrower ? 'Requested by '.$this->userName($transaction->borrower).'.' : null,
+                $transaction?->requesterName() ? 'Requested by '.$transaction->requesterName().'.' : null,
                 $borrowItem ? 'Requested quantity: '.$this->quantityText((float) $borrowItem->quantity_borrowed, $itemType, $itemUnit).'.' : null,
                 $condition ? ($isCheckin ? 'Condition in: ' : 'Condition out: ').$condition.'.' : null,
                 $scan->is_voided ? 'This scan was voided.' : null,

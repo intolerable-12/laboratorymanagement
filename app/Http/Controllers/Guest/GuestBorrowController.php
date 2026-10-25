@@ -251,7 +251,7 @@ class GuestBorrowController extends Controller
         $notificationService = app(RequestNotificationService::class);
 
         $borrowTransaction = DB::transaction(function () use ($data, $items, $laboratoryId, $notificationService) {
-            $requester = app(GuestRequesterService::class)->resolve($data);
+            $guestRequester = app(GuestRequesterService::class)->resolve($data);
             $schoolYear = SchoolYear::where('is_current', true)->orderByDesc('start_date')->first()
                 ?? SchoolYear::orderByDesc('start_date')->first();
 
@@ -261,7 +261,16 @@ class GuestBorrowController extends Controller
                 'campus' => $data['campus'],
                 'instructor_id' => $data['instructor_id'],
                 'reservation_id' => null,
-                'borrower_id' => $requester->userNo,
+                'borrower_id' => null,
+                'guest_key' => $guestRequester['guest_key'],
+                'guest_first_name' => $guestRequester['first_name'],
+                'guest_middle_name' => $guestRequester['middle_name'],
+                'guest_last_name' => $guestRequester['last_name'],
+                'guest_suffix' => $guestRequester['suffix'],
+                'guest_student_id' => $guestRequester['student_id'],
+                'guest_email' => $guestRequester['email'],
+                'guest_contact_number' => $guestRequester['contact_number'],
+                'guest_department_id' => $guestRequester['department_id'],
                 'released_by' => null,
                 'received_by' => null,
                 'borrowed_at' => $data['borrowed_at'],
@@ -293,7 +302,7 @@ class GuestBorrowController extends Controller
 				$borrowTransaction->assignedInstructor,
                 'Borrow',
                 'New borrow request',
-                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($requester) . ' is waiting for review.',
+                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $borrowTransaction->requesterName() . ' is waiting for review.',
                 $borrowTransaction
             );
 
@@ -308,7 +317,7 @@ class GuestBorrowController extends Controller
             'Borrow',
             $borrowTransaction->borrow_no,
             'New borrow request',
-            'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is waiting for your review.',
+            'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $borrowTransaction->requesterName() . ' is waiting for your review.',
             route('instructor.borrow.show', $borrowTransaction),
             'Review borrow request',
             [
@@ -322,7 +331,7 @@ class GuestBorrowController extends Controller
         return view('guest.submitted', [
             'requestType' => 'Borrow request',
             'requestNumber' => $borrowTransaction->borrow_no,
-            'email' => $borrowTransaction->borrower->email,
+            'email' => $borrowTransaction->requesterEmail(),
         ]);
     }
 

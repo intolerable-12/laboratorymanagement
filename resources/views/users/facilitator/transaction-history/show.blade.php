@@ -6,10 +6,7 @@
 @php
     $historyIndexRoute = $isCoordinator ? 'coordinator.transaction-history.index' : 'facilitator.transaction-history.index';
     $historyShowRoute = $isCoordinator ? 'coordinator.transaction-history.show' : 'facilitator.transaction-history.show';
-    $borrower = $borrowTransaction->borrower;
-    $borrowerName = $borrower
-        ? trim(collect([$borrower->first_name, $borrower->middle_name, $borrower->last_name, $borrower->suffix])->filter()->implode(' '))
-        : 'Student unavailable';
+    $borrowerName = $borrowTransaction->requesterName() ?: 'Student unavailable';
     $requestedCampus = $borrowTransaction->laboratory?->campus;
     $activeItemType = $filters['item_type'] ?? '';
     $tabQuery = request()->except('page', 'item_type');

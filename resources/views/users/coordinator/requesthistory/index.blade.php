@@ -98,7 +98,9 @@
                                     </span>
                                 </td>
                                 <td class="text-center">
-                                    <a href="{{ route($routePrefix . '.requesthistory.show', $requester) }}" class="btn btn-sm btn-outline-primary" title="View request history">
+                                    <a href="{{ $requester->is_guest
+                                        ? route($routePrefix . '.requesthistory.guest.show', ['guestKey' => $requester->guest_key])
+                                        : route($routePrefix . '.requesthistory.show', $requester) }}" class="btn btn-sm btn-outline-primary" title="View request history">
                                         <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>
                                     </a>
                                 </td>

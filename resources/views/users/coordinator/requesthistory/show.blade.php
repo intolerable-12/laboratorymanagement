@@ -19,11 +19,21 @@
     $requesterCampus = $user->is_guest ? $campusLabel : ($user->campusName() ?? $campusLabel);
     $requesterType = $user->is_guest ? 'Guest' : ($user->role?->role_name ?? 'Requester');
     $tabUrl = function (string $tab) use ($routePrefix, $user, $search) {
-        return route($routePrefix . '.requesthistory.show', array_filter([
-            'user' => $user,
+        $parameters = [
             'tab' => $tab,
             'search' => $search,
-        ], static fn ($value) => $value !== null && $value !== ''));
+        ];
+
+        if ($user->is_guest) {
+            $parameters['guestKey'] = $user->guest_key;
+        } else {
+            $parameters['user'] = $user;
+        }
+
+        return route($routePrefix . ($user->is_guest ? '.requesthistory.guest.show' : '.requesthistory.show'), array_filter(
+            $parameters,
+            static fn ($value) => $value !== null && $value !== ''
+        ));
     };
 @endphp
 

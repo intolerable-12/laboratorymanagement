@@ -46,7 +46,8 @@ class CoordinatorReservationController extends Controller
             ->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
             ->select('reservations.*')
             ->orderBy($sortableColumns[$sort], $direction)
-            ->when($sort === 'student', fn ($query) => $query->orderBy('reservation_users.first_name', $direction))
+			->when($sort === 'student', fn ($query) => $query->orderByRaw('COALESCE(reservation_users.last_name, reservations.guest_last_name) ' . $direction)
+				->orderByRaw('COALESCE(reservation_users.first_name, reservations.guest_first_name) ' . $direction))
             ->when($sort === 'reservation_date', fn ($query) => $query->orderBy('reservations.start_time', $direction))
             ->orderByDesc('reservations.id')
             ->paginate(10);
@@ -287,6 +288,15 @@ class CoordinatorReservationController extends Controller
             'laboratory_id' => $reservation->laboratory_id,
             'reservation_id' => $reservation->id,
             'borrower_id' => $reservation->user_no,
+            'guest_key' => $reservation->guest_key,
+            'guest_first_name' => $reservation->guest_first_name,
+            'guest_middle_name' => $reservation->guest_middle_name,
+            'guest_last_name' => $reservation->guest_last_name,
+            'guest_suffix' => $reservation->guest_suffix,
+            'guest_student_id' => $reservation->guest_student_id,
+            'guest_email' => $reservation->guest_email,
+            'guest_contact_number' => $reservation->guest_contact_number,
+            'guest_department_id' => $reservation->guest_department_id,
             'released_by' => null,
             'received_by' => null,
             'borrowed_at' => $borrowedAt,

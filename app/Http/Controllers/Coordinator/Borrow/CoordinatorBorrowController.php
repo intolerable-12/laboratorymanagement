@@ -35,7 +35,8 @@ class CoordinatorBorrowController extends Controller
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
-			->when($sort === 'student', fn ($query) => $query->orderBy('borrowers.first_name', $direction))
+			->when($sort === 'student', fn ($query) => $query->orderByRaw('COALESCE(borrowers.last_name, borrow_transactions.guest_last_name) ' . $direction)
+				->orderByRaw('COALESCE(borrowers.first_name, borrow_transactions.guest_first_name) ' . $direction))
 			->orderByDesc('borrow_transactions.id')
 			->paginate(10);
 

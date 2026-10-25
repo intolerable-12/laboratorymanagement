@@ -16,7 +16,7 @@
 
 @section('content')
     @php
-        $borrowerName = trim(collect([$borrowTransaction->borrower?->first_name, $borrowTransaction->borrower?->middle_name, $borrowTransaction->borrower?->last_name, $borrowTransaction->borrower?->suffix])->filter()->implode(' '));
+        $borrowerName = $borrowTransaction->requesterName();
         $completed = $borrowTransaction->status === 'Returned';
         $isOverdue = ! $completed && $borrowTransaction->due_at?->isPast();
         $displayStatus = $isOverdue ? 'Overdue' : $borrowTransaction->status;
@@ -65,7 +65,7 @@
                     <div class="col-lg-5">
                         <div class="text-uppercase small fw-semibold text-secondary mb-1">Borrower</div>
                         <h1 class="h3 fw-semibold text-dark mb-1">{{ $borrowerName ?: 'Student' }}</h1>
-                        <div class="text-secondary">{{ $borrowTransaction->borrower?->userID ?? '—' }} · {{ $borrowTransaction->laboratory?->laboratory_name ?? 'Laboratory not specified' }}</div>
+                        <div class="text-secondary">{{ $borrowTransaction->requesterStudentId() ?? '—' }} · {{ $borrowTransaction->laboratory?->laboratory_name ?? 'Laboratory not specified' }}</div>
                     </div>
                     <div class="col-sm-4 col-lg-2">
                         <div class="text-uppercase small fw-semibold text-secondary mb-1">Borrow no.</div>

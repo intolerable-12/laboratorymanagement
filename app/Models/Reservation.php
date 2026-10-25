@@ -22,6 +22,15 @@ class Reservation extends Model
     protected $fillable = [
         'reservation_no',
         'user_no',
+        'guest_key',
+        'guest_first_name',
+        'guest_middle_name',
+        'guest_last_name',
+        'guest_suffix',
+        'guest_student_id',
+        'guest_email',
+        'guest_contact_number',
+        'guest_department_id',
         'laboratory_id',
         'campus',
         'instructor_id',
@@ -80,8 +89,12 @@ class Reservation extends Model
 
         return $query
             ->forCampus($campus)
-            ->whereHas('user', function (Builder $userQuery): void {
-                $userQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'));
+            ->where(function (Builder $requesterQuery): void {
+                $requesterQuery
+                    ->whereNotNull('reservations.guest_key')
+                    ->orWhereHas('user', function (Builder $userQuery): void {
+                        $userQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'));
+                    });
             })
             ->where(function (Builder $requestQuery) use ($campus): void {
                 $requestQuery
@@ -101,7 +114,11 @@ class Reservation extends Model
     public function scopeForDepartment(Builder $query, ?int $departmentId): Builder
     {
         return $departmentId
-            ? $query->whereHas('user', fn (Builder $userQuery) => $userQuery->where('department_id', $departmentId))
+            ? $query->where(function (Builder $requesterQuery) use ($departmentId): void {
+                $requesterQuery
+                    ->where('reservations.guest_department_id', $departmentId)
+                    ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('department_id', $departmentId));
+            })
             : $query->whereRaw('1 = 0');
     }
 
@@ -111,6 +128,56 @@ class Reservation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_no', 'userNo');
+    }
+
+    public function guestDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'guest_department_id');
+    }
+
+    public function isGuestRequest(): bool
+    {
+        return $this->user_no === null;
+    }
+
+    public function requesterName(): string
+    {
+        if ($this->user) {
+            return trim(collect([
+                $this->user->first_name,
+                $this->user->middle_name,
+                $this->user->last_name,
+                $this->user->suffix,
+            ])->filter()->implode(' '));
+        }
+
+        return trim(collect([
+            $this->guest_first_name,
+            $this->guest_middle_name,
+            $this->guest_last_name,
+            $this->guest_suffix,
+        ])->filter()->implode(' '));
+    }
+
+    public function requesterEmail(): ?string
+    {
+        return $this->user?->email ?: $this->guest_email;
+    }
+
+    public function requesterStudentId(): ?string
+    {
+        return $this->user?->userID ?: $this->guest_student_id;
+    }
+
+    public function requesterContactNumber(): ?string
+    {
+        return $this->user?->contact_number ?: $this->guest_contact_number;
+    }
+
+    public function requesterDepartmentName(): ?string
+    {
+        return $this->user?->department?->department_name
+            ?: $this->guestDepartment?->department_name;
     }
 
     public function assignedInstructor(): BelongsTo

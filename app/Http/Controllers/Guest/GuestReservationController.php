@@ -338,7 +338,7 @@ class GuestReservationController extends Controller
 
         $notificationService = app(RequestNotificationService::class);
         $reservation = DB::transaction(function () use ($data, $items, $notificationService) {
-            $requester = app(GuestRequesterService::class)->resolve($data);
+            $guestRequester = app(GuestRequesterService::class)->resolve($data);
             $schoolYear = SchoolYear::query()->where('is_current', true)->first();
             $semester = Semester::query()->where('is_current', true)->first();
 
@@ -359,7 +359,16 @@ class GuestReservationController extends Controller
 
             $reservation = Reservation::create([
                 'reservation_no' => app(SequentialCodeGenerator::class)->reservationNumber($schoolYear, $laboratory),
-                'user_no' => $requester->userNo,
+                'user_no' => null,
+                'guest_key' => $guestRequester['guest_key'],
+                'guest_first_name' => $guestRequester['first_name'],
+                'guest_middle_name' => $guestRequester['middle_name'],
+                'guest_last_name' => $guestRequester['last_name'],
+                'guest_suffix' => $guestRequester['suffix'],
+                'guest_student_id' => $guestRequester['student_id'],
+                'guest_email' => $guestRequester['email'],
+                'guest_contact_number' => $guestRequester['contact_number'],
+                'guest_department_id' => $guestRequester['department_id'],
                 'laboratory_id' => $data['laboratory_id'],
                 'campus' => $data['campus'],
                 'instructor_id' => $data['instructor_id'],
@@ -393,7 +402,7 @@ class GuestReservationController extends Controller
 				$reservation->assignedInstructor,
                 'Reservation',
                 'New reservation request',
-                'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($requester) . ' is waiting for review.',
+                'Reservation ' . $reservation->reservation_no . ' from ' . $reservation->requesterName() . ' is waiting for review.',
                 $reservation
             );
 
@@ -408,7 +417,7 @@ class GuestReservationController extends Controller
             'Reservation',
             $reservation->reservation_no,
             'New reservation request',
-            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is waiting for your review.',
+            'Reservation ' . $reservation->reservation_no . ' from ' . $reservation->requesterName() . ' is waiting for your review.',
             route('instructor.reservations.show', $reservation),
             'Review reservation',
             [
@@ -422,7 +431,7 @@ class GuestReservationController extends Controller
         return view('guest.submitted', [
             'requestType' => 'Reservation request',
             'requestNumber' => $reservation->reservation_no,
-            'email' => $reservation->user->email,
+            'email' => $reservation->requesterEmail(),
         ]);
     }
 

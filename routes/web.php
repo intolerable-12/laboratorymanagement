@@ -127,6 +127,9 @@ Route::middleware(['auth'])
 Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')->name('coordinator.')->group(function () {
         Route::get('/dashboard', [CoordinatorDashboardController::class, 'index'])->name('dashboard');
         Route::get('/request-history', [RequestHistoryController::class, 'index'])->name('requesthistory.index');
+        Route::get('/request-history/guest/{guestKey}', [RequestHistoryController::class, 'showGuest'])
+            ->where('guestKey', '[a-f0-9]{64}')
+            ->name('requesthistory.guest.show');
         Route::get('/request-history/{user}', [RequestHistoryController::class, 'show'])->name('requesthistory.show');
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index'])->name('inventory-alerts.index');
         Route::put('/inventory-alerts/equipment/{equipment}', [InventoryAlertController::class, 'updateEquipment'])->name('inventory-alerts.equipment.update');
@@ -449,6 +452,9 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
     ->group(function () {
         Route::get('/dashboard', [FacilitatorDashboardController::class, 'index'])->name('dashboard');
         Route::get('/request-history', [FacilitatorRequestHistoryController::class, 'index'])->name('requesthistory.index');
+        Route::get('/request-history/guest/{guestKey}', [FacilitatorRequestHistoryController::class, 'showGuest'])
+            ->where('guestKey', '[a-f0-9]{64}')
+            ->name('requesthistory.guest.show');
         Route::get('/request-history/{user}', [FacilitatorRequestHistoryController::class, 'show'])->name('requesthistory.show');
 
         Route::prefix('reports')->name('reports.')->group(function () {

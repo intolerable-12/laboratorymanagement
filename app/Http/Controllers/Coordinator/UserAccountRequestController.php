@@ -46,17 +46,29 @@ class UserAccountRequestController extends Controller
 
             abort_unless($accountRequest->status === 'Pending', 404);
 
-            if (User::withTrashed()->where('userID', $accountRequest->user_id)->exists()) {
+            $legacyGuestUser = User::withTrashed()
+                ->where('is_guest', true)
+                ->whereRaw('LOWER(email) = ?', [strtolower($accountRequest->email)])
+                ->whereNotNull('deleted_at')
+                ->first();
+
+            if (User::withTrashed()
+                ->where('userID', $accountRequest->user_id)
+                ->when($legacyGuestUser, fn ($query) => $query->where('userNo', '!=', $legacyGuestUser->userNo))
+                ->exists()) {
                 abort(409, 'The requested User ID is already assigned to another account.');
             }
 
-            if (User::withTrashed()->whereRaw('LOWER(email) = ?', [strtolower($accountRequest->email)])->exists()) {
+            if (User::withTrashed()
+                ->whereRaw('LOWER(email) = ?', [strtolower($accountRequest->email)])
+                ->when($legacyGuestUser, fn ($query) => $query->where('userNo', '!=', $legacyGuestUser->userNo))
+                ->exists()) {
                 abort(409, 'The requested email address is already assigned to another account.');
             }
 
             [$firstName, $middleName, $lastName] = $this->splitName($accountRequest->full_name);
 
-            $user = User::create([
+            $userData = [
                 'userID' => $accountRequest->user_id,
                 'first_name' => $firstName,
                 'middle_name' => $middleName,
@@ -72,7 +84,17 @@ class UserAccountRequestController extends Controller
                 'department_id' => $accountRequest->department_id,
                 'status' => 'Active',
                 'email_verified_at' => now(),
-            ]);
+                'is_guest' => false,
+            ];
+
+            if ($legacyGuestUser) {
+                $legacyGuestUser->restore();
+                $legacyGuestUser->fill($userData);
+                $legacyGuestUser->save();
+                $user = $legacyGuestUser;
+            } else {
+                $user = User::create($userData);
+            }
 
             $accountRequest->update([
                 'status' => 'Approved',

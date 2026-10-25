@@ -2,64 +2,37 @@
 
 namespace App\Services;
 
-use App\Models\Role;
-use App\Models\User;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
-
 class GuestRequesterService
 {
     /**
-     * Resolve the submitted person to the user record used by the request workflow.
-     * Existing account emails are reused; new visitors receive a marked non-login
-     * Student record with a generated password so existing foreign keys and approval flows stay intact.
+     * Normalize the submitted requester details for storage on a guest request.
+     *
+     * Guest requests deliberately do not resolve to, create, or reuse a User
+     * record. The request stores this snapshot so the guest can be reviewed and
+     * notified without having an account or a login credential.
      */
-    public function resolve(array $data): User
+    public function resolve(array $data): array
     {
         $email = strtolower(trim((string) $data['email']));
-        $existing = User::withTrashed()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->first();
+        $studentId = strtoupper(trim((string) $data['student_id']));
 
-        if ($existing?->trashed()) {
-            throw ValidationException::withMessages([
-                'email' => 'This email belongs to an archived account. Please contact the laboratory coordinator.',
-            ]);
-        }
-
-        if ($existing) {
-            return $existing;
-        }
-
-        if (User::withTrashed()->where('userID', $data['student_id'])->exists()) {
-            throw ValidationException::withMessages([
-                'student_id' => 'This student ID is already registered. Please sign in with the associated account.',
-            ]);
-        }
-
-        $studentRoleId = Role::query()
-            ->where('role_name', 'Student')
-            ->value('id');
-
-        if (! $studentRoleId) {
-            throw ValidationException::withMessages([
-                'email' => 'Guest requests are temporarily unavailable because the Student role is not configured.',
-            ]);
-        }
-
-        return User::create([
-            'userID' => $data['student_id'],
-            'first_name' => $data['first_name'],
-            'middle_name' => $data['middle_name'] ?? null,
-            'last_name' => $data['last_name'],
-            'suffix' => $data['suffix'] ?? null,
+        return [
+            'first_name' => trim((string) $data['first_name']),
+            'middle_name' => $this->nullableString($data['middle_name'] ?? null),
+            'last_name' => trim((string) $data['last_name']),
+            'suffix' => $this->nullableString($data['suffix'] ?? null),
+            'student_id' => $studentId,
             'email' => $email,
-            'contact_number' => $data['contact_number'],
-            'password' => Str::random(64),
-            'role_id' => $studentRoleId,
-            'is_guest' => true,
-            'department_id' => $data['department_id'],
-            'status' => 'Active',
-        ]);
+            'contact_number' => trim((string) $data['contact_number']),
+            'department_id' => (int) $data['department_id'],
+            'guest_key' => hash('sha256', $email . '|' . $studentId),
+        ];
+    }
+
+    private function nullableString(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

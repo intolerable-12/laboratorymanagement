@@ -26,6 +26,15 @@ class BorrowTransaction extends Model
         'instructor_id',
         'reservation_id',
         'borrower_id',
+        'guest_key',
+        'guest_first_name',
+        'guest_middle_name',
+        'guest_last_name',
+        'guest_suffix',
+        'guest_student_id',
+        'guest_email',
+        'guest_contact_number',
+        'guest_department_id',
         'released_by',
         'received_by',
         'borrowed_at',
@@ -87,8 +96,12 @@ class BorrowTransaction extends Model
 
         return $query
             ->forCampus($campus)
-            ->whereHas('borrower', function (Builder $userQuery): void {
-                $userQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'));
+            ->where(function (Builder $requesterQuery): void {
+                $requesterQuery
+                    ->whereNotNull('borrow_transactions.guest_key')
+                    ->orWhereHas('borrower', function (Builder $userQuery): void {
+                        $userQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Student'));
+                    });
             })
             ->where(function (Builder $requestQuery) use ($campus): void {
                 $requestQuery
@@ -108,7 +121,11 @@ class BorrowTransaction extends Model
     public function scopeForDepartment(Builder $query, ?int $departmentId): Builder
     {
         return $departmentId
-            ? $query->whereHas('borrower', fn (Builder $userQuery) => $userQuery->where('department_id', $departmentId))
+            ? $query->where(function (Builder $requesterQuery) use ($departmentId): void {
+                $requesterQuery
+                    ->where('borrow_transactions.guest_department_id', $departmentId)
+                    ->orWhereHas('borrower', fn (Builder $userQuery) => $userQuery->where('department_id', $departmentId));
+            })
             : $query->whereRaw('1 = 0');
     }
 
@@ -134,6 +151,56 @@ class BorrowTransaction extends Model
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_id', 'userNo');
+    }
+
+    public function guestDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'guest_department_id');
+    }
+
+    public function isGuestRequest(): bool
+    {
+        return $this->borrower_id === null;
+    }
+
+    public function requesterName(): string
+    {
+        if ($this->borrower) {
+            return trim(collect([
+                $this->borrower->first_name,
+                $this->borrower->middle_name,
+                $this->borrower->last_name,
+                $this->borrower->suffix,
+            ])->filter()->implode(' '));
+        }
+
+        return trim(collect([
+            $this->guest_first_name,
+            $this->guest_middle_name,
+            $this->guest_last_name,
+            $this->guest_suffix,
+        ])->filter()->implode(' '));
+    }
+
+    public function requesterEmail(): ?string
+    {
+        return $this->borrower?->email ?: $this->guest_email;
+    }
+
+    public function requesterStudentId(): ?string
+    {
+        return $this->borrower?->userID ?: $this->guest_student_id;
+    }
+
+    public function requesterContactNumber(): ?string
+    {
+        return $this->borrower?->contact_number ?: $this->guest_contact_number;
+    }
+
+    public function requesterDepartmentName(): ?string
+    {
+        return $this->borrower?->department?->department_name
+            ?: $this->guestDepartment?->department_name;
     }
 
     public function assignedInstructor(): BelongsTo

@@ -70,13 +70,15 @@ class FacilitatorBorrowEmailController
 		?string $reason,
 		?string $actorName,
 	): void {
-		if (! $borrowTransaction->borrower?->email) {
+		$email = $borrowTransaction->requesterEmail();
+
+		if (! $email) {
 			return;
 		}
 
-		Mail::to($borrowTransaction->borrower->email)->queue(new BorrowDecisionMail(
+		Mail::to($email)->queue(new BorrowDecisionMail(
 			borrowTransaction: $borrowTransaction,
-			recipientName: $this->buildUserName($borrowTransaction->borrower),
+			recipientName: $borrowTransaction->requesterName(),
 			reviewerRole: $reviewerRole,
 			decisionLabel: $decisionLabel,
 			bodyMessage: $bodyMessage,

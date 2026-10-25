@@ -34,11 +34,16 @@ class InstructorBorrowController extends Controller
 
 		$borrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy'])
 			->where('borrow_transactions.instructor_id', $request->user()->userNo)
-			->whereHas('borrower', fn ($query) => $query->whereHas('role', fn ($roleQuery) => $roleQuery->where('role_name', 'Student')))
+			->where(function ($query) {
+				$query
+					->whereNotNull('borrow_transactions.guest_key')
+					->orWhereHas('borrower', fn ($borrowerQuery) => $borrowerQuery->whereHas('role', fn ($roleQuery) => $roleQuery->where('role_name', 'Student')));
+			})
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
-			->when($sort === 'student', fn ($query) => $query->orderBy('borrowers.first_name', $direction))
+			->when($sort === 'student', fn ($query) => $query->orderByRaw('COALESCE(borrowers.last_name, borrow_transactions.guest_last_name) ' . $direction)
+				->orderByRaw('COALESCE(borrowers.first_name, borrow_transactions.guest_first_name) ' . $direction))
 			->orderByDesc('borrow_transactions.id')
 			->paginate(10);
 
@@ -85,7 +90,7 @@ class InstructorBorrowController extends Controller
 				$borrowTransaction->laboratory->campus,
                 'Borrow',
                 'Borrow request ready for review',
-                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for Laboratory In-charge review.',
+                'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $borrowTransaction->requesterName() . ' is ready for Laboratory In-charge review.',
                 $borrowTransaction,
                 $request->user()->userNo
             );
@@ -97,7 +102,7 @@ class InstructorBorrowController extends Controller
             'Borrow',
             $borrowTransaction->borrow_no,
             'Borrow request ready for review',
-            'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $notificationService->displayName($borrowTransaction->borrower) . ' is ready for your review.',
+            'Borrow request ' . $borrowTransaction->borrow_no . ' from ' . $borrowTransaction->requesterName() . ' is ready for your review.',
             route('facilitator.borrow.show', $borrowTransaction),
             'Review borrow request',
             [
@@ -172,9 +177,9 @@ class InstructorBorrowController extends Controller
 			$campus === Campus::MAIN
 			&&
 			$borrowTransaction->instructor_id === $request->user()->userNo
-			&& ($borrowTransaction->borrower?->is_guest
-				|| ($this->canReviewRequester($borrowTransaction->borrower, $campus, Campus::normalize($borrowTransaction->campus))
-					&& $borrowTransaction->laboratory?->campus === $campus)),
+			&& $borrowTransaction->laboratory?->campus === $campus
+			&& ($borrowTransaction->isGuestRequest()
+				|| $this->canReviewRequester($borrowTransaction->borrower, $campus, Campus::normalize($borrowTransaction->campus))),
 			403
 		);
 	}

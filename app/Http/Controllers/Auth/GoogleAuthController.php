@@ -67,7 +67,13 @@ class GoogleAuthController extends Controller
 			->first();
 
 		if ($user) {
-			if ($user->trashed()) {
+			if ($user->is_guest && ! $user->trashed()) {
+				return redirect()->route('login')->withErrors([
+					'email' => 'Guest borrow and reservation requests do not create login accounts. Please complete the approved account registration process separately.',
+				]);
+			}
+
+			if ($user->trashed() && ! $user->is_guest) {
 				return redirect()->route('login')->withErrors([
 					'email' => 'Your account has been archived and is currently unavailable for login. Please contact the laboratory coordinator or system administrator for assistance with reactivation.',
 				]);

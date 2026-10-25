@@ -181,8 +181,8 @@ class User extends Authenticatable
      * Limit request-history requesters to the audience handled by a campus.
      *
      * IBED laboratories accept request history from IBED instructors. Main
-     * campus laboratories accept Main students and instructors, together with
-     * guest requests, which are submitted against Main campus laboratories.
+     * campus laboratories accept Main students and instructors. Guest request
+     * history is stored on the request snapshots, not on a User account.
      */
     public function scopeForRequestHistory(Builder $query, string $campus): Builder
     {
@@ -201,13 +201,9 @@ class User extends Authenticatable
 
         return $query->where(function (Builder $requesterQuery) use ($campus): void {
             $requesterQuery
-                ->where('is_guest', true)
-                ->orWhere(function (Builder $accountQuery) use ($campus): void {
-                    $accountQuery
-                        ->where('is_guest', false)
-                        ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->whereIn('role_name', ['Student', 'Instructor']))
-                        ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
-                });
+                ->where('is_guest', false)
+                ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->whereIn('role_name', ['Student', 'Instructor']))
+                ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
         });
     }
 
