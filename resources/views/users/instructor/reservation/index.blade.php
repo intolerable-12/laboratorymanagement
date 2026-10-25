@@ -79,8 +79,8 @@
 										<div class="small text-secondary">{{ $itemCount }} item{{ $itemCount === 1 ? '' : 's' }}</div>
 									</td>
 									<td>
-										<div class="fw-semibold text-dark">{{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</div>
-										<div class="small text-secondary">{{ $reservation->user?->userID }}</div>
+										<div class="fw-semibold text-dark">{{ $reservation->requesterName() }}</div>
+										<div class="small text-secondary">{{ $reservation->requesterStudentId() }}</div>
 									</td>
 									<td>
 										<div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? '—' }}</div>

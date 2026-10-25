@@ -31,7 +31,7 @@
                         <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
                             <div>
                                 <h3 class="h4 fw-semibold mb-1 text-dark">Borrow Summary</h3>
-                                <p class="mb-0 text-secondary">Submitted by {{ $borrowTransaction->borrower?->first_name }} {{ $borrowTransaction->borrower?->last_name }}</p>
+                                <p class="mb-0 text-secondary">Submitted by {{ $borrowTransaction->requesterName() }}</p>
                             </div>
                             @php
                                 $statusTone = match ($borrowTransaction->status) {
@@ -57,15 +57,15 @@
                             <div class="col-md-6">
                                 <div class="account-summary-card h-100">
                                     <div class="small text-secondary">Student</div>
-                                    <div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->first_name }} {{ $borrowTransaction->borrower?->last_name }}</div>
-                                    <div class="small text-secondary">{{ $borrowTransaction->borrower?->userID }}</div>
+                                    <div class="fw-semibold text-dark">{{ $borrowTransaction->requesterName() }}</div>
+                                    <div class="small text-secondary">{{ $borrowTransaction->requesterStudentId() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="account-summary-card h-100">
                                     <div class="small text-secondary">Requester contact</div>
-                                    <div class="fw-semibold text-dark">{{ $borrowTransaction->borrower?->email ?? '—' }}</div>
-                                    <div class="small text-secondary">{{ $borrowTransaction->borrower?->contact_number ?? 'No contact number' }} · {{ $borrowTransaction->borrower?->department?->department_name ?? 'No department' }}</div>
+                                    <div class="fw-semibold text-dark">{{ $borrowTransaction->requesterEmail() ?? '—' }}</div>
+                                    <div class="small text-secondary">{{ $borrowTransaction->requesterContactNumber() ?? 'No contact number' }} · {{ $borrowTransaction->requesterDepartmentName() ?? 'No department' }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">

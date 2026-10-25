@@ -52,7 +52,11 @@
                     </tr>
                 </table>
 
-                <p style="margin:0; font-size:14px; line-height:1.7; color:#4b5563;">You can log in to the system to review the latest status of this request.</p>
+                @if ($reservation->isGuestRequest())
+                    <p style="margin:0; font-size:14px; line-height:1.7; color:#4b5563;">No account is required for this guest request. Further updates will be sent to this email address.</p>
+                @else
+                    <p style="margin:0; font-size:14px; line-height:1.7; color:#4b5563;">You can log in to the system to review the latest status of this request.</p>
+                @endif
             </div>
 
             @include('emails.partials.privacy-footer')

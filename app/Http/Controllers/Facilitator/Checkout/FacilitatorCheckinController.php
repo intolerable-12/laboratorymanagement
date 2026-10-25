@@ -544,11 +544,7 @@ class FacilitatorCheckinController extends Controller
 
     private function borrowerName(BorrowTransaction $transaction): string
     {
-        $borrower = $transaction->borrower;
-
-        return $borrower
-            ? trim(collect([$borrower->first_name, $borrower->middle_name, $borrower->last_name, $borrower->suffix])->filter()->implode(' '))
-            : 'the student';
+        return $transaction->requesterName() ?: 'the student';
     }
 
     private function checkinError(string $key, string $message): never

@@ -19,6 +19,12 @@ class LoginController extends Controller
     public function create()
     {
         $user = Auth::id() ? User::with('role')->find(Auth::id()) : null;
+
+        if ($user?->is_guest) {
+            Auth::logout();
+            $user = null;
+        }
+
         $dashboardRoute = $this->dashboardRouteName($user);
 
         if ($dashboardRoute) {
@@ -35,6 +41,12 @@ class LoginController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::id() ? User::with('role')->find(Auth::id()) : null;
+
+            if ($user?->is_guest) {
+                Auth::logout();
+                $user = null;
+            }
+
             $dashboardRoute = $this->dashboardRouteName($user);
 
             if ($dashboardRoute) {
@@ -53,8 +65,24 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
+        $guestUserExists = User::withTrashed()
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim($credentials['email']))])
+            ->where('is_guest', true)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($guestUserExists) {
+            return back()
+                ->withErrors([
+                    'email' => 'Guest borrow and reservation requests do not create login accounts. Please complete the approved account registration process separately.',
+                ])
+                ->withInput()
+                ->with('activeTab', 'login');
+        }
+
         $archivedUserExists = User::withTrashed()
             ->whereRaw('LOWER(email) = ?', [strtolower(trim($credentials['email']))])
+            ->where('is_guest', false)
             ->whereNotNull('deleted_at')
             ->exists();
 

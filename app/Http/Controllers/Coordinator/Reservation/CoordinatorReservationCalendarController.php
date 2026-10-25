@@ -55,12 +55,7 @@ class CoordinatorReservationCalendarController extends Controller
         $date = $reservation->reservation_date?->copy();
         $start = $date && $reservation->start_time ? $date->format('Y-m-d') . 'T' . substr((string) $reservation->start_time, 0, 8) : null;
         $end = $date && $reservation->end_time ? $date->format('Y-m-d') . 'T' . substr((string) $reservation->end_time, 0, 8) : null;
-        $studentName = trim(collect([
-            $reservation->user?->first_name,
-            $reservation->user?->middle_name,
-            $reservation->user?->last_name,
-            $reservation->user?->suffix,
-        ])->filter()->implode(' '));
+        $studentName = $reservation->requesterName();
 
         return [
             'id' => $reservation->getKey(),
@@ -73,8 +68,8 @@ class CoordinatorReservationCalendarController extends Controller
             'extendedProps' => [
                 'reservation_no' => $reservation->reservation_no,
                 'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
-                'student_id' => $reservation->user?->userID ?? '—',
-                'student_email' => $reservation->user?->email ?? '—',
+                'student_id' => $reservation->requesterStudentId() ?? '—',
+                'student_email' => $reservation->requesterEmail() ?? '—',
                 'laboratory_name' => $reservation->laboratory?->laboratory_name ?? '—',
                 'laboratory_code' => $reservation->laboratory?->laboratory_code ?? '—',
                 'experiment_title' => $reservation->experiment_title ?? '—',

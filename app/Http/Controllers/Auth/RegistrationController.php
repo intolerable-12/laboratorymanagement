@@ -94,19 +94,29 @@ class RegistrationController extends Controller
 			])->withInput();
 		}
 
+		$legacyGuestUser = $existingUser?->is_guest && $existingUser->trashed()
+			? $existingUser
+			: null;
+
+		if ($existingUser?->is_guest && ! $legacyGuestUser) {
+			return redirect()->route('login')->withErrors([
+				'email' => 'Guest borrow and reservation requests do not create login accounts. Please complete the approved account registration process separately.',
+			]);
+		}
+
 		if (! str_ends_with($email, '@lccdo.edu.ph')) {
 			return back()->withErrors([
 				'email' => 'Only @lccdo.edu.ph Google accounts are allowed.',
 			])->withInput();
 		}
 
-		if ($existingUser?->trashed()) {
+		if ($existingUser?->trashed() && ! $legacyGuestUser) {
 			return redirect()->route('login')->withErrors([
 				'email' => 'Your account has been archived and is currently unavailable for login. Please contact the laboratory coordinator or system administrator for assistance with reactivation.',
 			]);
 		}
 
-		if ($existingUser) {
+		if ($existingUser && ! $legacyGuestUser) {
 			Auth::login($existingUser, true);
 			$request->session()->forget('google_registration');
 			$request->session()->regenerate();
@@ -137,9 +147,15 @@ class RegistrationController extends Controller
 			->firstOrFail();
 
 		$userIdRule = Rule::unique('users', 'userID');
+		$emailRule = Rule::unique('users', 'email');
+
+		if ($legacyGuestUser) {
+			$userIdRule->ignore($legacyGuestUser->getKey(), $legacyGuestUser->getKeyName());
+			$emailRule->ignore($legacyGuestUser->getKey(), $legacyGuestUser->getKeyName());
+		}
+
 		$pendingUserIdRule = Rule::unique('user_account_requests', 'user_id')
 			->where(fn ($query) => $query->where('status', 'Pending'));
-		$emailRule = Rule::unique('users', 'email');
 
 		$request->validate([
 			'user_id' => ['required', 'string', 'max:30', 'regex:' . $studentUserIdPattern, $userIdRule, $pendingUserIdRule],

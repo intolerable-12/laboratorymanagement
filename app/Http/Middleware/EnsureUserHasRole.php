@@ -15,6 +15,14 @@ class EnsureUserHasRole
     {
         $user = Auth::user()?->loadMissing('role');
 
+        if ($user?->is_guest) {
+            Auth::logout();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Guest borrow and reservation requests do not create login accounts. Please complete the approved account registration process separately.',
+            ]);
+        }
+
         if (! $user || ! $user->role) {
             return redirect()->route('login');
         }

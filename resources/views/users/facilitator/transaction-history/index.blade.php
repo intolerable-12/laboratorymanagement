@@ -31,10 +31,7 @@
                 @php
                     $firstLog = $transactionLogs->first();
                     $transaction = $firstLog?->borrowTransaction;
-                    $borrower = $transaction?->borrower;
-                    $borrowerName = $borrower
-                        ? trim(collect([$borrower->first_name, $borrower->middle_name, $borrower->last_name, $borrower->suffix])->filter()->implode(' '))
-                        : 'Student unavailable';
+                    $borrowerName = $transaction?->requesterName() ?: 'Student unavailable';
                     $requestedCampus = $transaction?->laboratory?->campus;
                     $latestActivity = $firstLog?->is_voided ? $firstLog->voided_at : $firstLog?->scanned_at;
                     $itemCount = $transactionLogs->unique(fn ($log) => $log->item_type.':'.$log->item_id)->count();

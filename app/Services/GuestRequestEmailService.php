@@ -10,22 +10,17 @@ use Illuminate\Support\Facades\Mail;
 
 class GuestRequestEmailService
 {
-    public function __construct(private RequestNotificationService $notificationService)
-    {
-    }
-
     public function sendBorrowSubmitted(BorrowTransaction $borrowTransaction): void
     {
-        $borrowTransaction->loadMissing('borrower');
-        $requester = $borrowTransaction->borrower;
+        $email = $borrowTransaction->requesterEmail();
 
-        if (! $requester?->email) {
+        if (! $email) {
             return;
         }
 
-        Mail::to($requester->email)->queue(new BorrowDecisionMail(
+        Mail::to($email)->queue(new BorrowDecisionMail(
             borrowTransaction: $borrowTransaction,
-            recipientName: $this->notificationService->displayName($requester),
+            recipientName: $borrowTransaction->requesterName(),
             reviewerRole: 'System',
             decisionLabel: 'Borrow request submitted',
             bodyMessage: 'Your borrow request has been submitted and is waiting for instructor review.',
@@ -35,16 +30,15 @@ class GuestRequestEmailService
 
     public function sendReservationSubmitted(Reservation $reservation): void
     {
-        $reservation->loadMissing('user');
-        $requester = $reservation->user;
+        $email = $reservation->requesterEmail();
 
-        if (! $requester?->email) {
+        if (! $email) {
             return;
         }
 
-        Mail::to($requester->email)->queue(new ReservationDecisionMail(
+        Mail::to($email)->queue(new ReservationDecisionMail(
             reservation: $reservation,
-            recipientName: $this->notificationService->displayName($requester),
+            recipientName: $reservation->requesterName(),
             reviewerRole: 'System',
             decisionLabel: 'Reservation request submitted',
             bodyMessage: 'Your reservation request has been submitted and is waiting for instructor review.',

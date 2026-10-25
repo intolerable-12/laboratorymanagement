@@ -261,7 +261,7 @@ class DashboardController extends Controller
             $events->push([
                 'occurred_at' => $reservation->updated_at,
                 'time' => $reservation->updated_at?->format('M d, h:i A') ?? 'â€”',
-                'user' => $this->userName($reservation->user),
+                'user' => $reservation->requesterName() ?: 'Guest requester',
                 'activity' => 'Reservation '.$reservation->reservation_no.' updated',
                 'status' => $reservation->status,
                 'status_tone' => $this->statusTone($reservation->status),
@@ -272,7 +272,7 @@ class DashboardController extends Controller
             $events->push([
                 'occurred_at' => $borrow->updated_at,
                 'time' => $borrow->updated_at?->format('M d, h:i A') ?? 'â€”',
-                'user' => $this->userName($borrow->borrower),
+                'user' => $borrow->requesterName() ?: 'Guest requester',
                 'activity' => 'Borrow request '.$borrow->borrow_no.' updated',
                 'status' => $borrow->status,
                 'status_tone' => $this->statusTone($borrow->status),

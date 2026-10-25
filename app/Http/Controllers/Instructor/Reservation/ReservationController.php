@@ -36,12 +36,17 @@ class ReservationController extends Controller
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
 			->where('reservations.instructor_id', $request->user()->userNo)
-			->whereHas('user', fn ($query) => $query->whereHas('role', fn ($roleQuery) => $roleQuery->where('role_name', 'Student')))
+			->where(function ($query) {
+				$query
+					->whereNotNull('reservations.guest_key')
+					->orWhereHas('user', fn ($userQuery) => $userQuery->whereHas('role', fn ($roleQuery) => $roleQuery->where('role_name', 'Student')));
+			})
             ->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
             ->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
             ->select('reservations.*')
             ->orderBy($sortableColumns[$sort], $direction)
-            ->when($sort === 'student', fn ($query) => $query->orderBy('reservation_users.first_name', $direction))
+			->when($sort === 'student', fn ($query) => $query->orderByRaw('COALESCE(reservation_users.last_name, reservations.guest_last_name) ' . $direction)
+				->orderByRaw('COALESCE(reservation_users.first_name, reservations.guest_first_name) ' . $direction))
             ->when($sort === 'reservation_date', fn ($query) => $query->orderBy('reservations.start_time', $direction))
             ->orderByDesc('reservations.id')
             ->paginate(10);
@@ -97,7 +102,7 @@ class ReservationController extends Controller
                 $reservation->laboratory->campus,
                 'Reservation',
                 'Reservation ready for review',
-                'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for Laboratory In-charge review.',
+                'Reservation ' . $reservation->reservation_no . ' from ' . $reservation->requesterName() . ' is ready for Laboratory In-charge review.',
                 $reservation,
                 $request->user()->userNo
             );
@@ -110,7 +115,7 @@ class ReservationController extends Controller
             'Reservation',
             $reservation->reservation_no,
             'Reservation ready for review',
-            'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for your review.',
+            'Reservation ' . $reservation->reservation_no . ' from ' . $reservation->requesterName() . ' is ready for your review.',
             route('facilitator.reservations.show', $reservation),
             'Review reservation',
             [
@@ -194,9 +199,9 @@ class ReservationController extends Controller
 			$campus === Campus::MAIN
 			&&
 			$reservation->instructor_id === $request->user()->userNo
-			&& ($reservation->user?->is_guest
-				|| ($this->canReviewRequester($reservation->user, $campus, Campus::normalize($reservation->campus))
-					&& $reservation->laboratory?->campus === $campus)),
+			&& $reservation->laboratory?->campus === $campus
+			&& ($reservation->isGuestRequest()
+				|| $this->canReviewRequester($reservation->user, $campus, Campus::normalize($reservation->campus))),
 			403
 		);
     }

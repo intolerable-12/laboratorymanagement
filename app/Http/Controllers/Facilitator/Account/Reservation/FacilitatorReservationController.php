@@ -48,7 +48,8 @@ class FacilitatorReservationController extends Controller
 			->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
 			->select('reservations.*')
 			->orderBy($sortableColumns[$sort], $direction)
-			->when($sort === 'student', fn ($query) => $query->orderBy('reservation_users.first_name', $direction))
+			->when($sort === 'student', fn ($query) => $query->orderByRaw('COALESCE(reservation_users.last_name, reservations.guest_last_name) ' . $direction)
+				->orderByRaw('COALESCE(reservation_users.first_name, reservations.guest_first_name) ' . $direction))
 			->when($sort === 'reservation_date', fn ($query) => $query->orderBy('reservations.start_time', $direction))
 			->orderByDesc('reservations.id')
 			->paginate(10);
@@ -264,7 +265,7 @@ class FacilitatorReservationController extends Controller
 					$reservation->laboratory->campus,
 					'Reservation',
 					'Reservation ready for review',
-					'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for coordinator review.',
+					'Reservation ' . $reservation->reservation_no . ' from ' . $reservation->requesterName() . ' is ready for coordinator review.',
 					$reservation,
 					$request->user()->userNo
 				);
@@ -281,7 +282,7 @@ class FacilitatorReservationController extends Controller
 				'Reservation',
 				$reservation->reservation_no,
 				'Reservation ready for review',
-				'Reservation ' . $reservation->reservation_no . ' from ' . $notificationService->displayName($reservation->user) . ' is ready for your review.',
+				'Reservation ' . $reservation->reservation_no . ' from ' . $reservation->requesterName() . ' is ready for your review.',
 				route('coordinator.reservations.show', $reservation),
 				'Review reservation',
 				[
@@ -449,6 +450,15 @@ class FacilitatorReservationController extends Controller
 			'laboratory_id' => $reservation->laboratory_id,
 			'reservation_id' => $reservation->id,
 			'borrower_id' => $reservation->user_no,
+			'guest_key' => $reservation->guest_key,
+			'guest_first_name' => $reservation->guest_first_name,
+			'guest_middle_name' => $reservation->guest_middle_name,
+			'guest_last_name' => $reservation->guest_last_name,
+			'guest_suffix' => $reservation->guest_suffix,
+			'guest_student_id' => $reservation->guest_student_id,
+			'guest_email' => $reservation->guest_email,
+			'guest_contact_number' => $reservation->guest_contact_number,
+			'guest_department_id' => $reservation->guest_department_id,
 			'borrowed_at' => $borrowedAt,
 			'due_at' => $dueAt,
 			'status' => 'Coordinator Approved',

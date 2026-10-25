@@ -19,7 +19,7 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">{{ $reservation->reservation_no }}</h2>
-            <p class="mb-0 text-secondary">Final review for {{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</p>
+            <p class="mb-0 text-secondary">Final review for {{ $reservation->requesterName() }}</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction)
@@ -50,8 +50,8 @@
                     </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Student</div><div class="fw-semibold text-dark">{{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</div><div class="small text-secondary">{{ $reservation->user?->userID }}</div></div></div>
-                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->user?->email ?? 'â€”' }}</div><div class="small text-secondary">{{ $reservation->user?->contact_number ?? 'No contact number' }} {{ $reservation->user?->department?->department_name ?? 'No department' }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Student</div><div class="fw-semibold text-dark">{{ $reservation->requesterName() }}</div><div class="small text-secondary">{{ $reservation->requesterStudentId() }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->requesterEmail() ?? 'â€”' }}</div><div class="small text-secondary">{{ $reservation->requesterContactNumber() ?? 'No contact number' }} {{ $reservation->requesterDepartmentName() ?? 'No department' }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Laboratory</div><div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? 'â€”' }}</div><div class="small text-secondary">{{ $reservation->laboratory?->laboratory_code }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Schedule</div><div class="fw-semibold text-dark">{{ $reservation->reservation_date?->format('M d, Y') }}</div><div class="small text-secondary">{{ substr((string) $reservation->start_time, 0, 5) }} - {{ substr((string) $reservation->end_time, 0, 5) }}</div></div></div>
                         <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Participants</div><div class="fw-semibold text-dark">{{ $reservation->expected_participants }}</div><div class="small text-secondary">{{ $reservation->schoolYear?->school_year }} | {{ $reservation->semester?->semester_name }}</div></div></div>

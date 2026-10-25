@@ -31,7 +31,7 @@
                         <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
                             <div>
                                 <h3 class="h4 fw-semibold mb-1 text-dark">Reservation Summary</h3>
-                                <p class="mb-0 text-secondary">Submitted by {{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</p>
+                                <p class="mb-0 text-secondary">Submitted by {{ $reservation->requesterName() }}</p>
                             </div>
                             @php
                                 $statusTone = match ($reservation->status) {
@@ -52,15 +52,15 @@
                             <div class="col-md-6">
                                 <div class="account-summary-card h-100">
                                     <div class="small text-secondary">Student</div>
-                                    <div class="fw-semibold text-dark">{{ $reservation->user?->first_name }} {{ $reservation->user?->last_name }}</div>
-                                    <div class="small text-secondary">{{ $reservation->user?->userID }}</div>
+                                    <div class="fw-semibold text-dark">{{ $reservation->requesterName() }}</div>
+                                    <div class="small text-secondary">{{ $reservation->requesterStudentId() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="account-summary-card h-100">
                                     <div class="small text-secondary">Requester contact</div>
-                                    <div class="fw-semibold text-dark">{{ $reservation->user?->email ?? '—' }}</div>
-                                    <div class="small text-secondary">{{ $reservation->user?->contact_number ?? 'No contact number' }} · {{ $reservation->user?->department?->department_name ?? 'No department' }}</div>
+                                    <div class="fw-semibold text-dark">{{ $reservation->requesterEmail() ?? '—' }}</div>
+                                    <div class="small text-secondary">{{ $reservation->requesterContactNumber() ?? 'No contact number' }} · {{ $reservation->requesterDepartmentName() ?? 'No department' }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">

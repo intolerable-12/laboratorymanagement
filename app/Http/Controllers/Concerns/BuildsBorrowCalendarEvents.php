@@ -56,12 +56,7 @@ trait BuildsBorrowCalendarEvents
     {
         $borrowedAt = $borrowTransaction->borrowed_at?->copy();
         $dueAt = $borrowTransaction->due_at?->copy();
-        $studentName = trim(collect([
-            $borrowTransaction->borrower?->first_name,
-            $borrowTransaction->borrower?->middle_name,
-            $borrowTransaction->borrower?->last_name,
-            $borrowTransaction->borrower?->suffix,
-        ])->filter()->implode(' '));
+        $studentName = $borrowTransaction->requesterName();
         $laboratoryName = $borrowTransaction->laboratory?->laboratory_name ?? 'Borrow request';
         $studentLabel = $studentName !== '' ? $studentName : $borrowTransaction->borrow_no;
         $statusColor = $this->borrowStatusColor($borrowTransaction->status);
@@ -70,8 +65,8 @@ trait BuildsBorrowCalendarEvents
             'reservation_no' => $borrowTransaction->borrow_no,
             'reference_no' => $borrowTransaction->borrow_no,
             'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
-            'student_id' => $borrowTransaction->borrower?->userID ?? '-',
-            'student_email' => $borrowTransaction->borrower?->email ?? '-',
+            'student_id' => $borrowTransaction->requesterStudentId() ?? '-',
+            'student_email' => $borrowTransaction->requesterEmail() ?? '-',
             'laboratory_name' => $laboratoryName,
             'laboratory_code' => $borrowTransaction->laboratory?->laboratory_code ?? '-',
             'experiment_title' => 'Laboratory borrow request',

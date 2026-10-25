@@ -562,11 +562,7 @@ class FacilitatorCheckoutController extends Controller
 
     private function borrowerName(BorrowTransaction $borrowTransaction): string
     {
-        $borrower = $borrowTransaction->borrower;
-
-        return $borrower
-            ? trim(collect([$borrower->first_name, $borrower->middle_name, $borrower->last_name, $borrower->suffix])->filter()->implode(' '))
-            : 'the student';
+        return $borrowTransaction->requesterName() ?: 'the student';
     }
 
     private function checkoutError(string $key, string $message): never

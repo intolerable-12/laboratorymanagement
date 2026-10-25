@@ -135,8 +135,8 @@
                                 @endphp
                                 <tr>
                                     <td>
-                                        <div class="fw-semibold text-dark">{{ trim(($borrow->borrower?->first_name ?? '').' '.($borrow->borrower?->last_name ?? '')) }}</div>
-                                        <div class="small text-secondary">{{ $borrow->borrower?->userID ?? 'Student' }}</div>
+                                        <div class="fw-semibold text-dark">{{ $borrow->requesterName() }}</div>
+                                        <div class="small text-secondary">{{ $borrow->requesterStudentId() ?? 'Student' }}</div>
                                     </td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $itemSummary }}</div>

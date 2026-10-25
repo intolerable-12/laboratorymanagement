@@ -70,8 +70,8 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <div class="fw-semibold text-dark">{{ trim(($borrow->borrower?->first_name ?? '').' '.($borrow->borrower?->last_name ?? '')) }}</div>
-                                        <div class="small text-secondary">{{ $borrow->borrower?->userID ?? '—' }}</div>
+                                        <div class="fw-semibold text-dark">{{ $borrow->requesterName() }}</div>
+                                        <div class="small text-secondary">{{ $borrow->requesterStudentId() ?? '—' }}</div>
                                     </td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $borrow->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div>
