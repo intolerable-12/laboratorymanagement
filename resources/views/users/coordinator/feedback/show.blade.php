@@ -3,81 +3,109 @@
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     $reviewerLabel = $routePrefix === 'facilitator' ? 'IBED Laboratory In-charge' : 'MAIN Campus Coordinator';
+    $campusLabel = $campus === \App\Support\Campus::IBED ? 'IBED campus' : 'MAIN campus';
+    $authorName = $feedback->is_anonymous ? 'Anonymous' : trim(($feedback->user?->first_name ?? '') . ' ' . ($feedback->user?->last_name ?? ''));
+    $authorName = $authorName !== '' ? $authorName : 'Unknown contributor';
+    $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
+    $target = $feedback->laboratory?->laboratory_name ?? 'System feedback';
+    $imageCount = count($feedback->images ?? []);
 @endphp
 
-@section('title', 'Feedback Management')
-@section('page-title', 'Feedback Management')
+@section('title', 'Feedback review')
+@section('page-title', 'Feedback review')
 
 @section('content')
-    @if (session('status'))
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
-    @endif
+    <div class="feedback-page feedback-detail-page">
+        @if (session('status'))
+            <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+        @endif
 
-    <div class="hero-banner social-hero rounded-4 p-4 p-lg-5 mb-4">
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div class="feedback-detail-toolbar mb-4">
             <div>
-                <div class="social-eyebrow mb-3">Feedback moderation</div>
-                <h2 class="display-6 fw-semibold text-dark mb-3">{{ $feedback->feedback_type }} review</h2>
-                <p class="lead text-secondary mb-0">{{ $feedback->laboratory?->laboratory_name ?? 'System' }} · {{ $feedback->rating }}/5 rating</p>
+                <a href="{{ route($routePrefix.'.feedback.index') }}" class="btn btn-outline-secondary rounded-pill px-3 feedback-back-link"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to feedback inbox</a>
+                <div class="social-eyebrow feedback-page-kicker mt-3"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Report details</div>
             </div>
-
-            <a href="{{ route($routePrefix.'.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Back to feed</a>
+            <span class="feedback-campus-pill"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>{{ $campusLabel }}</span>
         </div>
-    </div>
 
-    <div class="row g-4 align-items-start">
-        <div class="col-xl-8">
-            <article class="card social-card border-0 mb-4">
-                <div class="card-body p-4 p-xl-5">
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="category-chip">{{ $feedback->feedback_type }}</span>
-                        <span class="badge rounded-pill text-bg-light text-dark border">{{ $feedback->is_anonymous ? 'Anonymous' : 'Named' }}</span>
-                    </div>
+        <section class="feedback-detail-header mb-4">
+            <div class="feedback-detail-header__main">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <span class="category-chip feedback-type-pill">{{ $feedback->feedback_type }}</span>
+                    <span class="feedback-privacy-pill"><i class="fa-solid {{ $feedback->is_anonymous ? 'fa-user-secret' : 'fa-user' }}" aria-hidden="true"></i>{{ $feedback->is_anonymous ? 'Anonymous report' : 'Named report' }}</span>
+                </div>
+                <h2 class="feedback-detail-title mb-2">{{ $target }}</h2>
+                <div class="feedback-detail-meta"><span class="feedback-author-avatar">{{ $authorInitial }}</span><strong>{{ $authorName }}</strong><span aria-hidden="true">·</span><span>Submitted {{ $feedback->created_at?->format('M d, Y · h:i A') }}</span></div>
+            </div>
+            <div class="feedback-detail-score" aria-label="Rated {{ $feedback->rating }} out of 5">
+                <span class="feedback-detail-score__label">Overall rating</span>
+                <strong>{{ $feedback->rating }}<small>/5</small></strong>
+                <span class="feedback-detail-score__stars" aria-hidden="true">
+                    @for ($star = 1; $star <= 5; $star++)
+                        <i class="fa-solid fa-star {{ $star <= $feedback->rating ? 'is-filled' : '' }}"></i>
+                    @endfor
+                </span>
+            </div>
+        </section>
 
-                    <div class="d-flex align-items-start gap-3 mb-4">
-                        <div class="feed-avatar feed-avatar--feedback">{{ $feedback->rating }}</div>
+        <div class="row g-4 align-items-start">
+            <div class="col-xl-8">
+                <article class="card social-card feedback-detail-card border-0 mb-4">
+                    <div class="feedback-detail-card__heading">
                         <div>
-                            <div class="fw-semibold text-dark">{{ $feedback->is_anonymous ? 'Anonymous' : ($feedback->user?->first_name . ' ' . $feedback->user?->last_name) }}</div>
-                            <div class="small text-secondary">{{ $feedback->created_at?->format('M d, Y h:i A') }}</div>
+                            <span class="feedback-section-label">Contributor note</span>
+                            <h2 class="h5 mb-0 mt-1">What they shared</h2>
                         </div>
+                        <span class="feedback-detail-card__secure"><i class="fa-solid fa-lock" aria-hidden="true"></i> Private</span>
                     </div>
-
-                    <div class="rating-compact mb-4">
-                        @for ($star = 1; $star <= 5; $star++)
-                            <span class="{{ $star <= $feedback->rating ? 'rating-star is-filled' : 'rating-star' }}">&#9733;</span>
-                        @endfor
-                    </div>
-
-                    <div class="rte-content post-body">
+                    <div class="rte-content feedback-detail-card__content">
                         {!! $feedback->comments ?: '<p class="text-secondary mb-0">No written comments were provided.</p>' !!}
                     </div>
-                </div>
-            </article>
-        </div>
+                </article>
 
-        <div class="col-xl-4">
-            <div class="card social-card border-0 sticky-xl-top social-sticky-card">
-                <div class="card-body p-4 vstack gap-3">
-                    <div>
-                        <div class="social-eyebrow mb-2">Moderator actions</div>
-                        <h3 class="h5 fw-semibold mb-0 text-dark">Feedback review</h3>
+                <article class="card social-card feedback-detail-card border-0">
+                    <div class="feedback-detail-card__heading">
+                        <div>
+                            <span class="feedback-section-label">Evidence</span>
+                            <h2 class="h5 mb-0 mt-1">Attached images</h2>
+                        </div>
+                        <span class="feedback-detail-card__count">{{ $imageCount }} / 3</span>
                     </div>
 
-                    <div class="social-summary-card">
-                        <div class="small text-secondary">Student</div>
-                        <div class="fw-semibold text-dark">{{ $feedback->is_anonymous ? 'Anonymous' : ($feedback->user?->first_name . ' ' . $feedback->user?->last_name) }}</div>
+                    @if ($imageCount > 0)
+                        <div class="feedback-evidence-grid">
+                            @foreach ($feedback->images ?? [] as $imageIndex => $path)
+                                <a href="{{ route($routePrefix.'.feedback.image', ['feedback' => $feedback, 'image' => $imageIndex]) }}" target="_blank" rel="noopener" class="feedback-evidence-item">
+                                    <img src="{{ route($routePrefix.'.feedback.image', ['feedback' => $feedback, 'image' => $imageIndex]) }}" alt="Feedback attachment {{ $imageIndex + 1 }}" loading="lazy">
+                                    <span><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> Open image {{ $imageIndex + 1 }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="feedback-evidence-empty"><i class="fa-regular fa-images" aria-hidden="true"></i><span>No images were attached to this report.</span></div>
+                    @endif
+                </article>
+            </div>
+
+            <div class="col-xl-4">
+                <aside class="card social-card feedback-review-panel sticky-xl-top border-0">
+                    <div class="feedback-review-panel__heading">
+                        <span class="feedback-section-label">Review context</span>
+                        <h2 class="h5 mb-0 mt-1">Report summary</h2>
                     </div>
 
-                    <div class="social-summary-card">
-                        <div class="small text-secondary">Target</div>
-                        <div class="fw-semibold text-dark">{{ $feedback->laboratory?->laboratory_name ?? 'System' }}</div>
-                    </div>
+                    <dl class="feedback-summary-list mb-0">
+                        <div><dt>Feedback type</dt><dd>{{ $feedback->feedback_type }}</dd></div>
+                        <div><dt>Laboratory</dt><dd>{{ $target }}</dd></div>
+                        <div><dt>Contributor</dt><dd>{{ $authorName }}</dd></div>
+                        <div><dt>Attachments</dt><dd>{{ $imageCount }} {{ \Illuminate\Support\Str::plural('image', $imageCount) }}</dd></div>
+                    </dl>
 
-                    <div class="social-summary-card">
-                        <div class="small text-secondary">Access</div>
-                        <div class="fw-semibold text-dark">{{ $reviewerLabel }} only</div>
+                    <div class="feedback-review-panel__note mt-4">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                        <div><strong>Visible to {{ $reviewerLabel }}</strong><span>This report is scoped to the {{ $campusLabel }} reviewer workspace.</span></div>
                     </div>
-                </div>
+                </aside>
             </div>
         </div>
     </div>

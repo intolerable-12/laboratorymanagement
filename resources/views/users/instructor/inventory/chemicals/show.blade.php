@@ -11,7 +11,7 @@
 @section('content')
     <div class="inventory-page">
         <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
-            <a href="{{ route('instructor.inventory.chemicals.categories.show', $chemical->category) }}" class="inventory-back-link">
+            <a href="{{ route('instructor.inventory.chemicals.categories.show', ['laboratory' => $chemical->laboratory_id, 'type' => $chemical->type, 'chemicalCategory' => $chemical->category_id]) }}" class="inventory-back-link">
                 <i class="fa-solid fa-arrow-left"></i>
                 Back to category
             </a>
@@ -49,6 +49,10 @@
                     <div class="inventory-detail-spec">
                         <span class="inventory-detail-spec__label">Category</span>
                         <span class="inventory-detail-spec__value">{{ $chemical->category?->category_name ?? 'Chemical' }}</span>
+                    </div>
+                    <div class="inventory-detail-spec">
+                        <span class="inventory-detail-spec__label">Type</span>
+                        <span class="inventory-detail-spec__value">{{ $chemical->type }}</span>
                     </div>
                     <div class="inventory-detail-spec">
                         <span class="inventory-detail-spec__label">Laboratory</span>

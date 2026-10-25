@@ -15,6 +15,7 @@ class Chemical extends Model
     use HasFactory, SoftDeletes;
 
     public const STATUSES = ['Active', 'Inactive', 'Expired', 'For Disposal'];
+    public const TYPES = ['Organic', 'Inorganic'];
 
     /**
      * The attributes that are mass assignable.
@@ -25,6 +26,7 @@ class Chemical extends Model
         'chemical_code',
         'barcode',
         'chemical_name',
+        'type',
         'category_id',
         'laboratory_id',
         'supplier_id',
@@ -90,6 +92,11 @@ class Chemical extends Model
         return filled($campus)
             ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
             : $query;
+    }
+
+    public function scopeOfType(Builder $query, ?string $type): Builder
+    {
+        return filled($type) ? $query->where($query->qualifyColumn('type'), $type) : $query;
     }
 
     /**

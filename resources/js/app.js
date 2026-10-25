@@ -1144,6 +1144,71 @@ document.addEventListener('DOMContentLoaded', () => {
         syncRemarks();
     });
 
+    document.querySelectorAll('[data-feedback-image-upload]').forEach((upload) => {
+        const input = upload.querySelector('[data-feedback-image-input]');
+        const preview = upload.querySelector('[data-feedback-image-preview]');
+        const count = upload.querySelector('[data-feedback-image-count]');
+        const maxImages = Number(upload.dataset.maxImages || 3);
+        let selectedFiles = [];
+        let previewUrls = [];
+
+        if (!input || !preview || !count) {
+            return;
+        }
+
+        const syncInputFiles = () => {
+            const transfer = new DataTransfer();
+
+            selectedFiles.forEach((file) => transfer.items.add(file));
+            input.files = transfer.files;
+        };
+
+        const renderPreviews = () => {
+            previewUrls.forEach((url) => URL.revokeObjectURL(url));
+            previewUrls = [];
+            preview.replaceChildren();
+            count.textContent = `${selectedFiles.length} / ${maxImages} selected`;
+            preview.hidden = selectedFiles.length === 0;
+
+            selectedFiles.forEach((file, index) => {
+                const url = URL.createObjectURL(file);
+                previewUrls.push(url);
+
+                const item = document.createElement('div');
+                item.className = 'feedback-image-upload__item';
+
+                const image = document.createElement('img');
+                image.src = url;
+                image.alt = file.name;
+                image.className = 'feedback-image-upload__thumb';
+
+                const details = document.createElement('div');
+                details.className = 'feedback-image-upload__details';
+                details.textContent = file.name;
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'feedback-image-upload__remove';
+                removeButton.setAttribute('aria-label', `Remove ${file.name}`);
+                removeButton.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+                removeButton.addEventListener('click', () => {
+                    selectedFiles.splice(index, 1);
+                    syncInputFiles();
+                    renderPreviews();
+                });
+
+                item.append(image, details, removeButton);
+                preview.appendChild(item);
+            });
+        };
+
+        input.addEventListener('change', () => {
+            selectedFiles = Array.from(input.files || []).slice(0, maxImages);
+            syncInputFiles();
+            renderPreviews();
+        });
+    });
+
     const liveSearchForms = document.querySelectorAll('[data-live-search-form]');
 
     liveSearchForms.forEach((form) => {
@@ -1158,11 +1223,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const buildFormUrl = () => {
-            const url = new URL(form.action, window.location.href);
+        const buildFormUrl = (sourceForm = form) => {
+            const url = new URL(sourceForm.action, window.location.href);
             const params = new URLSearchParams();
 
-            new FormData(form).forEach((value, name) => {
+            new FormData(sourceForm).forEach((value, name) => {
                 if (typeof value === 'string' && value !== '') {
                     params.append(name, value);
                 }
@@ -1228,6 +1293,22 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             window.clearTimeout(debounceTimer);
             updateResults(buildFormUrl(), 'push');
+        });
+
+        document.addEventListener('change', (event) => {
+            const liveSearchFilter = event.target.closest(`${resultSelector} [data-live-search-filter]`);
+
+            if (!liveSearchFilter || !results.contains(liveSearchFilter)) {
+                return;
+            }
+
+            const filterForm = liveSearchFilter.form || liveSearchFilter.closest('form');
+
+            if (!filterForm) {
+                return;
+            }
+
+            updateResults(buildFormUrl(filterForm), 'push');
         });
 
         searchInput.addEventListener('input', () => {

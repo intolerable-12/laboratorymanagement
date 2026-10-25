@@ -3256,3 +3256,789 @@ a.request-stepper-link:focus-visible {
         align-items: flex-start;
     }
 }
+
+/* Feedback inbox and evidence review */
+.role-page .feedback-page {
+    max-width: 1180px;
+    margin-inline: auto;
+}
+
+.role-page .feedback-page-header,
+.role-page .feedback-detail-toolbar,
+.role-page .feedback-results-heading,
+.role-page .feedback-detail-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.role-page .feedback-page-kicker,
+.role-page .feedback-section-label {
+    color: var(--role-accent-deep);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.role-page .feedback-page-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.role-page .feedback-page-title {
+    color: #182033;
+    font-size: clamp(1.65rem, 2.6vw, 2.15rem);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+
+.role-page .feedback-page-subtitle {
+    max-width: 42rem;
+    color: #667085;
+}
+
+.role-page .feedback-campus-pill,
+.role-page .feedback-filter-card__active,
+.role-page .feedback-results-heading__sort,
+.role-page .feedback-detail-card__secure {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.role-page .feedback-campus-pill {
+    padding: 0.42rem 0.7rem;
+    border: 1px solid #e6cfe0;
+    border-radius: 999px;
+    color: #8a2f6b;
+    background: #fff8fc;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-page-context {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 16rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid #e6eaf0;
+    border-radius: 0.9rem;
+    background: #fff;
+}
+
+.role-page .feedback-page-context__icon,
+.role-page .feedback-stat-card__icon,
+.role-page .feedback-empty-state__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.role-page .feedback-page-context__icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.7rem;
+    color: #8a2f6b;
+    background: #fff0f8;
+}
+
+.role-page .feedback-page-context strong,
+.role-page .feedback-page-context small {
+    display: block;
+}
+
+.role-page .feedback-page-context strong {
+    color: #344054;
+    font-size: 0.82rem;
+}
+
+.role-page .feedback-page-context small {
+    margin-top: 0.12rem;
+    color: #98a2b3;
+    font-size: 0.7rem;
+}
+
+.role-page .feedback-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.role-page .feedback-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 5.7rem;
+    padding: 1rem;
+    border: 1px solid #e6eaf0;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.role-page .feedback-stat-card__icon {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.85rem;
+}
+
+.role-page .feedback-stat-card__icon--pink {
+    color: var(--role-accent-deep);
+    background: var(--role-accent-soft);
+}
+
+.role-page .feedback-stat-card__icon--blue {
+    color: var(--role-accent-deep);
+    background: var(--role-accent-soft);
+}
+
+.role-page .feedback-stat-card__icon--violet {
+    color: var(--role-accent-deep);
+    background: var(--role-accent-soft);
+}
+
+.role-page .feedback-stat-card__icon--amber {
+    color: var(--role-accent-deep);
+    background: var(--role-accent-soft);
+}
+
+.role-page .feedback-stat-card__copy strong,
+.role-page .feedback-stat-card__copy small {
+    display: block;
+}
+
+.role-page .feedback-stat-card__copy strong {
+    color: #182033;
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.role-page .feedback-stat-card__copy small {
+    margin-top: 0.35rem;
+    color: #667085;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.role-page .feedback-filter-card,
+.role-page .feedback-detail-header,
+.role-page .feedback-detail-card,
+.role-page .feedback-review-panel {
+    border: 1px solid #e4e8ef;
+    border-radius: 1.35rem;
+    background: #fff;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.role-page .feedback-filter-card {
+    padding: 1.1rem 1.2rem 1.2rem;
+}
+
+.role-page .feedback-filter-card__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.role-page .feedback-filter-card__heading h2,
+.role-page .feedback-results-heading h2 {
+    color: #182033;
+    font-weight: 750;
+}
+
+.role-page .feedback-filter-card__active {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    color: #2f6f54;
+    background: #edf9f1;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-search-field {
+    position: relative;
+}
+
+.role-page .feedback-search-field > i {
+    position: absolute;
+    top: 50%;
+    left: 0.9rem;
+    z-index: 1;
+    color: #98a2b3;
+    transform: translateY(-50%);
+}
+
+.role-page .feedback-search-field .form-control {
+    padding-left: 2.35rem;
+}
+
+.role-page .feedback-filter-card .form-control,
+.role-page .feedback-filter-card .form-select {
+    min-height: 2.8rem;
+    border-color: #d9e1ea;
+    border-radius: 0.75rem;
+}
+
+.role-page .feedback-filter-card .btn-primary,
+.role-page .feedback-review-btn {
+    font-weight: 700;
+}
+
+.role-page .feedback-results-heading {
+    align-items: flex-end;
+}
+
+.role-page .feedback-results-heading__sort {
+    color: #98a2b3;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.role-page .feedback-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.role-page .feedback-list-card {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 1.15rem;
+    padding: 1.15rem;
+    border: 1px solid #e4e8ef;
+    border-radius: 1.35rem;
+    background: #fff;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.role-page .feedback-list-card:hover {
+    border-color: #d8b8cf;
+    box-shadow: 0 12px 28px rgba(31, 16, 38, 0.08);
+    transform: translateY(-1px);
+}
+
+.role-page .feedback-list-card__rating {
+    display: flex;
+    align-items: center;
+    align-self: start;
+    justify-content: center;
+    flex-direction: column;
+    min-height: 5.4rem;
+    padding: 0.7rem 0.35rem;
+    border: 1px solid #f0d9e8;
+    border-radius: 0.9rem;
+    color: #8a2f6b;
+    background: #fff8fc;
+}
+
+.role-page .feedback-list-card__rating strong {
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+.role-page .feedback-list-card__rating > span {
+    color: #b98baa;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-list-card__rating-stars,
+.role-page .feedback-detail-score__stars {
+    display: inline-flex;
+    gap: 0.12rem;
+    margin-top: 0.38rem;
+}
+
+.role-page .feedback-list-card__rating-stars i,
+.role-page .feedback-detail-score__stars i {
+    color: #d6dae2;
+    font-size: 0.62rem;
+}
+
+.role-page .feedback-list-card__rating-stars i.is-filled,
+.role-page .feedback-detail-score__stars i.is-filled {
+    color: #f3a629;
+}
+
+.role-page .feedback-list-card__title {
+    overflow: hidden;
+    color: #182033;
+    font-size: 1.02rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-page .feedback-type-pill,
+.role-page .feedback-privacy-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.85rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+
+.role-page .feedback-type-pill {
+    color: #8a2f6b;
+    background: #fff0f8;
+}
+
+.role-page .feedback-privacy-pill {
+    color: #667085;
+    background: #f5f7fa;
+}
+
+.role-page .feedback-list-card__meta,
+.role-page .feedback-detail-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    color: #7a8496;
+    font-size: 0.78rem;
+}
+
+.role-page .feedback-author-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 0.5rem;
+    color: #fff;
+    background: #7a3c69;
+    font-size: 0.67rem;
+    font-weight: 800;
+}
+
+.role-page .feedback-list-card__preview {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #667085;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.role-page .feedback-list-card__attachments {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.role-page .feedback-list-card__attachments-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #667085;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-list-card__thumbs {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.role-page .feedback-list-card__thumbs img {
+    width: 2.3rem;
+    height: 2.3rem;
+    border: 1px solid #e4e8ef;
+    border-radius: 0.5rem;
+    object-fit: cover;
+}
+
+.role-page .feedback-empty-state,
+.role-page .feedback-evidence-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 3.25rem 1.25rem;
+    border: 1px dashed #d9e1ea;
+    border-radius: 1.35rem;
+    background: #fbfcfe;
+    text-align: center;
+}
+
+.role-page .feedback-empty-state__icon {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.8rem;
+    border-radius: 1rem;
+    color: #8a2f6b;
+    background: #fff0f8;
+}
+
+.role-page .feedback-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #667085;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.role-page .feedback-back-link:hover,
+.role-page .feedback-back-link:focus-visible {
+    color: var(--role-accent-deep);
+}
+
+.role-page .feedback-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0.35rem 0 0.85rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.role-page .feedback-detail-title {
+    color: #182033;
+    font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+    font-weight: 750;
+    letter-spacing: -0.03em;
+}
+
+.role-page .feedback-detail-score {
+    min-width: 9.5rem;
+    padding: 0.35rem 0 0.35rem 1.5rem;
+    border-left: 1px solid #edf0f4;
+    text-align: right;
+}
+
+.role-page .feedback-detail-score__label {
+    display: block;
+    color: #98a2b3;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-detail-score > strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: #8a2f6b;
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.role-page .feedback-detail-score > strong small {
+    color: #b98baa;
+    font-size: 0.82rem;
+}
+
+.role-page .feedback-detail-score__stars {
+    justify-content: flex-end;
+}
+
+.role-page .feedback-detail-card,
+.role-page .feedback-review-panel {
+    overflow: hidden;
+}
+
+.role-page .feedback-detail-card__heading,
+.role-page .feedback-review-panel__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.05rem 1.25rem;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.role-page .feedback-detail-card__heading h2,
+.role-page .feedback-review-panel__heading h2 {
+    color: #182033;
+    font-weight: 750;
+}
+
+.role-page .feedback-detail-card__secure,
+.role-page .feedback-detail-card__count {
+    color: #7a8496;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-detail-card__content {
+    padding: 1.25rem;
+}
+
+.role-page .feedback-detail-card__content p:last-child {
+    margin-bottom: 0;
+}
+
+.role-page .feedback-evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 1.25rem;
+}
+
+.role-page .feedback-evidence-item {
+    display: block;
+    overflow: hidden;
+    color: inherit;
+    border: 1px solid #e4e8ef;
+    border-radius: 0.85rem;
+    background: #fbfcfe;
+    text-decoration: none;
+}
+
+.role-page .feedback-evidence-item img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #f2f4f7;
+}
+
+.role-page .feedback-evidence-item > span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem 0.7rem;
+    color: #667085;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.role-page .feedback-evidence-item:hover,
+.role-page .feedback-evidence-item:focus-visible {
+    border-color: #c995bb;
+    box-shadow: 0 8px 20px rgba(138, 47, 107, 0.12);
+}
+
+.role-page .feedback-evidence-empty {
+    margin: 1.25rem;
+    padding-block: 2rem;
+    color: #98a2b3;
+    font-size: 0.82rem;
+}
+
+.role-page .feedback-evidence-empty i {
+    margin-bottom: 0.5rem;
+    font-size: 1.35rem;
+}
+
+.role-page .feedback-review-panel {
+    top: 5.75rem !important;
+}
+
+.role-page .feedback-summary-list {
+    padding: 0.35rem 1.25rem 0;
+}
+
+.role-page .feedback-summary-list > div {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.role-page .feedback-summary-list dt {
+    color: #98a2b3;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.role-page .feedback-summary-list dd {
+    margin: 0;
+    color: #344054;
+    font-size: 0.8rem;
+    font-weight: 750;
+    text-align: right;
+}
+
+.role-page .feedback-review-panel__note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin: 0 1.25rem 1.25rem;
+    padding: 0.8rem;
+    border-radius: 0.8rem;
+    color: #386c55;
+    background: #edf9f1;
+}
+
+.role-page .feedback-review-panel__note > i {
+    margin-top: 0.1rem;
+}
+
+.role-page .feedback-review-panel__note strong,
+.role-page .feedback-review-panel__note span {
+    display: block;
+}
+
+.role-page .feedback-review-panel__note strong {
+    font-size: 0.78rem;
+}
+
+.role-page .feedback-review-panel__note span {
+    margin-top: 0.2rem;
+    color: #5f8a75;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.role-page .feedback-image-upload {
+    padding: 1rem;
+    border: 1px solid #e4e8ef;
+    border-radius: 0.95rem;
+    background: #fbfcfe;
+}
+
+.role-page .feedback-image-upload__count {
+    color: var(--role-accent-deep);
+    font-size: 0.74rem;
+    font-weight: 750;
+}
+
+.role-page .feedback-image-upload .form-control {
+    background: #fff;
+}
+
+.role-page .feedback-image-upload__preview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.role-page .feedback-image-upload__item {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e4e8ef;
+    border-radius: 0.75rem;
+    background: #fff;
+}
+
+.role-page .feedback-image-upload__thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.role-page .feedback-image-upload__details {
+    overflow: hidden;
+    padding: 0.45rem 0.55rem;
+    color: #667085;
+    font-size: 0.7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-page .feedback-image-upload__remove {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(24, 32, 51, 0.78);
+}
+
+.role-page .feedback-image-upload__remove:hover,
+.role-page .feedback-image-upload__remove:focus-visible {
+    background: #b32d78;
+}
+
+@media (max-width: 991.98px) {
+    .role-page .feedback-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .role-page .feedback-page-header,
+    .role-page .feedback-detail-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .role-page .feedback-page-context {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .role-page .feedback-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .role-page .feedback-list-card {
+        grid-template-columns: 1fr;
+    }
+
+    .role-page .feedback-list-card__rating {
+        align-items: flex-start;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 0.35rem;
+        min-height: 0;
+        padding: 0.55rem 0.7rem;
+    }
+
+    .role-page .feedback-list-card__rating strong {
+        font-size: 1.35rem;
+    }
+
+    .role-page .feedback-list-card__rating-stars {
+        margin-top: 0.28rem;
+    }
+
+    .role-page .feedback-list-card__title {
+        white-space: normal;
+    }
+
+    .role-page .feedback-detail-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .role-page .feedback-detail-score {
+        width: 100%;
+        padding: 0.8rem 0 0;
+        border-top: 1px solid #edf0f4;
+        border-left: 0;
+        text-align: left;
+    }
+
+    .role-page .feedback-detail-score__stars {
+        justify-content: flex-start;
+    }
+
+    .role-page .feedback-evidence-grid,
+    .role-page .feedback-image-upload__preview {
+        grid-template-columns: 1fr;
+    }
+
+    .role-page .feedback-filter-card__heading,
+    .role-page .feedback-results-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
