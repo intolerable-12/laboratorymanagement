@@ -80,7 +80,6 @@
                                     <td class="text-center pe-4">
                                         <a href="{{ route('instructor.feedback.questionnaires.show', $questionnaire) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fa-solid fa-clipboard-check me-1"></i>
-                                            {{ $questionnaire->user_response_count > 0 ? 'View response' : 'Answer' }}
                                         </a>
                                     </td>
                                 </tr>

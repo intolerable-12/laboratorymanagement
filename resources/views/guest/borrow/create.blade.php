@@ -113,19 +113,7 @@
                             <div class="form-text">Only Main campus laboratories are available for guest requests.</div>
                         </div>
 
-                        <div class="col-md-6">
-                            <label for="guest-borrowed-at" class="form-label fw-semibold">Borrowed at</label>
-                            <input id="guest-borrowed-at" type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', session('guest.borrow.draft.details.borrowed_at')) }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Guest borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
-                            @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <div class="invalid-feedback d-none" data-date-validation-message></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="guest-due-at" class="form-label fw-semibold">Return at</label>
-                            <input id="guest-due-at" type="datetime-local" name="due_at" value="{{ old('due_at', session('guest.borrow.draft.details.due_at')) }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" class="form-control @error('due_at') is-invalid @enderror" required>
-                            @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <div class="invalid-feedback d-none" data-date-validation-message></div>
-                        </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <label for="guest-borrow-instructor" class="form-label fw-semibold">Instructor reviewer</label>
                             <select id="guest-borrow-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
                                 <option value="">Select a Main campus instructor</option>
@@ -136,6 +124,21 @@
                             @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-text">Only the selected instructor will receive and approve this request.</div>
                         </div>
+
+                        <div class="col-md-6">
+                            <label for="guest-borrowed-at" class="form-label fw-semibold">Borrowed at</label>
+                            <input id="guest-borrowed-at" type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', session('guest.borrow.draft.details.borrowed_at')) }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" data-minimum-message="Guest borrow requests must be submitted at least 3 business days in advance. Earliest available date: {{ $borrowDateMinLabel }}." class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                            @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="invalid-feedback d-none" data-date-validation-message></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="guest-due-at" class="form-label fw-semibold">Return at</label>
+                            <input id="guest-due-at" type="datetime-local" name="due_at" value="{{ old('due_at', session('guest.borrow.draft.details.due_at')) }}" min="{{ $borrowDateMin }}" data-lab-hours="borrow" class="form-control @error('due_at') is-invalid @enderror" required>
+                            @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="invalid-feedback d-none" data-date-validation-message></div>
+                        </div>
+                        
                         <div class="col-12">
                             <label for="guest-borrow-remarks" class="form-label fw-semibold">Remarks <span class="text-secondary fw-normal">(optional)</span></label>
                             <textarea id="guest-borrow-remarks" name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Optional notes for the instructor">{{ old('remarks', session('guest.borrow.draft.details.remarks')) }}</textarea>

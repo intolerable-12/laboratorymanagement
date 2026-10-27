@@ -118,6 +118,22 @@
                             <input id="guest-experiment-title" type="text" name="experiment_title" value="{{ old('experiment_title', session('guest.reservation.draft.details.experiment_title')) }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity" required>
                             @error('experiment_title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
+                        <div class="col-6">
+                            <label for="guest-reservation-instructor" class="form-label fw-semibold">Instructor reviewer</label>
+                            <select id="guest-reservation-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
+                                <option value="">Select a Main campus instructor</option>
+                                @foreach ($instructors as $instructor)
+                                    <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', session('guest.reservation.draft.details.instructor_id')) == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
+                                @endforeach
+                            </select>
+                            @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="form-text">Only the selected instructor will receive and approve this request.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="guest-participants" class="form-label fw-semibold">Expected participants</label>
+                            <input id="guest-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', session('guest.reservation.draft.details.expected_participants', 1)) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
+                            @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
                         <div class="col-12">
                             <label for="guest-purpose" class="form-label fw-semibold">Purpose</label>
                             <textarea id="guest-purpose" name="purpose" rows="3" class="form-control @error('purpose') is-invalid @enderror" placeholder="Describe the purpose of the reservation" required>{{ old('purpose', session('guest.reservation.draft.details.purpose')) }}</textarea>
@@ -138,22 +154,6 @@
                             <label for="guest-end-time" class="form-label fw-semibold">End time</label>
                             <input id="guest-end-time" type="time" name="end_time" value="{{ old('end_time', session('guest.reservation.draft.details.end_time')) }}" min="07:30" max="17:00" step="60" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-4">
-                            <label for="guest-participants" class="form-label fw-semibold">Expected participants</label>
-                            <input id="guest-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', session('guest.reservation.draft.details.expected_participants', 1)) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
-                            @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-12">
-                            <label for="guest-reservation-instructor" class="form-label fw-semibold">Instructor reviewer</label>
-                            <select id="guest-reservation-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
-                                <option value="">Select a Main campus instructor</option>
-                                @foreach ($instructors as $instructor)
-                                    <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', session('guest.reservation.draft.details.instructor_id')) == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
-                                @endforeach
-                            </select>
-                            @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <div class="form-text">Only the selected instructor will receive and approve this request.</div>
                         </div>
                         <div class="col-12">
                             <div class="form-text">

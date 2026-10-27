@@ -95,10 +95,10 @@
                 <table class="table table-hover feedback-data-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th scope="col">Respondent</th>
-                            <th scope="col">Indication</th>
-                            <th scope="col">Submitted</th>
-                            <th scope="col" class="text-end">Action</th>
+                            <th scope="col" class="text-dark">Respondent</th>
+                            <th scope="col" class="text-dark">Indication</th>
+                            <th scope="col" class="text-dark">Submitted</th>
+                            <th scope="col" class="text-center text-dark">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -136,7 +136,6 @@
                         @empty
                             <tr>
                                 <td colspan="4" class="text-center text-secondary py-5">
-                                    <i class="fa-regular fa-comment-dots d-block fs-3 mb-2"></i>
                                     No responses yet.
                                 </td>
                             </tr>
@@ -159,7 +158,6 @@
                         <div class="feedback-eyebrow">Question set</div>
                         <h2 class="modal-title h5 mb-0" id="questionnaireQuestionsModalLabel">{{ $feedbackQuestionnaire->topic }}</h2>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="table-responsive">

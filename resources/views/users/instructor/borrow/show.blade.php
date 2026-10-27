@@ -44,8 +44,8 @@
                                     'Partially Returned' => 'primary',
                                     'Returned' => 'success',
                                     'Overdue' => 'danger',
-					'Rejected' => 'danger',
-					'Cancelled' => 'danger',
+                                    'Rejected' => 'danger',
+                                    'Cancelled' => 'danger',
                                     default => 'secondary',
                                 };
                                 $statusLabel = $borrowTransaction->statusLabel();

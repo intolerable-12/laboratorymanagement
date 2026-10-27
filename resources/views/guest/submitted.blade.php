@@ -12,7 +12,6 @@
                     </div>
                     <h1 class="h3 fw-semibold text-dark mb-3">{{ $requestType }} submitted</h1>
                     <p class="text-secondary mb-4">Your request is now waiting for review. We will send updates to <strong>{{ $email }}</strong>.</p>
-                    <p class="small text-secondary mb-4">No LabCentral account was created. You do not need to sign in to submit or receive updates about this guest request.</p>
 
                     <div class="bg-light rounded-4 p-3 mb-4">
                         <div class="small text-uppercase text-secondary">Request number</div>

@@ -1,7 +1,7 @@
 @extends('users.student.layouts.app')
 
 @section('title', 'Feedback')
-@section('page-title', 'Feedback')
+@section('page-title', 'Personal Feedback')
 @section('user-name', 'Student')
 @section('user-role', 'Student')
 
@@ -79,7 +79,6 @@
                         <div class="card-body p-5 text-center">
                             <div class="display-6 mb-3">Feedback is campus-scoped</div>
                             <p class="text-secondary mb-4">Submitted feedback is sent directly to the {{ $reviewerLabel }} for review.</p>
-                            <a href="{{ route('student.feedback.create') }}" class="btn btn-primary rounded-pill px-4">Write feedback</a>
                         </div>
                     </div>
                 @endforelse

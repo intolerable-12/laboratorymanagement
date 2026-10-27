@@ -105,7 +105,6 @@
                         <div class="card-body p-5 text-center">
                             <div class="display-6 mb-3">No posts yet</div>
                             <p class="text-secondary mb-4">Be the first to start a discussion in this feed.</p>
-                            <a href="{{ route('instructor.forum.create') }}" class="btn btn-primary rounded-pill px-4">Create the first post</a>
                         </div>
                     </div>
                 @endforelse

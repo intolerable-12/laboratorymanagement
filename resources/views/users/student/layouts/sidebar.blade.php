@@ -144,8 +144,8 @@
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isReservationRequestActive ? 'active' : '' }}"
                             href="{{ route('student.reservations.index') }}" title="Reservations">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
-                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
-                                <span class="sidebar-item__label">Reservations Request</span>
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-user-clock"></i></span>
+                                <span class="sidebar-item__label"> My Reservation Request</span>
                             </span>
                         </a>
                     </div>
@@ -175,8 +175,8 @@
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isBorrowRequestActive ? 'active' : '' }}"
                             href="{{ route('student.borrow.index') }}" title="Borrow">
                             <span class="d-flex align-items-center gap-2 flex-grow-1">
-                                <span class="sidebar-item__icon"><i class="fa-solid fa-calendar-check"></i></span>
-                                <span class="sidebar-item__label">Borrow Request</span>
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-user-clock"></i></span>
+                                <span class="sidebar-item__label">My Borrow Request</span>
                             </span>
                         </a>
                     </div>

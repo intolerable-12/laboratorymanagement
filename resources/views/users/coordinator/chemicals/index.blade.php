@@ -42,6 +42,20 @@
             max-width: 7rem;
             white-space: normal;
             overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .equipment-table .table-column-compact .badge {
+            display: inline-block;
+            max-width: 100%;
+            padding: .3rem .5rem;
+            font-size: .7rem;
+            font-weight: 600;
+            line-height: 1.2;
+            text-align: center;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .equipment-table .table-column-compact .stock-up-trigger {
@@ -55,6 +69,7 @@
             max-width: 100%;
             white-space: normal;
             overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .stock-up-trigger {
@@ -443,7 +458,7 @@
 
         {{-- Table Section --}}
         <div class="section-card" id="chemicalsTable">
-        <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
+        <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5 mb-3">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <h3 class="h5 fw-semibold mb-0">
@@ -464,7 +479,6 @@
                         data-live-search-filter
                         aria-label="Select laboratory for chemical list"
                     >
-                        <option value="">All Laboratories</option>
                         @foreach ($laboratories as $laboratory)
                             <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
                         @endforeach
@@ -488,10 +502,16 @@
                                 </a>
                             </th>
                             <th scope="col" class="table-column-compact">
-                                <span class="d-inline-flex flex-column align-items-start gap-1 lh-sm">
-                                    <a href="{{ $sortUrl('type') }}" class="text-decoration-none text-dark">Type <i class="fa-solid {{ $sortIcon('type') }} small"></i></a>
-                                    <a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark">Hazard <i class="fa-solid {{ $sortIcon('hazard') }} small"></i></a>
-                                </span>
+                                <a href="{{ $sortUrl('type') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Type</span>
+                                    <i class="fa-solid {{ $sortIcon('type') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col" class="table-column-compact">
+                                <a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Hazard</span>
+                                    <i class="fa-solid {{ $sortIcon('hazard') }} small"></i>
+                                </a>
                             </th>
                             <th scope="col">
                                 <a href="{{ $sortUrl('category') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
@@ -562,10 +582,10 @@
                                     </div>
                                 </td>
                                 <td class="table-column-compact">
-                                    <div class="d-flex flex-column align-items-start gap-1">
-                                        <span class="badge rounded-pill text-bg-{{ $chemical->type === 'Organic' ? 'success' : 'secondary' }}">{{ $chemical->type }}</span>
-                                        <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification ?? '-' }}</span>
-                                    </div>
+                                    <span class="badge rounded-pill text-bg-{{ $chemical->type === 'Organic' ? 'success' : 'secondary' }}">{{ $chemical->type }}</span>
+                                </td>
+                                <td class="table-column-compact">
+                                    <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification ?? '-' }}</span>
                                 </td>
                                 <td>{{ $chemical->category->category_name ?? '-' }}</td>
                                 <td class="table-column-compact">
@@ -672,7 +692,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $archived ? 10 : 9 }}" class="text-center text-secondary py-5">No chemicals found.</td>
+                                <td colspan="{{ $archived ? 11 : 10 }}" class="text-center text-secondary py-5">No chemicals found.</td>
                             </tr>
                         @endforelse
                     </tbody>

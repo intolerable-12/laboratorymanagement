@@ -9,29 +9,44 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         $this->call([
+            // ===== Core =====
             RoleSeeder::class,
             DepartmentSeeder::class,
             UserSeeder::class,
             SchoolYearSeeder::class,
             SemesterSeeder::class,
-            EquipmentCategorySeeder::class,
-            LaboratorySeeder::class,
-            PhysicsEquipmentSeeder::class,
-            ChemistryEquipmentSeeder::class,
-            BiologyEquipmentSeeder::class,
-            ChemicalCategorySeeder::class,
-            ChemistryChemicalSeeder::class,
-            BiologyChemicalSeeder::class,
-            PhysicsChemicalSeeder::class,
+
+            // ===== Inventory periods =====
             EquipmentInventoryPeriodSeeder::class,
             ChemicalInventoryPeriodSeeder::class,
 
+            // ===== Reference data (must run before equipment/chemicals) =====
+            EquipmentCategorySeeder::class,
+            ChemicalCategorySeeder::class,
+            LaboratorySeeder::class,
+
+            // ===== Main campus equipment =====
+            BiologyEquipmentSeeder::class,
+            ChemistryEquipmentSeeder::class,
+            PhysicsEquipmentSeeder::class,
+
+            // ===== IBED campus equipment =====
+            IBEDBiologyEquipmentSeeder::class,
+            IBEDChemistryEquipmentSeeder::class,
+            IBEDPhysicsEquipmentSeeder::class,
+
+            // ===== Main campus chemicals =====
+            BiologyChemicalSeeder::class,
+            ChemistryChemicalSeeder::class,
+            PhysicsChemicalSeeder::class,
+
+            // ===== IBED campus chemicals =====
+            IBEDBiologyChemicalSeeder::class,
+            IBEDChemistryChemicalSeeder::class,
+            IBEDPhysicsChemicalSeeder::class,
         ]);
     }
 }
