@@ -561,6 +561,11 @@
                                                 <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                     <span>{{ $equipment->equipment_code }}</span>
                                                 </div>
+                                                @if (! $equipment->is_requestable)
+                                                    <span class="badge rounded-pill text-bg-secondary mt-1">
+                                                        <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Inventory only
+                                                    </span>
+                                                @endif
                                                 <span class="badge rounded-pill text-bg-warning text-dark mt-1">
                                                     <i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>Manufacture: {{ $equipment->manufacturing_date?->format('M d, Y') ?? 'Not set' }}
                                                 </span>

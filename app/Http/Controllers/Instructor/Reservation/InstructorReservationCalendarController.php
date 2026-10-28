@@ -19,7 +19,7 @@ class InstructorReservationCalendarController extends Controller
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
 			->forCampus($campus)
 			->forDepartment((int) $request->user()->department_id)
-            ->whereIn('status', ['Coordinator Approved', 'Completed'])
+            ->forCalendar()
             ->whereNotNull('reservation_date')
             ->orderBy('reservation_date')
             ->orderBy('start_time')

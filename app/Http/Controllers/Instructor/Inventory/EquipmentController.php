@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Instructor\Inventory;
 use App\Http\Controllers\Controller;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Models\Laboratory;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -13,6 +14,48 @@ class EquipmentController extends Controller
     public function index(Request $request): View
     {
         $campus = $this->campusForUser($request);
+        $search = trim((string) $request->query('search', ''));
+        $sort = $request->query('sort', 'laboratory');
+        $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortableColumns = [
+            'laboratory' => 'laboratory_name',
+            'available' => 'available_equipment_count',
+        ];
+
+        if (! array_key_exists($sort, $sortableColumns)) {
+            $sort = 'laboratory';
+        }
+
+        $availableEquipmentQuery = fn ($query) => $query->withoutTrashed()->where('status', 'Available');
+        $laboratoryQuery = Laboratory::query()->forCampus($campus);
+
+        $laboratories = (clone $laboratoryQuery)
+            ->withCount(['equipment as available_equipment_count' => $availableEquipmentQuery])
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($laboratoryQuery) use ($search): void {
+                    $laboratoryQuery
+                        ->where('laboratory_name', 'like', '%' . $search . '%')
+                        ->orWhere('laboratory_code', 'like', '%' . $search . '%')
+                        ->orWhere('building', 'like', '%' . $search . '%')
+                        ->orWhere('room_number', 'like', '%' . $search . '%');
+                });
+            })
+            ->orderBy($sortableColumns[$sort], $direction)
+            ->paginate(10)
+            ->withQueryString();
+
+        $stats = [
+            'laboratories' => (clone $laboratoryQuery)->count(),
+            'available_items' => Equipment::withoutTrashed()->forCampus($campus)->where('status', 'Available')->count(),
+        ];
+
+        return view('users.instructor.inventory.equipment.index', compact('laboratories', 'stats', 'campus', 'search', 'sort', 'direction'));
+    }
+
+    public function categories(Request $request, Laboratory $laboratory): View
+    {
+        $campus = $this->campusForUser($request);
+        $laboratory = $this->laboratoryForCampus($laboratory, $campus);
         $search = trim((string) $request->query('search', ''));
         $sort = $request->query('sort', 'category');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -25,17 +68,18 @@ class EquipmentController extends Controller
             $sort = 'category';
         }
 
+        $availableEquipmentQuery = fn ($query) => $query
+            ->withoutTrashed()
+            ->where('laboratory_id', $laboratory->getKey())
+            ->where('status', 'Available');
+
         $categories = EquipmentCategory::query()
-			->forCampus($campus)
-            ->withCount([
-                'equipment as available_equipment_count' => fn ($query) => $query
-                    ->withoutTrashed()
-					->forCampus($campus)
-                    ->where('status', 'Available'),
-            ])
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('category_name', 'like', '%' . $search . '%')
+            ->whereHas('equipment', $availableEquipmentQuery)
+            ->withCount(['equipment as available_equipment_count' => $availableEquipmentQuery])
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($categoryQuery) use ($search): void {
+                    $categoryQuery
+                        ->where('category_name', 'like', '%' . $search . '%')
                         ->orWhere('category_code', 'like', '%' . $search . '%')
                         ->orWhere('description', 'like', '%' . $search . '%');
                 });
@@ -44,74 +88,56 @@ class EquipmentController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $stats = [
-            'categories' => EquipmentCategory::forCampus($campus)->count(),
-            'available_items' => Equipment::withoutTrashed()->forCampus($campus)->where('status', 'Available')->count(),
-            'laboratories' => Equipment::withoutTrashed()->forCampus($campus)
-                ->where('status', 'Available')
-                ->distinct()
-                ->count('laboratory_id'),
-        ];
-        $featuredImages = Equipment::withoutTrashed()->forCampus($campus)
-            ->where('status', 'Available')
-            ->whereNotNull('image')
-            ->orderByDesc('created_at')
-            ->get(['category_id', 'image'])
-            ->groupBy('category_id')
-            ->map(fn ($items) => $items->first()->image)
-            ->all();
-
-        return view('users.instructor.inventory.equipment.index', compact('categories', 'stats', 'featuredImages', 'search', 'sort', 'direction'));
+        return view('users.instructor.inventory.equipment.categories', compact('laboratory', 'categories', 'campus', 'search', 'sort', 'direction'));
     }
 
-    public function category(Request $request, EquipmentCategory $equipmentCategory): View
+    public function categoryItems(Request $request, Laboratory $laboratory, EquipmentCategory $equipmentCategory): View
     {
         $campus = $this->campusForUser($request);
-		abort_unless(EquipmentCategory::forCampus($campus)->whereKey($equipmentCategory->getKey())->exists(), 404);
+        $laboratory = $this->laboratoryForCampus($laboratory, $campus);
         $search = trim((string) $request->query('search', ''));
         $sort = $request->query('sort', 'item');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
         $sortableColumns = [
-            'item' => 'equipment.equipment_name',
-            'laboratory' => 'laboratories.laboratory_name',
-            'brand' => 'equipment.brand',
-            'available' => 'equipment.available_quantity',
-            'condition' => 'equipment.condition',
+            'item' => 'equipment_name',
+            'brand' => 'brand',
+            'available' => 'available_quantity',
+            'condition' => 'condition',
         ];
 
         if (! array_key_exists($sort, $sortableColumns)) {
             $sort = 'item';
         }
 
-        $equipmentCategory->loadCount([
-            'equipment as available_equipment_count' => fn ($query) => $query
-                ->withoutTrashed()
-				->forCampus($campus)
-                ->where('status', 'Available'),
-        ]);
+        $availableEquipmentQuery = fn ($query) => $query
+            ->withoutTrashed()
+            ->where('laboratory_id', $laboratory->getKey())
+            ->where('status', 'Available');
 
+        abort_unless($equipmentCategory->equipment()->where($availableEquipmentQuery)->exists(), 404);
+
+        $equipmentCategory->loadCount(['equipment as available_equipment_count' => $availableEquipmentQuery]);
         $equipmentItems = $equipmentCategory->equipment()
             ->with(['category', 'laboratory'])
-            ->leftJoin('laboratories', 'equipment.laboratory_id', '=', 'laboratories.id')
-            ->select('equipment.*')
             ->withoutTrashed()
-			->forCampus($campus)
-            ->where('equipment.status', 'Available')
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('equipment.equipment_name', 'like', '%' . $search . '%')
-                        ->orWhere('equipment.equipment_code', 'like', '%' . $search . '%')
-                        ->orWhere('equipment.brand', 'like', '%' . $search . '%')
-                        ->orWhere('equipment.model', 'like', '%' . $search . '%')
-                        ->orWhere('equipment.condition', 'like', '%' . $search . '%')
-                        ->orWhere('laboratories.laboratory_name', 'like', '%' . $search . '%');
+            ->forCampus($campus)
+            ->where('laboratory_id', $laboratory->getKey())
+            ->where('status', 'Available')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($equipmentQuery) use ($search): void {
+                    $equipmentQuery
+                        ->where('equipment_name', 'like', '%' . $search . '%')
+                        ->orWhere('equipment_code', 'like', '%' . $search . '%')
+                        ->orWhere('brand', 'like', '%' . $search . '%')
+                        ->orWhere('model', 'like', '%' . $search . '%')
+                        ->orWhere('condition', 'like', '%' . $search . '%');
                 });
             })
             ->orderBy($sortableColumns[$sort], $direction)
-            ->paginate(10)
+            ->paginate(15)
             ->withQueryString();
 
-        return view('users.instructor.inventory.equipment.category', compact('equipmentCategory', 'equipmentItems', 'search', 'sort', 'direction'));
+        return view('users.instructor.inventory.equipment.category', compact('laboratory', 'equipmentCategory', 'equipmentItems', 'search', 'sort', 'direction'));
     }
 
     public function show(Equipment $equipment): View
@@ -124,10 +150,17 @@ class EquipmentController extends Controller
         return view('users.instructor.inventory.equipment.show', compact('equipment'));
     }
 
-	private function campusForUser(Request $request): string
-	{
-		abort_unless($request->user()->campusName(), 403);
+    private function campusForUser(Request $request): string
+    {
+        abort_unless($request->user()->campusName(), 403);
 
-		return $request->user()->campusName();
-	}
+        return $request->user()->campusName();
+    }
+
+    private function laboratoryForCampus(Laboratory $laboratory, string $campus): Laboratory
+    {
+        abort_unless(Laboratory::forCampus($campus)->whereKey($laboratory->getKey())->exists(), 404);
+
+        return $laboratory;
+    }
 }

@@ -346,6 +346,7 @@ class FacilitatorBorrowController extends Controller
 		$codeColumn = 'equipment_code';
 
 		$model->where('laboratory_id', $laboratoryId)
+			->requestable()
 			->where('status', 'Available')
 			->when($search !== '', fn ($query) => $query->where(function ($query) use ($search, $nameColumn, $codeColumn) {
 				$query->where($nameColumn, 'like', '%' . $search . '%')
@@ -369,7 +370,7 @@ class FacilitatorBorrowController extends Controller
 
 		$inventoryItem = Equipment::find($itemId);
 
-		if (! $inventoryItem || (int) $inventoryItem->laboratory_id !== $laboratoryId || $inventoryItem->status !== 'Available') {
+		if (! $inventoryItem || (int) $inventoryItem->laboratory_id !== $laboratoryId || ! $inventoryItem->is_requestable || $inventoryItem->status !== 'Available') {
 			throw ValidationException::withMessages([$errorKey => 'This item is not available in the request laboratory.']);
 		}
 

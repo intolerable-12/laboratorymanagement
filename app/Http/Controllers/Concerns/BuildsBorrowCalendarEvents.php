@@ -16,14 +16,7 @@ trait BuildsBorrowCalendarEvents
             ->when($user, fn ($query) => $query->forCampus($user->campusName()))
             ->when($user?->role?->role_name === 'Student', fn ($query) => $query->where('borrower_id', $user->userNo))
             ->when($user?->role?->role_name === 'Instructor', fn ($query) => $query->forDepartment((int) $user->department_id))
-            ->whereIn('status', [
-                'Coordinator Approved',
-                'Partially Borrowed',
-                'Borrowed',
-                'Partially Returned',
-                'Returned',
-                'Overdue',
-            ])
+            ->forCalendar()
             ->whereNotNull('borrowed_at')
             ->whereNotNull('due_at')
             ->orderBy('borrowed_at')

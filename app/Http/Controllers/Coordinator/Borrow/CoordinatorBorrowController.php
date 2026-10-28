@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Coordinator\Borrow;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
 use App\Models\BorrowTransaction;
+use App\Models\Equipment;
 use App\Services\RequestNotificationService;
 use App\Support\Campus;
 use Illuminate\Http\Request;
@@ -69,6 +70,8 @@ class CoordinatorBorrowController extends Controller
 				'items' => 'Chemicals cannot be included in borrow requests. Request them through a reservation instead.',
 			]);
 		}
+
+		$this->ensureEquipmentItemsRequestable($borrowTransaction);
 
 		$notificationService = app(RequestNotificationService::class);
 
@@ -172,6 +175,19 @@ class CoordinatorBorrowController extends Controller
 		if ($borrowTransaction->status !== 'Facilitator Approved') {
 			throw ValidationException::withMessages([
 				'status' => 'Only facilitator-approved borrow requests can be processed by the coordinator.',
+			]);
+		}
+	}
+
+	private function ensureEquipmentItemsRequestable(BorrowTransaction $borrowTransaction): void
+	{
+		$equipmentIds = $borrowTransaction->items()
+			->where('item_type', 'Equipment')
+			->pluck('item_id');
+
+		if (Equipment::query()->whereIn('id', $equipmentIds)->where('is_requestable', false)->exists()) {
+			throw ValidationException::withMessages([
+				'items' => 'One or more equipment items are inventory-only and cannot be borrowed or reserved.',
 			]);
 		}
 	}

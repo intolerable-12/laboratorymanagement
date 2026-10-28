@@ -11,7 +11,7 @@
 @section('content')
     <div class="inventory-page">
         <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
-            <a href="{{ route('instructor.inventory.equipment.categories.show', $equipment->category) }}" class="inventory-back-link">
+            <a href="{{ route('instructor.inventory.equipment.categories.show', ['laboratory' => $equipment->laboratory, 'equipmentCategory' => $equipment->category]) }}" class="inventory-back-link">
                 <i class="fa-solid fa-arrow-left"></i>
                 Back to category
             </a>

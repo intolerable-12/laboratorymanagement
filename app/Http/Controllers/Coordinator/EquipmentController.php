@@ -429,6 +429,7 @@ class EquipmentController extends Controller
             'quantity' => ['required', 'integer', 'min:0'],
             'condition' => ['required', Rule::in(['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'])],
             'status' => ['required', Rule::in(['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'])],
+            'is_requestable' => ['required', 'boolean'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'storage_location' => ['nullable', Rule::in($this->storageLocations($equipment))],
             'description' => ['nullable', 'string'],
@@ -440,6 +441,12 @@ class EquipmentController extends Controller
             && strtotime($data['manufacturing_date']) > strtotime($data['purchase_date'])) {
             throw ValidationException::withMessages([
                 'manufacturing_date' => 'The manufacturing date must be on or before the acquired date.',
+            ]);
+        }
+
+        if (! $data['is_requestable'] && in_array($data['status'], ['Borrowed', 'Reserved'], true)) {
+            throw ValidationException::withMessages([
+                'is_requestable' => 'Inventory-only equipment must use Available, Unavailable, or Maintenance status.',
             ]);
         }
 

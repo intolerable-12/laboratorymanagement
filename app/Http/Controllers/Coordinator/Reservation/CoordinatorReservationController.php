@@ -8,6 +8,7 @@ use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationEmailCont
 use App\Models\ApprovalLog;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
+use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\Reservation;
 use App\Services\RequestNotificationService;
@@ -70,6 +71,7 @@ class CoordinatorReservationController extends Controller
     {
         $this->ensureCoordinator($request);
         $this->guardForCoordinator($reservation);
+		$this->ensureEquipmentItemsRequestable($reservation);
 
         $data = $request->validate([
             'reservation_date' => ['required', 'date', 'after_or_equal:today'],
@@ -343,6 +345,20 @@ class CoordinatorReservationController extends Controller
             ]);
         }
     }
+
+	private function ensureEquipmentItemsRequestable(Reservation $reservation): void
+	{
+		$reservation->loadMissing('items');
+		$equipmentIds = $reservation->items
+			->where('item_type', 'Equipment')
+			->pluck('item_id');
+
+		if (Equipment::query()->whereIn('id', $equipmentIds)->where('is_requestable', false)->exists()) {
+			throw ValidationException::withMessages([
+				'items' => 'One or more equipment items are inventory-only and cannot be borrowed or reserved.',
+			]);
+		}
+	}
 
 	private function ensureMainCampus(Reservation $reservation): void
 	{

@@ -508,7 +508,7 @@ class FacilitatorReservationController extends Controller
 
 		$model->where('laboratory_id', $laboratoryId)
 			->when($itemType === 'Chemical', fn ($query) => $query->availableForRequest())
-			->when($itemType === 'Equipment', fn ($query) => $query->where('status', 'Available'))
+			->when($itemType === 'Equipment', fn ($query) => $query->requestable()->where('status', 'Available'))
 			->when($search !== '', fn ($query) => $query->where(function ($query) use ($search, $nameColumn, $codeColumn) {
 				$query->where($nameColumn, 'like', '%' . $search . '%')
 					->orWhere($codeColumn, 'like', '%' . $search . '%')
@@ -545,6 +545,10 @@ class FacilitatorReservationController extends Controller
 
 		if ($itemType === 'Equipment' && $inventoryItem->status !== 'Available') {
 			throw ValidationException::withMessages([$errorKey => 'This equipment is not currently available.']);
+		}
+
+		if ($itemType === 'Equipment' && ! $inventoryItem->is_requestable) {
+			throw ValidationException::withMessages([$errorKey => 'This equipment is inventory-only and cannot be borrowed or reserved.']);
 		}
 
 		$availableQuantity = $itemType === 'Equipment' ? (float) $inventoryItem->available_quantity : (float) $inventoryItem->quantity;

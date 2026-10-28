@@ -45,7 +45,7 @@ class GuestBorrowController extends Controller
         $borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
         $search = trim((string) $request->query('search', ''));
 
-        $equipmentQuery = Equipment::query()->where('status', 'Available')->orderBy('equipment_name');
+        $equipmentQuery = Equipment::query()->requestable()->where('status', 'Available')->orderBy('equipment_name');
 
         if ($search !== '') {
             $equipmentQuery->where(function ($query) use ($search) {
@@ -66,6 +66,7 @@ class GuestBorrowController extends Controller
         $instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
         $selectedEquipmentItems = Equipment::query()
+            ->requestable()
             ->whereIn('id', array_keys($oldEquipmentSelections))
             ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
             ->get()
@@ -130,7 +131,7 @@ class GuestBorrowController extends Controller
         $selectedLaboratoryId = (int) $details['laboratory_id'];
         $laboratory = $this->laboratoryFromDetails($details);
         $search = trim((string) $request->query('search', ''));
-        $equipmentQuery = Equipment::query()->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
+        $equipmentQuery = Equipment::query()->requestable()->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
 
         if ($search !== '') {
             $equipmentQuery->where(function ($query) use ($search) {
@@ -151,6 +152,7 @@ class GuestBorrowController extends Controller
                 ],
             ])->all();
         $selectedEquipmentItems = Equipment::query()
+            ->requestable()
             ->whereIn('id', array_keys($oldEquipmentSelections))
             ->where('laboratory_id', $selectedLaboratoryId)
             ->get()
@@ -201,7 +203,7 @@ class GuestBorrowController extends Controller
         }
 
         $laboratory = $this->laboratoryFromDetails($details);
-        $equipment = Equipment::whereIn('id', collect($items)->pluck('item_id'))
+        $equipment = Equipment::requestable()->whereIn('id', collect($items)->pluck('item_id'))
             ->where('laboratory_id', $laboratory->id)
             ->get()
             ->keyBy('id');

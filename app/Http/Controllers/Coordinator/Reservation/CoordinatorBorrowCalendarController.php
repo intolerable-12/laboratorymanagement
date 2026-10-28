@@ -16,6 +16,8 @@ class CoordinatorBorrowCalendarController extends Controller
     {
         $this->ensureCoordinator($request);
 
+        // Coordinators manage the Main campus calendar; IBED schedules are
+        // isolated to the IBED Laboratory In-charge calendar.
         $calendarEvents = $this->borrowTransactionsForCalendar(null, Campus::MAIN)
             ->flatMap(fn ($borrowTransaction) => $this->toBorrowCalendarEvents($borrowTransaction))
             ->values();

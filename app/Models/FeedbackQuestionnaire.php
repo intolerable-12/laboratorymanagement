@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
+use App\Support\Campus;
 
 class FeedbackQuestionnaire extends Model
 {
@@ -57,5 +58,12 @@ class FeedbackQuestionnaire extends Model
             self::AUDIENCE_INSTRUCTOR,
             self::AUDIENCE_BOTH,
         ];
+    }
+
+    public static function audiencesForCampus(string $campus): array
+    {
+        return Campus::normalize($campus) === Campus::IBED
+            ? [self::AUDIENCE_INSTRUCTOR]
+            : self::audiences();
     }
 }

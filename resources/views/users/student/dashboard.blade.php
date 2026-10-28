@@ -21,7 +21,7 @@
         @include('partials.announcement-feed', [
             'announcements' => $announcements,
             'feedTitle' => 'Announcements',
-            'feedSubtitle' => 'Important notices from the coordinator that affect your laboratory work.',
+            'feedSubtitle' => 'Important notices from your campus coordinator and laboratory in-charge.',
         ])
 
         @include('users.student.partials.laboratory-showcase')

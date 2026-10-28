@@ -45,6 +45,7 @@ class Equipment extends Model
         'low_stock_alert_sent_at',
         'condition',
         'status',
+        'is_requestable',
         'image',
         'storage_location',
         'description',
@@ -66,6 +67,7 @@ class Equipment extends Model
             'low_stock_threshold' => 'integer',
             'supplier_alert_sent_at' => 'datetime',
             'low_stock_alert_sent_at' => 'datetime',
+            'is_requestable' => 'boolean',
         ];
     }
 
@@ -74,6 +76,11 @@ class Equipment extends Model
         return filled($campus)
             ? $query->whereHas('laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->forCampus($campus))
             : $query;
+    }
+
+    public function scopeRequestable(Builder $query): Builder
+    {
+        return $query->where($query->qualifyColumn('is_requestable'), true);
     }
 
     /**

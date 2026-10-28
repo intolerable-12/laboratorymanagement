@@ -95,6 +95,7 @@ class ReservationController extends Controller
         $search = trim((string) $request->query('search', ''));
         $equipmentQuery = Equipment::with('laboratory')
 			->forCampus($campus)
+			->requestable()
             ->where('status', 'Available')
             ->where('laboratory_id', $selectedLaboratoryId)
             ->orderBy('equipment_name');
@@ -126,7 +127,7 @@ class ReservationController extends Controller
         $oldChemicalSelections = $request->session()->hasOldInput('chemical_items')
             ? (array) $request->session()->getOldInput('chemical_items', [])
             : $this->draftItemSelections($draftItems, 'Chemical');
-        $selectedEquipmentItems = Equipment::query()->forCampus($campus)->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+        $selectedEquipmentItems = Equipment::query()->forCampus($campus)->requestable()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
         $selectedChemicalItems = Chemical::query()->forCampus($campus)->availableForRequest()->whereIn('id', array_keys($oldChemicalSelections))->get()->keyBy('id');
 
         if ($request->ajax()) {
@@ -197,7 +198,7 @@ class ReservationController extends Controller
 
         $campus = $this->campusForUser($request);
         $laboratory = Laboratory::forCampus($campus)->findOrFail($details['laboratory_id']);
-        $equipment = Equipment::forCampus($campus)->whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
+        $equipment = Equipment::forCampus($campus)->requestable()->whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
         $chemicals = Chemical::forCampus($campus)->whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
         $requestedItems = collect($items)->map(function (array $item) use ($equipment, $chemicals) {
             $item['item'] = $item['item_type'] === 'Equipment'
@@ -508,6 +509,11 @@ class ReservationController extends Controller
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
                 continue;
             }
+
+			if (! $equipment->is_requestable) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment is inventory-only and cannot be borrowed or reserved.';
+				continue;
+			}
 
             if ((int) $equipment->laboratory_id !== $laboratoryId) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment does not belong to the selected laboratory.';

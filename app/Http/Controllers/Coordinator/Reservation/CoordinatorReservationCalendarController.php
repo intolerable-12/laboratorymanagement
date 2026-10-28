@@ -16,8 +16,10 @@ class CoordinatorReservationCalendarController extends Controller
         $this->ensureCoordinator($request);
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+            // Coordinators manage the Main campus calendar; IBED schedules
+            // remain isolated to the IBED Laboratory In-charge calendar.
             ->forCampus(Campus::MAIN)
-            ->whereIn('status', ['Coordinator Approved', 'Completed'])
+            ->forCalendar()
             ->whereNotNull('reservation_date')
             ->orderBy('reservation_date')
             ->orderBy('start_time')

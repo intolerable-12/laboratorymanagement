@@ -208,6 +208,44 @@ class User extends Authenticatable
     }
 
     /**
+     * Limit users to the campus used by campus-scoped announcements.
+     *
+     * Students and instructors inherit campus from their department, while
+     * laboratory in-charges use their explicit campus assignment with the
+     * department as a fallback for older accounts.
+     */
+    public function scopeForCampus(Builder $query, string $campus): Builder
+    {
+        $campus = Campus::normalize($campus);
+
+        if (! in_array($campus, Campus::values(), true)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $userQuery) use ($campus): void {
+            $userQuery
+                ->where(function (Builder $studentInstructorQuery) use ($campus): void {
+                    $studentInstructorQuery
+                        ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->whereIn('role_name', ['Student', 'Instructor']))
+                        ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
+                })
+                ->orWhere(function (Builder $laboratoryInChargeQuery) use ($campus): void {
+                    $laboratoryInChargeQuery
+                        ->whereHas('role', fn (Builder $roleQuery) => $roleQuery->where('role_name', 'Laboratory In-charge'))
+                        ->where(function (Builder $assignedCampusQuery) use ($campus): void {
+                            $assignedCampusQuery
+                                ->where('users.campus', $campus)
+                                ->orWhere(function (Builder $fallbackCampusQuery) use ($campus): void {
+                                    $fallbackCampusQuery
+                                        ->whereNull('users.campus')
+                                        ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery->where('campus', $campus));
+                                });
+                        });
+                });
+        });
+    }
+
+    /**
      * Instructors who may be selected to review student and guest requests.
      * Instructor campus is inherited from the department, so this deliberately
      * filters the department campus instead of the users.campus fallback field.

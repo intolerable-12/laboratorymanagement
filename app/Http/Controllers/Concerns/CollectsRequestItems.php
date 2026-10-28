@@ -37,6 +37,11 @@ trait CollectsRequestItems
                 continue;
             }
 
+            if (! $equipment->is_requestable) {
+                $errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment is inventory-only and cannot be borrowed or reserved.';
+                continue;
+            }
+
             if ($laboratoryId !== null && (int) $equipment->laboratory_id !== $laboratoryId) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment does not belong to the selected laboratory.';
                 continue;

@@ -125,7 +125,7 @@ class DashboardController extends Controller
         );
 
         return view('users.student.dashboard', [
-            'announcements' => $this->publishedAnnouncements('student', 6),
+            'announcements' => $this->publishedAnnouncements('student', 6, $campus),
             'metrics' => [
                 'active_requests' => $activeTransactions->count(),
                 'equipment_units' => $activeEquipmentUnits,

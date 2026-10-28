@@ -29,5 +29,6 @@ class FacilitatorBorrowCalendarController extends Controller
     private function ensureFacilitator(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
+        abort_unless($request->user()->campusName(), 403);
     }
 }

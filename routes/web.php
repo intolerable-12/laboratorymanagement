@@ -375,7 +375,8 @@ Route::middleware(['auth', 'role:Student', 'audit'])
                     ->name('equipment.')
                     ->group(function () {
                         Route::get('/', [StudentLabEquipmentController::class, 'index'])->name('index');
-                        Route::get('/categories/{equipmentCategory}', [StudentLabEquipmentController::class, 'category'])->name('categories.show');
+                        Route::get('/laboratories/{laboratory}/categories', [StudentLabEquipmentController::class, 'categories'])->name('categories.index');
+                        Route::get('/laboratories/{laboratory}/categories/{equipmentCategory}', [StudentLabEquipmentController::class, 'categoryItems'])->name('categories.show');
                         Route::get('/items/{equipment}', [StudentLabEquipmentController::class, 'show'])->name('show');
                     });
 
@@ -669,7 +670,8 @@ Route::middleware(['auth', 'role:Instructor', 'audit'])
                     ->name('equipment.')
                     ->group(function () {
                         Route::get('/', [InstructorEquipmentInventoryController::class, 'index'])->name('index');
-                        Route::get('/categories/{equipmentCategory}', [InstructorEquipmentInventoryController::class, 'category'])->name('categories.show');
+                        Route::get('/laboratories/{laboratory}/categories', [InstructorEquipmentInventoryController::class, 'categories'])->name('categories.index');
+                        Route::get('/laboratories/{laboratory}/categories/{equipmentCategory}', [InstructorEquipmentInventoryController::class, 'categoryItems'])->name('categories.show');
                         Route::get('/items/{equipment}', [InstructorEquipmentInventoryController::class, 'show'])->name('show');
                     });
 

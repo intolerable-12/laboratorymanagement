@@ -25,6 +25,7 @@
     $imageUrl = !empty($equipment?->image) ? asset('storage/' . $equipment->image) : null;
     $manufacturingDate = old('manufacturing_date', optional($equipment?->manufacturing_date)->format('Y-m-d'));
     $purchaseDate = old('purchase_date', optional($equipment?->purchase_date)->format('Y-m-d'));
+    $isRequestable = old('is_requestable', $equipment?->is_requestable ?? true);
 @endphp
 
 <div class="row g-4 mb-4">
@@ -160,6 +161,17 @@
                     @endforeach
                 </select>
                 @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label d-block" for="is_requestable">Request availability</label>
+                <div class="form-check form-switch mt-2">
+                    <input type="hidden" name="is_requestable" value="0">
+                    <input type="checkbox" id="is_requestable" name="is_requestable" value="1" class="form-check-input @error('is_requestable') is-invalid @enderror" @checked(filter_var($isRequestable, FILTER_VALIDATE_BOOLEAN))>
+                    <label class="form-check-label" for="is_requestable">Can be borrowed or reserved</label>
+                </div>
+                <div class="form-text">Turn this off for fixed laboratory equipment such as CCTV or fire extinguishers.</div>
+                @error('is_requestable') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-6">

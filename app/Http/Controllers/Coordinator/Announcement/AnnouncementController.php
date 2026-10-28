@@ -230,9 +230,22 @@ class AnnouncementController extends Controller
 
         $message = Str::limit(trim(strip_tags((string) $announcement->content)), 180);
 
+        $announcement->loadMissing(['postedBy.role', 'postedBy.department']);
+        $postedBy = $announcement->postedBy;
+        $campus = match ($postedBy?->role?->role_name) {
+            'Coordinator' => Campus::MAIN,
+            'Laboratory In-charge' => $postedBy->campusName(),
+            default => null,
+        };
+
+        if (! filled($campus)) {
+            return;
+        }
+
         User::query()
             ->where('status', 'Active')
             ->whereHas('role', fn ($query) => $query->whereIn('role_name', $roleNames->all()))
+            ->forCampus($campus)
             ->with('role')
             ->get()
             ->each(function (User $user) use ($announcement, $message, $sendEmail): void {
