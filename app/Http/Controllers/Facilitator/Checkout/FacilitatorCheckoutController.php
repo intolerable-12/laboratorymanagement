@@ -108,6 +108,10 @@ class FacilitatorCheckoutController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($inventoryItem->id);
 
+            if ($itemType === 'Equipment' && ! $inventoryItem->is_requestable) {
+                $this->checkoutError('barcode', 'This equipment is inventory-only and cannot be borrowed or reserved.');
+            }
+
             $requested = (float) $borrowItem->quantity_borrowed;
             $checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
             $remaining = round($requested - $checkedOut, 2);

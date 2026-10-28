@@ -85,6 +85,22 @@ class BorrowTransaction extends Model
     }
 
     /**
+     * Limit calendar entries to borrow requests that still have an active
+     * schedule. A Returned transaction has completed check-in for all of its
+     * equipment and should no longer be shown on any borrow calendar.
+     */
+    public function scopeForCalendar(Builder $query): Builder
+    {
+        return $query->whereIn('status', [
+            'Coordinator Approved',
+            'Partially Borrowed',
+            'Borrowed',
+            'Partially Returned',
+            'Overdue',
+        ]);
+    }
+
+    /**
      * Limit the instructor approval queue to students belonging to the
      * instructor's campus. IBED instructors review JHS students only.
      */

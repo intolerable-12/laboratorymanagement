@@ -38,7 +38,7 @@ class DashboardController extends Controller
         [$facilitatorApprovedReservations, $facilitatorApprovedBorrows] = $requestStatuses('Facilitator Approved');
 
         return view('users.instructor.dashboard', [
-            'announcements' => $this->publishedAnnouncements('instructor', 6),
+            'announcements' => $this->publishedAnnouncements('instructor', 6, $campus),
             'metrics' => [
                 [
                     'label' => 'Active Borrowings',

@@ -78,6 +78,18 @@ class Reservation extends Model
     }
 
     /**
+     * Limit calendar entries to reservations that still have an active
+     * schedule. The linked borrow transaction becomes Returned after all
+     * equipment has completed check-in.
+     */
+    public function scopeForCalendar(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'Coordinator Approved')
+            ->whereDoesntHave('borrowTransactions', fn (Builder $borrowQuery) => $borrowQuery->where('status', 'Returned'));
+    }
+
+    /**
      * Limit the instructor approval queue to students belonging to the
      * instructor's campus. IBED instructors review JHS students only.
      */

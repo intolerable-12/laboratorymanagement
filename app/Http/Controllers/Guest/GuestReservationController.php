@@ -45,7 +45,7 @@ class GuestReservationController extends Controller
             ->orderBy('laboratory_name')
             ->get(['id', 'laboratory_name', 'laboratory_code', 'campus']);
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
-        $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->orderBy('equipment_name');
+        $equipmentQuery = Equipment::with('laboratory')->requestable()->where('status', 'Available')->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->orderBy('chemical_name');
 
         if ($search !== '') {
@@ -74,6 +74,7 @@ class GuestReservationController extends Controller
         $oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
         $oldChemicalSelections = (array) $request->session()->getOldInput('chemical_items', []);
         $selectedEquipmentItems = Equipment::query()
+            ->requestable()
             ->whereIn('id', array_keys($oldEquipmentSelections))
             ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
             ->get()
@@ -182,7 +183,7 @@ class GuestReservationController extends Controller
         $selectedLaboratoryId = (int) $details['laboratory_id'];
         $laboratory = $this->laboratoryFromDetails($details);
         $search = trim((string) $request->query('search', ''));
-        $equipmentQuery = Equipment::with('laboratory')->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
+        $equipmentQuery = Equipment::with('laboratory')->requestable()->where('status', 'Available')->where('laboratory_id', $selectedLaboratoryId)->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->where('laboratory_id', $selectedLaboratoryId)->orderBy('chemical_name');
 
         if ($search !== '') {
@@ -208,6 +209,7 @@ class GuestReservationController extends Controller
             ? (array) $request->session()->getOldInput('chemical_items', [])
             : collect($draftItems)->where('item_type', 'Chemical')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all();
         $selectedEquipmentItems = Equipment::query()
+            ->requestable()
             ->whereIn('id', array_keys($oldEquipmentSelections))
             ->where('laboratory_id', $selectedLaboratoryId)
             ->get()
@@ -274,7 +276,7 @@ class GuestReservationController extends Controller
         }
 
         $laboratory = $this->laboratoryFromDetails($details);
-        $equipment = Equipment::whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))
+        $equipment = Equipment::requestable()->whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))
             ->where('laboratory_id', $laboratory->id)
             ->get()
             ->keyBy('id');

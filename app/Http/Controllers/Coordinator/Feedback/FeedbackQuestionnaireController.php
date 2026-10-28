@@ -62,7 +62,7 @@ class FeedbackQuestionnaireController extends Controller
     {
         $campus = $this->viewerCampus($request);
 
-        $validated = $this->validateQuestionnaire($request);
+        $validated = $this->validateQuestionnaire($request, $campus);
         $questionRows = $this->normalizeQuestionRows($validated['questions']);
         $isActive = $request->boolean('is_active', true);
         $description = RichTextSanitizer::sanitize($validated['description'] ?? null);
@@ -168,7 +168,7 @@ class FeedbackQuestionnaireController extends Controller
             return back()->with('error', 'Questionnaires with responses can no longer be edited.');
         }
 
-        $validated = $this->validateQuestionnaire($request);
+        $validated = $this->validateQuestionnaire($request, $campus);
         $questionRows = $this->normalizeQuestionRows($validated['questions']);
         $isActive = $request->boolean('is_active', false);
         $description = RichTextSanitizer::sanitize($validated['description'] ?? null);
@@ -221,12 +221,12 @@ class FeedbackQuestionnaireController extends Controller
             ->with('status', 'Questionnaire deleted successfully.');
     }
 
-    private function validateQuestionnaire(Request $request): array
+    private function validateQuestionnaire(Request $request, string $campus): array
     {
         return $request->validate([
             'topic' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
-            'audience' => ['required', Rule::in(FeedbackQuestionnaire::audiences())],
+            'audience' => ['required', Rule::in(FeedbackQuestionnaire::audiencesForCampus($campus))],
             'is_active' => ['nullable', 'boolean'],
             'questions' => ['required', 'array', 'min:1'],
             'questions.*.question_type' => ['required', Rule::in(['likert', 'raw'])],

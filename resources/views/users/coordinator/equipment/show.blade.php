@@ -29,7 +29,7 @@
             <a href="{{ route($routePrefix.'.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info">
                 <i class="fa-solid fa-clock-rotate-left me-1"></i>Traceability
             </a>
-            <span class="inventory-chip"><i class="fa-solid fa-circle-check"></i> Available now</span>
+            <span class="inventory-chip"><i class="fa-solid fa-{{ $equipment->is_requestable ? 'circle-check' : 'lock' }}"></i> {{ $equipment->is_requestable ? 'Available for requests' : 'Inventory only' }}</span>
         </div>
     </div>
 
@@ -78,6 +78,9 @@
                         @endif
                         <span class="badge text-bg-light border text-dark">{{ $equipment->condition }}</span>
                         <span class="badge text-bg-light border text-dark">{{ $equipment->equipment_code }}</span>
+                        @if (! $equipment->is_requestable)
+                            <span class="badge text-bg-secondary"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Inventory only</span>
+                        @endif
                     </div>
 
                     <div class="vstack gap-3">
@@ -138,6 +141,10 @@
                             <div class="small text-uppercase text-secondary mb-1">Quantity</div>
                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} available / {{ $equipment->quantity }} total</div>
                             <div class="small text-secondary">Low-stock threshold: {{ $equipment->low_stock_threshold ?? 'Not configured' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="small text-uppercase text-secondary mb-1">Request availability</div>
+                            <div class="fw-semibold text-dark">{{ $equipment->is_requestable ? 'Borrowing and reservations allowed' : 'Inventory only' }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Storage location</div>

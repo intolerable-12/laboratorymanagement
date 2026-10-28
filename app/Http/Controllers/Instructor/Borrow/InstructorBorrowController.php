@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Instructor\Borrow;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor\Borrow\InstructorBorrowEmailController;
 use App\Models\BorrowTransaction;
+use App\Models\Equipment;
 use App\Models\User;
 use App\Services\RequestNotificationService;
 use App\Support\Campus;
@@ -65,6 +66,7 @@ class InstructorBorrowController extends Controller
 		$this->ensureInstructor($request);
 		$this->ensureInstructorCanReview($request, $borrowTransaction);
 		$this->guardPendingBorrow($borrowTransaction);
+		$this->ensureEquipmentItemsRequestable($borrowTransaction);
 
 		$data = $request->validate([
 			'remarks' => ['nullable', 'string', 'max:1000'],
@@ -158,6 +160,19 @@ class InstructorBorrowController extends Controller
 		if ($borrowTransaction->status !== 'Pending') {
 			throw ValidationException::withMessages([
 				'status' => 'This borrow request has already been processed.',
+			]);
+		}
+	}
+
+	private function ensureEquipmentItemsRequestable(BorrowTransaction $borrowTransaction): void
+	{
+		$equipmentIds = $borrowTransaction->items()
+			->where('item_type', 'Equipment')
+			->pluck('item_id');
+
+		if (Equipment::query()->whereIn('id', $equipmentIds)->where('is_requestable', false)->exists()) {
+			throw ValidationException::withMessages([
+				'items' => 'One or more equipment items are inventory-only and cannot be borrowed or reserved.',
 			]);
 		}
 	}

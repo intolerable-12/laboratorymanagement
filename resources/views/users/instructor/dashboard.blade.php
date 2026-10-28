@@ -27,7 +27,7 @@
         @include('partials.announcement-feed', [
             'announcements' => $announcements,
             'feedTitle' => 'Announcements',
-            'feedSubtitle' => 'Coordinator notices and lab-wide updates relevant to instructors.',
+            'feedSubtitle' => 'Coordinator notices and laboratory updates for your campus.',
         ])
 
         <section class="row g-3 g-xl-4 mb-4">

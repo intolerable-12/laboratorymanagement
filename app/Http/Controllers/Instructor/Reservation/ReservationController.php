@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Instructor\Reservation;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor\Reservation\InstructorReservationEmailController;
 use App\Models\ApprovalLog;
+use App\Models\Equipment;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\RequestNotificationService;
@@ -69,6 +70,7 @@ class ReservationController extends Controller
         $this->ensureInstructor($request);
 		$this->ensureInstructorCanReview($request, $reservation);
         $this->guardPendingReservation($reservation);
+		$this->ensureEquipmentItemsRequestable($reservation);
 
         $data = $request->validate([
             'remarks' => ['nullable', 'string', 'max:1000'],
@@ -183,6 +185,20 @@ class ReservationController extends Controller
             ]);
         }
     }
+
+	private function ensureEquipmentItemsRequestable(Reservation $reservation): void
+	{
+		$reservation->loadMissing('items');
+		$equipmentIds = $reservation->items
+			->where('item_type', 'Equipment')
+			->pluck('item_id');
+
+		if (Equipment::query()->whereIn('id', $equipmentIds)->where('is_requestable', false)->exists()) {
+			throw ValidationException::withMessages([
+				'items' => 'One or more equipment items are inventory-only and cannot be borrowed or reserved.',
+			]);
+		}
+	}
 
     private function ensureInstructor(Request $request): void
     {

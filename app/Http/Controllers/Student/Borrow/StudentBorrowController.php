@@ -186,6 +186,7 @@ class StudentBorrowController extends Controller
 		$borrowDateMinLabel = $minimumBorrowDate->format('F j, Y');
 		$equipmentQuery = Equipment::query()
 			->forCampus($campus)
+			->requestable()
 			->where('status', 'Available')
 			->orderBy('equipment_name');
 		$search = trim((string) $request->query('search', ''));
@@ -209,6 +210,7 @@ class StudentBorrowController extends Controller
 		$oldEquipmentSelections = (array) $request->session()->getOldInput('equipment_items', []);
 		$selectedEquipmentItems = Equipment::query()
 			->forCampus($campus)
+			->requestable()
 			->whereIn('id', array_keys($oldEquipmentSelections))
 			->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
 			->get()
@@ -266,6 +268,7 @@ class StudentBorrowController extends Controller
 		$search = trim((string) $request->query('search', ''));
 		$equipmentQuery = Equipment::query()
 			->forCampus($campus)
+			->requestable()
 			->where('status', 'Available')
 			->where('laboratory_id', $selectedLaboratoryId)
 			->orderBy('equipment_name');
@@ -283,7 +286,7 @@ class StudentBorrowController extends Controller
 		$oldEquipmentSelections = $request->session()->hasOldInput('equipment_items')
 			? (array) $request->session()->getOldInput('equipment_items', [])
 			: $this->draftItemSelections($draftItems);
-		$selectedEquipmentItems = Equipment::query()->forCampus($campus)->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
+		$selectedEquipmentItems = Equipment::query()->forCampus($campus)->requestable()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
 
 		if ($request->ajax()) {
 			return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
@@ -345,7 +348,7 @@ class StudentBorrowController extends Controller
 
 		$campus = $this->campusForUser($request);
 		$laboratory = Laboratory::forCampus($campus)->findOrFail($details['laboratory_id']);
-		$equipment = Equipment::forCampus($campus)->whereIn('id', collect($items)->pluck('item_id'))->get()->keyBy('id');
+		$equipment = Equipment::forCampus($campus)->requestable()->whereIn('id', collect($items)->pluck('item_id'))->get()->keyBy('id');
 		$requestedItems = collect($items)->map(function (array $item) use ($equipment) {
 			$item['item'] = $equipment->get($item['item_id']);
 			return $item;
@@ -612,6 +615,11 @@ class StudentBorrowController extends Controller
 
 			if (! $equipment) {
 				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
+				continue;
+			}
+
+			if (! $equipment->is_requestable) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment is inventory-only and cannot be borrowed or reserved.';
 				continue;
 			}
 

@@ -2,7 +2,12 @@
     $existingRows = is_array($questionRows ?? null) ? $questionRows : [];
     $oldQuestionRows = old('questions');
     $questionnaireCampus = $campus ?? ($questionnaire->campus ?? 'Main');
-    $audienceOptions = \App\Models\FeedbackQuestionnaire::audiences();
+    $audienceOptions = \App\Models\FeedbackQuestionnaire::audiencesForCampus($questionnaireCampus);
+    $selectedAudience = old('audience', $questionnaire->audience ?? \App\Models\FeedbackQuestionnaire::AUDIENCE_BOTH);
+
+    if (! in_array($selectedAudience, $audienceOptions, true)) {
+        $selectedAudience = $audienceOptions[0];
+    }
 
     if (is_array($oldQuestionRows) && count($oldQuestionRows) > 0) {
         $questionRows = $oldQuestionRows;
@@ -55,7 +60,7 @@
         <label for="audience" class="form-label mb-1">Questionnaire for</label>
         <select id="audience" name="audience" class="form-select admin-form-control @error('audience') is-invalid @enderror" required>
             @foreach ($audienceOptions as $audienceOption)
-                <option value="{{ $audienceOption }}" @selected(old('audience', $questionnaire->audience ?? \App\Models\FeedbackQuestionnaire::AUDIENCE_BOTH) === $audienceOption)>
+                <option value="{{ $audienceOption }}" @selected($selectedAudience === $audienceOption)>
                     {{ $audienceOption === 'Both' ? 'Students and instructors' : $audienceOption . 's' }}
                 </option>
             @endforeach

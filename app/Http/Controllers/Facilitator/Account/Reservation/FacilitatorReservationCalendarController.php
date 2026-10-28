@@ -18,7 +18,7 @@ class FacilitatorReservationCalendarController extends Controller
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
 			->forCampus($campus)
-            ->whereIn('status', ['Coordinator Approved', 'Completed'])
+			->forCalendar()
             ->whereNotNull('reservation_date')
             ->orderBy('reservation_date')
             ->orderBy('start_time')

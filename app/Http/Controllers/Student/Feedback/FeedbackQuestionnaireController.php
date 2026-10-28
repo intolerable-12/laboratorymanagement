@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FeedbackQuestionnaire;
 use App\Models\FeedbackQuestionnaireResponse;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,11 +21,14 @@ class FeedbackQuestionnaireController extends Controller
         $studentNo = $request->user()->userNo;
         $campus = $request->user()->campusName();
         $audience = FeedbackQuestionnaire::AUDIENCE_STUDENT;
+        $allowedAudiences = $campus === Campus::IBED
+            ? []
+            : [$audience, FeedbackQuestionnaire::AUDIENCE_BOTH];
 
         $availableQuestionnaires = FeedbackQuestionnaire::query()
             ->where('is_active', true)
             ->forCampus($campus)
-            ->whereIn('audience', [$audience, FeedbackQuestionnaire::AUDIENCE_BOTH]);
+            ->whereIn('audience', $allowedAudiences);
 
         $questionnaires = (clone $availableQuestionnaires)
             ->withCount('questions')
@@ -39,9 +43,9 @@ class FeedbackQuestionnaireController extends Controller
             'available' => (clone $availableQuestionnaires)->count(),
             'completed' => FeedbackQuestionnaireResponse::query()
                 ->where('user_no', $studentNo)
-                ->whereHas('questionnaire', function ($query) use ($campus, $audience) {
+                ->whereHas('questionnaire', function ($query) use ($campus, $allowedAudiences) {
                     $query->forCampus($campus)
-                        ->whereIn('audience', [$audience, FeedbackQuestionnaire::AUDIENCE_BOTH]);
+                        ->whereIn('audience', $allowedAudiences);
                 })
                 ->count(),
         ];
@@ -178,7 +182,8 @@ class FeedbackQuestionnaireController extends Controller
     private function ensureQuestionnaireForStudent(Request $request, FeedbackQuestionnaire $feedbackQuestionnaire): void
     {
         abort_unless(
-            $feedbackQuestionnaire->campus === $request->user()->campusName()
+            $request->user()->campusName() !== Campus::IBED
+                && $feedbackQuestionnaire->campus === $request->user()->campusName()
                 && $feedbackQuestionnaire->targetsAudience(FeedbackQuestionnaire::AUDIENCE_STUDENT),
             404,
         );

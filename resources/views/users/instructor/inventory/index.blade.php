@@ -15,11 +15,11 @@
                 <div class="flex-grow-1" style="max-width: 52rem;">
                     <span class="inventory-eyebrow mb-3">Instructor inventory</span>
                     <h2 class="display-6 fw-semibold text-dark mb-3">Browse available laboratory equipment and chemicals.</h2>
-                    <p class="lead text-secondary mb-4">Use the same category-first experience as students, but from the instructor workspace.</p>
+                    <p class="lead text-secondary mb-4">Choose a laboratory first, then browse its equipment by category from the instructor workspace.</p>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="inventory-chip"><i class="fa-solid fa-microscope"></i> Equipment</span>
                         <span class="inventory-chip"><i class="fa-solid fa-vial"></i> Chemicals</span>
-                        <span class="inventory-chip"><i class="fa-solid fa-layer-group"></i> Category-first</span>
+                        <span class="inventory-chip"><i class="fa-solid fa-flask"></i> Laboratory-first</span>
                     </div>
                 </div>
 
@@ -29,7 +29,7 @@
                             <span class="inventory-launch-card__icon"><i class="fa-solid fa-microscope"></i></span>
                             <div>
                                 <h3 class="h4 fw-semibold mb-2">Equipment</h3>
-                                <p class="mb-0 text-secondary">Open available laboratory equipment by category and review item details.</p>
+                                <p class="mb-0 text-secondary">Choose a laboratory, browse by category, and review item details.</p>
                             </div>
                             <div class="mt-auto d-inline-flex align-items-center gap-2 fw-semibold text-dark">
                                 Open equipment

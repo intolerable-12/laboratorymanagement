@@ -14,7 +14,6 @@
                     </div>
                     <div class="reservation-calendar-legend d-flex flex-wrap gap-2">
                         <span class="badge text-bg-success px-3 py-2">Coordinator Approved</span>
-                        <span class="badge text-bg-info px-3 py-2">Completed</span>
                     </div>
                 </div>
 
