@@ -128,13 +128,13 @@
                                     <h6 class="fw-semibold text-dark mb-3">Requested Items</h6>
                                     <div class="table-responsive">
                                         <table class="table align-middle mb-0">
-                                            <thead class="table-light">
-                                                <tr class="text-secondary small text-uppercase">
-                                                    <th>Type</th>
-                                                    <th>Item</th>
-                                                    <th>Quantity</th>
-                                                    <th>Unit</th>
-                                                    <th>Remarks</th>
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-dark">Type</th>
+                                                    <th class="text-dark">Item</th>
+                                                    <th class="text-dark">Quantity</th>
+                                                    <th class="text-dark">Unit</th>
+                                                    <th class="text-dark">Remarks</th>
                                                 </tr>
                                             </thead>
                                             <tbody data-reservation-items-body>

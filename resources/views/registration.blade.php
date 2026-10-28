@@ -97,7 +97,7 @@
                                 <option value="">Select your department</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}" @selected((string) old('department_id') === (string) $department->id)>
-                                        {{ $department->department_name }} ({{ $department->campusName() }} campus)
+                                        {{ $department->department_name }}
                                     </option>
                                 @endforeach
                             </select>

@@ -93,9 +93,6 @@ class ChemicalController extends Controller
         $campus = $this->viewerCampus($request);
         $chemicalsQuery = Chemical::with(['category', 'laboratory', 'supplier'])
             ->forCampus($campus)
-            ->leftJoin('chemical_categories', 'chemicals.category_id', '=', 'chemical_categories.id')
-            ->leftJoin('laboratories', 'chemicals.laboratory_id', '=', 'laboratories.id')
-            ->select('chemicals.*')
             ->when($archived, fn($query) => $query->onlyTrashed(), fn($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -136,8 +133,16 @@ class ChemicalController extends Controller
 
         $chemicals = $chemicalsQuery
             ->when($sort === 'type', fn($query) => $query->orderBy('chemicals.type', $direction))
-            ->when($sort === 'category', fn($query) => $query->orderBy('chemical_categories.category_name', $direction))
-            ->when($sort === 'laboratory', fn($query) => $query->orderBy('laboratories.laboratory_name', $direction))
+            ->when($sort === 'category', fn($query) => $query->orderBy(
+                \App\Models\ChemicalCategory::select('category_name')
+                    ->whereColumn('chemical_categories.id', 'chemicals.category_id'),
+                $direction
+            ))
+            ->when($sort === 'laboratory', fn($query) => $query->orderBy(
+                \App\Models\Laboratory::select('laboratory_name')
+                    ->whereColumn('laboratories.id', 'chemicals.laboratory_id'),
+                $direction
+            ))
             ->when($sort === 'archived_at' && $archived, fn($query) => $query->orderBy('chemicals.deleted_at', $direction))
             ->when($sort === 'item', fn($query) => $query->orderBy('chemicals.chemical_name', $direction))
             ->when($sort === 'stock', fn($query) => $query->orderBy('chemicals.quantity', $direction))
@@ -147,7 +152,14 @@ class ChemicalController extends Controller
             ->paginate(10);
 
         $categories = ChemicalCategory::forCampus($campus)->orderBy('category_name')->get(['id', 'category_name']);
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name']);
+        $laboratories = Laboratory::query()
+            ->when(
+                $campus === null,
+                fn ($q) => $q->mainCampus(),          // coordinator: main campus only
+                fn ($q) => $q->forCampus($campus),    // facilitator: their campus (already main if assigned)
+            )
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name']);
         $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = Chemical::STATUSES;
         $types = Chemical::TYPES;
@@ -207,7 +219,7 @@ class ChemicalController extends Controller
     {
         $campus = $this->viewerCampus(request());
         $categories = ChemicalCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forViewerCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
         $types = Chemical::TYPES;
         $unitOptions = self::UNIT_OPTIONS;
@@ -219,7 +231,7 @@ class ChemicalController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateChemical($request);
-        Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $data['chemical_code'] = $this->generateChemicalCode();
         $data['barcode'] = $this->generateBarcodeValue();
         $data['supplier_alert_sent_at'] = null;
@@ -254,7 +266,7 @@ class ChemicalController extends Controller
         $this->ensureViewerCanAccess(request(), $chemical);
         $campus = $this->viewerCampus(request());
         $categories = ChemicalCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forViewerCampus($campus)->orderBy('laboratory_name')->get();
         $types = Chemical::TYPES;
         $suppliers = Supplier::query()
             ->where(function ($query) use ($chemical) {
@@ -276,7 +288,7 @@ class ChemicalController extends Controller
     {
         $this->ensureViewerCanAccess($request, $chemical);
         $data = $this->validateChemical($request, $chemical);
-        Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $previousQuantity = (float) $chemical->quantity;
 
         if ((float) $chemical->minimum_stock !== (float) $data['minimum_stock']) {

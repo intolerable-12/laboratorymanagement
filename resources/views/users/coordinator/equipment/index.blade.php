@@ -374,7 +374,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-6 mb-5">
                                         <label for="equipment-filter-laboratory" class="form-label fw-medium">Laboratory</label>
                                         <select id="equipment-filter-laboratory" name="laboratory_id" class="form-select admin-form-control">
                                             <option value="">All laboratories</option>
@@ -433,7 +433,7 @@
                 </a>
 
             </div>
-            {{-- Right side: Add chemical --}}
+            {{-- Right side: Add equipment --}}
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" form="equipment-bulk-print-form" class="btn btn-outline-dark px-4" data-barcode-submit disabled>
                     <i class="fa-solid fa-print me-2"></i>Print selected (<span data-barcode-count>0</span>)
@@ -451,7 +451,7 @@
 
         {{-- Table Section --}}
         <div class="section-card" id="equipmentTable">
-            <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
+            <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5v mb-3"> 
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                     <div>
                         <h3 class="h5 fw-semibold mb-0">
@@ -472,7 +472,6 @@
                             data-live-search-filter
                             aria-label="Select laboratory for equipment list"
                         >
-                            <option value="">All Laboratories</option>
                             @foreach ($laboratories as $laboratory)
                                 <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
                             @endforeach
@@ -668,9 +667,11 @@
             </div>
         </div>
 
-        <div class="mt-4" data-live-search-pagination>
-            {{ $equipmentItems->withQueryString()->links('pagination::bootstrap-5') }}
-        </div>
+        @if ($equipmentItems->count())
+            <div class="mt-4" data-live-search-pagination>
+                {{ $equipmentItems->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
     </div>
 
     @if (!$isReadOnly && !$archived)

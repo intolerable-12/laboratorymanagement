@@ -73,6 +73,8 @@
                                 </div>
                             </div>
 
+                            @include('partials.feedback-image-upload')
+
                             @include('partials.rich-text-editor', [
                                 'name' => 'comments',
                                 'label' => 'Comments',
@@ -80,8 +82,6 @@
                                 'placeholder' => 'Describe the experience, what worked, what did not, and any suggestion for improvement.',
                                 'hint' => 'Use rich text if you want to format your feedback like a short review.',
                             ])
-
-                            @include('partials.feedback-image-upload')
 
                             <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
                                 <a href="{{ route('instructor.feedback.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Cancel</a>
