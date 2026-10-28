@@ -703,9 +703,11 @@
 
         </div>
 
-        <div class="mt-4" data-live-search-pagination>
-            {{ $chemicals->withQueryString()->links('pagination::bootstrap-5') }}
-        </div>
+        @if ($chemicals->count())
+            <div class="mt-4" data-live-search-pagination>
+                {{ $chemicals->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
     </div>
 
     @if (!$isReadOnly && !$archived)

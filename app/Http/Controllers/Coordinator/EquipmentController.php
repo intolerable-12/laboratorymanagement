@@ -89,9 +89,6 @@ class EquipmentController extends Controller
         $campus = $this->viewerCampus($request);
         $equipmentQuery = Equipment::with(['category', 'laboratory', 'supplier'])
             ->forCampus($campus)
-            ->leftJoin('equipment_categories', 'equipment.category_id', '=', 'equipment_categories.id')
-            ->leftJoin('laboratories', 'equipment.laboratory_id', '=', 'laboratories.id')
-            ->select('equipment.*')
             ->when($archived, fn($query) => $query->onlyTrashed(), fn($query) => $query->withoutTrashed())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -112,9 +109,17 @@ class EquipmentController extends Controller
                 ->whereNotNull('equipment.low_stock_threshold')
                 ->whereColumn('equipment.available_quantity', '<=', 'equipment.low_stock_threshold'));
 
-        $equipmentItems = $equipmentQuery
-            ->when($sort === 'category', fn($query) => $query->orderBy('equipment_categories.category_name', $direction))
-            ->when($sort === 'laboratory', fn($query) => $query->orderBy('laboratories.laboratory_name', $direction))
+       $equipmentItems = $equipmentQuery
+            ->when($sort === 'category', fn($query) => $query->orderBy(
+                \App\Models\EquipmentCategory::select('category_name')
+                    ->whereColumn('equipment_categories.id', 'equipment.category_id'),
+                $direction
+            ))
+            ->when($sort === 'laboratory', fn($query) => $query->orderBy(
+                \App\Models\Laboratory::select('laboratory_name')
+                    ->whereColumn('laboratories.id', 'equipment.laboratory_id'),
+                $direction
+            ))
             ->when($sort === 'archived_at' && $archived, fn($query) => $query->orderBy('equipment.deleted_at', $direction))
             ->when($sort === 'item', fn($query) => $query->orderBy('equipment.equipment_name', $direction))
             ->when($sort === 'quantity', fn($query) => $query->orderBy('equipment.quantity', $direction))
@@ -124,7 +129,14 @@ class EquipmentController extends Controller
             ->paginate(10);
 
         $categories = EquipmentCategory::forCampus($campus)->orderBy('category_name')->get(['id', 'category_name']);
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name']);
+        $laboratories = Laboratory::query()
+            ->when(
+                $campus === null,
+                fn ($q) => $q->mainCampus(),          // coordinator: main campus only
+                fn ($q) => $q->forCampus($campus),    // facilitator: their campus (already main if assigned)
+            )
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name']);
         $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name', 'status']);
         $statuses = ['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'];
         $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
@@ -170,7 +182,7 @@ class EquipmentController extends Controller
     {
         $campus = $this->viewerCampus(request());
         $categories = EquipmentCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forViewerCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::where('status', 'Active')->orderBy('supplier_name')->get();
         $storageLocations = self::STORAGE_LOCATIONS;
 
@@ -180,7 +192,7 @@ class EquipmentController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateEquipment($request);
-        $laboratory = Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        $laboratory = Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $data['equipment_code'] = $this->generateEquipmentCode($laboratory);
         $data['barcode'] = $this->generateBarcodeValue($data['equipment_code']);
         $data['available_quantity'] = $data['quantity'];
@@ -216,7 +228,7 @@ class EquipmentController extends Controller
         $this->ensureViewerCanAccess(request(), $equipment);
         $campus = $this->viewerCampus(request());
         $categories = EquipmentCategory::orderBy('category_name')->get();
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get();
+        $laboratories = Laboratory::forViewerCampus($campus)->orderBy('laboratory_name')->get();
         $suppliers = Supplier::query()
             ->where(fn ($query) => $query->where('status', 'Active')->orWhere('id', $equipment->supplier_id))
             ->orderBy('supplier_name')
@@ -230,7 +242,7 @@ class EquipmentController extends Controller
     {
         $this->ensureViewerCanAccess($request, $equipment);
         $data = $this->validateEquipment($request, $equipment);
-        Laboratory::forCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $previousAvailableQuantity = (int) $equipment->available_quantity;
         $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
 

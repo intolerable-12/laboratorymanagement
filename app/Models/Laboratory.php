@@ -122,4 +122,16 @@ class Laboratory extends Model
 
         return Str::upper(Str::substr($candidate, 0, 4)) ?: 'LAB';
     }
+
+    public function scopeMainCampus(Builder $query): Builder
+    {
+        return $query->where($query->qualifyColumn('campus'), self::CAMPUS_MAIN);
+    }
+
+    public function scopeForViewerCampus(Builder $query, ?string $campus): Builder
+    {
+        return $campus === null
+            ? $query->mainCampus()
+            : $query->where($query->qualifyColumn('campus'), $campus);
+    }
 }
