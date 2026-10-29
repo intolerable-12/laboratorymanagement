@@ -27,8 +27,15 @@ class ChemicalReportController extends Controller
         return view('users.coordinator.reports.chemicals', [
             'schoolYears' => $schoolYears,
             'semesters' => $this->reportSemesters(),
-            'chemicalCount' => Chemical::query()->forCampus($campus)->count(),
-            'laboratoryCount' => Chemical::query()->forCampus($campus)->distinct('laboratory_id')->count('laboratory_id'),
+            'chemicalCount' => Chemical::query()
+                ->forCampus($campus)
+                ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
+                ->count(),
+            'laboratoryCount' => Chemical::query()
+                ->forCampus($campus)
+                ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
+                ->distinct('laboratory_id')
+                ->count('laboratory_id'),
         ]);
     }
 
@@ -53,7 +60,10 @@ class ChemicalReportController extends Controller
 
         $campus = $this->viewerCampus($request);
 
-        if (! Chemical::query()->forCampus($campus)->exists()) {
+       if (! Chemical::query()
+            ->forCampus($campus)
+            ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
+            ->exists()) {
             return redirect()
                 ->route($this->routePrefix($request).'.reports.chemicals.index')
                 ->withInput()

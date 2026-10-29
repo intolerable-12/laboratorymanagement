@@ -28,8 +28,15 @@ class EquipmentReportController extends Controller
         return view('users.coordinator.reports.equipment', [
             'schoolYears' => $schoolYears,
             'semesters' => $semesters,
-            'equipmentCount' => Equipment::query()->forCampus($campus)->count(),
-            'laboratoryCount' => Equipment::query()->forCampus($campus)->distinct('laboratory_id')->count('laboratory_id'),
+            'equipmentCount' => Equipment::query()
+                ->forCampus($campus)
+                ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
+                ->count(),
+            'laboratoryCount' => Equipment::query()
+                ->forCampus($campus)
+                ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
+                ->distinct('laboratory_id')
+                ->count('laboratory_id'),
         ]);
     }
 
@@ -52,7 +59,10 @@ class EquipmentReportController extends Controller
             ->with('academicPeriods')
             ->get();
         $campus = $this->viewerCampus($request);
-        $equipmentExists = Equipment::query()->forCampus($campus)->exists();
+        $equipmentExists = Equipment::query()
+            ->forCampus($campus)
+            ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
+            ->exists();
 
         if (! $equipmentExists) {
             return redirect()
