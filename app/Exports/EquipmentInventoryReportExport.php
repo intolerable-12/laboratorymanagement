@@ -24,7 +24,13 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
      */
     public function sheets(): array
     {
-        $query = Equipment::query()->with('laboratory')->forCampus($this->campus);
+        $query = Equipment::query()
+            ->with('laboratory')
+            ->when(
+                $this->campus === null,
+                fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()),
+                fn ($q) => $q->forCampus($this->campus),
+            );
         $schoolYearIds = $this->schoolYears->pluck('id')->filter()->values();
         $semesterIds = $this->semesters->pluck('id')->filter()->values();
 
