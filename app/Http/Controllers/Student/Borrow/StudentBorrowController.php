@@ -13,6 +13,7 @@ use App\Models\SchoolYear;
 use App\Models\User;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Support\AcademicPeriodSelection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -391,7 +392,7 @@ class StudentBorrowController extends Controller
 		$borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
 			$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 			$codeGenerator = app(SequentialCodeGenerator::class);
-			$schoolYear = SchoolYear::query()->where('is_current', true)->orderByDesc('start_date')->first()
+			$schoolYear = AcademicPeriodSelection::currentSchoolYear($this->campusForUser($request))
 				?? SchoolYear::query()->orderByDesc('start_date')->first();
 
 			$borrowTransaction = BorrowTransaction::create([

@@ -102,6 +102,8 @@
             @endforeach
         </section>
 
+        @include('partials.laboratory-inventory-summary', ['laboratoryInventory' => $laboratoryInventory])
+
         <section class="card section-card border-0 mb-4">
             <div class="card-body p-4 p-xl-5">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">

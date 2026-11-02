@@ -91,8 +91,8 @@ class User extends Authenticatable
     /**
      * Resolve the campus this account is allowed to work with.
      * Students and instructors inherit their campus from their department;
-     * laboratory in-charges use their explicit assignment. Coordinators are
-     * cross-campus.
+     * laboratory in-charges and campus-assigned coordinators use their
+     * explicit assignment. Unassigned coordinators remain cross-campus.
      */
     public function campusName(): ?string
     {
@@ -100,7 +100,7 @@ class User extends Authenticatable
         $roleName = strtolower((string) $this->role?->role_name);
 
         if ($roleName === 'coordinator') {
-            return null;
+            return Campus::normalize($this->campus);
         }
 
         if ($roleName === 'laboratory in-charge') {

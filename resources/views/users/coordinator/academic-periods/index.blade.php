@@ -17,7 +17,7 @@
     @endif
 
     <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4">
-        New reservations and inventory quantity changes use the school year and semester marked <strong>Current</strong> below. Use the semester academic-period section to set each semester's dates for every school year.
+        Academic-period dates below are scoped to the <strong>{{ $campus }} campus</strong>. New reservations and inventory quantity changes use the school year and semester marked <strong>Current</strong>.
     </div>
 
     <div class="row g-4">
@@ -141,7 +141,7 @@
     <div class="section-card mt-4">
         <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
             <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
-                <h3 class="h5 fw-semibold mb-1">Semester academic periods</h3>
+                <h3 class="h5 fw-semibold mb-1">{{ $campus }} campus semester academic periods</h3>
                 @if ($schoolYears->isNotEmpty())
                     <form method="GET" action="{{ route($routePrefix.'.academic-periods.index') }}" class="d-flex align-items-end gap-2">
                         <div>

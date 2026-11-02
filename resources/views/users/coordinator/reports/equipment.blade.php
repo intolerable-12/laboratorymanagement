@@ -6,13 +6,13 @@
 
 @section('title', 'Equipment Inventory Reports')
 @section('page-title', 'Equipment Inventory Reports')
-@section('page-subtitle', 'Generate the laboratory equipment inventory workbook by school year')
+@section('page-subtitle', "Generate the {$campus} campus laboratory equipment inventory workbook by school year")
 
 @section('content')
     @include('users.coordinator.reports._tabs')
 
     @php
-        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->where('is_current', true)->pluck('id')->all()))
+        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->where('id', $currentSchoolYearId)->pluck('id')->all()))
             ->map(fn ($id) => (int) $id)
             ->all();
         $oldSignatories = old('signatories', []);
@@ -28,7 +28,7 @@
     <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">Equipment inventory workbook</h2>
-            <p class="mb-0 text-secondary">One formatted worksheet will be created for each laboratory with equipment records.</p>
+            <p class="mb-0 text-secondary">One formatted worksheet will be created for each {{ $campus }} campus laboratory with equipment records.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <span class="badge rounded-pill text-bg-light border text-secondary px-3 py-2">{{ number_format($equipmentCount) }} equipment</span>
@@ -39,7 +39,7 @@
     <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4">
         <div class="fw-semibold mb-1"><i class="fa-solid fa-circle-info me-1"></i>About the period quantities</div>
         <div class="small">
-            Beginning and ending quantities are tracked for each equipment item, school year, and semester. Changes made to an equipment total are recorded in the school year and semester marked <strong>Current</strong> by the coordinator, and appear in that school-year group's remarks.
+            Beginning and ending quantities are tracked for each equipment item, school year, and semester. Changes made to an equipment total are recorded in the school year and semester marked <strong>Current</strong> for the {{ $campus }} campus, and appear in that school-year group's remarks.
             Existing equipment receives its current total as the starting baseline, while periods before an item was acquired remain blank.
             Semester date ranges are configured per school year in the academic-period control.
         </div>
@@ -67,7 +67,7 @@
                                 >
                                 <label class="form-check-label fw-semibold text-dark" for="school-year-{{ $schoolYear->id }}">
                                     {{ $schoolYear->school_year }}
-                                    @if ($schoolYear->is_current)
+                                    @if ($schoolYear->id === $currentSchoolYearId)
                                         <span class="badge text-bg-success ms-1">Current</span>
                                     @endif
                                     <span class="d-block small fw-normal text-secondary mt-1">

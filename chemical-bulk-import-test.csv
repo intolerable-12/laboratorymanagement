@@ -1,0 +1,2 @@
+chemical_name,type,category_name,laboratory_name,supplier_name,quantity,unit,minimum_stock,manufactured_date,expiration_date,received_date,hazard_classification,storage_location,status,description,remarks
+Test Sodium Chloride,Inorganic,Salts,Chemistry Laboratory,,2.50,kg,0.50,2026-01-01,2028-01-01,2026-01-15,Non-Hazardous,Cabinet 1,Active,Sample record for bulk import testing,

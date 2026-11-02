@@ -243,17 +243,33 @@
         <div>
             <div class="text-secondary">Manage equipment records and categories.</div>
         </div>
-        <div class="btn-group shadow-sm" role="group">
-    <a href="{{ route($routePrefix.'.equipment.index', $tabQuery) }}"
-       class="btn {{ $onEquipment ? 'btn-primary' : 'btn-outline-secondary' }}">
-        <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
-    </a>
-    <a href="{{ route($routePrefix.'.equipment.categories.index') }}"
-       class="btn {{ $onCategories ? 'btn-primary' : 'btn-outline-secondary' }}">
-        <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
-    </a>
-</div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group shadow-sm" role="group">
+                <a href="{{ route($routePrefix.'.equipment.index', $tabQuery) }}"
+                   class="btn {{ $onEquipment ? 'btn-primary' : 'btn-outline-secondary' }}">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i>Equipment
+                </a>
+                <a href="{{ route($routePrefix.'.equipment.categories.index') }}"
+                   class="btn {{ $onCategories ? 'btn-primary' : 'btn-outline-secondary' }}">
+                    <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
+                </a>
+            </div>
+            @unless ($archived)
+                <button type="button" class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#bulk-import-equipment-modal">
+                    <i class="fa-solid fa-file-import me-2"></i>Bulk import
+                </button>
+            @endunless
+        </div>
     </div>
+
+    @unless ($archived)
+        @include('users.coordinator.partials.bulk-import-modal', [
+            'resourceSlug' => 'equipment',
+            'resourceLabel' => 'Equipment',
+            'csvHeaders' => ['equipment_name', 'category_name', 'laboratory_name', 'supplier_name', 'brand', 'model', 'serial_number', 'purchase_date', 'manufacturing_date', 'quantity', 'low_stock_threshold', 'condition', 'status', 'is_requestable', 'storage_location', 'description', 'remarks'],
+            'csvSampleRow' => ['Compound Microscope', 'Microscopes', 'Science Laboratory', '', 'Example brand', 'Model 100', 'SN-0001', '2026-01-15', '2025-12-01', '5', '1', 'Good', 'Available', '1', 'Cabinet 1', 'Example description', ''],
+        ])
+    @endunless
 
     {{-- Metrics Cards --}}
     <div class="row g-3 g-xl-4 mb-4">

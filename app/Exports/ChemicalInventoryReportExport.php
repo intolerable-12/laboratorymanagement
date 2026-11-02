@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Chemical;
 use App\Models\SchoolYear;
+use App\Support\Campus;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
@@ -64,6 +65,7 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
                     semesters: $this->semesters,
                     signatories: $this->signatories,
                     sheetTitle: $title,
+                    campus: $this->campus ?? Campus::MAIN,
                 );
             })
             ->values()

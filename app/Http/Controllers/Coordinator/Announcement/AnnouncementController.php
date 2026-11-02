@@ -73,7 +73,7 @@ class AnnouncementController extends Controller
 
     public function create(Request $request): View
     {
-        $this->managedCampus($request);
+        $campus = $this->managedCampus($request);
 
         return view('users.coordinator.announcement.create', [
             'announcement' => new Announcement([
@@ -82,15 +82,15 @@ class AnnouncementController extends Controller
                 'is_published' => true,
                 'send_email' => true,
             ]),
-            'audienceOptions' => Announcement::audienceOptions(),
+            'audienceOptions' => $this->audienceOptionsForCampus($campus),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->managedCampus($request);
+        $campus = $this->managedCampus($request);
 
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, $campus);
         $data['posted_by'] = $request->user()->userNo;
         $data['audiences'] = $data['audiences'] ?? [];
         $data['images'] = $this->storeUploadedImages($request);
@@ -123,7 +123,7 @@ class AnnouncementController extends Controller
 
         return view('users.coordinator.announcement.edit', [
             'announcement' => $announcement,
-            'audienceOptions' => Announcement::audienceOptions(),
+            'audienceOptions' => $this->audienceOptionsForCampus($campus),
         ]);
     }
 
@@ -133,7 +133,7 @@ class AnnouncementController extends Controller
         $this->ensureAnnouncementBelongsToCampus($announcement, $campus);
 
         $wasPublished = (bool) $announcement->is_published;
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, $campus);
         $data['audiences'] = $data['audiences'] ?? [];
         $existingImages = collect($announcement->images ?? [])->filter()->values()->all();
         $newImages = $this->storeUploadedImages($request);
@@ -163,13 +163,15 @@ class AnnouncementController extends Controller
             ->with('status', 'Announcement deleted successfully.');
     }
 
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, string $campus): array
     {
+        $audienceOptions = $this->audienceOptionsForCampus($campus);
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
             'audiences' => ['required', 'array', 'min:1'],
-            'audiences.*' => ['required', Rule::in(array_keys(Announcement::audienceOptions()))],
+            'audiences.*' => ['required', Rule::in(array_keys($audienceOptions))],
             'start_date' => ['nullable', 'date', 'after_or_equal:today'],
             'end_date' => ['nullable', 'date', 'after_or_equal:today', 'after_or_equal:start_date'],
             'send_email' => ['nullable', 'boolean'],
@@ -184,6 +186,18 @@ class AnnouncementController extends Controller
         $data['end_date'] = array_key_exists('end_date', $data) && $data['end_date'] !== '' ? $data['end_date'] : null;
 
         return Arr::except($data, ['images']);
+    }
+
+    /**
+     * IBED laboratory in-charges can target instructors only.
+     *
+     * @return array<string, string>
+     */
+    private function audienceOptionsForCampus(string $campus): array
+    {
+        return $campus === Campus::IBED
+            ? ['instructor' => 'Instructor']
+            : Announcement::audienceOptions();
     }
 
     /**

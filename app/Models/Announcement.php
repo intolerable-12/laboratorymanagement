@@ -103,15 +103,22 @@ class Announcement extends Model
     /**
      * Scope announcements that are published and visible to a role.
      */
-    public function scopeVisibleTo(Builder $query, string $audience): Builder
+    public function scopeVisibleTo(Builder $query, string $audience, ?int $authorUserNo = null): Builder
     {
         return $query
             ->published()
-            ->where(function (Builder $innerQuery) use ($audience) {
+            ->where(function (Builder $innerQuery) use ($audience, $authorUserNo) {
                 $innerQuery
-                    ->whereNull('audiences')
-                    ->orWhereJsonLength('audiences', 0)
-                    ->orWhereJsonContains('audiences', $audience);
+                    ->where(function (Builder $audienceQuery) use ($audience) {
+                        $audienceQuery
+                            ->whereNull('audiences')
+                            ->orWhereJsonLength('audiences', 0)
+                            ->orWhereJsonContains('audiences', $audience);
+                    });
+
+                if ($authorUserNo !== null) {
+                    $innerQuery->orWhere('posted_by', $authorUserNo);
+                }
             });
     }
 

@@ -7,6 +7,7 @@ use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\Supplier;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 
 class InventoryAlertController extends Controller
@@ -27,9 +28,12 @@ class InventoryAlertController extends Controller
         $supplierId = (string) $request->query('supplier_id', '');
         $alertStatus = (string) $request->query('alert_status', '');
         $expirationStatus = (string) $request->query('expiration_status', '');
-		$campus = $request->user()?->role?->role_name === 'Laboratory In-charge'
-			? $request->user()->campusName()
-			: null;
+        $roleName = $request->user()?->role?->role_name;
+        $campus = match ($roleName) {
+            'Coordinator' => Campus::MAIN,
+            'Laboratory In-charge' => $request->user()->campusName(),
+            default => null,
+        };
 
         $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name']);
         $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']);
@@ -110,7 +114,7 @@ class InventoryAlertController extends Controller
 
     public function updateEquipment(Request $request, Equipment $equipment)
     {
-		$this->ensureViewerCanAccess($request, $equipment);
+        $this->ensureViewerCanAccess($request, $equipment);
         $data = $request->validate([
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -126,7 +130,7 @@ class InventoryAlertController extends Controller
 
     public function updateChemicalThreshold(Request $request, Chemical $chemical)
     {
-		$this->ensureViewerCanAccess($request, $chemical);
+        $this->ensureViewerCanAccess($request, $chemical);
         $data = $request->validate([
             'minimum_stock' => ['required', 'numeric', 'min:0'],
         ]);
@@ -149,7 +153,7 @@ class InventoryAlertController extends Controller
 
     public function updateChemical(Request $request, Chemical $chemical)
     {
-		$this->ensureViewerCanAccess($request, $chemical);
+        $this->ensureViewerCanAccess($request, $chemical);
         $data = $request->validate([
             'expiration_alert_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
         ]);
@@ -162,13 +166,19 @@ class InventoryAlertController extends Controller
         return back()->with('status', 'Chemical supplier alert setting updated.');
     }
 
-	private function ensureViewerCanAccess(Request $request, Equipment|Chemical $item): void
-	{
-		if ($request->user()?->role?->role_name !== 'Laboratory In-charge') {
-			return;
-		}
+    private function ensureViewerCanAccess(Request $request, Equipment|Chemical $item): void
+    {
+        $roleName = $request->user()?->role?->role_name;
 
-		$item->loadMissing('laboratory');
-		abort_unless($item->laboratory?->campus === $request->user()->campusName(), 404);
-	}
+        if (! in_array($roleName, ['Coordinator', 'Laboratory In-charge'], true)) {
+            return;
+        }
+
+        $campus = $roleName === 'Coordinator'
+            ? Campus::MAIN
+            : $request->user()->campusName();
+
+        $item->loadMissing('laboratory');
+        abort_unless($item->laboratory?->campus === $campus, 404);
+    }
 }

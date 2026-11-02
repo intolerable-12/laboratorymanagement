@@ -1,0 +1,2 @@
+equipment_name,category_name,laboratory_name,supplier_name,brand,model,serial_number,purchase_date,manufacturing_date,quantity,low_stock_threshold,condition,status,is_requestable,storage_location,description,remarks
+Test Compound Microscope,Microscopes,Biology Laboratory,,Acme,Model-T1,TEST-EQ-0001,2026-01-15,2025-12-01,3,1,Good,Available,1,Cabinet 1,Sample record for bulk import testing,

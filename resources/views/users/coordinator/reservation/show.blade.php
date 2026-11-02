@@ -106,7 +106,7 @@
                                                 <div class="row g-3 mb-3">
                                                      <div class="col-12">
                                                         <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                                                        <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
+                                                        <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" min="{{ now()->toDateString() }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
                                                         @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                                     </div>
                                                     <div class="col-6">
@@ -158,7 +158,7 @@
                                     <div class="row g-3 mb-3">
                                         <div class="col-12">
                                             <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                                            <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
+                                            <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" min="{{ now()->toDateString() }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
                                             @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
                                         <div class="col-md-6">

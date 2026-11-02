@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -20,41 +21,24 @@ class MyAccountController extends Controller
 		return view('users.instructor.myaccount', $this->accountViewData($user));
 	}
 
-	public function update(Request $request): RedirectResponse
+	public function updatePassword(Request $request): RedirectResponse
 	{
 		$user = $this->authenticatedUser();
 
 		$validated = $request->validate([
-			'first_name' => ['required', 'string', 'max:100'],
-			'middle_name' => ['nullable', 'string', 'max:100'],
-			'last_name' => ['required', 'string', 'max:100'],
-			'suffix' => ['nullable', 'string', 'max:20'],
-			'contact_number' => ['nullable', 'string', 'max:25'],
-			'gender' => ['nullable', 'string', 'max:50'],
-			'birth_date' => ['nullable', 'date'],
-			'profile_photo' => ['nullable', 'image', 'max:2048'],
+			'current_password' => ['required', 'current_password'],
+			'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
+		], [
+			'current_password.current_password' => 'The current password is incorrect.',
+			'password.regex' => 'The new password must be at least 8 characters long and include both letters and numbers.',
 		]);
 
-		if (($validated['birth_date'] ?? null) === '') {
-			$validated['birth_date'] = null;
-		}
-
-		if ($request->hasFile('profile_photo')) {
-			$previousPhoto = trim((string) $user->profile_photo);
-
-			if ($previousPhoto !== '' && ! filter_var($previousPhoto, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($previousPhoto)) {
-				Storage::disk('public')->delete($previousPhoto);
-			}
-
-			$validated['profile_photo'] = $request->file('profile_photo')->store('profile-photos', 'public');
-		}
-
-		$user->fill($validated);
+		$user->password = Hash::make($validated['password']);
 		$user->save();
 
 		return redirect()
 			->route('instructor.myaccount')
-			->with('status', 'Profile updated.');
+			->with('status', 'Password updated.');
 	}
 
 	private function authenticatedUser(): User

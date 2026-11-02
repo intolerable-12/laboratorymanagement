@@ -20,24 +20,61 @@
         </div>
     </div>
 
-    <div class="row g-3 g-xl-4 mb-4">
-        @foreach ($stats as $stat)
-            <div class="col-12 col-sm-6 col-xxl-3">
-                <div class="card admin-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between gap-3">
-                            <div>
-                                <p class="text-secondary small text-uppercase mb-2">{{ $stat['label'] }}</p>
-                                <h3 class="h2 fw-semibold mb-1 text-dark">{{ $stat['value'] }}</h3>
-                                <p class="mb-0 text-secondary">{{ $stat['note'] }}</p>
-                            </div>
-                            <span class="badge rounded-pill text-bg-{{ $stat['tone'] }} px-3 py-2">&nbsp;</span>
+    <section class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fa-solid fa-microscope text-primary"></i>
+            <h3 class="h4 fw-semibold mb-0 text-dark">Equipment overview</h3>
+        </div>
+        <div class="row g-3 g-xl-4">
+            @foreach ($equipmentStats as $metric)
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card metric-card border-0 h-100">
+                        <div class="card-body p-4">
+                            <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
+                            <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
+                            <div class="small text-secondary">{{ $metric['note'] }}</div>
                         </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fa-solid fa-flask text-success"></i>
+            <h3 class="h4 fw-semibold mb-0 text-dark">Chemical overview</h3>
+        </div>
+        <div class="row g-3 g-xl-4">
+            @foreach ($chemicalStats as $metric)
+                <div class="col-12 col-sm-6 col-xl-4">
+                    <div class="card metric-card border-0 h-100">
+                        <div class="card-body p-4">
+                            <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
+                            <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
+                            <div class="small text-secondary">{{ $metric['note'] }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
+    <section class="row g-3 g-xl-4 mb-4">
+        @foreach ($operationalStats as $metric)
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card metric-card border-0 h-100">
+                    <div class="card-body p-4">
+                        <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
+                        <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
+                        <div class="small text-secondary">{{ $metric['note'] }}</div>
                     </div>
                 </div>
             </div>
         @endforeach
-    </div>
+    </section>
+
+    @include('partials.laboratory-inventory-summary', ['laboratoryInventory' => $laboratoryInventory])
 
     @include('partials.announcement-feed', [
         'announcements' => $announcements,
