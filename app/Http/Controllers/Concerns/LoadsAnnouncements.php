@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 
 trait LoadsAnnouncements
 {
-    protected function publishedAnnouncements(?string $audience = null, int $limit = 6, ?string $campus = null): Collection
+    protected function publishedAnnouncements(?string $audience = null, int $limit = 6, ?string $campus = null, ?int $authorUserNo = null): Collection
     {
         $query = Announcement::with(['postedBy.role', 'postedBy.department'])
             ->latest();
@@ -20,7 +20,7 @@ trait LoadsAnnouncements
         if ($audience === null) {
             $query->published();
         } else {
-            $query->visibleTo($audience);
+            $query->visibleTo($audience, $authorUserNo);
         }
 
         return $query

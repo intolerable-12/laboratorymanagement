@@ -6,6 +6,8 @@ use App\Models\Chemical;
 use App\Models\ChemicalInventoryPeriod;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Support\AcademicPeriodSelection;
+use App\Support\Campus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -29,7 +31,7 @@ class ChemicalInventoryPeriodTracker
     {
         $semesters = $this->semesters();
 
-        foreach (Chemical::query()->get() as $chemical) {
+        foreach (Chemical::query()->with('laboratory')->get() as $chemical) {
             foreach ($semesters as $semesterIndex => $semester) {
                 $this->ensurePeriod($chemical, $schoolYear, $semester, $semesterIndex, $semesters->count());
             }
@@ -46,7 +48,7 @@ class ChemicalInventoryPeriodTracker
             return;
         }
 
-        foreach (Chemical::query()->get() as $chemical) {
+        foreach (Chemical::query()->with('laboratory')->get() as $chemical) {
             foreach ($schoolYears as $schoolYear) {
                 $this->ensurePeriod($chemical, $schoolYear, $semester, (int) $semesterIndex, $semesters->count());
             }
@@ -56,8 +58,10 @@ class ChemicalInventoryPeriodTracker
     public function recordQuantityChange(Chemical $chemical, float $previousQuantity, float $newQuantity, ?Carbon $changedAt = null): void
     {
         $changedAt ??= now();
-        $schoolYear = $this->currentSchoolYear();
-        $semester = $this->currentSemester();
+        $chemical->loadMissing('laboratory');
+        $campus = Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN;
+        $schoolYear = $this->currentSchoolYear($campus);
+        $semester = $this->currentSemester($campus);
         $semesters = $this->semesters();
 
         if (! $schoolYear || ! $semester) {
@@ -93,8 +97,10 @@ class ChemicalInventoryPeriodTracker
         }
 
         $usedAt ??= now();
-        $schoolYear = $this->currentSchoolYear();
-        $semester = $this->currentSemester();
+        $chemical->loadMissing('laboratory');
+        $campus = Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN;
+        $schoolYear = $this->currentSchoolYear($campus);
+        $semester = $this->currentSemester($campus);
         $semesters = $this->semesters();
 
         if (! $schoolYear || ! $semester) {
@@ -130,7 +136,9 @@ class ChemicalInventoryPeriodTracker
         int $semesterCount,
         ?float $initialQuantity = null,
     ): ChemicalInventoryPeriod {
-        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount, $semester->id);
+        $chemical->loadMissing('laboratory');
+        $campus = Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN;
+        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount, $semester->id, $campus);
         $acquisitionDate = $chemical->received_date?->copy() ?? $chemical->created_at?->copy();
         $acquiredAfterPeriod = $acquisitionDate && $acquisitionDate->greaterThan($range['end']);
         $quantity = $initialQuantity ?? ($acquiredAfterPeriod ? null : (float) $chemical->quantity);
@@ -169,13 +177,13 @@ class ChemicalInventoryPeriodTracker
         return Semester::query()->orderBy('display_order')->orderBy('id')->get();
     }
 
-    private function currentSchoolYear(): ?SchoolYear
+    private function currentSchoolYear(string $campus): ?SchoolYear
     {
-        return SchoolYear::query()->where('is_current', true)->first();
+        return AcademicPeriodSelection::currentSchoolYear($campus);
     }
 
-    private function currentSemester(): ?Semester
+    private function currentSemester(string $campus): ?Semester
     {
-        return Semester::query()->where('is_current', true)->first();
+        return AcademicPeriodSelection::currentSemester($campus);
     }
 }

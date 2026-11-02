@@ -4,6 +4,10 @@
     $statuses = ['Available', 'Unavailable', 'Under Maintenance'];
     $imageUrl = $laboratory?->primaryImagePath() ? asset('storage/' . $laboratory->primaryImagePath()) : null;
     $isEditing = filled($laboratory?->getKey());
+    $selectedCampus = $viewerCampus ?? old('campus', $laboratory->campus ?? \App\Support\Campus::MAIN);
+    $laboratoryCode = $isEditing
+        ? $laboratory->laboratory_code
+        : ($laboratoryCodeOptions[$selectedCampus] ?? '');
 @endphp
 
 <div class="row g-4">
@@ -34,11 +38,12 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label" for="laboratory_code">Laboratory code</label>
-                <input type="text" id="laboratory_code" name="laboratory_code" value="{{ old('laboratory_code', $laboratory->laboratory_code ?? '') }}" class="form-control admin-form-control @error('laboratory_code') is-invalid @enderror" maxlength="20" required @if($isEditing) readonly tabindex="-1" aria-readonly="true" @endif>
+                <input type="text" id="laboratory_code" value="{{ $laboratoryCode }}" data-laboratory-code-main="{{ $laboratoryCodeOptions[\App\Support\Campus::MAIN] ?? '' }}" data-laboratory-code-ibed="{{ $laboratoryCodeOptions[\App\Support\Campus::IBED] ?? '' }}" class="form-control admin-form-control" readonly aria-readonly="true" tabindex="-1">
                 @if($isEditing)
                     <div class="form-text">Laboratory code cannot be changed after creation.</div>
+                @else
+                    <div class="form-text">Automatically generated from the number of laboratories at the selected campus.</div>
                 @endif
-                @error('laboratory_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-6">
@@ -107,6 +112,20 @@
 @once
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const campus = document.querySelector('select[name="campus"]');
+            const code = document.querySelector('[data-laboratory-code-main]');
+
+            if (campus && code) {
+                const updateLaboratoryCode = function () {
+                    code.value = campus.value === 'IBED'
+                        ? code.dataset.laboratoryCodeIbed
+                        : code.dataset.laboratoryCodeMain;
+                };
+
+                campus.addEventListener('change', updateLaboratoryCode);
+                updateLaboratoryCode();
+            }
+
             const input = document.querySelector('[data-laboratory-images-input]');
             const preview = document.querySelector('[data-laboratory-new-preview]');
 

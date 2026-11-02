@@ -8,6 +8,7 @@ use App\Models\EquipmentCategory;
 use App\Models\Laboratory;
 use App\Models\Supplier;
 use App\Services\InventoryTraceabilityLogger;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -520,7 +521,7 @@ class EquipmentController extends Controller
     {
         return $request->user()?->role?->role_name === 'Laboratory In-charge'
             ? $request->user()->campusName()
-            : null;
+            : Campus::MAIN;
     }
 
     private function routePrefix(): string

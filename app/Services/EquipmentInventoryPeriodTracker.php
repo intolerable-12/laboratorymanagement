@@ -6,6 +6,8 @@ use App\Models\Equipment;
 use App\Models\EquipmentInventoryPeriod;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Support\AcademicPeriodSelection;
+use App\Support\Campus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -27,7 +29,7 @@ class EquipmentInventoryPeriodTracker
 
     public function initializeForSchoolYear(SchoolYear $schoolYear): void
     {
-        $equipment = Equipment::query()->get();
+        $equipment = Equipment::query()->with('laboratory')->get();
         $semesters = $this->semesters();
 
         foreach ($equipment as $item) {
@@ -47,7 +49,7 @@ class EquipmentInventoryPeriodTracker
             return;
         }
 
-        foreach (Equipment::query()->get() as $equipment) {
+        foreach (Equipment::query()->with('laboratory')->get() as $equipment) {
             foreach ($schoolYears as $schoolYear) {
                 $this->ensurePeriod($equipment, $schoolYear, $semester, (int) $semesterIndex, $semesters->count());
             }
@@ -58,11 +60,11 @@ class EquipmentInventoryPeriodTracker
     {
         $changedAt ??= now();
         $semesters = $this->semesters();
+        $equipment->loadMissing('laboratory');
+        $campus = Campus::normalize($equipment->laboratory?->campus) ?? Campus::MAIN;
 
-        // The coordinator's Current flags are the source of truth. Calendar dates
-        // are only used to initialize pre-acquisition blanks and report layout.
-        $schoolYear = $this->currentSchoolYear();
-        $semester = $this->currentSemester();
+        $schoolYear = $this->currentSchoolYear($campus);
+        $semester = $this->currentSemester($campus);
 
         if (! $schoolYear || ! $semester) {
             return;
@@ -100,7 +102,9 @@ class EquipmentInventoryPeriodTracker
         int $semesterCount,
         ?int $initialQuantity = null,
     ): EquipmentInventoryPeriod {
-        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount, $semester->id);
+        $equipment->loadMissing('laboratory');
+        $campus = Campus::normalize($equipment->laboratory?->campus) ?? Campus::MAIN;
+        $range = $this->periodResolver->semesterRange($schoolYear, $semesterIndex, $semesterCount, $semester->id, $campus);
         $acquisitionDate = $equipment->purchase_date?->copy() ?? $equipment->created_at?->copy();
         $acquiredAfterPeriod = $acquisitionDate && $acquisitionDate->greaterThan($range['end']);
         $quantity = $initialQuantity ?? ($acquiredAfterPeriod ? null : (int) $equipment->quantity);
@@ -146,13 +150,13 @@ class EquipmentInventoryPeriodTracker
             ->get();
     }
 
-    private function currentSchoolYear(): ?SchoolYear
+    private function currentSchoolYear(string $campus): ?SchoolYear
     {
-        return SchoolYear::query()->where('is_current', true)->first();
+        return AcademicPeriodSelection::currentSchoolYear($campus);
     }
 
-    private function currentSemester(): ?Semester
+    private function currentSemester(string $campus): ?Semester
     {
-        return Semester::query()->where('is_current', true)->first();
+        return AcademicPeriodSelection::currentSemester($campus);
     }
 }

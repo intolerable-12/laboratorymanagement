@@ -20,7 +20,9 @@ use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
 use App\Http\Controllers\Coordinator\EquipmentCategoryController;
 use App\Http\Controllers\Coordinator\EquipmentController;
+use App\Http\Controllers\Coordinator\EquipmentBulkImportController;
 use App\Http\Controllers\Coordinator\EquipmentBarcodePrintController;
+use App\Http\Controllers\Coordinator\Chemical\ChemicalBulkImportController;
 use App\Http\Controllers\Coordinator\EquipmentMultipleItemsBarcodeController;
 use App\Http\Controllers\Coordinator\ChemicalMultipleItemsBarcodeController;
 use App\Http\Controllers\Coordinator\LaboratoryController;
@@ -181,6 +183,8 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/archived', [EquipmentController::class, 'archived'])->name('archived');
                 Route::get('/create', [EquipmentController::class, 'create'])->name('create');
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
+                Route::get('/bulk-import/template', [EquipmentBulkImportController::class, 'template'])->name('bulk-import.template');
+                Route::post('/bulk-import', [EquipmentBulkImportController::class, 'store'])->name('bulk-import.store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::patch('/{equipment}/stock-up', [EquipmentController::class, 'stockUp'])->name('stock-up');
                 Route::patch('/{equipment}/supplier', [EquipmentController::class, 'updateSupplier'])->name('supplier.update');
@@ -230,6 +234,8 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/archived', [ChemicalController::class, 'archived'])->name('archived');
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
+                Route::get('/bulk-import/template', [ChemicalBulkImportController::class, 'template'])->name('bulk-import.template');
+                Route::post('/bulk-import', [ChemicalBulkImportController::class, 'store'])->name('bulk-import.store');
                 Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::patch('/{chemical}/stock-up', [ChemicalController::class, 'stockUp'])->name('stock-up');
                 Route::patch('/{chemical}/supplier', [ChemicalController::class, 'updateSupplier'])->name('supplier.update');
@@ -512,6 +518,8 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/archived', [EquipmentController::class, 'archived'])->name('archived');
                 Route::get('/create', [EquipmentController::class, 'create'])->name('create');
                 Route::post('/', [EquipmentController::class, 'store'])->name('store');
+                Route::get('/bulk-import/template', [EquipmentBulkImportController::class, 'template'])->name('bulk-import.template');
+                Route::post('/bulk-import', [EquipmentBulkImportController::class, 'store'])->name('bulk-import.store');
                 Route::get('/barcodes/print', EquipmentMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::patch('/{equipment}/stock-up', [EquipmentController::class, 'stockUp'])->name('stock-up');
                 Route::patch('/{equipment}/supplier', [EquipmentController::class, 'updateSupplier'])->name('supplier.update');
@@ -539,6 +547,8 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/archived', [ChemicalController::class, 'archived'])->name('archived');
                 Route::get('/create', [ChemicalController::class, 'create'])->name('create');
                 Route::post('/', [ChemicalController::class, 'store'])->name('store');
+                Route::get('/bulk-import/template', [ChemicalBulkImportController::class, 'template'])->name('bulk-import.template');
+                Route::post('/bulk-import', [ChemicalBulkImportController::class, 'store'])->name('bulk-import.store');
                 Route::get('/barcodes/print', ChemicalMultipleItemsBarcodeController::class)->name('barcode-print-multiple');
                 Route::patch('/{chemical}/stock-up', [ChemicalController::class, 'stockUp'])->name('stock-up');
                 Route::patch('/{chemical}/supplier', [ChemicalController::class, 'updateSupplier'])->name('supplier.update');
@@ -650,7 +660,7 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
             });
 
         Route::get('/my-account', [\App\Http\Controllers\Facilitator\Account\MyAccountController::class, 'index'])->name('myaccount');
-        Route::put('/my-account', [\App\Http\Controllers\Facilitator\Account\MyAccountController::class, 'update'])->name('myaccount.update');
+        Route::put('/my-account/password', [\App\Http\Controllers\Facilitator\Account\MyAccountController::class, 'updatePassword'])->name('myaccount.password.update');
     });
 
 Route::middleware(['auth', 'role:Instructor', 'audit'])
@@ -761,5 +771,5 @@ Route::middleware(['auth', 'role:Instructor', 'audit'])
             });
 
         Route::get('/my-account', [\App\Http\Controllers\Instructor\Account\MyAccountController::class, 'index'])->name('myaccount');
-        Route::put('/my-account', [\App\Http\Controllers\Instructor\Account\MyAccountController::class, 'update'])->name('myaccount.update');
+        Route::put('/my-account/password', [\App\Http\Controllers\Instructor\Account\MyAccountController::class, 'updatePassword'])->name('myaccount.password.update');
     });

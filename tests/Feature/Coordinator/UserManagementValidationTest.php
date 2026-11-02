@@ -80,6 +80,43 @@ it('accepts well-formed user data', function () {
     $this->assertDatabaseHas('users', ['email' => 'maria.cruz@lccdo.edu.ph', 'userID' => 'STU-2025']);
 });
 
+it('accepts an instructor assigned to a department named College', function () {
+    $coordinatorRole = Role::create(['role_name' => 'Coordinator']);
+    $instructorRole = Role::create(['role_name' => 'Instructor']);
+    $department = Department::create([
+        'department_code' => 'COLLEGE',
+        'department_name' => 'College',
+    ]);
+
+    $coordinator = User::create([
+        'userID' => 'C-1004',
+        'first_name' => 'David',
+        'last_name' => 'Coordinator',
+        'email' => 'david.coordinator@lccdo.edu.ph',
+        'password' => bcrypt('password123'),
+        'role_id' => $coordinatorRole->id,
+        'status' => 'Active',
+    ]);
+
+    $response = $this->actingAs($coordinator)
+        ->post(route('coordinator.users.store'), [
+            'userID' => '1004',
+            'first_name' => 'Maria',
+            'last_name' => 'Cruz',
+            'email' => 'maria.instructor@lccdo.edu.ph',
+            'role_id' => $instructorRole->id,
+            'department_id' => $department->id,
+            'status' => 'Active',
+            'password' => 'StrongPass1',
+        ]);
+
+    $response->assertRedirect(route('coordinator.users.index'));
+    $this->assertDatabaseHas('users', [
+        'email' => 'maria.instructor@lccdo.edu.ph',
+        'department_id' => $department->id,
+    ]);
+});
+
 it('rejects inactive and suspended user statuses', function () {
     $coordinatorRole = Role::create(['role_name' => 'Coordinator']);
     $instructorRole = Role::create(['role_name' => 'Instructor']);

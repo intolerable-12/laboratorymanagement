@@ -9,6 +9,8 @@ use App\Models\Semester;
 use App\Services\AcademicPeriodResolver;
 use App\Services\ChemicalInventoryPeriodTracker;
 use App\Services\EquipmentInventoryPeriodTracker;
+use App\Support\AcademicPeriodSelection;
+use App\Support\Campus;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,17 +23,22 @@ class AcademicPeriodController extends Controller
     public function index(Request $request)
     {
         $schoolYears = SchoolYear::query()
-            ->orderByDesc('is_current')
             ->orderByDesc('start_date')
             ->get();
         $semesters = $this->semesters();
 
-        $this->ensureAcademicPeriods($schoolYears, $semesters);
-        $schoolYears->load('academicPeriods');
+        $campus = $this->viewerCampus($request);
+        $currentSchoolYearId = AcademicPeriodSelection::currentSchoolYearId($campus);
+        $currentSemesterId = AcademicPeriodSelection::currentSemesterId($campus);
+        $schoolYears->each(fn (SchoolYear $schoolYear) => $schoolYear->setAttribute('is_current', $schoolYear->id === $currentSchoolYearId));
+        $schoolYears = $schoolYears->sortByDesc('is_current')->values();
+        $semesters->each(fn (Semester $semester) => $semester->setAttribute('is_current', $semester->id === $currentSemesterId));
+        $this->ensureAcademicPeriods($schoolYears, $semesters, $campus);
+        $schoolYears->load(['academicPeriods' => fn ($periods) => $periods->forCampus($campus)]);
 
         $requestedSchoolYearId = (int) $request->query('school_year_id', 0);
         $selectedSchoolYear = $schoolYears->firstWhere('id', $requestedSchoolYearId)
-            ?? $schoolYears->firstWhere('is_current', true)
+            ?? $schoolYears->firstWhere('id', $currentSchoolYearId)
             ?? $schoolYears->first();
         $selectedSchoolYearId = $selectedSchoolYear?->id;
         $selectedSchoolYears = $selectedSchoolYear ? collect([$selectedSchoolYear]) : collect();
@@ -41,6 +48,7 @@ class AcademicPeriodController extends Controller
             'semesters',
             'selectedSchoolYearId',
             'selectedSchoolYears',
+            'campus',
         ));
     }
 
@@ -52,7 +60,7 @@ class AcademicPeriodController extends Controller
     public function storeSchoolYear(Request $request)
     {
         $schoolYear = SchoolYear::create($this->validateSchoolYear($request));
-        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters());
+        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters(), $this->viewerCampus($request));
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year created successfully.');
@@ -66,7 +74,7 @@ class AcademicPeriodController extends Controller
     public function updateSchoolYear(Request $request, SchoolYear $schoolYear)
     {
         $schoolYear->update($this->validateSchoolYear($request, $schoolYear));
-        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters());
+        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters(), $this->viewerCampus($request));
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year updated successfully.');
@@ -74,8 +82,8 @@ class AcademicPeriodController extends Controller
 
     public function destroySchoolYear(SchoolYear $schoolYear)
     {
-        if ($schoolYear->is_current) {
-            return $this->periodError('Set another school year as current before deleting this one.');
+        if (AcademicPeriodSelection::isSchoolYearCurrentAnywhere($schoolYear)) {
+            return $this->periodError('This school year is currently selected by at least one campus. Set another school year as current before deleting it.');
         }
 
         if ($schoolYear->reservations()->exists() || $schoolYear->laboratorySchedules()->exists()) {
@@ -88,15 +96,16 @@ class AcademicPeriodController extends Controller
             ->with('status', 'School year deleted successfully.');
     }
 
-    public function setCurrentSchoolYear(SchoolYear $schoolYear)
+    public function setCurrentSchoolYear(Request $request, SchoolYear $schoolYear)
     {
-        DB::transaction(function () use ($schoolYear): void {
-            SchoolYear::query()->update(['is_current' => false]);
-            $schoolYear->update(['is_current' => true]);
+        $campus = $this->viewerCampus($request);
+
+        DB::transaction(function () use ($schoolYear, $campus): void {
+            AcademicPeriodSelection::setCurrentSchoolYear($campus, $schoolYear);
         });
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
-            ->with('status', $schoolYear->school_year.' is now the current school year.');
+            ->with('status', $schoolYear->school_year.' is now the current school year for '.$campus.' campus.');
     }
 
     public function createSemester()
@@ -107,7 +116,7 @@ class AcademicPeriodController extends Controller
     public function storeSemester(Request $request)
     {
         Semester::create($this->validateSemester($request));
-        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters());
+        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters(), $this->viewerCampus($request));
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester created successfully.');
@@ -121,7 +130,7 @@ class AcademicPeriodController extends Controller
     public function updateSemester(Request $request, Semester $semester)
     {
         $semester->update($this->validateSemester($request, $semester));
-        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters());
+        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters(), $this->viewerCampus($request));
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester updated successfully.');
@@ -129,8 +138,8 @@ class AcademicPeriodController extends Controller
 
     public function destroySemester(Semester $semester)
     {
-        if ($semester->is_current) {
-            return $this->periodError('Set another semester as current before deleting this one.');
+        if (AcademicPeriodSelection::isSemesterCurrentAnywhere($semester)) {
+            return $this->periodError('This semester is currently selected by at least one campus. Set another semester as current before deleting it.');
         }
 
         if ($semester->reservations()->exists() || $semester->laboratorySchedules()->exists()) {
@@ -143,15 +152,16 @@ class AcademicPeriodController extends Controller
             ->with('status', 'Semester deleted successfully.');
     }
 
-    public function setCurrentSemester(Semester $semester)
+    public function setCurrentSemester(Request $request, Semester $semester)
     {
-        DB::transaction(function () use ($semester): void {
-            Semester::query()->update(['is_current' => false]);
-            $semester->update(['is_current' => true]);
+        $campus = $this->viewerCampus($request);
+
+        DB::transaction(function () use ($semester, $campus): void {
+            AcademicPeriodSelection::setCurrentSemester($campus, $semester);
         });
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
-            ->with('status', $semester->semester_name.' is now the current semester.');
+            ->with('status', $semester->semester_name.' is now the current semester for '.$campus.' campus.');
     }
 
     public function updateSemesterPeriods(Request $request)
@@ -172,7 +182,9 @@ class AcademicPeriodController extends Controller
             ->keyBy('id');
         $semesters = $this->semesters();
 
-        DB::transaction(function () use ($data, $schoolYears, $semesters): void {
+        $campus = $this->viewerCampus($request);
+
+        DB::transaction(function () use ($data, $schoolYears, $semesters, $campus): void {
             foreach ($data['periods'] as $schoolYearId => $semesterPeriods) {
                 $schoolYear = $schoolYears->get((int) $schoolYearId);
 
@@ -217,6 +229,7 @@ class AcademicPeriodController extends Controller
                         [
                             'school_year_id' => $schoolYear->id,
                             'semester_id' => $semester->id,
+                            'campus' => $campus,
                         ],
                         [
                             'start_date' => $start->toDateString(),
@@ -260,18 +273,19 @@ class AcademicPeriodController extends Controller
         return Semester::query()->orderBy('display_order')->orderBy('id')->get();
     }
 
-    private function ensureAcademicPeriods(Collection $schoolYears, Collection $semesters): void
+    private function ensureAcademicPeriods(Collection $schoolYears, Collection $semesters, string $campus): void
     {
         $resolver = app(AcademicPeriodResolver::class);
 
         foreach ($schoolYears as $schoolYear) {
             foreach ($semesters as $semesterIndex => $semester) {
-                $range = $resolver->semesterRange($schoolYear, $semesterIndex, $semesters->count(), $semester->id);
+                $range = $resolver->semesterRange($schoolYear, $semesterIndex, $semesters->count(), $semester->id, $campus);
 
                 AcademicPeriod::query()->firstOrCreate(
                     [
                         'school_year_id' => $schoolYear->id,
                         'semester_id' => $semester->id,
+                        'campus' => $campus,
                     ],
                     [
                         'start_date' => $range['start']->toDateString(),
@@ -280,6 +294,11 @@ class AcademicPeriodController extends Controller
                 );
             }
         }
+    }
+
+    private function viewerCampus(Request $request): string
+    {
+        return Campus::normalize($request->user()?->campusName()) ?? Campus::MAIN;
     }
 
     private function periodError(string $message)

@@ -252,15 +252,31 @@
         <div>
             <div class="text-secondary">Manage chemical records and categories.</div>
         </div>
-        <div class="btn-group shadow-sm" role="group" aria-label="Chemical management navigation">
-            <a href="{{ route($routePrefix.'.chemicals.index', $tabQuery) }}" class="btn btn-primary">
-                <i class="fa-solid fa-flask me-2"></i>Chemical
-            </a>
-            <a href="{{ route($routePrefix.'.chemical.categories.index') }}" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-tags me-2"></i>Chemical Category
-            </a>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group shadow-sm" role="group" aria-label="Chemical management navigation">
+                <a href="{{ route($routePrefix.'.chemicals.index', $tabQuery) }}" class="btn btn-primary">
+                    <i class="fa-solid fa-flask me-2"></i>Chemical
+                </a>
+                <a href="{{ route($routePrefix.'.chemical.categories.index') }}" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-tags me-2"></i>Chemical Category
+                </a>
+            </div>
+            @unless ($archived)
+                <button type="button" class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#bulk-import-chemicals-modal">
+                    <i class="fa-solid fa-file-import me-2"></i>Bulk import
+                </button>
+            @endunless
         </div>
     </div>
+
+    @unless ($archived)
+        @include('users.coordinator.partials.bulk-import-modal', [
+            'resourceSlug' => 'chemicals',
+            'resourceLabel' => 'Chemicals',
+            'csvHeaders' => ['chemical_name', 'type', 'category_name', 'laboratory_name', 'supplier_name', 'quantity', 'unit', 'minimum_stock', 'manufactured_date', 'expiration_date', 'received_date', 'hazard_classification', 'storage_location', 'status', 'description', 'remarks'],
+            'csvSampleRow' => ['Sodium chloride', 'Inorganic', 'General Chemicals', 'Science Laboratory', '', '2.50', 'kg', '0.50', '2026-01-01', '2028-01-01', '2026-01-15', 'Non-Hazardous', 'Cabinet 1', 'Active', 'Example description', ''],
+        ])
+    @endunless
 
     {{-- Metrics Section --}}
     <div class="row g-3 g-xl-4 mb-4">

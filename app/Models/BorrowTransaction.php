@@ -145,6 +145,13 @@ class BorrowTransaction extends Model
             : $query->whereRaw('1 = 0');
     }
 
+    public function scopeAssignedToInstructor(Builder $query, ?int $instructorId): Builder
+    {
+        return $instructorId
+            ? $query->where('borrow_transactions.instructor_id', $instructorId)
+            : $query->whereRaw('1 = 0');
+    }
+
     /**
      * Get the reservation associated with the transaction.
      */

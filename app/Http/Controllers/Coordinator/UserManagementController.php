@@ -298,7 +298,7 @@ class UserManagementController extends Controller
                     'required',
                     'integer',
                     Rule::exists('departments', 'id')
-                        ->where(fn (QueryBuilder $query) => $query->whereIn('department_code', self::STUDENT_DEPARTMENT_CODES)),
+                        ->where(fn (QueryBuilder $query) => $this->whereDepartmentMatchesCodes($query, self::STUDENT_DEPARTMENT_CODES)),
                 ],
             ], [
                 'department_id.required' => 'A department is required for student accounts.',
@@ -325,7 +325,7 @@ class UserManagementController extends Controller
                     'required',
                     'integer',
                     Rule::exists('departments', 'id')
-                        ->where(fn (QueryBuilder $query) => $query->whereIn('department_code', self::STAFF_DEPARTMENT_CODES)),
+                        ->where(fn (QueryBuilder $query) => $this->whereDepartmentMatchesCodes($query, self::STAFF_DEPARTMENT_CODES)),
                 ],
             ], [
                 'department_id.required' => 'A department is required for instructor accounts.',
@@ -343,7 +343,7 @@ class UserManagementController extends Controller
                     'nullable',
                     'integer',
                     Rule::exists('departments', 'id')
-                        ->where(fn (QueryBuilder $query) => $query->whereIn('department_code', self::STAFF_DEPARTMENT_CODES)),
+                        ->where(fn (QueryBuilder $query) => $this->whereDepartmentMatchesCodes($query, self::STAFF_DEPARTMENT_CODES)),
                 ],
             ], [
                 'department_id.exists' => 'Laboratory in-charge accounts may only be assigned to JHS, SHS, or College departments.',
@@ -371,6 +371,30 @@ class UserManagementController extends Controller
         }
 
         return $validated;
+    }
+
+    private function whereDepartmentMatchesCodes(QueryBuilder $query, array $codes): void
+    {
+        $query->where(function (QueryBuilder $departmentQuery) use ($codes): void {
+            $placeholders = implode(',', array_fill(0, count($codes), '?'));
+
+            $departmentQuery->whereRaw(
+                "UPPER(TRIM(department_code)) IN ({$placeholders})",
+                array_map('strtoupper', $codes)
+            );
+
+            if (in_array('JHS', $codes, true)) {
+                $departmentQuery->orWhereRaw('UPPER(department_name) LIKE ?', ['%JUNIOR HIGH%']);
+            }
+
+            if (in_array('SHS', $codes, true)) {
+                $departmentQuery->orWhereRaw('UPPER(department_name) LIKE ?', ['%SENIOR HIGH%']);
+            }
+
+            if (in_array('COL', $codes, true)) {
+                $departmentQuery->orWhereRaw('UPPER(department_name) LIKE ?', ['%COLLEGE%']);
+            }
+        });
     }
 
     private function preventCoordinatorDeletion(User $user): void

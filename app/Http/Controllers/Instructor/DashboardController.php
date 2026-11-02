@@ -20,6 +20,7 @@ class DashboardController extends Controller
         $user = auth()->user();
 		$campus = $user->campusName();
 		abort_unless($user->department_id && $campus, 403);
+		$instructorId = (int) $user->userNo;
 
         $equipment = Equipment::query()
 			->forCampus($campus)
@@ -28,31 +29,44 @@ class DashboardController extends Controller
 
         $equipmentAvailability = $this->equipmentAvailability($equipment);
         $activeBorrowStatuses = ['Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'];
+		$reservationRequests = fn () => Reservation::query()
+			->forCampus($campus)
+			->assignedToInstructor($instructorId);
+		$borrowRequests = fn () => BorrowTransaction::query()
+			->forCampus($campus)
+			->assignedToInstructor($instructorId);
         $requestStatuses = fn (string $status) => [
-            Reservation::query()->forCampus($campus)->forDepartment((int) $user->department_id)->where('status', $status)->count(),
-            BorrowTransaction::query()->forCampus($campus)->forDepartment((int) $user->department_id)->where('status', $status)->count(),
+			$reservationRequests()->where('status', $status)->count(),
+			$borrowRequests()->where('status', $status)->count(),
         ];
 
         [$pendingReservations, $pendingBorrows] = $requestStatuses('Pending');
         [$instructorApprovedReservations, $instructorApprovedBorrows] = $requestStatuses('Instructor Approved');
         [$facilitatorApprovedReservations, $facilitatorApprovedBorrows] = $requestStatuses('Facilitator Approved');
+		$assignedStudentIds = $reservationRequests()
+			->whereNotNull('user_no')
+			->pluck('user_no')
+			->merge($borrowRequests()->whereNotNull('borrower_id')->pluck('borrower_id'))
+			->unique()
+			->values();
+		$assignedStudentCount = User::query()
+			->whereIn('userNo', $assignedStudentIds)
+			->where('status', 'Active')
+			->whereHas('role', fn ($query) => $query->whereRaw('LOWER(role_name) = ?', ['student']))
+			->count();
 
         return view('users.instructor.dashboard', [
             'announcements' => $this->publishedAnnouncements('instructor', 6, $campus),
             'metrics' => [
                 [
                     'label' => 'Active Borrowings',
-                    'value' => number_format(BorrowTransaction::query()->forCampus($campus)->forDepartment((int) $user->department_id)->whereIn('status', $activeBorrowStatuses)->count()),
+                    'value' => number_format($borrowRequests()->whereIn('status', $activeBorrowStatuses)->count()),
                     'note' => 'Currently checked-out requests',
                 ],
                 [
-                    'label' => 'Total Students',
-                    'value' => number_format(User::query()
-                        ->where('status', 'Active')
-                        ->where('department_id', $user->department_id)
-                        ->whereHas('role', fn ($query) => $query->whereRaw('LOWER(role_name) = ?', ['student']))
-                        ->count()),
-                    'note' => 'Active student accounts',
+                    'label' => 'Assigned Students',
+                    'value' => number_format($assignedStudentCount),
+                    'note' => 'Active students who selected you',
                 ],
                 [
                     'label' => 'Pending Requests',
@@ -72,8 +86,8 @@ class DashboardController extends Controller
                 [
                     'label' => 'Total Requests',
                     'value' => number_format(
-                        Reservation::query()->forCampus($campus)->forDepartment((int) $user->department_id)->count()
-                        + BorrowTransaction::query()->forCampus($campus)->forDepartment((int) $user->department_id)->count()
+                        $reservationRequests()->count()
+                        + $borrowRequests()->count()
                     ),
                     'note' => 'Reservations and borrow requests',
                 ],

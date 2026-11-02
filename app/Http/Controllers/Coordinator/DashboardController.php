@@ -20,6 +20,7 @@ use App\Models\LaboratorySchedule;
 use App\Models\Notification;
 use App\Models\Reservation;
 use App\Models\SchoolYear;
+use App\Support\AcademicPeriodSelection;
 use App\Models\User;
 use App\Support\Campus;
 use Illuminate\Support\Carbon;
@@ -32,35 +33,38 @@ class DashboardController extends Controller
 
     public function index(): View
     {
+        $campus = Campus::MAIN;
         $today = Carbon::today();
         $weekStart = Carbon::now()->startOfWeek();
         $weekEnd = Carbon::now()->endOfWeek();
-        $laboratoryUsage = $this->laboratoryUsage($weekStart, $weekEnd);
+        $laboratoryUsage = $this->laboratoryUsage($weekStart, $weekEnd, $campus);
 
-        $totalEquipmentRecords = Equipment::withoutTrashed()->count();
-        $totalEquipmentQuantity = (int) Equipment::withoutTrashed()->sum('quantity');
-        $totalChemicalRecords = Chemical::withoutTrashed()->count();
+        $totalEquipmentRecords = Equipment::forCampus($campus)->count();
+        $totalEquipmentQuantity = (int) Equipment::forCampus($campus)->sum('quantity');
+        $totalChemicalRecords = Chemical::forCampus($campus)->count();
+        $laboratoryInventory = $this->laboratoryInventory($campus);
         $activeReservations = Reservation::query()
+            ->forCampus($campus)
             ->where('status', 'Coordinator Approved')
             ->whereDate('reservation_date', '>=', $today)
             ->count();
-        $reservationApprovals = Reservation::where('status', 'Facilitator Approved')->count();
-        $borrowApprovals = BorrowTransaction::where('status', 'Facilitator Approved')->count();
-        $expiringChemicals = Chemical::query()
+        $reservationApprovals = Reservation::forCampus($campus)->where('status', 'Facilitator Approved')->count();
+        $borrowApprovals = BorrowTransaction::forCampus($campus)->where('status', 'Facilitator Approved')->count();
+        $expiringChemicals = Chemical::query()->forCampus($campus)
             ->where('status', 'Active')
             ->whereNotNull('expiration_date')
             ->whereDate('expiration_date', '>=', $today)
             ->whereDate('expiration_date', '<=', $today->copy()->addDays(30))
             ->count();
-        $damagedEquipment = Equipment::where('condition', 'Damaged')->sum('quantity');
-        $borrowedEquipment = $this->borrowedEquipmentQuantity();
+        $damagedEquipment = Equipment::forCampus($campus)->where('condition', 'Damaged')->sum('quantity');
+        $borrowedEquipment = $this->borrowedEquipmentQuantity($campus);
         $unreadNotifications = Notification::query()
             ->where('is_read', false)
             ->whereHas('user.role', fn ($query) => $query->where('role_name', 'Coordinator'))
             ->count();
 
         $stats = [
-            ['label' => 'Total equipment', 'value' => number_format($totalEquipmentRecords), 'note' => 'Active equipment records', 'tone' => 'primary'],
+            ['label' => 'Unique equipment', 'value' => number_format($totalEquipmentRecords), 'note' => 'Distinct equipment records in inventory', 'tone' => 'primary'],
             ['label' => 'Equipment quantity', 'value' => number_format($totalEquipmentQuantity), 'note' => 'Units across active equipment', 'tone' => 'info'],
             ['label' => 'Total chemicals', 'value' => number_format($totalChemicalRecords), 'note' => 'Active chemical records', 'tone' => 'success'],
             ['label' => 'Active reservations', 'value' => number_format($activeReservations), 'note' => 'Coordinator-approved upcoming bookings', 'tone' => 'info'],
@@ -70,16 +74,34 @@ class DashboardController extends Controller
             ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out', 'tone' => 'dark'],
             ['label' => 'Lab usage rate', 'value' => ($laboratoryUsage->isEmpty() ? 0 : (int) round($laboratoryUsage->avg('usage'))).'%', 'note' => 'Scheduled hours used this week', 'tone' => 'success'],
         ];
+        $equipmentStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
+            'Unique equipment',
+            'Equipment quantity',
+            'Damaged equipment',
+            'Borrowed equipment',
+        ], true)));
+        $chemicalStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
+            'Total chemicals',
+            'Expiring chemicals',
+        ], true)));
+        $operationalStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
+            'Active reservations',
+            'Pending approvals',
+            'Lab usage rate',
+        ], true)));
 
-        $maintenance = $this->maintenanceSummary();
-        $announcementCampus = Campus::MAIN;
+        $maintenance = $this->maintenanceSummary($campus);
 
         return view('users.coordinator.dashboard', [
-            'announcements' => $this->latestAnnouncements(4, $announcementCampus),
-            'announcementCount' => Announcement::forCampus($announcementCampus)->count(),
-            'publishedAnnouncementCount' => Announcement::forCampus($announcementCampus)->published()->count(),
+            'announcements' => $this->latestAnnouncements(4, $campus),
+            'announcementCount' => Announcement::forCampus($campus)->count(),
+            'publishedAnnouncementCount' => Announcement::forCampus($campus)->published()->count(),
             'stats' => $stats,
+            'equipmentStats' => $equipmentStats,
+            'chemicalStats' => $chemicalStats,
+            'operationalStats' => $operationalStats,
             'laboratoryUsage' => $laboratoryUsage,
+            'laboratoryInventory' => $laboratoryInventory,
             'usagePeriodLabel' => $weekStart->format('M d').'â€“'.$weekEnd->format('M d, Y'),
             'alerts' => [
                 [
@@ -109,6 +131,7 @@ class DashboardController extends Controller
             ],
             'maintenance' => $maintenance,
             'inventoryLogs' => InventoryLog::with(['performedBy', 'item'])
+                ->whereHasMorph('item', [Equipment::class, Chemical::class], fn ($query) => $query->forCampus($campus))
                 ->latest('performed_at')
                 ->latest('id')
                 ->limit(8)
@@ -133,11 +156,11 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function borrowedEquipmentQuantity(): int
+    private function borrowedEquipmentQuantity(string $campus): int
     {
         return (int) BorrowItem::query()
             ->where('item_type', 'Equipment')
-            ->whereHas('borrowTransaction', fn ($query) => $query->whereIn('status', ['Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue']))
+            ->whereHas('borrowTransaction', fn ($query) => $query->forCampus($campus)->whereIn('status', ['Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue']))
             ->get(['quantity_checked_out', 'quantity_returned', 'quantity_lost', 'quantity_damaged'])
             ->sum(function (BorrowItem $item): float {
                 return max(
@@ -150,20 +173,24 @@ class DashboardController extends Controller
             });
     }
 
-    private function laboratoryUsage(Carbon $weekStart, Carbon $weekEnd): Collection
+    private function laboratoryUsage(Carbon $weekStart, Carbon $weekEnd, string $campus): Collection
     {
         $laboratories = Laboratory::query()
+            ->forCampus($campus)
             ->where('status', 'Available')
             ->orderBy('laboratory_name')
             ->get();
         $reservations = Reservation::query()
+            ->forCampus($campus)
             ->where('status', 'Coordinator Approved')
             ->whereBetween('reservation_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->get()
             ->groupBy('laboratory_id');
-        $scheduleQuery = LaboratorySchedule::query()->where('is_available', true);
+        $scheduleQuery = LaboratorySchedule::query()
+            ->whereIn('laboratory_id', $laboratories->pluck('id'))
+            ->where('is_available', true);
 
-        if ($currentSchoolYearId = SchoolYear::where('is_current', true)->value('id')) {
+        if ($currentSchoolYearId = AcademicPeriodSelection::currentSchoolYearId($campus)) {
             $scheduleQuery->where('school_year_id', $currentSchoolYearId);
         }
 
@@ -211,12 +238,13 @@ class DashboardController extends Controller
         return $end->greaterThan($start) ? round($start->diffInMinutes($end) / 60, 2) : 0;
     }
 
-    private function maintenanceSummary(): array
+    private function maintenanceSummary(string $campus): array
     {
-        $total = EquipmentMaintenance::where('status', '!=', 'Cancelled')->count();
-        $completed = EquipmentMaintenance::where('status', 'Completed')->count();
-        $open = EquipmentMaintenance::whereIn('status', ['Pending', 'In Progress'])->count();
-        $highPriority = EquipmentMaintenance::whereIn('status', ['Pending', 'In Progress'])
+        $maintenance = EquipmentMaintenance::whereHas('equipment', fn ($query) => $query->forCampus($campus));
+        $total = (clone $maintenance)->where('status', '!=', 'Cancelled')->count();
+        $completed = (clone $maintenance)->where('status', 'Completed')->count();
+        $open = (clone $maintenance)->whereIn('status', ['Pending', 'In Progress'])->count();
+        $highPriority = (clone $maintenance)->whereIn('status', ['Pending', 'In Progress'])
             ->whereIn('priority', ['High', 'Critical'])
             ->count();
 
@@ -229,6 +257,46 @@ class DashboardController extends Controller
                 ? $highPriority.' open task(s) have high or critical priority.'
                 : 'Based on current equipment maintenance records.',
         ];
+    }
+
+    private function laboratoryInventory(string $campus): Collection
+    {
+        $laboratories = Laboratory::query()
+            ->forCampus($campus)
+            ->withCount(['equipment', 'chemicals'])
+            ->withSum('equipment', 'quantity')
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name']);
+        $chemicalQuantities = Chemical::query()
+            ->forCampus($campus)
+            ->selectRaw('laboratory_id, unit, SUM(quantity) as total_quantity')
+            ->groupBy('laboratory_id', 'unit')
+            ->get()
+            ->groupBy('laboratory_id');
+
+        return $laboratories->map(fn (Laboratory $laboratory): array => [
+            'name' => $laboratory->laboratory_name,
+            'equipment_records' => $laboratory->equipment_count,
+            'equipment_quantity' => (int) ($laboratory->equipment_sum_quantity ?? 0),
+            'chemical_records' => $laboratory->chemicals_count,
+            'chemical_quantities' => $chemicalQuantities
+                ->get($laboratory->id, collect())
+                ->map(fn ($quantity): array => [
+                    'unit' => $quantity->unit,
+                    'value' => $this->formatQuantity((float) $quantity->total_quantity),
+                ])
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    private function formatQuantity(float $quantity): string
+    {
+        if (floor($quantity) === $quantity) {
+            return number_format($quantity, 0);
+        }
+
+        return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
     }
 
     private function recentActivity(): Collection

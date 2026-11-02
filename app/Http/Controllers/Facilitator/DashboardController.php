@@ -8,6 +8,7 @@ use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
+use App\Models\Laboratory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -50,6 +51,32 @@ class DashboardController extends Controller
         $equipmentInLaboratory = (int) Equipment::forCampus($campus)->sum('available_quantity');
         $borrowedEquipment = $this->outstandingQuantity($activeBorrowItems, 'Equipment');
         $totalChemicalRecords = Chemical::forCampus($campus)->count();
+        $laboratories = Laboratory::query()
+            ->forCampus($campus)
+            ->withCount(['equipment', 'chemicals'])
+            ->withSum('equipment', 'quantity')
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name']);
+        $chemicalQuantities = Chemical::query()
+            ->forCampus($campus)
+            ->selectRaw('laboratory_id, unit, SUM(quantity) as total_quantity')
+            ->groupBy('laboratory_id', 'unit')
+            ->get()
+            ->groupBy('laboratory_id');
+        $laboratoryInventory = $laboratories->map(fn (Laboratory $laboratory): array => [
+            'name' => $laboratory->laboratory_name,
+            'equipment_records' => $laboratory->equipment_count,
+            'equipment_quantity' => (int) ($laboratory->equipment_sum_quantity ?? 0),
+            'chemical_records' => $laboratory->chemicals_count,
+            'chemical_quantities' => $chemicalQuantities
+                ->get($laboratory->id, collect())
+                ->map(fn ($quantity): array => [
+                    'unit' => $quantity->unit,
+                    'value' => $this->formatQuantity((float) $quantity->total_quantity),
+                ])
+                ->values()
+                ->all(),
+        ]);
         $lowStockEquipment = Equipment::query()->forCampus($campus)
             ->whereNotNull('low_stock_threshold')
             ->whereColumn('available_quantity', '<=', 'low_stock_threshold')
@@ -61,12 +88,13 @@ class DashboardController extends Controller
         $borrowedChemicalQuantity = $this->borrowedChemicalQuantityBreakdown($activeBorrowItems);
 
         return view('users.facilitator.dashboard', [
-            'announcements' => $this->publishedAnnouncements('facilitator', 6, $campus),
+            'announcements' => $this->publishedAnnouncements('facilitator', 6, $campus, $user->userNo),
             'checkoutBorrows' => $checkoutBorrows,
+            'laboratoryInventory' => $laboratoryInventory,
             'equipmentStats' => [
                 ['label' => 'Unique equipment', 'value' => number_format($uniqueEquipment), 'note' => 'Distinct equipment records in inventory'],
                 ['label' => 'Total equipment', 'value' => number_format($totalEquipmentUnits), 'note' => 'Whole equipment units in inventory'],
-                ['label' => 'Equipment in laboratory', 'value' => number_format($equipmentInLaboratory), 'note' => 'Units currently available in the laboratory'],
+                ['label' => 'Available equipment', 'value' => number_format($equipmentInLaboratory), 'note' => 'Units currently available in the laboratory'],
                 ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out'],
             ],
             'chemicalStats' => [

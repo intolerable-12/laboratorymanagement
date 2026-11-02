@@ -17,6 +17,7 @@ use App\Services\GuestRequesterService;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
 use App\Support\Campus;
+use App\Support\AcademicPeriodSelection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -254,7 +255,7 @@ class GuestBorrowController extends Controller
 
         $borrowTransaction = DB::transaction(function () use ($data, $items, $laboratoryId, $notificationService) {
             $guestRequester = app(GuestRequesterService::class)->resolve($data);
-            $schoolYear = SchoolYear::where('is_current', true)->orderByDesc('start_date')->first()
+            $schoolYear = AcademicPeriodSelection::currentSchoolYear(Campus::MAIN)
                 ?? SchoolYear::orderByDesc('start_date')->first();
 
             $borrowTransaction = BorrowTransaction::create([

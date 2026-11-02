@@ -45,13 +45,14 @@
                     <div class="row g-3">
                         <div class="col-lg-4">
                             <label class="form-label fw-semibold text-dark">Laboratory <span class="text-danger">*</span></label>
-                            <select name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
+                            <select id="reservation-laboratory" name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
                                 @foreach ($laboratories as $laboratory)
-                                    <option value="{{ $laboratory->id }}" @selected(old('laboratory_id', $details['laboratory_id'] ?? '') == $laboratory->id)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
+                                    <option value="{{ $laboratory->id }}" data-capacity="{{ $laboratory->capacity }}" @selected(old('laboratory_id', $details['laboratory_id'] ?? '') == $laboratory->id)>{{ $laboratory->laboratory_name }} ({{ $laboratory->laboratory_code }})</option>
                                 @endforeach
                             </select>
                             @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div id="reservation-laboratory-capacity" class="form-text" aria-live="polite">Select a laboratory to see its capacity.</div>
                         </div>
                         <div class="col-lg-8">
                             <label class="form-label fw-semibold text-dark">Experiment / Activity Title <span class="text-danger">*</span></label>
@@ -83,8 +84,9 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-dark">Expected Participants</label>
-                            <input type="number" min="1" name="expected_participants" value="{{ old('expected_participants', $details['expected_participants'] ?? 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
+                            <input id="reservation-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', $details['expected_participants'] ?? 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
                             @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div id="reservation-participants-capacity" class="form-text" aria-live="polite"></div>
                         </div>
                         @if (optional(auth()->user()->role)->role_name !== 'Instructor')
                             <div class="col-12">
@@ -145,3 +147,36 @@
         });
     </script>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const laboratorySelect = document.getElementById('reservation-laboratory');
+            const capacityMessage = document.getElementById('reservation-laboratory-capacity');
+            const participantsInput = document.getElementById('reservation-participants');
+            const participantsHint = document.getElementById('reservation-participants-capacity');
+
+            if (!laboratorySelect || !capacityMessage || !participantsInput || !participantsHint) {
+                return;
+            }
+
+            const updateCapacity = () => {
+                const capacity = laboratorySelect.selectedOptions[0]?.dataset.capacity;
+
+                if (!capacity) {
+                    capacityMessage.textContent = 'Select a laboratory to see its capacity.';
+                    participantsInput.removeAttribute('max');
+                    participantsHint.textContent = '';
+                    return;
+                }
+
+                capacityMessage.textContent = `Capacity: ${capacity} people.`;
+                participantsInput.max = capacity;
+                participantsHint.textContent = `Enter no more than ${capacity} participant${capacity === '1' ? '' : 's'}.`;
+            };
+
+            laboratorySelect.addEventListener('change', updateCapacity);
+            updateCapacity();
+        });
+    </script>
+@endpush

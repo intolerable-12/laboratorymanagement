@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Student\Reservation;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\ValidatesReservationSchedule;
+use App\Http\Controllers\Controller;
 use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\Reservation;
 use App\Models\ReservationItem;
-use App\Models\SchoolYear;
-use App\Models\Semester;
 use App\Models\User;
-use App\Services\SequentialCodeGenerator;
 use App\Services\RequestNotificationService;
+use App\Services\SequentialCodeGenerator;
+use App\Support\AcademicPeriodSelection;
+use App\Support\ReservationParticipantLimit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
@@ -24,6 +24,7 @@ class ReservationController extends Controller
     use ValidatesReservationSchedule;
 
     private const DRAFT_DETAILS = 'student.reservation.draft.details';
+
     private const DRAFT_ITEMS = 'student.reservation.draft.items';
 
     public function index(Request $request)
@@ -47,9 +48,9 @@ class ReservationController extends Controller
 		$campus = $this->campusForUser($request);
 
         $reservationMinDate = $this->minimumReservationDate()->format('Y-m-d');
-        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code']);
-        $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
-        $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
+        $laboratories = Laboratory::forCampus($campus)->orderBy('laboratory_name')->get(['id', 'laboratory_name', 'laboratory_code', 'capacity']);
+        $currentSchoolYear = AcademicPeriodSelection::currentSchoolYear($campus);
+        $currentSemester = AcademicPeriodSelection::currentSemester($campus);
         $instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
 
         return view('users.student.reservation.create', compact(
@@ -198,6 +199,7 @@ class ReservationController extends Controller
 
         $campus = $this->campusForUser($request);
         $laboratory = Laboratory::forCampus($campus)->findOrFail($details['laboratory_id']);
+        ReservationParticipantLimit::validate($laboratory, (int) $details['expected_participants']);
         $equipment = Equipment::forCampus($campus)->requestable()->whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))->get()->keyBy('id');
         $chemicals = Chemical::forCampus($campus)->whereIn('id', collect($items)->where('item_type', 'Chemical')->pluck('item_id'))->get()->keyBy('id');
         $requestedItems = collect($items)->map(function (array $item) use ($equipment, $chemicals) {
@@ -243,8 +245,9 @@ class ReservationController extends Controller
         }
 
         $reservation = DB::transaction(function () use ($request, $data, $items, $notificationService) {
-            $schoolYear = SchoolYear::query()->where('is_current', true)->first();
-            $semester = Semester::query()->where('is_current', true)->first();
+            $campus = $this->campusForUser($request);
+            $schoolYear = AcademicPeriodSelection::currentSchoolYear($campus);
+            $semester = AcademicPeriodSelection::currentSemester($campus);
 
             if (! $schoolYear || ! $semester) {
                 throw ValidationException::withMessages([
@@ -253,7 +256,8 @@ class ReservationController extends Controller
             }
 
 			$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
-			$laboratory = Laboratory::forCampus($request->user()->campusName())->lockForUpdate()->findOrFail($data['laboratory_id']);
+            $laboratory = Laboratory::forCampus($campus)->lockForUpdate()->findOrFail($data['laboratory_id']);
+            ReservationParticipantLimit::validate($laboratory, (int) $data['expected_participants']);
             $codeGenerator = app(SequentialCodeGenerator::class);
 
             if ($this->hasReservationTimeConflict(
@@ -421,6 +425,9 @@ class ReservationController extends Controller
 		}
 
 		$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
+        $laboratory = Laboratory::forCampus($this->campusForUser($request))
+            ->findOrFail($data['laboratory_id']);
+        ReservationParticipantLimit::validate($laboratory, (int) $data['expected_participants']);
 
         if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
             throw ValidationException::withMessages([
@@ -500,6 +507,7 @@ class ReservationController extends Controller
 
             if (filter_var($rawQuantity, FILTER_VALIDATE_INT) === false || (int) $rawQuantity < 1) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'Equipment quantities must be a whole number of at least 1.';
+
                 continue;
             }
 
@@ -507,21 +515,25 @@ class ReservationController extends Controller
 
             if (! $equipment) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'Selected equipment was not found.';
+
                 continue;
             }
 
 			if (! $equipment->is_requestable) {
 				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment is inventory-only and cannot be borrowed or reserved.';
+
 				continue;
 			}
 
             if ((int) $equipment->laboratory_id !== $laboratoryId) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment does not belong to the selected laboratory.';
+
                 continue;
             }
 
             if ($equipment->status !== 'Available') {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'This equipment is not currently available.';
+
                 continue;
             }
 
@@ -529,6 +541,7 @@ class ReservationController extends Controller
 
             if ($quantity > (int) $equipment->available_quantity) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
+
                 continue;
             }
 
@@ -554,6 +567,7 @@ class ReservationController extends Controller
 
             if (! is_numeric($rawQuantity) || (float) $rawQuantity <= 0) {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'Chemical quantities must be a positive number.';
+
                 continue;
             }
 
@@ -561,21 +575,25 @@ class ReservationController extends Controller
 
             if (! $chemical) {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'Selected chemical was not found.';
+
                 continue;
             }
 
             if ((int) $chemical->laboratory_id !== $laboratoryId) {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical does not belong to the selected laboratory.';
+
                 continue;
             }
 
             if ($chemical->status === 'Expired' || $chemical->is_expired) {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical has expired and cannot be requested.';
+
                 continue;
             }
 
             if ($chemical->status !== 'Active') {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'This chemical is not currently active for requests.';
+
                 continue;
             }
 
@@ -583,6 +601,7 @@ class ReservationController extends Controller
 
             if ($quantity > (float) $chemical->quantity) {
                 $errors['chemical_items.' . $chemicalId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
+
                 continue;
             }
 

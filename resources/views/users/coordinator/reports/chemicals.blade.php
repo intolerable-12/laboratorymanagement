@@ -6,13 +6,13 @@
 
 @section('title', 'Chemical Inventory Reports')
 @section('page-title', 'Chemical Inventory Reports')
-@section('page-subtitle', 'Generate the laboratory chemical inventory workbook by school year')
+@section('page-subtitle', "Generate the {$campus} campus laboratory chemical inventory workbook by school year")
 
 @section('content')
     @include('users.coordinator.reports._tabs')
 
     @php
-        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->where('is_current', true)->pluck('id')->all()))
+        $selectedSchoolYears = collect(old('school_year_ids', $schoolYears->where('id', $currentSchoolYearId)->pluck('id')->all()))
             ->map(fn ($id) => (int) $id)
             ->all();
         $oldSignatories = old('signatories', []);
@@ -28,7 +28,7 @@
     <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">Chemical inventory workbook</h2>
-            <p class="mb-0 text-secondary">One formatted worksheet will be created for each laboratory with chemical records.</p>
+            <p class="mb-0 text-secondary">One formatted worksheet will be created for each {{ $campus }} campus laboratory with chemical records.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <span class="badge rounded-pill text-bg-light border text-secondary px-3 py-2">{{ number_format($chemicalCount) }} chemicals</span>
@@ -40,7 +40,7 @@
         <div class="fw-semibold mb-1"><i class="fa-solid fa-circle-info me-1"></i>About the period quantities</div>
         <div class="small">
             Beginning and ending quantities are tracked per chemical, school year, and semester. Chemical usage recorded during check-in is totaled in the period remarks, for example <strong>Used: 24.8 g.</strong>
-            Quantity changes are assigned to the school year and semester marked <strong>Current</strong> by the coordinator. Existing chemicals receive a baseline from the current inventory, while periods before receipt remain blank.
+            Quantity changes are assigned to the school year and semester marked <strong>Current</strong> for the {{ $campus }} campus. Existing chemicals receive a baseline from the current inventory, while periods before receipt remain blank.
             Semester date ranges are configured per school year in the academic-period control.
         </div>
     </div>
@@ -59,7 +59,7 @@
                                 <input class="form-check-input ms-0 me-2" type="checkbox" name="school_year_ids[]" value="{{ $schoolYear->id }}" id="chemical-school-year-{{ $schoolYear->id }}" data-school-year-checkbox="{{ $schoolYear->id }}" @checked(in_array((int) $schoolYear->id, $selectedSchoolYears, true))>
                                 <label class="form-check-label fw-semibold text-dark" for="chemical-school-year-{{ $schoolYear->id }}">
                                     {{ $schoolYear->school_year }}
-                                    @if ($schoolYear->is_current)
+                                    @if ($schoolYear->id === $currentSchoolYearId)
                                         <span class="badge text-bg-success ms-1">Current</span>
                                     @endif
                                     <span class="d-block small fw-normal text-secondary mt-1">{{ $schoolYear->start_date?->format('M d, Y') }} – {{ $schoolYear->end_date?->format('M d, Y') }}</span>

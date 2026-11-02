@@ -15,26 +15,32 @@ class LaboratoryController extends Controller
     public function index(Request $request)
     {
         $campus = $this->viewerCampus($request);
-        $laboratories = Laboratory::forCampus($campus)->with('images')->latest()->paginate(9);
+        $laboratories = Laboratory::forViewerCampus($campus)->with('images')->latest()->paginate(9);
 
         $stats = [
-            'total' => Laboratory::forCampus($campus)->count(),
-            'available' => Laboratory::forCampus($campus)->where('status', 'Available')->count(),
-            'unavailable' => Laboratory::forCampus($campus)->where('status', 'Unavailable')->count(),
-            'maintenance' => Laboratory::forCampus($campus)->where('status', 'Under Maintenance')->count(),
+            'total' => Laboratory::forViewerCampus($campus)->count(),
+            'available' => Laboratory::forViewerCampus($campus)->where('status', 'Available')->count(),
+            'unavailable' => Laboratory::forViewerCampus($campus)->where('status', 'Unavailable')->count(),
+            'maintenance' => Laboratory::forViewerCampus($campus)->where('status', 'Under Maintenance')->count(),
         ];
 
         return view('users.coordinator.laboratory.index', compact('laboratories', 'stats'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('users.coordinator.laboratory.create');
+        $viewerCampus = $this->viewerCampus($request);
+        $laboratoryCodeOptions = collect(Campus::values())
+            ->mapWithKeys(fn (string $campus): array => [$campus => Laboratory::nextCodeForCampus($campus)])
+            ->all();
+
+        return view('users.coordinator.laboratory.create', compact('viewerCampus', 'laboratoryCodeOptions'));
     }
 
     public function store(Request $request)
     {
         $data = $this->validateLaboratory($request);
+        $data['laboratory_code'] = Laboratory::nextCodeForCampus($data['campus']);
         unset($data['image'], $data['images']);
 
         $laboratory = Laboratory::create($data);
@@ -137,21 +143,19 @@ class LaboratoryController extends Controller
     private function validateLaboratory(Request $request, ?Laboratory $laboratory = null): array
     {
         $laboratoryKey = $laboratory?->getKey();
-
+        $viewerCampus = $this->viewerCampus($request);
+        $campus = $viewerCampus ?? Campus::normalize($request->input('campus'));
+        $campus = in_array($campus, Campus::values(), true) ? $campus : null;
         return $request->validate([
-            'laboratory_code' => [
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('laboratories', 'laboratory_code')->ignore($laboratoryKey),
-            ],
             'laboratory_name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('laboratories', 'laboratory_name')->ignore($laboratoryKey),
+                Rule::unique('laboratories', 'laboratory_name')
+                    ->where(fn ($query) => $query->where('campus', $campus))
+                    ->ignore($laboratoryKey),
             ],
-            'campus' => ['required', Rule::in($this->viewerCampus($request) ? [$this->viewerCampus($request)] : Campus::values())],
+            'campus' => ['required', Rule::in($viewerCampus ? [$viewerCampus] : Campus::values())],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'images' => ['nullable', 'array', 'max:20'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],

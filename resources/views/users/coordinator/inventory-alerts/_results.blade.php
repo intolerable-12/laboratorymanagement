@@ -10,6 +10,7 @@
                     @if ($tab === 'equipment')
                         <tr>
                             <th class="text-dark ps-4">Equipment</th>
+                            <th class="text-dark">Laboratory</th>
                             <th class="text-dark">Supplier</th>
                             <th class="text-dark">Available</th>
                             <th class="text-dark">Alert</th>
@@ -18,6 +19,7 @@
                     @else
                         <tr>
                             <th class="text-dark ps-4">Chemical</th>
+                            <th class="text-dark">Laboratory</th>
                             <th class="text-dark">Supplier</th>
                             <th class="text-dark">Current stock</th>
                             <th class="text-dark text-center">Low-stock threshold</th>
@@ -32,6 +34,7 @@
                         @if ($tab === 'equipment')
                             <tr>
                                 <td class="ps-4"><div class="fw-semibold text-dark">{{ $item->equipment_name }}</div><div class="small text-secondary">{{ $item->equipment_code }}</div></td>
+                                <td>{{ $item->laboratory?->laboratory_name ?? 'No laboratory assigned' }}</td>
                                 <td>{{ $item->supplier?->supplier_name ?? 'No supplier assigned' }}</td>
                                 <td>{{ number_format((int) $item->available_quantity) }}</td>
                                 <td>
@@ -49,6 +52,7 @@
                         @else
                             <tr>
                                 <td class="ps-4"><div class="fw-semibold text-dark">{{ $item->chemical_name }}</div><div class="small text-secondary">{{ $item->chemical_code }}</div></td>
+                                <td>{{ $item->laboratory?->laboratory_name ?? 'No laboratory assigned' }}</td>
                                 <td>{{ $item->supplier?->supplier_name ?? 'No supplier assigned' }}</td>
                                 <td>{{ number_format((float) $item->quantity, 2) }} {{ $item->unit }}</td>
                                 <td>
@@ -93,7 +97,7 @@
                             </tr>
                         @endif
                     @empty
-                        <tr><td colspan="{{ $tab === 'equipment' ? 5 : 7 }}" class="text-center text-secondary py-5">No {{ $tab === 'equipment' ? 'equipment' : 'chemical' }} records found.</td></tr>
+                        <tr><td colspan="{{ $tab === 'equipment' ? 6 : 8 }}" class="text-center text-secondary py-5">No {{ $tab === 'equipment' ? 'equipment' : 'chemical' }} records found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Chemical;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Support\AcademicPeriodSelection;
+use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -21,19 +23,19 @@ class ChemicalReportController extends Controller
         $schoolYears = SchoolYear::query()
             ->orderByDesc('start_date')
             ->orderByDesc('id')
-            ->with('academicPeriods')
+            ->with(['academicPeriods' => fn ($periods) => $periods->forCampus($campus)])
             ->get();
 
         return view('users.coordinator.reports.chemicals', [
             'schoolYears' => $schoolYears,
             'semesters' => $this->reportSemesters(),
+            'campus' => $campus,
+            'currentSchoolYearId' => AcademicPeriodSelection::currentSchoolYearId($campus),
             'chemicalCount' => Chemical::query()
                 ->forCampus($campus)
-                ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
                 ->count(),
             'laboratoryCount' => Chemical::query()
                 ->forCampus($campus)
-                ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
                 ->distinct('laboratory_id')
                 ->count('laboratory_id'),
         ]);
@@ -51,18 +53,16 @@ class ChemicalReportController extends Controller
             'signatories.*.approved_by' => ['nullable', 'string', 'max:150'],
         ]);
 
+        $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
             ->whereIn('id', $data['school_year_ids'])
             ->orderBy('start_date')
             ->orderBy('id')
-            ->with('academicPeriods')
+            ->with(['academicPeriods' => fn ($periods) => $periods->forCampus($campus)])
             ->get();
 
-        $campus = $this->viewerCampus($request);
-
-       if (! Chemical::query()
+        if (! Chemical::query()
             ->forCampus($campus)
-            ->when($campus === null, fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()))
             ->exists()) {
             return redirect()
                 ->route($this->routePrefix($request).'.reports.chemicals.index')
@@ -94,11 +94,9 @@ class ChemicalReportController extends Controller
         );
     }
 
-    private function viewerCampus(Request $request): ?string
+    private function viewerCampus(Request $request): string
     {
-        return $request->user()?->role?->role_name === 'Laboratory In-charge'
-            ? $request->user()->campusName()
-            : null;
+        return Campus::normalize($request->user()?->campusName()) ?? Campus::MAIN;
     }
 
     private function routePrefix(Request $request): string

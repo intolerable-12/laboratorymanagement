@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\AcademicPeriod;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Support\Campus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -16,12 +18,18 @@ class AcademicPeriodResolver
      *
      * @return array{start: Carbon, end: Carbon}
      */
-    public function semesterRange(SchoolYear $schoolYear, int $semesterIndex, int $semesterCount, ?int $semesterId = null): array
+    public function semesterRange(
+        SchoolYear $schoolYear,
+        int $semesterIndex,
+        int $semesterCount,
+        ?int $semesterId = null,
+        string $campus = Campus::MAIN,
+    ): array
     {
         if ($semesterId !== null) {
             $period = $schoolYear->relationLoaded('academicPeriods')
-                ? $schoolYear->academicPeriods->first(fn ($candidate): bool => (int) $candidate->semester_id === $semesterId)
-                : $schoolYear->academicPeriods()->where('semester_id', $semesterId)->first();
+                ? $schoolYear->academicPeriods->first(fn (AcademicPeriod $candidate): bool => (int) $candidate->semester_id === $semesterId && $candidate->campus === $campus)
+                : $schoolYear->academicPeriods()->where('semester_id', $semesterId)->forCampus($campus)->first();
 
             if ($period?->start_date && $period?->end_date) {
                 return [
@@ -57,10 +65,10 @@ class AcademicPeriodResolver
         ];
     }
 
-    public function semesterForDate(Carbon $date, SchoolYear $schoolYear, Collection $semesters): ?Semester
+    public function semesterForDate(Carbon $date, SchoolYear $schoolYear, Collection $semesters, string $campus = Campus::MAIN): ?Semester
     {
         foreach ($semesters->values() as $semesterIndex => $semester) {
-            $range = $this->semesterRange($schoolYear, $semesterIndex, $semesters->count(), $semester->id ?? null);
+            $range = $this->semesterRange($schoolYear, $semesterIndex, $semesters->count(), $semester->id ?? null, $campus);
 
             if ($date->betweenIncluded($range['start'], $range['end'])) {
                 return $semester;

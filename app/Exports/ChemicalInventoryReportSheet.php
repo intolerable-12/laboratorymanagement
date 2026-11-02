@@ -6,6 +6,7 @@ use App\Models\Chemical;
 use App\Models\Laboratory;
 use App\Models\SchoolYear;
 use App\Services\AcademicPeriodResolver;
+use App\Support\Campus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -43,6 +44,7 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
         private readonly Collection $semesters,
         private readonly array $signatories,
         private readonly string $sheetTitle,
+        private readonly string $campus = Campus::MAIN,
     ) {}
 
     public function array(): array
@@ -222,6 +224,7 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
             4 => ['HIGHER EDUCATION DEPARTMENT', 10, true],
             6 => ['INVENTORY REPORT FOR SCIENCE LABORATORY - CHEMICALS', 11, true],
             7 => [$this->locationLabel(), 10, false],
+            8 => [strtoupper($this->campus).' CAMPUS', 9, true],
         ];
 
         foreach ($headingRows as $row => [$value, $fontSize, $bold]) {
@@ -372,6 +375,7 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
             $semesterIndex,
             $this->semesters->count(),
             $semesterId,
+            $this->campus,
         );
     }
 

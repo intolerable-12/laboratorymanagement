@@ -80,6 +80,25 @@ class Laboratory extends Model
         return Campus::values();
     }
 
+    public static function nextCodeForCampus(string $campus): string
+    {
+        $campus = Campus::normalize($campus);
+        $prefix = match ($campus) {
+            Campus::MAIN => 'LAB-MAIN',
+            Campus::IBED => 'LAB-IBED',
+            default => throw new \InvalidArgumentException('A valid campus is required to generate a laboratory code.'),
+        };
+        $nextNumber = static::withTrashed()->where('campus', $campus)->count() + 1;
+        $code = sprintf('%s-%03d', $prefix, $nextNumber);
+
+        while (static::withTrashed()->where('laboratory_code', $code)->exists()) {
+            $nextNumber++;
+            $code = sprintf('%s-%03d', $prefix, $nextNumber);
+        }
+
+        return $code;
+    }
+
     /**
      * Resolve the short lab code used in sequential reservation and borrow numbers.
      */

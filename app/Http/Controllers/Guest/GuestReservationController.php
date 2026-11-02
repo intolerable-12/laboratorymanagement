@@ -11,14 +11,14 @@ use App\Models\Equipment;
 use App\Models\Laboratory;
 use App\Models\Reservation;
 use App\Models\ReservationItem;
-use App\Models\SchoolYear;
-use App\Models\Semester;
 use App\Models\User;
 use App\Services\GuestRequestEmailService;
 use App\Services\GuestRequesterService;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Support\AcademicPeriodSelection;
 use App\Support\Campus;
+use App\Support\ReservationParticipantLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +29,7 @@ class GuestReservationController extends Controller
     use CollectsRequestItems, ValidatesReservationSchedule;
 
     private const DRAFT_DETAILS = 'guest.reservation.draft.details';
+
     private const DRAFT_ITEMS = 'guest.reservation.draft.items';
 
     public function create(Request $request)
@@ -43,7 +44,7 @@ class GuestReservationController extends Controller
         $laboratories = Laboratory::query()
             ->where('campus', Campus::MAIN)
             ->orderBy('laboratory_name')
-            ->get(['id', 'laboratory_name', 'laboratory_code', 'campus']);
+            ->get(['id', 'laboratory_name', 'laboratory_code', 'campus', 'capacity']);
         $departments = Department::orderBy('department_name')->get(['id', 'department_name']);
         $equipmentQuery = Equipment::with('laboratory')->requestable()->where('status', 'Available')->orderBy('equipment_name');
         $chemicalQuery = Chemical::with('laboratory')->availableForRequest()->orderBy('chemical_name');
@@ -84,8 +85,8 @@ class GuestReservationController extends Controller
             ->when($selectedLaboratoryId, fn ($query) => $query->where('laboratory_id', $selectedLaboratoryId))
             ->get()
             ->keyBy('id');
-        $currentSchoolYear = SchoolYear::where('is_current', true)->first(['school_year']);
-        $currentSemester = Semester::where('is_current', true)->first(['semester_name']);
+        $currentSchoolYear = AcademicPeriodSelection::currentSchoolYear(Campus::MAIN);
+        $currentSemester = AcademicPeriodSelection::currentSemester(Campus::MAIN);
         $instructors = User::query()->mainCampusInstructors()->orderBy('last_name')->orderBy('first_name')->get(['userNo', 'first_name', 'last_name']);
         if ($request->ajax()) {
             $fragment = $request->query('fragment', $activeTab);
@@ -135,6 +136,8 @@ class GuestReservationController extends Controller
         $this->ensureMainCampusInstructor((int) $data['instructor_id']);
 
         $this->ensureLaboratoryBelongsToCampus($data);
+        $laboratory = $this->laboratoryFromDetails($data);
+        ReservationParticipantLimit::validate($laboratory, (int) $data['expected_participants']);
 
         if (strtotime($data['end_time']) <= strtotime($data['start_time'])) {
             throw ValidationException::withMessages(['end_time' => 'The end time must be after the start time.']);
@@ -276,6 +279,7 @@ class GuestReservationController extends Controller
         }
 
         $laboratory = $this->laboratoryFromDetails($details);
+        ReservationParticipantLimit::validate($laboratory, (int) $details['expected_participants']);
         $equipment = Equipment::requestable()->whereIn('id', collect($items)->where('item_type', 'Equipment')->pluck('item_id'))
             ->where('laboratory_id', $laboratory->id)
             ->get()
@@ -288,6 +292,7 @@ class GuestReservationController extends Controller
             $item['item'] = $item['item_type'] === 'Equipment'
                 ? $equipment->get($item['item_id'])
                 : $chemicals->get($item['item_id']);
+
             return $item;
         })->filter(fn (array $item) => $item['item'] !== null)->values();
 
@@ -312,6 +317,7 @@ class GuestReservationController extends Controller
         $this->ensureMainCampusInstructor((int) ($data['instructor_id'] ?? 0));
 
         $laboratory = $this->laboratoryFromDetails($data);
+        ReservationParticipantLimit::validate($laboratory, (int) $data['expected_participants']);
 
         $itemsRequest = Request::create('/', 'POST', [
             'equipment_items' => collect($draftItems)->where('item_type', 'Equipment')->mapWithKeys(fn (array $item) => [(string) $item['item_id'] => ['quantity' => $item['quantity'], 'unit' => $item['unit'], 'remarks' => $item['remarks'] ?? null]])->all(),
@@ -341,8 +347,8 @@ class GuestReservationController extends Controller
         $notificationService = app(RequestNotificationService::class);
         $reservation = DB::transaction(function () use ($data, $items, $notificationService) {
             $guestRequester = app(GuestRequesterService::class)->resolve($data);
-            $schoolYear = SchoolYear::query()->where('is_current', true)->first();
-            $semester = Semester::query()->where('is_current', true)->first();
+            $schoolYear = AcademicPeriodSelection::currentSchoolYear($data['campus']);
+            $semester = AcademicPeriodSelection::currentSemester($data['campus']);
 
             if (! $schoolYear || ! $semester) {
                 throw ValidationException::withMessages([
@@ -354,6 +360,7 @@ class GuestReservationController extends Controller
                 ->where('campus', $data['campus'])
                 ->lockForUpdate()
                 ->findOrFail($data['laboratory_id']);
+            ReservationParticipantLimit::validate($laboratory, (int) $data['expected_participants']);
 
             if ($this->hasReservationTimeConflict((int) $data['laboratory_id'], $data['reservation_date'], $data['start_time'], $data['end_time'])) {
                 throw ValidationException::withMessages(['reservation_date' => 'This laboratory already has a reservation that overlaps the selected time.']);
