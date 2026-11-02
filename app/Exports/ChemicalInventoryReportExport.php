@@ -19,7 +19,13 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
 
     public function sheets(): array
     {
-        $query = Chemical::query()->with('laboratory')->forCampus($this->campus);
+        $query = Chemical::query()
+            ->with('laboratory')
+            ->when(
+                $this->campus === null,
+                fn ($q) => $q->whereHas('laboratory', fn ($lab) => $lab->mainCampus()),
+                fn ($q) => $q->forCampus($this->campus),
+            );
         $schoolYearIds = $this->schoolYears->pluck('id')->filter()->values();
         $semesterIds = $this->semesters->pluck('id')->filter()->values();
 

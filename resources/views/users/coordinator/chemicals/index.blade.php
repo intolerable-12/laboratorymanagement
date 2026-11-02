@@ -36,15 +36,52 @@
 @endphp
 
 @section('content')
-    <style>
+   <style>
+        /* ── Table layout ─────────────────────────────────────── */
+        .equipment-table {
+            table-layout: auto;
+            width: 100%;
+        }
+
+        .equipment-table th,
+        .equipment-table td {
+            vertical-align: middle;
+        }
+
+        /* Compact columns: Type / Stock (fixed width, wraps if needed) */
         .equipment-table .table-column-compact {
-            width: 7rem;
-            max-width: 7rem;
+            width: 6rem;
+            max-width: 6rem;
             white-space: normal;
             overflow-wrap: anywhere;
             word-break: break-word;
         }
 
+        .equipment-table td.table-column-compact {
+            padding-left: .35rem;
+            padding-right: .35rem;
+        }
+
+        /* Identity column (thumbnail + name + code) */
+        .equipment-table td.ps-4,
+        .equipment-table th.ps-4 {
+            min-width: 12rem;
+        }
+
+        /* Checkbox column stays tight */
+        .equipment-table th.ps-3,
+        .equipment-table td.ps-3 {
+            width: 2.5rem;
+        }
+
+        /* Actions column doesn't stretch */
+        .equipment-table th:last-child,
+        .equipment-table td:last-child {
+            width: 1%;
+            white-space: nowrap;
+        }
+
+        /* ── Badges inside compact columns ────────────────────── */
         .equipment-table .table-column-compact .badge {
             display: inline-block;
             max-width: 100%;
@@ -58,25 +95,12 @@
             word-break: break-word;
         }
 
-        .equipment-table .table-column-compact .stock-up-trigger {
-            width: 100%;
-            min-width: 0;
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        .equipment-table .table-column-compact .badge {
-            max-width: 100%;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
-
+        /* ── Stock-up trigger button ──────────────────────────── */
         .stock-up-trigger {
             display: block;
             width: 100%;
+            min-width: 0;
             max-width: 100%;
-            min-width: 0;          /* allow shrink in narrow columns */
             border: 1px solid #b6d4fe;
             border-radius: .75rem;
             padding: .55rem .5rem !important;
@@ -88,9 +112,11 @@
             transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
         }
 
-        .equipment-table td.table-column-compact {
-            padding-left: .35rem;
-            padding-right: .35rem;
+        .equipment-table .table-column-compact .stock-up-trigger {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            margin: 0 auto;
         }
 
         .stock-up-trigger:hover,
@@ -100,6 +126,7 @@
             box-shadow: 0 .2rem .5rem rgba(13, 110, 253, .15);
         }
 
+        /* ── Stock-up modal ───────────────────────────────────── */
         .stock-up-modal .modal-content {
             overflow: hidden;
             border-radius: 1.25rem;
@@ -201,6 +228,7 @@
             border-color: #bfdbfe !important;
         }
 
+        /* ── Small screens ────────────────────────────────────── */
         @media (max-width: 575.98px) {
             .stock-up-info-grid {
                 grid-template-columns: 1fr;
@@ -507,16 +535,16 @@
                                     <i class="fa-solid {{ $sortIcon('type') }} small"></i>
                                 </a>
                             </th>
-                            <th scope="col" class="table-column-compact">
-                                <a href="{{ $sortUrl('hazard') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
-                                    <span>Hazard</span>
-                                    <i class="fa-solid {{ $sortIcon('hazard') }} small"></i>
-                                </a>
-                            </th>
                             <th scope="col">
                                 <a href="{{ $sortUrl('category') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                     <span>Category</span>
                                     <i class="fa-solid {{ $sortIcon('category') }} small"></i>
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="{{ $sortUrl('laboratory') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                    <span>Laboratory</span>
+                                    <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
                                 </a>
                             </th>
                             <th scope="col" class="table-column-compact">
@@ -584,10 +612,8 @@
                                 <td class="table-column-compact">
                                     <span class="badge rounded-pill text-bg-{{ $chemical->type === 'Organic' ? 'success' : 'secondary' }}">{{ $chemical->type }}</span>
                                 </td>
-                                <td class="table-column-compact">
-                                    <span class="badge text-bg-light border text-dark">{{ $chemical->hazard_classification ?? '-' }}</span>
-                                </td>
                                 <td>{{ $chemical->category->category_name ?? '-' }}</td>
+                                <td>{{ $chemical->laboratory->laboratory_name ?? '-' }}</td>
                                 <td class="table-column-compact">
                                     @if (!$archived && !$isReadOnly)
                                         <button
@@ -693,7 +719,6 @@
                         @empty
                             <tr>
                                 <td colspan="{{ $archived ? 11 : 10 }}" class="text-center text-secondary py-5">No chemicals found.</td>
-                            </tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -31,10 +31,10 @@
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th class="ps-4">Chemical type</th>
-                            <th>Description</th>
-                            <th>Available chemicals</th>
-                            <th class="text-center pe-4">Action</th>
+                            <th class="ps-4 text-dark">Chemical type</th>
+                            <th class="text-dark">Description</th>
+                            <th class="text-dark">Available chemicals</th>
+                            <th class="text-center text-dark pe-4">Action</th>
                         </tr>
                     </thead>
                     <tbody>

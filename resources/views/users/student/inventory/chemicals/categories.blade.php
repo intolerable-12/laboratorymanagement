@@ -69,9 +69,9 @@
                         <thead>
                             <tr>
                                 <th class="ps-4"><a href="{{ $sortUrl('category') }}" class="text-decoration-none text-dark">Category <i class="fa-solid {{ $sortIcon('category') }}" aria-hidden="true"></i></a></th>
-                                <th>Description</th>
+                                <th class="text-dark">Description</th>
                                 <th><a href="{{ $sortUrl('available') }}" class="text-decoration-none text-dark">Available chemicals <i class="fa-solid {{ $sortIcon('available') }}" aria-hidden="true"></i></a></th>
-                                <th class="text-center pe-4">Action</th>
+                                <th class="text-center text-dark pe-4">Action</th>
                             </tr>
                         </thead>
                         <tbody>
