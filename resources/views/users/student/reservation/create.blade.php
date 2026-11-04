@@ -7,6 +7,7 @@
 @endphp
 
 @section('title', 'Reservation Details')
+@section('page-title', 'Reservation Details')
 @section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 @section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
