@@ -15,7 +15,7 @@
             <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Instructor dashboard</div>
-                    <h2>Welcome back, Instructor</h2>
+                    <h2>Welcome back, {{ auth()->user()?->first_name ?? 'Instructor' }}</h2>
                     <p class="mb-0 text-secondary">Here's your classes, inventory viewing, and laboratory equipment requests.</p>
                 </div>
                 <div class="d-flex flex-wrap">

@@ -47,7 +47,7 @@
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-6">
                             <label class="form-label fw-semibold text-dark">Laboratory</label>
                             <select name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
@@ -60,6 +60,20 @@
                             @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="form-text">Only available items from the selected laboratory will be shown.</div>
                         </div>
+
+                        @if (optional(auth()->user()->role)->role_name !== 'Instructor')
+                            <div class="col-6">
+                                <label for="borrow-instructor" class="form-label fw-semibold text-dark">Instructor reviewer</label>
+                                <select id="borrow-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
+                                    <option value="">Select a Main campus instructor</option>
+                                    @foreach ($instructors as $instructor)
+                                        <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', $details['instructor_id'] ?? '') == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                <div class="form-text">Only the selected instructor will receive and approve this request.</div>
+                            </div>
+                        @endif
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark">Borrowed At</label>
@@ -74,20 +88,6 @@
                             @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback d-none" data-date-validation-message></div>
                         </div>
-
-                        @if (optional(auth()->user()->role)->role_name !== 'Instructor')
-                            <div class="col-12">
-                                <label for="borrow-instructor" class="form-label fw-semibold text-dark">Instructor reviewer</label>
-                                <select id="borrow-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
-                                    <option value="">Select a Main campus instructor</option>
-                                    @foreach ($instructors as $instructor)
-                                        <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', $details['instructor_id'] ?? '') == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                <div class="form-text">Only the selected instructor will receive and approve this request.</div>
-                            </div>
-                        @endif
 
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">Remarks</label>

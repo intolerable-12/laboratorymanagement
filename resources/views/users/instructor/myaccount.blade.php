@@ -45,10 +45,6 @@
                                     <input type="text" name="userID" class="form-control account-input" value="{{ $userIdValue }}" readonly aria-describedby="instructor-user-id-help">
                                     <div id="instructor-user-id-help" class="form-text">Your User ID is managed by the administrator.</div>
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold text-dark">Profile Photo</label>
-                                    <input type="file" name="profile_photo" class="form-control account-input" accept="image/*" disabled>
-                                </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-dark">First Name</label>
                                     <input type="text" name="first_name" class="form-control account-input" value="{{ $user->first_name }}" disabled>
@@ -82,11 +78,9 @@
                                     <div class="form-control account-input bg-light" aria-readonly="true">
                                         {{ $user->department?->department_name ?? 'Not assigned' }}
                                     </div>
-                                    <div class="form-text">Your department is managed by the administrator.</div>
+                                    <div class="form-text">Profile details are managed by the administrator.</div>
                                 </div>
                             </div>
-
-                            <p class="form-text mt-4 mb-0">Profile details are managed by the administrator.</p>
                         </div>
                     </div>
                 </div>
@@ -120,50 +114,6 @@
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Update Password</button>
                         </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="card section-card border-0">
-            <div class="card-body p-4 p-xl-5">
-                <h3 class="h4 fw-semibold mb-4 text-dark">Account Information</h3>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="account-summary-card">
-                            <div class="small text-secondary">User ID</div>
-                            <div class="fw-semibold text-dark">{{ $user->userID ?? '—' }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="account-summary-card">
-                            <div class="small text-secondary">Contact Number</div>
-                            <div class="fw-semibold text-dark">{{ $user->contact_number ?? '—' }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="account-summary-card">
-                            <div class="small text-secondary">Gender</div>
-                            <div class="fw-semibold text-dark">{{ $user->gender ?? '—' }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="account-summary-card">
-                            <div class="small text-secondary">Birth Date</div>
-                            <div class="fw-semibold text-dark">{{ $birthDate }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="account-summary-card">
-                            <div class="small text-secondary">Department</div>
-                            <div class="fw-semibold text-dark">{{ $user->department?->department_name ?? '—' }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="account-summary-card">
-                            <div class="small text-secondary">Account Status</div>
-                            <div class="fw-semibold text-dark">{{ $accountStatus }}</div>
-                        </div>
                     </div>
                 </div>
             </div>
