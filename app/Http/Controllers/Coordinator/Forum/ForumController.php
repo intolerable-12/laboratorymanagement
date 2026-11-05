@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Services\RequestNotificationService;
+use App\Support\ForumAccess;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -21,8 +22,10 @@ class ForumController extends Controller
         $search = trim((string) $request->query('search', ''));
         $category = trim((string) $request->query('category', ''));
         $categories = ForumPost::categories();
+        $campus = ForumAccess::campusFor($request->user());
 
         $forumPosts = ForumPost::query()
+            ->forCampus($campus)
             ->with('user')
             ->withCount('comments')
             ->when($category !== '', function ($query) use ($category) {
@@ -45,13 +48,13 @@ class ForumController extends Controller
             ->withQueryString();
 
         $stats = [
-            'total' => ForumPost::count(),
-            'pinned' => ForumPost::where('is_pinned', true)->count(),
-            'locked' => ForumPost::where('is_locked', true)->count(),
-            'hidden' => ForumPost::where('is_hidden', true)->count(),
+            'total' => ForumPost::forCampus($campus)->count(),
+            'pinned' => ForumPost::forCampus($campus)->where('is_pinned', true)->count(),
+            'locked' => ForumPost::forCampus($campus)->where('is_locked', true)->count(),
+            'hidden' => ForumPost::forCampus($campus)->where('is_hidden', true)->count(),
         ];
 
-        return view('users.coordinator.forum.index', compact('forumPosts', 'search', 'category', 'categories', 'stats'));
+        return view('users.coordinator.forum.index', compact('forumPosts', 'search', 'category', 'categories', 'stats', 'campus'));
     }
 
     public function create(Request $request)
@@ -60,6 +63,7 @@ class ForumController extends Controller
 
         return view('users.coordinator.forum.create', [
             'categories' => ForumPost::categories(),
+            'campus' => ForumAccess::campusFor($request->user()),
         ]);
     }
 
@@ -83,6 +87,7 @@ class ForumController extends Controller
 
         $forumPost = ForumPost::create([
             'user_no' => $request->user()->userNo,
+            'campus' => ForumAccess::campusFor($request->user()),
             'title' => $data['title'],
             'category' => $data['category'],
             'content' => $content,
@@ -102,6 +107,7 @@ class ForumController extends Controller
     public function show(Request $request, ForumPost $forumPost)
     {
         $this->ensureCoordinator($request);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         $forumPost->load(['user'])->loadCount('comments');
 
@@ -118,6 +124,7 @@ class ForumController extends Controller
     public function update(Request $request, ForumPost $forumPost)
     {
         $this->ensureCoordinator($request);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         $forumPost->update([
             'is_pinned' => $request->boolean('is_pinned'),
@@ -147,6 +154,7 @@ class ForumController extends Controller
     private function ensureCoordinator(Request $request): void
     {
         abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+        abort_unless(ForumAccess::canParticipate($request->user()), 403);
     }
 
     private function routePrefix(Request $request): string

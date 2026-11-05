@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Notification as UserNotification;
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
 
@@ -24,15 +23,14 @@ class NotificationController extends Controller
             default => 'layouts.app',
         };
 
-        $notifications = UserNotification::query()
-            ->where('user_no', $user->userNo)
+        $notificationService = app(RequestNotificationService::class);
+        $notifications = $notificationService->notificationsFor($user)
             ->with('reference')
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->paginate(15);
 
-        $unreadCount = UserNotification::query()
-            ->where('user_no', $user->userNo)
+        $unreadCount = $notificationService->notificationsFor($user)
             ->where('is_read', false)
             ->count();
 
@@ -47,6 +45,9 @@ class NotificationController extends Controller
         abort_unless($notification->user_no === $user->userNo, 403);
 
         $service = app(RequestNotificationService::class);
+        $notification = $service->notificationsFor($user)
+            ->whereKey($notification->getKey())
+            ->firstOrFail();
 
         $service->markAsRead($notification);
 
@@ -63,4 +64,5 @@ class NotificationController extends Controller
 
         return back()->with('status', 'All notifications marked as read.');
     }
+
 }

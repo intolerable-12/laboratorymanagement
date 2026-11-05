@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Services\RequestNotificationService;
+use App\Support\ForumAccess;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -23,6 +24,7 @@ class LaboratoryInchargeForumController extends Controller
         $categories = ForumPost::categories();
 
         $forumPosts = ForumPost::query()
+            ->forCampus(ForumAccess::campusFor($request->user()))
             ->with('user')
             ->withCount('comments')
             ->where(function ($query) use ($request) {
@@ -43,7 +45,9 @@ class LaboratoryInchargeForumController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('users.facilitator.forum.index', compact('forumPosts', 'search', 'category', 'categories'));
+        $campus = ForumAccess::campusFor($request->user());
+
+        return view('users.facilitator.forum.index', compact('forumPosts', 'search', 'category', 'categories', 'campus'));
     }
 
     public function create(Request $request)
@@ -52,6 +56,7 @@ class LaboratoryInchargeForumController extends Controller
 
         return view('users.facilitator.forum.create', [
             'categories' => ForumPost::categories(),
+            'campus' => ForumAccess::campusFor($request->user()),
         ]);
     }
 
@@ -75,6 +80,7 @@ class LaboratoryInchargeForumController extends Controller
 
         $forumPost = ForumPost::create([
             'user_no' => $request->user()->userNo,
+            'campus' => ForumAccess::campusFor($request->user()),
             'title' => $data['title'],
             'category' => $data['category'],
             'content' => $content,
@@ -94,6 +100,7 @@ class LaboratoryInchargeForumController extends Controller
     public function show(Request $request, ForumPost $forumPost)
     {
         $this->ensureFacilitator($request);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         abort_if($forumPost->is_hidden && $forumPost->user_no !== $request->user()->userNo, 404);
 
@@ -118,6 +125,7 @@ class LaboratoryInchargeForumController extends Controller
     public function storeComment(Request $request, ForumPost $forumPost, RequestNotificationService $notificationService)
     {
         $this->ensureFacilitator($request);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         abort_if($forumPost->is_hidden && $forumPost->user_no !== $request->user()->userNo, 404);
 
@@ -178,5 +186,6 @@ class LaboratoryInchargeForumController extends Controller
     private function ensureFacilitator(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Laboratory In-charge', 403);
+        abort_unless(ForumAccess::canParticipate($request->user()), 403);
     }
 }
