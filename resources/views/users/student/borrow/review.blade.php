@@ -7,6 +7,7 @@
 @endphp
 
 @section('title', 'Review Borrow Request')
+@section('page-title', 'Review Borrow Request')
 @section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 @section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 

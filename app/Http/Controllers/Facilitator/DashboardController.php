@@ -48,7 +48,7 @@ class DashboardController extends Controller
 
         $uniqueEquipment = Equipment::forCampus($campus)->count();
         $totalEquipmentUnits = (int) Equipment::forCampus($campus)->sum('quantity');
-        $equipmentInLaboratory = (int) Equipment::forCampus($campus)->sum('available_quantity');
+        $damagedEquipment = Equipment::forCampus($campus)->where('condition', 'Damaged')->sum('quantity');
         $borrowedEquipment = $this->outstandingQuantity($activeBorrowItems, 'Equipment');
         $totalChemicalRecords = Chemical::forCampus($campus)->count();
         $laboratories = Laboratory::query()
@@ -94,7 +94,7 @@ class DashboardController extends Controller
             'equipmentStats' => [
                 ['label' => 'Unique equipment', 'value' => number_format($uniqueEquipment), 'note' => 'Distinct equipment records in inventory'],
                 ['label' => 'Total equipment', 'value' => number_format($totalEquipmentUnits), 'note' => 'Whole equipment units in inventory'],
-                ['label' => 'Available equipment', 'value' => number_format($equipmentInLaboratory), 'note' => 'Units currently available in the laboratory'],
+                ['label' => 'Damaged equipment', 'value' => number_format((int) $damagedEquipment), 'note' => 'Units marked damaged', 'tone' => 'secondary'],
                 ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out'],
             ],
             'chemicalStats' => [

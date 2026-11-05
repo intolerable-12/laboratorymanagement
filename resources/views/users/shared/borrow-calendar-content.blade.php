@@ -71,7 +71,6 @@
                                         <div class="small text-secondary">Student</div>
                                         <div class="fw-semibold text-dark" data-reservation-student-name>-</div>
                                         <div class="small text-secondary" data-reservation-student-id>-</div>
-                                        <div class="small text-secondary" data-reservation-student-email>-</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">

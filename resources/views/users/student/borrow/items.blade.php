@@ -7,6 +7,7 @@
 @endphp
 
 @section('title', 'Requested Items')
+@section('page-title', 'Requested Items')
 @section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 @section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 

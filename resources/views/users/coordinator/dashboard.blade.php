@@ -9,7 +9,7 @@
         <div class="card-body p-4 p-xl-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
             <div class="hero-copy">
                 <div class="social-eyebrow mb-3">Coordinator dashboard</div>
-                <h2>Welcome back, Coordinator</h2>
+                <h2>Welcome back, {{ auth()->user()?->first_name ?? 'Coordinator' }}</h2>
                 <p class="mb-0 text-secondary">Here's a quick overview of the laboratory system today.</p>
             </div>
 

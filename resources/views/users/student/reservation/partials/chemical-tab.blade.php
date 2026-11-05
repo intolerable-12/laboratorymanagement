@@ -41,7 +41,11 @@
                             <td>
                                 <div class="fw-semibold text-dark">{{ $chemical->quantity }} {{ $chemical->unit }}</div>
                             </td>
-                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-picker-row-action>Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></button></td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" style="min-width: 5rem;" data-picker-row-action>
+                                    Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i>
+                                </button>
+                            </td>
                         </tr>
                     @empty
                         <tr>

@@ -7,6 +7,7 @@
 @endphp
 
 @section('title', 'Reservation Details')
+@section('page-title', 'Reservation Details')
 @section('user-name', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 @section('user-role', auth()->user()->role?->role_name === 'Instructor' ? 'Instructor' : 'Student')
 
@@ -43,7 +44,7 @@
                         </ul>
                     </div>
                     <div class="row g-3">
-                        <div class="col-lg-4">
+                        <div class="col-lg-6">
                             <label class="form-label fw-semibold text-dark">Laboratory <span class="text-danger">*</span></label>
                             <select id="reservation-laboratory" name="laboratory_id" class="form-select @error('laboratory_id') is-invalid @enderror" required>
                                 <option value="">Select laboratory</option>
@@ -54,10 +55,29 @@
                             @error('laboratory_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div id="reservation-laboratory-capacity" class="form-text" aria-live="polite">Select a laboratory to see its capacity.</div>
                         </div>
-                        <div class="col-lg-8">
+                        <div class="col-lg-6">
                             <label class="form-label fw-semibold text-dark">Experiment / Activity Title <span class="text-danger">*</span></label>
                             <input type="text" name="experiment_title" value="{{ old('experiment_title', $details['experiment_title'] ?? '') }}" class="form-control @error('experiment_title') is-invalid @enderror" placeholder="Enter the title of the lab activity" required>
                             @error('experiment_title')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                        @if (optional(auth()->user()->role)->role_name !== 'Instructor')
+                            <div class="col-6">
+                                <label for="reservation-instructor" class="form-label fw-semibold text-dark">Instructor reviewer</label>
+                                <select id="reservation-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
+                                    <option value="">Select a Main campus instructor</option>
+                                    @foreach ($instructors as $instructor)
+                                        <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', $details['instructor_id'] ?? '') == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                <div class="form-text">Only the selected instructor will receive and approve this request.</div>
+                            </div>
+                        @endif
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">Expected Participants</label>
+                            <input id="reservation-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', $details['expected_participants'] ?? 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
+                            @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div id="reservation-participants-capacity" class="form-text" aria-live="polite"></div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">Purpose</label>
@@ -82,25 +102,6 @@
                             @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             <div class="invalid-feedback" data-time-validation-message="end_time" hidden></div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold text-dark">Expected Participants</label>
-                            <input id="reservation-participants" type="number" min="1" name="expected_participants" value="{{ old('expected_participants', $details['expected_participants'] ?? 1) }}" class="form-control @error('expected_participants') is-invalid @enderror" required>
-                            @error('expected_participants')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <div id="reservation-participants-capacity" class="form-text" aria-live="polite"></div>
-                        </div>
-                        @if (optional(auth()->user()->role)->role_name !== 'Instructor')
-                            <div class="col-12">
-                                <label for="reservation-instructor" class="form-label fw-semibold text-dark">Instructor reviewer</label>
-                                <select id="reservation-instructor" name="instructor_id" class="form-select @error('instructor_id') is-invalid @enderror" required>
-                                    <option value="">Select a Main campus instructor</option>
-                                    @foreach ($instructors as $instructor)
-                                        <option value="{{ $instructor->userNo }}" @selected(old('instructor_id', $details['instructor_id'] ?? '') == $instructor->userNo)>{{ $instructor->last_name }}, {{ $instructor->first_name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('instructor_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                <div class="form-text">Only the selected instructor will receive and approve this request.</div>
-                            </div>
-                        @endif
                         <div class="col-12">
                             <div class="form-text">Academic period:
                                 @if ($currentSchoolYear && $currentSemester)

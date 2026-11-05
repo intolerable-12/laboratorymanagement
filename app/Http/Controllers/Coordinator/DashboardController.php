@@ -65,7 +65,7 @@ class DashboardController extends Controller
 
         $stats = [
             ['label' => 'Unique equipment', 'value' => number_format($totalEquipmentRecords), 'note' => 'Distinct equipment records in inventory', 'tone' => 'primary'],
-            ['label' => 'Equipment quantity', 'value' => number_format($totalEquipmentQuantity), 'note' => 'Units across active equipment', 'tone' => 'info'],
+            ['label' => 'Total equipment', 'value' => number_format($totalEquipmentQuantity), 'note' => 'Units across active equipment', 'tone' => 'info'],
             ['label' => 'Total chemicals', 'value' => number_format($totalChemicalRecords), 'note' => 'Active chemical records', 'tone' => 'success'],
             ['label' => 'Active reservations', 'value' => number_format($activeReservations), 'note' => 'Coordinator-approved upcoming bookings', 'tone' => 'info'],
             ['label' => 'Pending approvals', 'value' => number_format($reservationApprovals + $borrowApprovals), 'note' => 'Reservation and borrow requests', 'tone' => 'warning'],
@@ -76,7 +76,7 @@ class DashboardController extends Controller
         ];
         $equipmentStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
             'Unique equipment',
-            'Equipment quantity',
+            'Total equipment',
             'Damaged equipment',
             'Borrowed equipment',
         ], true)));
