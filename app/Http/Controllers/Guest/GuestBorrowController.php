@@ -256,7 +256,7 @@ class GuestBorrowController extends Controller
         $borrowTransaction = DB::transaction(function () use ($data, $items, $laboratoryId, $notificationService) {
             $guestRequester = app(GuestRequesterService::class)->resolve($data);
             $schoolYear = AcademicPeriodSelection::currentSchoolYear(Campus::MAIN)
-                ?? SchoolYear::orderByDesc('start_date')->first();
+                ?? SchoolYear::where('campus', Campus::MAIN)->orderByDesc('start_date')->first();
 
             $borrowTransaction = BorrowTransaction::create([
                 'borrow_no' => app(SequentialCodeGenerator::class)->borrowNumber($schoolYear),

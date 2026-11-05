@@ -192,6 +192,85 @@ class CoordinatorReservationController extends Controller
             ->with('status', 'Reservation rejected successfully.');
     }
 
+    public function dismiss(Request $request, Reservation $reservation)
+    {
+        $this->ensureCoordinator($request);
+        $this->ensureMainCampus($reservation);
+
+        $data = $request->validate([
+            'remarks' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $notificationService = app(RequestNotificationService::class);
+
+        DB::transaction(function () use ($request, $reservation, $data, $notificationService): void {
+            $lockedReservation = Reservation::query()
+                ->lockForUpdate()
+                ->findOrFail($reservation->id);
+
+            if ($lockedReservation->status !== 'Coordinator Approved') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only coordinator-approved reservations can be dismissed.',
+                ]);
+            }
+
+            $borrowTransactions = $lockedReservation->borrowTransactions()
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($borrowTransactions as $borrowTransaction) {
+                if (
+                    $borrowTransaction->status !== 'Coordinator Approved'
+                    || $borrowTransaction->checked_out_at !== null
+                    || $borrowTransaction->items()->where('quantity_checked_out', '>', 0)->exists()
+                ) {
+                    throw ValidationException::withMessages([
+                        'status' => 'A reservation cannot be dismissed after checkout has started.',
+                    ]);
+                }
+            }
+
+            $lockedReservation->update(['status' => 'Cancelled']);
+
+            foreach ($borrowTransactions as $borrowTransaction) {
+                $borrowAttributes = ['status' => 'Cancelled'];
+
+                if (filled($data['remarks'] ?? null)) {
+                    $borrowAttributes['remarks'] = $data['remarks'];
+                }
+
+                $borrowTransaction->update($borrowAttributes);
+            }
+
+            ApprovalLog::create([
+                'reservation_id' => $lockedReservation->id,
+                'approved_by' => $request->user()->userNo,
+                'role' => 'Coordinator',
+                'action' => 'Dismissed',
+                'remarks' => $data['remarks'] ?? null,
+                'approved_at' => now(),
+            ]);
+
+            $notificationService->notifyRequester(
+                $lockedReservation,
+                'Reservation',
+                'Reservation dismissed',
+                'Your approved reservation '.$lockedReservation->reservation_no.' has been dismissed by the Coordinator.'
+                .(filled($data['remarks'] ?? null) ? ' Remarks: '.$data['remarks'] : '')
+            );
+        });
+
+        $reservation->refresh();
+        app(CoordinatorReservationEmailController::class)->sendDismissedToRequester(
+            $reservation,
+            $request->user(),
+            $data['remarks'] ?? null,
+        );
+
+        return redirect()
+            ->route('coordinator.reservations.show', $reservation)
+            ->with('status', 'Reservation dismissed successfully.');
+    }
+
     public function reschedule(Request $request, Reservation $reservation)
     {
         $this->ensureCoordinator($request);

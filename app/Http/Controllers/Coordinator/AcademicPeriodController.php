@@ -22,12 +22,13 @@ class AcademicPeriodController extends Controller
 {
     public function index(Request $request)
     {
+        $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
+            ->where('campus', $campus)
             ->orderByDesc('start_date')
             ->get();
-        $semesters = $this->semesters();
+        $semesters = $this->semesters($campus);
 
-        $campus = $this->viewerCampus($request);
         $currentSchoolYearId = AcademicPeriodSelection::currentSchoolYearId($campus);
         $currentSemesterId = AcademicPeriodSelection::currentSemesterId($campus);
         $schoolYears->each(fn (SchoolYear $schoolYear) => $schoolYear->setAttribute('is_current', $schoolYear->id === $currentSchoolYearId));
@@ -59,29 +60,36 @@ class AcademicPeriodController extends Controller
 
     public function storeSchoolYear(Request $request)
     {
-        $schoolYear = SchoolYear::create($this->validateSchoolYear($request));
-        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters(), $this->viewerCampus($request));
+        $campus = $this->viewerCampus($request);
+        $schoolYear = SchoolYear::create($this->validateSchoolYear($request, null, $campus) + ['campus' => $campus]);
+        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters($campus), $campus);
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year created successfully.');
     }
 
-    public function editSchoolYear(SchoolYear $schoolYear)
+    public function editSchoolYear(Request $request, SchoolYear $schoolYear)
     {
+        $this->assertCampus($schoolYear->campus, $this->viewerCampus($request));
+
         return view('users.coordinator.academic-periods.school-year-edit', compact('schoolYear'));
     }
 
     public function updateSchoolYear(Request $request, SchoolYear $schoolYear)
     {
-        $schoolYear->update($this->validateSchoolYear($request, $schoolYear));
-        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters(), $this->viewerCampus($request));
+        $campus = $this->viewerCampus($request);
+        $this->assertCampus($schoolYear->campus, $campus);
+        $schoolYear->update($this->validateSchoolYear($request, $schoolYear, $campus));
+        $this->ensureAcademicPeriods(collect([$schoolYear]), $this->semesters($campus), $campus);
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'School year updated successfully.');
     }
 
-    public function destroySchoolYear(SchoolYear $schoolYear)
+    public function destroySchoolYear(Request $request, SchoolYear $schoolYear)
     {
+        $this->assertCampus($schoolYear->campus, $this->viewerCampus($request));
+
         if (AcademicPeriodSelection::isSchoolYearCurrentAnywhere($schoolYear)) {
             return $this->periodError('This school year is currently selected by at least one campus. Set another school year as current before deleting it.');
         }
@@ -99,6 +107,7 @@ class AcademicPeriodController extends Controller
     public function setCurrentSchoolYear(Request $request, SchoolYear $schoolYear)
     {
         $campus = $this->viewerCampus($request);
+        $this->assertCampus($schoolYear->campus, $campus);
 
         DB::transaction(function () use ($schoolYear, $campus): void {
             AcademicPeriodSelection::setCurrentSchoolYear($campus, $schoolYear);
@@ -115,29 +124,44 @@ class AcademicPeriodController extends Controller
 
     public function storeSemester(Request $request)
     {
-        Semester::create($this->validateSemester($request));
-        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters(), $this->viewerCampus($request));
+        $campus = $this->viewerCampus($request);
+        Semester::create($this->validateSemester($request, null, $campus) + ['campus' => $campus]);
+        $this->ensureAcademicPeriods(
+            SchoolYear::query()->where('campus', $campus)->get(),
+            $this->semesters($campus),
+            $campus,
+        );
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester created successfully.');
     }
 
-    public function editSemester(Semester $semester)
+    public function editSemester(Request $request, Semester $semester)
     {
+        $this->assertCampus($semester->campus, $this->viewerCampus($request));
+
         return view('users.coordinator.academic-periods.semester-edit', compact('semester'));
     }
 
     public function updateSemester(Request $request, Semester $semester)
     {
-        $semester->update($this->validateSemester($request, $semester));
-        $this->ensureAcademicPeriods(SchoolYear::query()->get(), $this->semesters(), $this->viewerCampus($request));
+        $campus = $this->viewerCampus($request);
+        $this->assertCampus($semester->campus, $campus);
+        $semester->update($this->validateSemester($request, $semester, $campus));
+        $this->ensureAcademicPeriods(
+            SchoolYear::query()->where('campus', $campus)->get(),
+            $this->semesters($campus),
+            $campus,
+        );
 
         return redirect()->route($this->routePrefix().'.academic-periods.index')
             ->with('status', 'Semester updated successfully.');
     }
 
-    public function destroySemester(Semester $semester)
+    public function destroySemester(Request $request, Semester $semester)
     {
+        $this->assertCampus($semester->campus, $this->viewerCampus($request));
+
         if (AcademicPeriodSelection::isSemesterCurrentAnywhere($semester)) {
             return $this->periodError('This semester is currently selected by at least one campus. Set another semester as current before deleting it.');
         }
@@ -155,6 +179,7 @@ class AcademicPeriodController extends Controller
     public function setCurrentSemester(Request $request, Semester $semester)
     {
         $campus = $this->viewerCampus($request);
+        $this->assertCampus($semester->campus, $campus);
 
         DB::transaction(function () use ($semester, $campus): void {
             AcademicPeriodSelection::setCurrentSemester($campus, $semester);
@@ -174,23 +199,33 @@ class AcademicPeriodController extends Controller
             'periods.*.*.end_date' => ['required', 'date'],
         ]);
 
+        $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
+            ->where('campus', $campus)
             ->whereIn('id', array_keys($data['periods']))
             ->orderBy('start_date')
             ->orderBy('id')
             ->get()
             ->keyBy('id');
-        $semesters = $this->semesters();
-
-        $campus = $this->viewerCampus($request);
+        if ($schoolYears->count() !== count($data['periods'])) {
+            throw ValidationException::withMessages([
+                'periods' => 'One or more school years do not belong to this campus.',
+            ]);
+        }
+        $semesters = $this->semesters($campus);
+        $allowedSemesterIds = $semesters->modelKeys();
+        foreach ($data['periods'] as $semesterPeriods) {
+            $submittedSemesterIds = array_map('intval', array_keys($semesterPeriods));
+            if (array_diff($submittedSemesterIds, $allowedSemesterIds) !== []) {
+                throw ValidationException::withMessages([
+                    'periods' => 'One or more semesters do not belong to this campus.',
+                ]);
+            }
+        }
 
         DB::transaction(function () use ($data, $schoolYears, $semesters, $campus): void {
             foreach ($data['periods'] as $schoolYearId => $semesterPeriods) {
                 $schoolYear = $schoolYears->get((int) $schoolYearId);
-
-                if (! $schoolYear) {
-                    continue;
-                }
 
                 $previousEnd = null;
 
@@ -251,26 +286,36 @@ class AcademicPeriodController extends Controller
             ->with('status', 'Semester academic periods updated successfully.');
     }
 
-    private function validateSchoolYear(Request $request, ?SchoolYear $schoolYear = null): array
+    private function validateSchoolYear(Request $request, ?SchoolYear $schoolYear, string $campus): array
     {
         return $request->validate([
-            'school_year' => ['required', 'string', 'max:20', Rule::unique('school_years', 'school_year')->ignore($schoolYear?->id)],
+            'school_year' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('school_years', 'school_year')->where('campus', $campus)->ignore($schoolYear?->id),
+            ],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
         ]);
     }
 
-    private function validateSemester(Request $request, ?Semester $semester = null): array
+    private function validateSemester(Request $request, ?Semester $semester, string $campus): array
     {
         return $request->validate([
-            'semester_name' => ['required', 'string', 'max:30', Rule::unique('semesters', 'semester_name')->ignore($semester?->id)],
+            'semester_name' => [
+                'required',
+                'string',
+                'max:30',
+                Rule::unique('semesters', 'semester_name')->where('campus', $campus)->ignore($semester?->id),
+            ],
             'display_order' => ['required', 'integer', 'min:1', 'max:255'],
         ]);
     }
 
-    private function semesters(): Collection
+    private function semesters(string $campus): Collection
     {
-        return Semester::query()->orderBy('display_order')->orderBy('id')->get();
+        return Semester::query()->where('campus', $campus)->orderBy('display_order')->orderBy('id')->get();
     }
 
     private function ensureAcademicPeriods(Collection $schoolYears, Collection $semesters, string $campus): void
@@ -299,6 +344,11 @@ class AcademicPeriodController extends Controller
     private function viewerCampus(Request $request): string
     {
         return Campus::normalize($request->user()?->campusName()) ?? Campus::MAIN;
+    }
+
+    private function assertCampus(?string $recordCampus, string $campus): void
+    {
+        abort_unless($recordCampus === $campus, 404);
     }
 
     private function periodError(string $message)

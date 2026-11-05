@@ -17,8 +17,10 @@ class EquipmentInventoryPeriodTracker
 
     public function initializeForEquipment(Equipment $equipment): void
     {
-        $schoolYears = $this->schoolYears();
-        $semesters = $this->semesters();
+        $equipment->loadMissing('laboratory');
+        $campus = Campus::normalize($equipment->laboratory?->campus) ?? Campus::MAIN;
+        $schoolYears = $this->schoolYears($campus);
+        $semesters = $this->semesters($campus);
 
         foreach ($schoolYears as $schoolYear) {
             foreach ($semesters as $semesterIndex => $semester) {
@@ -30,9 +32,9 @@ class EquipmentInventoryPeriodTracker
     public function initializeForSchoolYear(SchoolYear $schoolYear): void
     {
         $equipment = Equipment::query()->with('laboratory')->get();
-        $semesters = $this->semesters();
+        $semesters = $this->semesters($schoolYear->campus);
 
-        foreach ($equipment as $item) {
+        foreach ($equipment->filter(fn (Equipment $item): bool => (Campus::normalize($item->laboratory?->campus) ?? Campus::MAIN) === $schoolYear->campus) as $item) {
             foreach ($semesters as $semesterIndex => $semester) {
                 $this->ensurePeriod($item, $schoolYear, $semester, $semesterIndex, $semesters->count());
             }
@@ -41,15 +43,17 @@ class EquipmentInventoryPeriodTracker
 
     public function initializeForSemester(Semester $semester): void
     {
-        $schoolYears = $this->schoolYears();
-        $semesters = $this->semesters();
+        $schoolYears = $this->schoolYears($semester->campus);
+        $semesters = $this->semesters($semester->campus);
         $semesterIndex = $semesters->search(fn (Semester $candidate): bool => $candidate->id === $semester->id);
 
         if ($semesterIndex === false) {
             return;
         }
 
-        foreach (Equipment::query()->with('laboratory')->get() as $equipment) {
+        foreach (Equipment::query()->with('laboratory')->get()->filter(
+            fn (Equipment $equipment): bool => (Campus::normalize($equipment->laboratory?->campus) ?? Campus::MAIN) === $semester->campus,
+        ) as $equipment) {
             foreach ($schoolYears as $schoolYear) {
                 $this->ensurePeriod($equipment, $schoolYear, $semester, (int) $semesterIndex, $semesters->count());
             }
@@ -59,9 +63,9 @@ class EquipmentInventoryPeriodTracker
     public function recordQuantityChange(Equipment $equipment, int $previousQuantity, int $newQuantity, ?Carbon $changedAt = null): void
     {
         $changedAt ??= now();
-        $semesters = $this->semesters();
         $equipment->loadMissing('laboratory');
         $campus = Campus::normalize($equipment->laboratory?->campus) ?? Campus::MAIN;
+        $semesters = $this->semesters($campus);
 
         $schoolYear = $this->currentSchoolYear($campus);
         $semester = $this->currentSemester($campus);
@@ -134,17 +138,19 @@ class EquipmentInventoryPeriodTracker
         return trim($existing ? $existing.' '.$remark : $remark);
     }
 
-    private function schoolYears(): Collection
+    private function schoolYears(string $campus): Collection
     {
         return SchoolYear::query()
+            ->where('campus', $campus)
             ->orderBy('start_date')
             ->orderBy('id')
             ->get();
     }
 
-    private function semesters(): Collection
+    private function semesters(string $campus): Collection
     {
         return Semester::query()
+            ->where('campus', $campus)
             ->orderBy('display_order')
             ->orderBy('id')
             ->get();

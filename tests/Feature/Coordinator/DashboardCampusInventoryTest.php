@@ -59,7 +59,15 @@ it('shows campus inventory counts and per-laboratory totals on both dashboards',
         'updated_at' => now(),
     ]);
 
-    $makeInventory = static function (Laboratory $laboratory, string $suffix, int $equipmentQuantity, float $chemicalQuantity) use ($equipmentCategoryId, $chemicalCategoryId): void {
+    $makeInventory = static function (
+        Laboratory $laboratory,
+        string $suffix,
+        int $equipmentQuantity,
+        float $chemicalQuantity,
+        bool $damaged = false,
+        bool $expired = false,
+        bool $lowStock = false,
+    ) use ($equipmentCategoryId, $chemicalCategoryId): void {
         Equipment::create([
             'equipment_code' => 'EQUIP-'.$suffix,
             'barcode' => 'BARCODE-EQUIP-'.$suffix,
@@ -68,6 +76,8 @@ it('shows campus inventory counts and per-laboratory totals on both dashboards',
             'laboratory_id' => $laboratory->id,
             'quantity' => $equipmentQuantity,
             'available_quantity' => $equipmentQuantity,
+            'condition' => $damaged ? 'Damaged' : 'Good',
+            'low_stock_threshold' => $lowStock ? $equipmentQuantity : null,
         ]);
         Chemical::create([
             'chemical_code' => 'CHEM-'.$suffix,
@@ -78,12 +88,14 @@ it('shows campus inventory counts and per-laboratory totals on both dashboards',
             'laboratory_id' => $laboratory->id,
             'quantity' => $chemicalQuantity,
             'unit' => 'ml',
+            'expiration_date' => $expired ? today()->subDay() : null,
+            'minimum_stock' => $lowStock ? $chemicalQuantity : 10,
         ]);
     };
 
-    $makeInventory($mainLaboratories[0], 'MAIN-1', 4, 125);
+    $makeInventory($mainLaboratories[0], 'MAIN-1', 4, 125, damaged: true, expired: true, lowStock: true);
     $makeInventory($mainLaboratories[1], 'MAIN-2', 3, 75);
-    $makeInventory($ibedLaboratory, 'IBED-1', 99, 900);
+    $makeInventory($ibedLaboratory, 'IBED-1', 99, 900, damaged: true, expired: true, lowStock: true);
 
     $dashboards = [
         [$mainCoordinator, 'coordinator.dashboard', Campus::MAIN, $mainLaboratories],
@@ -95,6 +107,28 @@ it('shows campus inventory counts and per-laboratory totals on both dashboards',
         $response = $this->actingAs($viewer)->get(route($routeName));
 
         $response->assertOk();
+        $this->assertSame(0, $response->viewData('checkinCount'));
+        $this->assertSame(0, $response->viewData('checkoutCount'));
+        $equipmentRoutePrefix = $routeName === 'coordinator.dashboard' ? 'coordinator' : 'facilitator';
+        $routePrefix = $equipmentRoutePrefix;
+        $response->assertSee('Check in equipment')
+            ->assertSee('Check out equipment/chemical');
+        $response->assertSee(route($equipmentRoutePrefix.'.equipment.index', ['condition' => 'Damaged']), false)
+            ->assertSee(route($equipmentRoutePrefix.'.chemicals.index', ['status' => 'Expired']), false)
+            ->assertSee(route($equipmentRoutePrefix.'.equipment.index', ['low_stock' => '1']), false)
+            ->assertSee(route($equipmentRoutePrefix.'.chemicals.index', ['low_stock' => '1']), false);
+
+        $dashboardStats = $routeName === 'coordinator.dashboard'
+            ? array_column($response->viewData('stats'), 'value', 'label')
+            : array_column(
+                array_merge($response->viewData('equipmentStats'), $response->viewData('chemicalStats')),
+                'value',
+                'label',
+            );
+        $this->assertSame('1', $dashboardStats['Expired chemicals']);
+        $this->assertSame('1', $dashboardStats['Low stock equipment']);
+        $this->assertSame('1', $dashboardStats['Low stock chemicals']);
+
         $this->assertSame(
             collect($laboratories)->pluck('laboratory_name')->all(),
             $response->viewData('laboratoryInventory')->pluck('name')->all(),
@@ -108,6 +142,23 @@ it('shows campus inventory counts and per-laboratory totals on both dashboards',
             }
         }
 
+        $damagedEquipmentResponse = $this->actingAs($viewer)->get(
+            route($routePrefix.'.equipment.index', ['condition' => 'Damaged']),
+        );
+        $damagedEquipmentResponse->assertOk();
+        $this->assertSame(
+            [$laboratories[0]->id],
+            $damagedEquipmentResponse->viewData('equipmentItems')->getCollection()->pluck('laboratory_id')->all(),
+        );
+        $lowStockEquipmentResponse = $this->actingAs($viewer)->get(
+            route($routePrefix.'.equipment.index', ['low_stock' => '1']),
+        );
+        $lowStockEquipmentResponse->assertOk();
+        $this->assertSame(
+            [$laboratories[0]->id],
+            $lowStockEquipmentResponse->viewData('equipmentItems')->getCollection()->pluck('laboratory_id')->all(),
+        );
+
         $chemicalResponse = $this->actingAs($viewer)->get(route($routePrefix.'.chemicals.index'));
 
         $chemicalResponse->assertOk();
@@ -115,6 +166,20 @@ it('shows campus inventory counts and per-laboratory totals on both dashboards',
         $this->assertSame(
             collect($laboratories)->pluck('id')->sort()->values()->all(),
             $chemicalResponse->viewData('chemicals')->getCollection()->pluck('laboratory_id')->sort()->values()->all(),
+        );
+        $expiredChemicalResponse = $this->actingAs($viewer)->get(route($routePrefix.'.chemicals.index', ['status' => 'Expired']));
+        $expiredChemicalResponse->assertOk();
+        $this->assertSame(
+            [$laboratories[0]->id],
+            $expiredChemicalResponse->viewData('chemicals')->getCollection()->pluck('laboratory_id')->all(),
+        );
+        $lowStockChemicalResponse = $this->actingAs($viewer)->get(
+            route($routePrefix.'.chemicals.index', ['low_stock' => '1']),
+        );
+        $lowStockChemicalResponse->assertOk();
+        $this->assertSame(
+            [$laboratories[0]->id],
+            $lowStockChemicalResponse->viewData('chemicals')->getCollection()->pluck('laboratory_id')->all(),
         );
 
         if ($routeName === 'coordinator.dashboard') {

@@ -10,6 +10,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\InventoryLog;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,8 +23,9 @@ class FacilitatorCheckinController extends Controller
     {
         $this->ensureCheckoutStaff($request);
 
+        $campus = $this->isCoordinator($request) ? Campus::MAIN : $request->user()->campusName();
         $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'reservation', 'items.item', 'receivedBy'])
-            ->forCampus($request->user()->campusName())
+            ->forCampus($campus)
             ->whereHas('items', fn ($query) => $query->where('item_type', 'Equipment'))
             ->whereIn('status', ['Borrowed', 'Partially Returned', 'Overdue'])
             ->orderByRaw("CASE WHEN status = 'Overdue' THEN 0 WHEN status = 'Partially Returned' THEN 1 ELSE 2 END")

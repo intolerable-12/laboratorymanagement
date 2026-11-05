@@ -15,7 +15,14 @@ class LaboratoryController extends Controller
     public function index(Request $request)
     {
         $campus = $this->viewerCampus($request);
-        $laboratories = Laboratory::forViewerCampus($campus)->with('images')->latest()->paginate(9);
+        $laboratories = Laboratory::forViewerCampus($campus)
+            ->with('images')
+            ->withExists([
+                'equipment as has_equipment' => fn ($query) => $query->withTrashed(),
+                'chemicals as has_chemicals' => fn ($query) => $query->withTrashed(),
+            ])
+            ->latest()
+            ->paginate(9);
 
         $stats = [
             'total' => Laboratory::forViewerCampus($campus)->count(),
@@ -124,6 +131,13 @@ class LaboratoryController extends Controller
     public function destroy(Request $request, Laboratory $laboratory)
     {
         $this->ensureViewerCanAccess($request, $laboratory);
+
+        if ($laboratory->equipment()->withTrashed()->exists() || $laboratory->chemicals()->withTrashed()->exists()) {
+            return redirect()
+                ->route($this->routePrefix($request).'.laboratories.index')
+                ->with('error', 'Laboratories with equipment or chemicals cannot be deleted.');
+        }
+
         $laboratory->load('images');
         $imagePaths = $laboratory->images->pluck('image_path')
             ->push($laboratory->image)

@@ -12,6 +12,7 @@ use App\Models\Equipment;
 use App\Models\InventoryLog;
 use App\Services\ChemicalInventoryPeriodTracker;
 use App\Services\RequestNotificationService;
+use App\Support\Campus;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +28,9 @@ class FacilitatorCheckoutController extends Controller
     {
         $this->ensureCheckoutStaff($request);
 
+        $campus = $this->isCoordinator($request) ? Campus::MAIN : $request->user()->campusName();
         $borrows = BorrowTransaction::with(['borrower', 'laboratory', 'reservation', 'items.item', 'releasedBy'])
-            ->forCampus($request->user()->campusName())
+            ->forCampus($campus)
             ->whereIn('status', ['Coordinator Approved', 'Partially Borrowed'])
             ->orderBy('borrowed_at')
             ->latest('id')

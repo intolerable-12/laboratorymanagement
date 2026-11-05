@@ -35,6 +35,19 @@ class CoordinatorReservationEmailController
 		);
 	}
 
+	public function sendDismissedToRequester(Reservation $reservation, User $coordinator, ?string $remarks = null): void
+	{
+		$this->send(
+			reservation: $reservation,
+			reviewerRole: 'Coordinator',
+			decisionLabel: 'Dismissed by Coordinator',
+			subjectPrefix: 'Reservation dismissed',
+			bodyMessage: 'Your approved reservation has been dismissed by the coordinator.',
+			reason: $remarks,
+			actorName: $this->buildUserName($coordinator),
+		);
+	}
+
 	private function send(
 		Reservation $reservation,
 		string $reviewerRole,

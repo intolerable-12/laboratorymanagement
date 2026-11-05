@@ -105,14 +105,7 @@ class ChemicalController extends Controller
             })
             ->when($status !== '', function ($query) use ($status) {
                 if ($status === 'Expired') {
-                    return $query->where(function ($statusQuery) {
-                        $statusQuery->where('chemicals.status', 'Expired')
-                            ->orWhere(function ($dateQuery) {
-                                $dateQuery->whereNotNull('chemicals.expiration_date')
-                                    ->whereDate('chemicals.expiration_date', '<', today())
-                                    ->where('chemicals.status', '!=', 'For Disposal');
-                            });
-                    });
+                    return $query->expired();
                 }
 
                 if ($status === 'Active') {
@@ -171,14 +164,7 @@ class ChemicalController extends Controller
             'active' => Chemical::withoutTrashed()->forCampus($campus)->where('status', 'Active')->count(),
             'inactive' => Chemical::withoutTrashed()->forCampus($campus)->where('status', 'Inactive')->count(),
             'low_stock' => Chemical::withoutTrashed()->forCampus($campus)->whereColumn('quantity', '<=', 'minimum_stock')->count(),
-            'expired' => Chemical::withoutTrashed()->forCampus($campus)->where(function ($query) {
-                $query->where('status', 'Expired')
-                    ->orWhere(function ($dateQuery) {
-                        $dateQuery->whereNotNull('expiration_date')
-                            ->whereDate('expiration_date', '<', today())
-                            ->where('status', '!=', 'For Disposal');
-                    });
-            })->count(),
+            'expired' => Chemical::withoutTrashed()->forCampus($campus)->expired()->count(),
             'for_disposal' => Chemical::withoutTrashed()->forCampus($campus)->where('status', 'For Disposal')->count(),
             'archived' => Chemical::onlyTrashed()->forCampus($campus)->count(),
         ];

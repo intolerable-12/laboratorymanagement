@@ -269,6 +269,7 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
                 Route::get('/{reservation}', [CoordinatorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [CoordinatorReservationController::class, 'approve'])->name('approve');
                 Route::post('/{reservation}/reject', [CoordinatorReservationController::class, 'reject'])->name('reject');
+                Route::post('/{reservation}/dismiss', [CoordinatorReservationController::class, 'dismiss'])->name('dismiss');
                 Route::patch('/{reservation}/reschedule', [CoordinatorReservationController::class, 'reschedule'])->name('reschedule');
             });
 

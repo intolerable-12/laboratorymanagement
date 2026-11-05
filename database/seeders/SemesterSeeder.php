@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Semester;
+use App\Support\Campus;
 use Illuminate\Database\Seeder;
 
 class SemesterSeeder extends Seeder
@@ -31,10 +32,12 @@ class SemesterSeeder extends Seeder
         ];
 
         foreach ($semesters as $semester) {
-            Semester::updateOrCreate(
-                ['semester_name' => $semester['semester_name']],
-                $semester
-            );
+            foreach (Campus::values() as $campus) {
+                Semester::updateOrCreate(
+                    ['campus' => $campus, 'semester_name' => $semester['semester_name']],
+                    $semester + ['campus' => $campus],
+                );
+            }
         }
     }
 }

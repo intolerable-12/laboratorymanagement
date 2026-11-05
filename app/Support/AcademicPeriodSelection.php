@@ -13,7 +13,10 @@ final class AcademicPeriodSelection
         $setting = self::setting($campus);
 
         if ($setting->school_year_id === null) {
-            $legacyCurrentId = SchoolYear::query()->where('is_current', true)->value('id');
+            $legacyCurrentId = SchoolYear::query()
+                ->where('campus', Campus::normalize($campus) ?? Campus::MAIN)
+                ->where('is_current', true)
+                ->value('id');
 
             if ($legacyCurrentId !== null) {
                 $setting->school_year_id = $legacyCurrentId;
@@ -29,7 +32,10 @@ final class AcademicPeriodSelection
         $setting = self::setting($campus);
 
         if ($setting->semester_id === null) {
-            $legacyCurrentId = Semester::query()->where('is_current', true)->value('id');
+            $legacyCurrentId = Semester::query()
+                ->where('campus', Campus::normalize($campus) ?? Campus::MAIN)
+                ->where('is_current', true)
+                ->value('id');
 
             if ($legacyCurrentId !== null) {
                 $setting->semester_id = $legacyCurrentId;

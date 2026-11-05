@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\SchoolYear;
+use App\Support\Campus;
 use Illuminate\Database\Seeder;
 
 class SchoolYearSeeder extends Seeder
@@ -34,10 +35,12 @@ class SchoolYearSeeder extends Seeder
         ];
 
         foreach ($schoolYears as $schoolYear) {
-            SchoolYear::updateOrCreate(
-                ['school_year' => $schoolYear['school_year']],
-                $schoolYear
-            );
+            foreach (Campus::values() as $campus) {
+                SchoolYear::updateOrCreate(
+                    ['campus' => $campus, 'school_year' => $schoolYear['school_year']],
+                    $schoolYear + ['campus' => $campus],
+                );
+            }
         }
     }
 }

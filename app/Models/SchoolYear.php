@@ -11,12 +11,17 @@ class SchoolYear extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $attributes = [
+        'campus' => 'Main',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
+        'campus',
         'school_year',
         'is_current',
         'start_date',

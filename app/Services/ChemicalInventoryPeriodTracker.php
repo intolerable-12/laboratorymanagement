@@ -17,8 +17,10 @@ class ChemicalInventoryPeriodTracker
 
     public function initializeForChemical(Chemical $chemical): void
     {
-        $schoolYears = $this->schoolYears();
-        $semesters = $this->semesters();
+        $chemical->loadMissing('laboratory');
+        $campus = Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN;
+        $schoolYears = $this->schoolYears($campus);
+        $semesters = $this->semesters($campus);
 
         foreach ($schoolYears as $schoolYear) {
             foreach ($semesters as $semesterIndex => $semester) {
@@ -29,9 +31,11 @@ class ChemicalInventoryPeriodTracker
 
     public function initializeForSchoolYear(SchoolYear $schoolYear): void
     {
-        $semesters = $this->semesters();
+        $semesters = $this->semesters($schoolYear->campus);
 
-        foreach (Chemical::query()->with('laboratory')->get() as $chemical) {
+        foreach (Chemical::query()->with('laboratory')->get()->filter(
+            fn (Chemical $chemical): bool => (Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN) === $schoolYear->campus,
+        ) as $chemical) {
             foreach ($semesters as $semesterIndex => $semester) {
                 $this->ensurePeriod($chemical, $schoolYear, $semester, $semesterIndex, $semesters->count());
             }
@@ -40,15 +44,17 @@ class ChemicalInventoryPeriodTracker
 
     public function initializeForSemester(Semester $semester): void
     {
-        $schoolYears = $this->schoolYears();
-        $semesters = $this->semesters();
+        $schoolYears = $this->schoolYears($semester->campus);
+        $semesters = $this->semesters($semester->campus);
         $semesterIndex = $semesters->search(fn (Semester $candidate): bool => $candidate->id === $semester->id);
 
         if ($semesterIndex === false) {
             return;
         }
 
-        foreach (Chemical::query()->with('laboratory')->get() as $chemical) {
+        foreach (Chemical::query()->with('laboratory')->get()->filter(
+            fn (Chemical $chemical): bool => (Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN) === $semester->campus,
+        ) as $chemical) {
             foreach ($schoolYears as $schoolYear) {
                 $this->ensurePeriod($chemical, $schoolYear, $semester, (int) $semesterIndex, $semesters->count());
             }
@@ -62,7 +68,7 @@ class ChemicalInventoryPeriodTracker
         $campus = Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN;
         $schoolYear = $this->currentSchoolYear($campus);
         $semester = $this->currentSemester($campus);
-        $semesters = $this->semesters();
+        $semesters = $this->semesters($campus);
 
         if (! $schoolYear || ! $semester) {
             return;
@@ -101,7 +107,7 @@ class ChemicalInventoryPeriodTracker
         $campus = Campus::normalize($chemical->laboratory?->campus) ?? Campus::MAIN;
         $schoolYear = $this->currentSchoolYear($campus);
         $semester = $this->currentSemester($campus);
-        $semesters = $this->semesters();
+        $semesters = $this->semesters($campus);
 
         if (! $schoolYear || ! $semester) {
             return;
@@ -167,14 +173,14 @@ class ChemicalInventoryPeriodTracker
         return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
     }
 
-    private function schoolYears(): Collection
+    private function schoolYears(string $campus): Collection
     {
-        return SchoolYear::query()->orderBy('start_date')->orderBy('id')->get();
+        return SchoolYear::query()->where('campus', $campus)->orderBy('start_date')->orderBy('id')->get();
     }
 
-    private function semesters(): Collection
+    private function semesters(string $campus): Collection
     {
-        return Semester::query()->orderBy('display_order')->orderBy('id')->get();
+        return Semester::query()->where('campus', $campus)->orderBy('display_order')->orderBy('id')->get();
     }
 
     private function currentSchoolYear(string $campus): ?SchoolYear

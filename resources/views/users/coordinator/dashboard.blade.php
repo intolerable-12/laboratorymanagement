@@ -23,38 +23,62 @@
     <section class="mb-4">
         <div class="d-flex align-items-center gap-2 mb-3">
             <i class="fa-solid fa-microscope text-primary"></i>
-            <h3 class="h4 fw-semibold mb-0 text-dark">Equipment overview</h3>
+            <i class="fa-solid fa-flask text-success"></i>
+            <h3 class="h4 fw-semibold mb-0 text-dark">Equipment &amp; Chemical Overview</h3>
         </div>
         <div class="row g-3 g-xl-4">
             @foreach ($equipmentStats as $metric)
                 <div class="col-12 col-sm-6 col-xl-3">
+                    @php
+                        $metricUrl = match ($metric['label']) {
+                            'Damaged equipment' => route('coordinator.equipment.index', ['condition' => 'Damaged']),
+                            'Low stock equipment' => route('coordinator.equipment.index', ['low_stock' => '1']),
+                            default => null,
+                        };
+                    @endphp
+                    @if ($metricUrl)
+                        <a href="{{ $metricUrl }}" class="d-block h-100 text-decoration-none" aria-label="View damaged equipment">
+                    @endif
                     <div class="card metric-card border-0 h-100">
                         <div class="card-body p-4">
                             <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
                             <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
                             <div class="small text-secondary">{{ $metric['note'] }}</div>
+                            @if ($metricUrl)
+                                <div class="small fw-semibold text-primary mt-3">See more <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i></div>
+                            @endif
                         </div>
                     </div>
+                    @if ($metricUrl)
+                        </a>
+                    @endif
                 </div>
             @endforeach
-        </div>
-    </section>
-
-    <section class="mb-4">
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="fa-solid fa-flask text-success"></i>
-            <h3 class="h4 fw-semibold mb-0 text-dark">Chemical overview</h3>
-        </div>
-        <div class="row g-3 g-xl-4">
             @foreach ($chemicalStats as $metric)
                 <div class="col-12 col-sm-6 col-xl-4">
+                    @php
+                        $metricUrl = match ($metric['label']) {
+                            'Expired chemicals' => route('coordinator.chemicals.index', ['status' => 'Expired']),
+                            'Low stock chemicals' => route('coordinator.chemicals.index', ['low_stock' => '1']),
+                            default => null,
+                        };
+                    @endphp
+                    @if ($metricUrl)
+                        <a href="{{ $metricUrl }}" class="d-block h-100 text-decoration-none" aria-label="View {{ strtolower($metric['label']) }}">
+                    @endif
                     <div class="card metric-card border-0 h-100">
                         <div class="card-body p-4">
                             <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
                             <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
                             <div class="small text-secondary">{{ $metric['note'] }}</div>
+                            @if ($metricUrl)
+                                <div class="small fw-semibold text-primary mt-3">See more <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i></div>
+                            @endif
                         </div>
                     </div>
+                    @if ($metricUrl)
+                        </a>
+                    @endif
                 </div>
             @endforeach
         </div>
@@ -76,6 +100,33 @@
 
     @include('partials.laboratory-inventory-summary', ['laboratoryInventory' => $laboratoryInventory])
 
+    <section class="row g-3 mb-4" aria-label="Equipment check-in and checkout">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <a href="{{ route('coordinator.checkin.index') }}" class="card metric-card border-0 h-100 text-decoration-none">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <i class="fa-solid fa-arrow-right-to-bracket text-primary fs-4" aria-hidden="true"></i>
+                    <div class="flex-grow-1">
+                        <div class="small text-uppercase fw-semibold text-secondary">Check in equipment</div>
+                        <div class="h4 fw-semibold text-dark mb-0">{{ number_format($checkinCount) }}</div>
+                        <div class="small fw-semibold text-primary mt-1">See more <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <a href="{{ route('coordinator.checkout.index') }}" class="card metric-card border-0 h-100 text-decoration-none">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-success fs-4" aria-hidden="true"></i>
+                    <div class="flex-grow-1">
+                        <div class="small text-uppercase fw-semibold text-secondary">Check out equipment/chemical</div>
+                        <div class="h4 fw-semibold text-dark mb-0">{{ number_format($checkoutCount) }}</div>
+                        <div class="small fw-semibold text-primary mt-1">See more <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </section>
+
     @include('partials.announcement-feed', [
         'announcements' => $announcements,
         'feedTitle' => 'Announcement Management',
@@ -87,7 +138,7 @@
     ])
 
     <div class="row g-4 mb-4">
-        <div class="col-xl-8">
+        <div class="col-12">
             <div class="card admin-card h-100">
                 <div class="card-header bg-white border-0 pt-4 px-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -122,38 +173,6 @@
             </div>
         </div>
 
-        <div class="col-xl-4">
-            <div class="card admin-card h-100">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h3 class="h5 fw-semibold mb-1">Approvals & alerts</h3>
-                    <p class="mb-0 text-secondary">Items that need attention soon.</p>
-                </div>
-                <div class="card-body p-4 pt-3">
-                    <div class="list-group list-group-flush">
-                        @foreach ($alerts as $alert)
-                            <div class="list-group-item px-0 d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="fw-semibold text-dark">{{ $alert['label'] }}</div>
-                                    <div class="small text-secondary">{{ $alert['description'] }}</div>
-                                </div>
-                                <span class="badge text-bg-{{ $alert['tone'] }} rounded-pill">{{ number_format($alert['count']) }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <hr class="my-4">
-
-                    <div class="bg-light rounded-4 p-3">
-                        <div class="small text-secondary mb-1">Maintenance status</div>
-                        <div class="fw-semibold text-dark mb-2">{{ $maintenance['headline'] }}</div>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-success" style="width: {{ $maintenance['readiness'] }}%;"></div>
-                        </div>
-                        <div class="small text-secondary">Maintenance readiness is {{ $maintenance['readiness'] }}%. {{ $maintenance['description'] }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="card admin-card mb-4">

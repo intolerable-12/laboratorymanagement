@@ -50,13 +50,28 @@ class DashboardController extends Controller
             ->count();
         $reservationApprovals = Reservation::forCampus($campus)->where('status', 'Facilitator Approved')->count();
         $borrowApprovals = BorrowTransaction::forCampus($campus)->where('status', 'Facilitator Approved')->count();
+        $checkinCount = BorrowTransaction::forCampus($campus)
+            ->whereHas('items', fn ($query) => $query->where('item_type', 'Equipment'))
+            ->whereIn('status', ['Borrowed', 'Partially Returned', 'Overdue'])
+            ->count();
+        $checkoutCount = BorrowTransaction::forCampus($campus)
+            ->whereIn('status', ['Coordinator Approved', 'Partially Borrowed'])
+            ->count();
         $expiringChemicals = Chemical::query()->forCampus($campus)
             ->where('status', 'Active')
             ->whereNotNull('expiration_date')
             ->whereDate('expiration_date', '>=', $today)
             ->whereDate('expiration_date', '<=', $today->copy()->addDays(30))
             ->count();
+        $expiredChemicals = Chemical::forCampus($campus)->expired()->count();
         $damagedEquipment = Equipment::forCampus($campus)->where('condition', 'Damaged')->sum('quantity');
+        $lowStockEquipment = Equipment::forCampus($campus)
+            ->whereNotNull('low_stock_threshold')
+            ->whereColumn('available_quantity', '<=', 'low_stock_threshold')
+            ->count();
+        $lowStockChemicals = Chemical::forCampus($campus)
+            ->whereColumn('quantity', '<=', 'minimum_stock')
+            ->count();
         $borrowedEquipment = $this->borrowedEquipmentQuantity($campus);
         $unreadNotifications = Notification::query()
             ->where('is_read', false)
@@ -70,7 +85,10 @@ class DashboardController extends Controller
             ['label' => 'Active reservations', 'value' => number_format($activeReservations), 'note' => 'Coordinator-approved upcoming bookings', 'tone' => 'info'],
             ['label' => 'Pending approvals', 'value' => number_format($reservationApprovals + $borrowApprovals), 'note' => 'Reservation and borrow requests', 'tone' => 'warning'],
             ['label' => 'Expiring chemicals', 'value' => number_format($expiringChemicals), 'note' => 'Expire within the next 30 days', 'tone' => 'danger'],
+            ['label' => 'Expired chemicals', 'value' => number_format($expiredChemicals), 'note' => 'Marked expired or past the expiration date', 'tone' => 'danger'],
             ['label' => 'Damaged equipment', 'value' => number_format((int) $damagedEquipment), 'note' => 'Units marked damaged', 'tone' => 'secondary'],
+            ['label' => 'Low stock equipment', 'value' => number_format($lowStockEquipment), 'note' => 'Equipment at or below its stock threshold', 'tone' => 'warning'],
+            ['label' => 'Low stock chemicals', 'value' => number_format($lowStockChemicals), 'note' => 'Chemicals at or below minimum stock', 'tone' => 'warning'],
             ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out', 'tone' => 'dark'],
             ['label' => 'Lab usage rate', 'value' => ($laboratoryUsage->isEmpty() ? 0 : (int) round($laboratoryUsage->avg('usage'))).'%', 'note' => 'Scheduled hours used this week', 'tone' => 'success'],
         ];
@@ -78,11 +96,14 @@ class DashboardController extends Controller
             'Unique equipment',
             'Total equipment',
             'Damaged equipment',
+            'Low stock equipment',
             'Borrowed equipment',
         ], true)));
         $chemicalStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
             'Total chemicals',
             'Expiring chemicals',
+            'Expired chemicals',
+            'Low stock chemicals',
         ], true)));
         $operationalStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
             'Active reservations',
@@ -102,6 +123,8 @@ class DashboardController extends Controller
             'operationalStats' => $operationalStats,
             'laboratoryUsage' => $laboratoryUsage,
             'laboratoryInventory' => $laboratoryInventory,
+            'checkinCount' => $checkinCount,
+            'checkoutCount' => $checkoutCount,
             'usagePeriodLabel' => $weekStart->format('M d').'â€“'.$weekEnd->format('M d, Y'),
             'alerts' => [
                 [

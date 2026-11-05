@@ -11,6 +11,7 @@ use App\Support\AcademicPeriodSelection;
 use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,7 @@ class ChemicalReportController extends Controller
     {
         $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
+            ->where('campus', $campus)
             ->orderByDesc('start_date')
             ->orderByDesc('id')
             ->with(['academicPeriods' => fn ($periods) => $periods->forCampus($campus)])
@@ -28,7 +30,7 @@ class ChemicalReportController extends Controller
 
         return view('users.coordinator.reports.chemicals', [
             'schoolYears' => $schoolYears,
-            'semesters' => $this->reportSemesters(),
+            'semesters' => $this->reportSemesters($campus),
             'campus' => $campus,
             'currentSchoolYearId' => AcademicPeriodSelection::currentSchoolYearId($campus),
             'chemicalCount' => Chemical::query()
@@ -43,9 +45,10 @@ class ChemicalReportController extends Controller
 
     public function export(Request $request): Response
     {
+        $campus = $this->viewerCampus($request);
         $data = $request->validate([
             'school_year_ids' => ['required', 'array', 'min:1'],
-            'school_year_ids.*' => ['integer', 'distinct', 'exists:school_years,id'],
+            'school_year_ids.*' => ['integer', 'distinct', Rule::exists('school_years', 'id')->where('campus', $campus)],
             'signatories' => ['nullable', 'array'],
             'signatories.*.prepared_by' => ['nullable', 'string', 'max:150'],
             'signatories.*.checked_by' => ['nullable', 'string', 'max:150'],
@@ -53,8 +56,8 @@ class ChemicalReportController extends Controller
             'signatories.*.approved_by' => ['nullable', 'string', 'max:150'],
         ]);
 
-        $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
+            ->where('campus', $campus)
             ->whereIn('id', $data['school_year_ids'])
             ->orderBy('start_date')
             ->orderBy('id')
@@ -86,7 +89,7 @@ class ChemicalReportController extends Controller
         return Excel::download(
             new ChemicalInventoryReportExport(
                 schoolYears: $schoolYears,
-                semesters: $this->reportSemesters(),
+                semesters: $this->reportSemesters($campus),
                 signatories: $signatories,
                 campus: $campus,
             ),
@@ -104,9 +107,9 @@ class ChemicalReportController extends Controller
         return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
     }
 
-    private function reportSemesters(): Collection
+    private function reportSemesters(string $campus): Collection
     {
-        $semesters = Semester::query()->orderBy('display_order')->orderBy('id')->get();
+        $semesters = Semester::query()->where('campus', $campus)->orderBy('display_order')->orderBy('id')->get();
 
         if ($semesters->isNotEmpty()) {
             return $semesters;

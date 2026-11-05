@@ -11,6 +11,9 @@
     @if (session('status'))
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
+    @if (session('error'))
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
+    @endif
 
     {{-- Metrics Cards --}}
     <div class="row g-3 g-xl-4 mb-4">
@@ -127,16 +130,17 @@
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </a>
 
-                                            <!-- Delete Icon -->
-                                            <form action="{{ route($routePrefix.'.laboratories.destroy', $laboratory) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                    onclick="return confirm('Delete this laboratory?');"
-                                                    title="Delete" aria-label="Delete">
-                                                    <i class="fa-solid fa-trash-can"></i>
-                                                </button>
-                                            </form>
+                                            @if (! $laboratory->has_equipment && ! $laboratory->has_chemicals)
+                                                <form action="{{ route($routePrefix.'.laboratories.destroy', $laboratory) }}" method="POST">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Delete this laboratory?');"
+                                                        title="Delete" aria-label="Delete">
+                                                        <i class="fa-solid fa-trash-can"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

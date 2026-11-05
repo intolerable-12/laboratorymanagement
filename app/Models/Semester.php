@@ -11,12 +11,17 @@ class Semester extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $attributes = [
+        'campus' => 'Main',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
+        'campus',
         'semester_name',
         'display_order',
         'is_current',

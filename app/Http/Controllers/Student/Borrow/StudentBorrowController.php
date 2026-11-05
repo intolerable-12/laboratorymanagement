@@ -392,8 +392,9 @@ class StudentBorrowController extends Controller
 		$borrowTransaction = DB::transaction(function () use ($request, $data, $items, $notificationService) {
 			$this->ensureStudentLaboratory($request, (int) $data['laboratory_id']);
 			$codeGenerator = app(SequentialCodeGenerator::class);
-			$schoolYear = AcademicPeriodSelection::currentSchoolYear($this->campusForUser($request))
-				?? SchoolYear::query()->orderByDesc('start_date')->first();
+			$campus = $this->campusForUser($request);
+			$schoolYear = AcademicPeriodSelection::currentSchoolYear($campus)
+				?? SchoolYear::query()->where('campus', $campus)->orderByDesc('start_date')->first();
 
 			$borrowTransaction = BorrowTransaction::create([
 				'borrow_no' => $codeGenerator->borrowNumber($schoolYear),

@@ -87,6 +87,23 @@ class Chemical extends Model
             });
     }
 
+    public function scopeExpired(Builder $query): Builder
+    {
+        $statusColumn = $query->qualifyColumn('status');
+        $expirationColumn = $query->qualifyColumn('expiration_date');
+
+        return $query->where(function (Builder $expiredQuery) use ($statusColumn, $expirationColumn): void {
+            $expiredQuery
+                ->where($statusColumn, 'Expired')
+                ->orWhere(function (Builder $dateQuery) use ($statusColumn, $expirationColumn): void {
+                    $dateQuery
+                        ->whereNotNull($expirationColumn)
+                        ->whereDate($expirationColumn, '<', today())
+                        ->where($statusColumn, '!=', 'For Disposal');
+                });
+        });
+    }
+
     public function scopeForCampus(Builder $query, ?string $campus): Builder
     {
         return filled($campus)
