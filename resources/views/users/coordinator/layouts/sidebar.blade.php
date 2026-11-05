@@ -287,11 +287,13 @@
                             <span class="sidebar-item__icon"><i class="fa-solid fa-bullhorn"></i></span>
                             <span class="sidebar-item__label">Announcements</span>
                         </a>
-                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"
-                            href="{{ route('coordinator.forum.index') }}" title="Forum">
-                            <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
-                            <span class="sidebar-item__label">Forum</span>
-                        </a>
+                        @if (\App\Support\ForumAccess::canParticipate(auth()->user()))
+                            <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isForumGroup ? 'active' : '' }}"
+                                href="{{ route('coordinator.forum.index') }}" title="Forum">
+                                <span class="sidebar-item__icon"><i class="fa-solid fa-comments"></i></span>
+                                <span class="sidebar-item__label">Forum</span>
+                            </a>
+                        @endif
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isFeedbackIndex ? 'active' : '' }}"
                             href="{{ route('coordinator.feedback.index') }}" title="Feedback">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-message"></i></span>

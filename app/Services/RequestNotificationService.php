@@ -16,7 +16,9 @@ use App\Mail\RequestReviewMail;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Support\Campus;
+use App\Support\ForumAccess;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Mail;
 
 class RequestNotificationService
@@ -281,16 +283,25 @@ class RequestNotificationService
         $title = 'New forum post';
         $message = $authorRole . ' ' . $authorName . ' created a new forum post: "' . $forumPost->title . '".';
 
-        foreach (['Student', 'Instructor'] as $roleName) {
-            $this->notifyRoleUsers(
-                $roleName,
+        User::query()
+            ->where('status', 'Active')
+            ->whereHas('role', fn ($query) => $query->whereIn('role_name', [
+                'Coordinator',
+                'Laboratory In-charge',
+                'Instructor',
+                'Student',
+            ]))
+            ->with(['role', 'department'])
+            ->get()
+            ->filter(fn (User $recipient): bool => $recipient->userNo !== $author->userNo
+                && ForumAccess::canAccessPost($recipient, $forumPost))
+            ->each(fn (User $recipient) => $this->notifyUser(
+                $recipient,
                 'System',
                 $title,
                 $message,
                 $forumPost,
-                $author->userNo,
-            );
-        }
+            ));
     }
 
     public function notifyForumCommentCreated(ForumComment $comment, User $actor): void
@@ -312,7 +323,8 @@ class RequestNotificationService
             ->filter(fn (?User $user) => $user
                 && $user->status === 'Active'
                 && $user->userNo !== $actor->userNo
-                && in_array($user->role?->role_name, $eligibleRoles, true))
+                && in_array($user->role?->role_name, $eligibleRoles, true)
+                && ForumAccess::canAccessPost($user, $forumPost))
             ->unique('userNo');
 
         $actorName = $this->displayName($actor);
@@ -335,7 +347,8 @@ class RequestNotificationService
         if ($postAuthor
             && $postAuthor->status === 'Active'
             && $postAuthor->userNo !== $actor->userNo
-            && in_array($postAuthor->role?->role_name, $eligibleRoles, true)) {
+            && in_array($postAuthor->role?->role_name, $eligibleRoles, true)
+            && ForumAccess::canAccessPost($postAuthor, $forumPost)) {
             $emailNotifications[$postAuthor->userNo] = [
                 'user' => $postAuthor,
                 'requestType' => 'Forum comment',
@@ -351,7 +364,8 @@ class RequestNotificationService
         if ($parentAuthor
             && $parentAuthor->status === 'Active'
             && $parentAuthor->userNo !== $actor->userNo
-            && in_array($parentAuthor->role?->role_name, $eligibleRoles, true)) {
+            && in_array($parentAuthor->role?->role_name, $eligibleRoles, true)
+            && ForumAccess::canAccessPost($parentAuthor, $forumPost)) {
             $emailNotifications[$parentAuthor->userNo] = [
                 'user' => $parentAuthor,
                 'requestType' => 'Forum reply',
@@ -571,8 +585,7 @@ class RequestNotificationService
 
     public function summaryFor(User $user, int $limit = 5): array
     {
-        $notifications = UserNotification::query()
-            ->where('user_no', $user->userNo)
+        $notifications = $this->notificationsFor($user)
             ->orderByDesc('sent_at')
             ->orderByDesc('id');
 
@@ -580,6 +593,48 @@ class RequestNotificationService
             'unreadCount' => (clone $notifications)->where('is_read', false)->count(),
             'items' => (clone $notifications)->limit($limit)->get(),
         ];
+    }
+
+    public function notificationsFor(User $user): Builder
+    {
+        $forumPostType = (new ForumPost())->getMorphClass();
+        $forumCommentType = (new ForumComment())->getMorphClass();
+        $canAccessForum = ForumAccess::canParticipate($user);
+        $campus = $canAccessForum ? ForumAccess::campusFor($user) : null;
+
+        return UserNotification::query()
+            ->where('user_no', $user->userNo)
+            ->where(function ($query) use ($forumPostType, $forumCommentType, $canAccessForum, $campus): void {
+                $query->whereNull('reference_type')
+                    ->orWhereNotIn('reference_type', [$forumPostType, $forumCommentType])
+                    ->orWhere(function ($forumPostQuery) use ($forumPostType, $canAccessForum, $campus): void {
+                        $forumPostQuery->where('reference_type', $forumPostType);
+
+                        if (! $canAccessForum) {
+                            $forumPostQuery->whereIn('reference_id', []);
+
+                            return;
+                        }
+
+                        $forumPostQuery->whereIn('reference_id', ForumPost::forCampus($campus)->select('id'));
+                    })
+                    ->orWhere(function ($forumCommentQuery) use ($forumCommentType, $canAccessForum, $campus): void {
+                        $forumCommentQuery->where('reference_type', $forumCommentType);
+
+                        if (! $canAccessForum) {
+                            $forumCommentQuery->whereIn('reference_id', []);
+
+                            return;
+                        }
+
+                        $forumCommentQuery->whereIn(
+                            'reference_id',
+                            ForumComment::query()
+                                ->whereHas('post', fn ($postQuery) => $postQuery->forCampus($campus))
+                                ->select('id'),
+                        );
+                    });
+            });
     }
 
     public function markAsRead(UserNotification $notification): void

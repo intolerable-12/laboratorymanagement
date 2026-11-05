@@ -10,8 +10,9 @@ use App\Models\Feedback;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Models\Laboratory;
-use App\Models\Notification;
 use App\Models\Reservation;
+use App\Services\RequestNotificationService;
+use App\Support\ForumAccess;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
@@ -55,18 +56,31 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $forumPosts = ForumPost::query()
-            ->where('user_no', $user?->userNo)
-            ->latest('created_at')
-            ->limit(5)
-            ->get();
+        $canParticipateInForum = ForumAccess::canParticipate($user);
+        $forumPosts = $canParticipateInForum
+            ? ForumPost::forCampus($campus)
+                ->where('user_no', $user->userNo)
+                ->latest('created_at')
+                ->limit(5)
+                ->get()
+            : collect();
 
-        $forumComments = ForumComment::query()
-            ->with('post')
-            ->where('user_no', $user?->userNo)
-            ->latest('created_at')
-            ->limit(5)
-            ->get();
+        $forumComments = $canParticipateInForum
+            ? ForumComment::query()
+                ->with('post')
+                ->where('user_no', $user->userNo)
+                ->whereHas('post', fn ($query) => $query->forCampus($campus))
+                ->latest('created_at')
+                ->limit(5)
+                ->get()
+            : collect();
+        $forumContributionCount = $canParticipateInForum
+            ? ForumPost::forCampus($campus)->where('user_no', $user->userNo)->count()
+                + ForumComment::query()
+                    ->where('user_no', $user->userNo)
+                    ->whereHas('post', fn ($query) => $query->forCampus($campus))
+                    ->count()
+            : 0;
 
         $activeStatuses = ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'];
         $pendingStatuses = ['Pending', 'Instructor Approved', 'Facilitator Approved'];
@@ -95,8 +109,8 @@ class DashboardController extends Controller
         $pendingReservationCount = $reservations
             ->whereIn('status', ['Pending', 'Instructor Approved'])
             ->count();
-        $unreadNotificationCount = Notification::query()
-            ->where('user_no', $user?->userNo)
+        $unreadNotificationCount = app(RequestNotificationService::class)
+            ->notificationsFor($user)
             ->where('is_read', false)
             ->count();
 
@@ -136,8 +150,7 @@ class DashboardController extends Controller
                 'pending_reservations' => $pendingReservationCount,
                 'unread_notifications' => $unreadNotificationCount,
                 'feedback_submissions' => Feedback::query()->where('user_no', $user?->userNo)->count(),
-                'forum_contributions' => ForumPost::query()->where('user_no', $user?->userNo)->count()
-                    + ForumComment::query()->where('user_no', $user?->userNo)->count(),
+                'forum_contributions' => $forumContributionCount,
             ],
             'recentBorrowedItems' => $recentBorrowedItems,
             'borrowSummary' => [

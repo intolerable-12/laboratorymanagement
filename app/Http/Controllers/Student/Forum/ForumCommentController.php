@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Services\RequestNotificationService;
+use App\Support\ForumAccess;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,6 +17,7 @@ class ForumCommentController extends Controller
     public function store(Request $request, ForumPost $forumPost, RequestNotificationService $notificationService)
     {
         $this->ensureStudent($request);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         abort_if($forumPost->is_hidden && $forumPost->user_no !== $request->user()->userNo, 404);
 
@@ -62,5 +64,6 @@ class ForumCommentController extends Controller
     private function ensureStudent(Request $request): void
     {
         abort_unless(optional($request->user()->role)->role_name === 'Student', 403);
+        abort_unless(ForumAccess::canParticipate($request->user()), 403);
     }
 }

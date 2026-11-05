@@ -8,6 +8,7 @@
 @section('page-title', 'Forum Management')
 
 @section('content')
+    <div class="small text-secondary mb-3">Showing {{ $campus }} campus posts only.</div>
     <style>
         .clickable-card {
             cursor: pointer;

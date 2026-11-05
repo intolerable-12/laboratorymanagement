@@ -15,7 +15,7 @@
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Forum composer</div>
                     <h2 class="display-6 fw-semibold mb-3 text-dark">Start a discussion people actually want to read</h2>
-                    <p class="lead text-secondary mb-0">Pick a category, write with rich text, and publish into the feed.</p>
+                    <p class="lead text-secondary mb-0">Pick a category, write with rich text, and publish for the {{ $campus }} campus community.</p>
                 </div>
                 <a href="{{ route('instructor.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">Back to feed</a>
             </div>

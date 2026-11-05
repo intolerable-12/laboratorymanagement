@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Services\RequestNotificationService;
+use App\Support\ForumAccess;
 use App\Support\RichTextSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,6 +17,7 @@ class ForumCommentController extends Controller
     public function store(Request $request, ForumPost $forumPost, RequestNotificationService $notificationService)
     {
         $this->ensureCoordinator($request);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         if ($forumPost->is_locked) {
             throw ValidationException::withMessages([
@@ -59,6 +61,9 @@ class ForumCommentController extends Controller
     public function toggleVisibility(Request $request, ForumComment $forumComment)
     {
         $this->ensureCoordinator($request);
+        $forumPost = $forumComment->post;
+        abort_unless($forumPost, 404);
+        ForumAccess::ensureCanAccessPost($request->user(), $forumPost);
 
         $forumComment->update([
             'is_hidden' => ! $forumComment->is_hidden,
@@ -70,6 +75,7 @@ class ForumCommentController extends Controller
     private function ensureCoordinator(Request $request): void
     {
         abort_unless(in_array(optional($request->user()->role)->role_name, ['Coordinator', 'Laboratory In-charge'], true), 403);
+        abort_unless(ForumAccess::canParticipate($request->user()), 403);
     }
 
     private function routePrefix(Request $request): string

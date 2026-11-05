@@ -15,7 +15,7 @@
                 <div class="hero-copy">
                     <div class="social-eyebrow mb-3">Instructor forum</div>
                     <h2 class="display-6 fw-semibold mb-3 text-dark">A feed for questions, updates, and lab discussions</h2>
-                    <p class="lead text-secondary mb-0">Browse by category, search the feed, and open the latest discussion cards.</p>
+                    <p class="lead text-secondary mb-0">Showing {{ $campus }} campus posts only. Browse by category, search the feed, and open the latest discussions.</p>
                 </div>
                 <a href="{{ route('instructor.forum.create') }}" class="btn btn-primary px-4 rounded-pill">New post</a>
             </div>

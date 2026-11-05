@@ -13,7 +13,7 @@
             <div>
                 <div class="social-eyebrow mb-3">Forum composer</div>
                 <h2 class="display-6 fw-semibold text-dark mb-3">Start a discussion</h2>
-                <p class="lead text-secondary mb-0">Create a post and share an update, question, or laboratory discussion.</p>
+                <p class="lead text-secondary mb-0">Create a post and share an update, question, or laboratory discussion with the {{ $campus }} campus community.</p>
             </div>
 
             <a href="{{ route($routePrefix.'.forum.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">

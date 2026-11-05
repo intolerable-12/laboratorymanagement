@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +30,7 @@ class ForumPost extends Model
      */
     protected $fillable = [
         'user_no',
+        'campus',
         'title',
         'category',
         'content',
@@ -67,6 +69,11 @@ class ForumPost extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(ForumComment::class, 'post_id');
+    }
+
+    public function scopeForCampus(Builder $query, string $campus): Builder
+    {
+        return $query->where('campus', $campus);
     }
 
     /**

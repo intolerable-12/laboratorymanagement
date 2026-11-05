@@ -369,7 +369,7 @@ class DashboardController extends Controller
             ]);
         });
 
-        ForumPost::with('user')->latest('created_at')->limit(10)->get()->each(function (ForumPost $post) use ($events): void {
+        ForumPost::forCampus(Campus::MAIN)->with('user')->latest('created_at')->limit(10)->get()->each(function (ForumPost $post) use ($events): void {
             $events->push([
                 'occurred_at' => $post->created_at,
                 'time' => $post->created_at?->format('M d, h:i A') ?? 'â€”',
@@ -380,16 +380,21 @@ class DashboardController extends Controller
             ]);
         });
 
-        ForumComment::with('user')->latest('created_at')->limit(10)->get()->each(function (ForumComment $comment) use ($events): void {
-            $events->push([
-                'occurred_at' => $comment->created_at,
-                'time' => $comment->created_at?->format('M d, h:i A') ?? 'â€”',
-                'user' => $this->userName($comment->user),
-                'activity' => 'Added a forum comment',
-                'status' => $comment->is_hidden ? 'Hidden' : 'Visible',
-                'status_tone' => $comment->is_hidden ? 'secondary' : 'success',
-            ]);
-        });
+        ForumComment::whereHas('post', fn ($query) => $query->forCampus(Campus::MAIN))
+            ->with('user')
+            ->latest('created_at')
+            ->limit(10)
+            ->get()
+            ->each(function (ForumComment $comment) use ($events): void {
+                $events->push([
+                    'occurred_at' => $comment->created_at,
+                    'time' => $comment->created_at?->format('M d, h:i A') ?? 'â€”',
+                    'user' => $this->userName($comment->user),
+                    'activity' => 'Added a forum comment',
+                    'status' => $comment->is_hidden ? 'Hidden' : 'Visible',
+                    'status_tone' => $comment->is_hidden ? 'secondary' : 'success',
+                ]);
+            });
 
         return $events
             ->sortByDesc(fn (array $event) => $event['occurred_at']?->timestamp ?? 0)
