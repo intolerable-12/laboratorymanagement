@@ -779,12 +779,97 @@ body.coordinator-page {
     border-radius: 1.1rem;
 }
 
+.reservation-calendar-page [data-reservation-calendar-modal] .modal-dialog {
+    max-width: min(1140px, calc(100vw - 2rem));
+}
+
+.reservation-calendar-page .calendar-request-items {
+    width: 100%;
+    table-layout: fixed;
+    border-color: #e5eaf0;
+}
+
+.reservation-calendar-page .calendar-request-items th,
+.reservation-calendar-page .calendar-request-items td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+
+.reservation-calendar-page .calendar-request-items thead th,
+.role-page .reservation-calendar-page .calendar-request-items thead th {
+    background: #f1f5f9;
+    color: #475569;
+    border-bottom: 1px solid #dbe3ed;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.reservation-calendar-page .calendar-request-items th:nth-child(1) {
+    width: 27%;
+}
+
+.reservation-calendar-page .calendar-request-items th:nth-child(2),
+.reservation-calendar-page .calendar-request-items th:nth-child(3) {
+    width: 13%;
+}
+
+.reservation-calendar-page .calendar-request-items th:nth-child(4) {
+    width: 14%;
+}
+
+.reservation-calendar-page .calendar-request-items th:nth-child(5) {
+    width: 20%;
+}
+
+.reservation-calendar-page .calendar-request-items th:nth-child(6) {
+    width: 13%;
+}
+
+.calendar-item-type {
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.calendar-item-progress {
+    min-width: 8rem;
+}
+
+.calendar-item-progress .badge {
+    display: inline-block;
+    margin: 0.1rem 0.15rem 0.1rem 0;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.25;
+}
+
+.calendar-item-progress .text-bg-light {
+    color: #64748b !important;
+    background: #f1f5f9 !important;
+}
+
 .reservation-calendar-page .account-summary-card {
     min-height: 100%;
 }
 
 .reservation-calendar-page .reservation-calendar__event {
     cursor: pointer;
+}
+
+@media (max-width: 767.98px) {
+    .reservation-calendar-page [data-reservation-calendar-modal] .modal-dialog {
+        max-width: calc(100vw - 1rem);
+        margin: 0.5rem;
+    }
+
+    .reservation-calendar-page .calendar-request-items {
+        min-width: 680px;
+        table-layout: auto;
+    }
 }
 
 @media (max-width: 991.98px) {

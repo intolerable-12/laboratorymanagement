@@ -48,6 +48,7 @@
                     @php
                         $sectionLabels = [
                             'current' => ['label' => 'Current Borrowing', 'tone' => 'primary'],
+                            'consumed' => ['label' => 'Consumed', 'tone' => 'info'],
                             'pending' => ['label' => 'Pending', 'tone' => 'warning'],
                             'returned' => ['label' => 'Returned', 'tone' => 'success'],
                             'cancelled' => ['label' => 'Cancelled', 'tone' => 'danger'],
@@ -220,7 +221,7 @@
                     const url = new URL(window.location.href);
                     url.searchParams.set('view', mode);
                     url.searchParams.delete('section');
-                    ['current', 'pending', 'returned', 'cancelled'].forEach((section) => url.searchParams.delete('page[' + section + ']'));
+                    ['current', 'consumed', 'pending', 'returned', 'cancelled'].forEach((section) => url.searchParams.delete('page[' + section + ']'));
                     window.location.assign(url);
                 });
             });

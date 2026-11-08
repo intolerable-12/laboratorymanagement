@@ -40,20 +40,26 @@ const statusBadgeClass = (status, eventType = 'reservation') => {
     }
 };
 
-const renderReservationItems = (body, items) => {
+const renderReservationItems = (body, items, eventType) => {
     if (!body) {
         return;
     }
 
     body.replaceChildren();
+    const isBorrow = eventType === 'borrow';
+    const table = body.closest('table');
+
+    table?.querySelectorAll('[data-borrow-only]').forEach((cell) => {
+        cell.hidden = !isBorrow;
+    });
 
     if (!items || items.length === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
 
-        cell.colSpan = 5;
+        cell.colSpan = isBorrow ? 6 : 3;
         cell.className = 'text-center text-secondary py-4';
-        cell.textContent = 'No items were attached to this reservation.';
+        cell.textContent = `No items were attached to this ${isBorrow ? 'borrow request' : 'reservation'}.`;
         row.appendChild(cell);
         body.appendChild(row);
         return;
@@ -62,28 +68,78 @@ const renderReservationItems = (body, items) => {
     items.forEach((item) => {
         const row = document.createElement('tr');
 
-        const typeCell = document.createElement('td');
-        typeCell.textContent = item.type ?? 'â€”';
-
         const nameCell = document.createElement('td');
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'badge calendar-item-type mb-1';
+        typeBadge.textContent = item.type ?? 'Item';
         const itemName = document.createElement('div');
         itemName.className = 'fw-semibold text-dark';
         itemName.textContent = item.name ?? 'â€”';
         const itemCode = document.createElement('div');
         itemCode.className = 'small text-secondary';
         itemCode.textContent = item.code ?? 'â€”';
-        nameCell.append(itemName, itemCode);
+        nameCell.append(typeBadge, itemName, itemCode);
 
         const quantityCell = document.createElement('td');
-        quantityCell.textContent = item.quantity ?? 'â€”';
+        quantityCell.className = 'text-nowrap';
+        quantityCell.textContent = `${item.quantity ?? 'â€”'} ${item.unit ?? ''}`.trim();
 
-        const unitCell = document.createElement('td');
-        unitCell.textContent = item.unit ?? 'â€”';
+        const checkedOutCell = document.createElement('td');
+        checkedOutCell.className = 'text-nowrap';
+        checkedOutCell.textContent = `${item.checked_out ?? 'â€”'} ${item.unit ?? ''}`.trim();
+        checkedOutCell.hidden = !isBorrow;
+
+        const conditionCell = document.createElement('td');
+        conditionCell.textContent = item.condition_out ?? 'â€”';
+        conditionCell.hidden = !isBorrow;
+
+        const progressCell = document.createElement('td');
+        progressCell.className = 'calendar-item-progress';
+        const addProgressBadge = (label, value, tone) => {
+            const badge = document.createElement('span');
+            badge.className = `badge text-bg-${tone}`;
+            badge.textContent = value === '' ? label : `${label}: ${value}`;
+            progressCell.appendChild(badge);
+        };
+        const checkedOutQuantity = Number.parseFloat(item.checked_out) || 0;
+
+        if (item.type === 'Chemical') {
+            if (checkedOutQuantity > 0) {
+                addProgressBadge('Consumed', `${item.checked_out} ${item.unit ?? ''}`.trim(), 'info');
+            } else {
+                addProgressBadge('Not consumed', '', 'light');
+            }
+        } else if (checkedOutQuantity <= 0) {
+            addProgressBadge('Not checked out', '', 'light');
+        } else {
+            const accountedQuantities = [
+                ['Returned', item.returned, 'success'],
+                ['Used', item.used, 'warning'],
+                ['Lost', item.lost, 'danger'],
+                ['Damaged', item.damaged, 'danger'],
+            ];
+            let hasAccountedQuantity = false;
+
+            accountedQuantities.forEach(([label, rawQuantity, tone]) => {
+                const quantity = Number.parseFloat(rawQuantity) || 0;
+                if (quantity > 0) {
+                    addProgressBadge(label, quantity, tone);
+                    hasAccountedQuantity = true;
+                }
+            });
+
+            if (item.condition_in && item.condition_in !== 'â€”') {
+                addProgressBadge('Condition in', item.condition_in, 'secondary');
+            } else if (!hasAccountedQuantity) {
+                addProgressBadge('Awaiting check-in', '', 'light');
+            }
+        }
+        progressCell.hidden = !isBorrow;
 
         const remarksCell = document.createElement('td');
         remarksCell.textContent = item.remarks ?? 'â€”';
 
-        row.append(typeCell, nameCell, quantityCell, unitCell, remarksCell);
+        row.append(nameCell, quantityCell, checkedOutCell, conditionCell, progressCell, remarksCell);
         body.appendChild(row);
     });
 };
@@ -112,16 +168,30 @@ export const initializeCalendars = () => {
         const modalSelectors = modalElement
             ? {
                 title: modalElement.querySelector('[data-reservation-calendar-title]'),
+                typeBadge: modalElement.querySelector('[data-reservation-calendar-type]'),
                 badge: modalElement.querySelector('[data-reservation-calendar-status]'),
                 reservationNo: modalElement.querySelector('[data-reservation-reservation-no]'),
+                referenceLabel: modalElement.querySelector('[data-reservation-reference-label]'),
+                requesterLabel: modalElement.querySelector('[data-reservation-requester-label]'),
                 studentName: modalElement.querySelector('[data-reservation-student-name]'),
                 studentId: modalElement.querySelector('[data-reservation-student-id]'),
                 studentEmail: modalElement.querySelector('[data-reservation-student-email]'),
+                studentContact: modalElement.querySelector('[data-reservation-student-contact]'),
+                studentDepartment: modalElement.querySelector('[data-reservation-student-department]'),
                 laboratoryName: modalElement.querySelector('[data-reservation-laboratory-name]'),
                 laboratoryCode: modalElement.querySelector('[data-reservation-laboratory-code]'),
+                laboratoryLocation: modalElement.querySelector('[data-reservation-laboratory-location]'),
+                campus: modalElement.querySelector('[data-reservation-campus]'),
                 experimentTitle: modalElement.querySelector('[data-reservation-experiment-title]'),
                 reservationDate: modalElement.querySelector('[data-reservation-date]'),
+                scheduleLabel: modalElement.querySelector('[data-reservation-schedule-label]'),
                 reservationTime: modalElement.querySelector('[data-reservation-time]'),
+                checkedOutAt: modalElement.querySelector('[data-reservation-checked-out-at]'),
+                releasedBy: modalElement.querySelector('[data-reservation-released-by]'),
+                receivedBy: modalElement.querySelector('[data-reservation-received-by]'),
+                assignedInstructor: modalElement.querySelector('[data-reservation-assigned-instructor]'),
+                submittedAt: modalElement.querySelector('[data-reservation-submitted-at]'),
+                updatedAt: modalElement.querySelector('[data-reservation-updated-at]'),
                 expectedParticipants: modalElement.querySelector('[data-reservation-participants]'),
                 schoolYear: modalElement.querySelector('[data-reservation-school-year]'),
                 semester: modalElement.querySelector('[data-reservation-semester]'),
@@ -205,21 +275,42 @@ export const initializeCalendars = () => {
                 }
 
                 const props = info.event.extendedProps ?? {};
-                const entryType = props.event_type === 'borrow' ? 'Borrow request' : 'Reservation';
+                const isBorrow = props.event_type === 'borrow';
+                const entryType = isBorrow ? 'Borrow Request' : 'Reservation';
                 const referenceNo = props.reference_no ?? props.reservation_no ?? entryType;
                 const marker = props.schedule_marker ? ` (${props.schedule_marker})` : '';
                 const title = `${entryType} - ${referenceNo} - ${props.laboratory_name ?? 'Laboratory'}${marker}`;
 
                 setTextContent(modalSelectors.title, title, 'Schedule details');
+                setTextContent(modalSelectors.typeBadge, entryType);
+                if (modalSelectors.typeBadge) {
+                    modalSelectors.typeBadge.className = `badge ${isBorrow ? 'text-bg-primary' : 'text-bg-success'} fs-6 px-3 py-2`;
+                }
                 setTextContent(modalSelectors.reservationNo, props.reservation_no);
+                setTextContent(modalSelectors.referenceLabel, isBorrow ? 'Borrow No.' : 'Reservation No.');
+                setTextContent(modalSelectors.scheduleLabel, isBorrow ? 'Borrow Period' : 'Reservation Schedule');
+                setTextContent(
+                    modalSelectors.requesterLabel,
+                    props.requester_role || 'Student',
+                );
                 setTextContent(modalSelectors.studentName, props.student_name);
                 setTextContent(modalSelectors.studentId, props.student_id);
                 setTextContent(modalSelectors.studentEmail, props.student_email);
+                setTextContent(modalSelectors.studentContact, props.student_contact);
+                setTextContent(modalSelectors.studentDepartment, props.student_department);
                 setTextContent(modalSelectors.laboratoryName, props.laboratory_name);
                 setTextContent(modalSelectors.laboratoryCode, props.laboratory_code);
+                setTextContent(modalSelectors.laboratoryLocation, props.laboratory_location);
+                setTextContent(modalSelectors.campus, props.campus);
                 setTextContent(modalSelectors.experimentTitle, props.experiment_title);
                 setTextContent(modalSelectors.reservationDate, props.reservation_date);
                 setTextContent(modalSelectors.reservationTime, `${props.start_time ?? '-'} - ${props.end_time ?? '-'}`);
+                setTextContent(modalSelectors.checkedOutAt, props.checked_out_at);
+                setTextContent(modalSelectors.releasedBy, props.released_by);
+                setTextContent(modalSelectors.receivedBy, props.received_by);
+                setTextContent(modalSelectors.assignedInstructor, props.assigned_instructor);
+                setTextContent(modalSelectors.submittedAt, props.submitted_at);
+                setTextContent(modalSelectors.updatedAt, props.updated_at);
                 setTextContent(modalSelectors.expectedParticipants, props.expected_participants);
                 setTextContent(modalSelectors.schoolYear, props.school_year);
                 setTextContent(modalSelectors.semester, props.semester);
@@ -231,7 +322,7 @@ export const initializeCalendars = () => {
                     modalSelectors.badge.textContent = props.status ?? 'Scheduled';
                 }
 
-                renderReservationItems(modalSelectors.itemsBody, props.items ?? []);
+                renderReservationItems(modalSelectors.itemsBody, props.items ?? [], props.event_type);
                 modal.show();
             },
             eventDidMount(info) {

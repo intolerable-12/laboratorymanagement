@@ -15,7 +15,7 @@ class CoordinatorReservationCalendarController extends Controller
     {
         $this->ensureCoordinator($request);
 
-        $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+        $reservations = Reservation::with(['user.role', 'user.department', 'guestDepartment', 'assignedInstructor', 'laboratory', 'items.item', 'schoolYear', 'semester'])
             // Coordinators manage the Main campus calendar; IBED schedules
             // remain isolated to the IBED Laboratory In-charge calendar.
             ->forCampus(Campus::MAIN)
@@ -68,12 +68,28 @@ class CoordinatorReservationCalendarController extends Controller
             'borderColor' => $this->statusColor($reservation->status),
             'textColor' => '#ffffff',
             'extendedProps' => [
+                'event_type' => 'reservation',
                 'reservation_no' => $reservation->reservation_no,
+                'requester_role' => $reservation->isGuestRequest()
+                    ? 'Guest'
+                    : ($reservation->user?->role?->role_name === 'Instructor' ? 'Instructor' : 'Student'),
                 'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
                 'student_id' => $reservation->requesterStudentId() ?? '—',
                 'student_email' => $reservation->requesterEmail() ?? '—',
+                'student_contact' => $reservation->requesterContactNumber() ?? '—',
+                'student_department' => $reservation->requesterDepartmentName() ?? '—',
                 'laboratory_name' => $reservation->laboratory?->laboratory_name ?? '—',
                 'laboratory_code' => $reservation->laboratory?->laboratory_code ?? '—',
+                'laboratory_location' => trim(collect([
+                    $reservation->laboratory?->building,
+                    $reservation->laboratory?->room_number,
+                ])->filter()->implode(' / ')) ?: '—',
+                'campus' => $reservation->laboratory?->campus ?? '—',
+                'assigned_instructor' => $reservation->assignedInstructor
+                    ? trim($reservation->assignedInstructor->first_name.' '.$reservation->assignedInstructor->last_name)
+                    : '—',
+                'submitted_at' => $reservation->created_at?->format('M d, Y h:i A') ?? '—',
+                'updated_at' => $reservation->updated_at?->format('M d, Y h:i A') ?? '—',
                 'experiment_title' => $reservation->experiment_title ?? '—',
                 'purpose' => $reservation->purpose ?? '—',
                 'reservation_date' => $reservation->reservation_date?->format('F d, Y') ?? '—',

@@ -31,7 +31,7 @@
                     $item = $entry['item'];
                     $image = $entry['image'];
                     $statusTone = $entry['status_tone'];
-                    $statusLabel = $transaction->statusLabel();
+                    $statusLabel = $entry['status_label'] ?? $transaction->statusLabel();
                 @endphp
 
                 <article class="borrow-equipment-card {{ $viewMode === 'list' ? 'borrow-list-item' : '' }}">
@@ -57,12 +57,14 @@
 
                     <div class="borrow-equipment-meta">
                         <span><i class="fa-solid fa-location-dot"></i> {{ $entry['lab_name'] }}</span>
-                        <span><i class="fa-solid fa-box"></i> Qty {{ $entry['quantity'] }}</span>
+                        <span><i class="fa-solid fa-box"></i> Qty {{ $entry['quantity'] }} {{ $entry['quantity_unit'] ?? '' }}</span>
                     </div>
 
                     <div class="borrow-equipment-meta">
                         <span><i class="fa-solid fa-calendar-plus"></i> {{ $entry['borrowed_at'] }}</span>
-                        <span><i class="fa-solid fa-clock"></i> Return {{ $entry['due_at'] }}</span>
+                        @if ($entry['status'] !== 'Consumed')
+                            <span><i class="fa-solid fa-clock"></i> Return {{ $entry['due_at'] }}</span>
+                        @endif
                     </div>
 
                     @if ($entry['status'] === 'Returned')
