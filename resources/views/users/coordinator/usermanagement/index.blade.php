@@ -264,10 +264,14 @@
                                 <td>{{ $user->role->role_name ?? '—' }}</td>
                                 <td>{{ $user->department->department_name ?? '—' }}</td>
                                 <td>
-                                    @php($userCampus = $user->campusName())
-                                    <span class="badge rounded-pill text-bg-{{ $userCampus === 'IBED' ? 'warning' : ($userCampus === 'Main' ? 'info' : 'secondary') }}">
-                                        {{ $userCampus ? $userCampus . ' campus' : 'All campuses' }}
-                                    </span>
+                                    @if (strtolower((string) ($user->role->role_name ?? '')) === 'coordinator')
+                                        <span class="badge rounded-pill text-bg-secondary">All campuses</span>
+                                    @else
+                                        @php($userCampus = $user->campusName())
+                                        <span class="badge rounded-pill text-bg-{{ $userCampus === 'IBED' ? 'warning' : ($userCampus === 'Main' ? 'info' : 'secondary') }}">
+                                            {{ $userCampus ? $userCampus . ' campus' : 'All campuses' }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td>{{ $user->email }}</td>
                                 <td>

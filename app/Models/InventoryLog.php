@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+
 
 class InventoryLog extends Model
 {
@@ -98,5 +100,10 @@ class InventoryLog extends Model
             'Expired', 'For Disposal' => 'Coordinator update',
             default => 'Inventory action',
         };
+    }
+
+    public function performer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'performed_by', 'userNo')->withTrashed();
     }
 }

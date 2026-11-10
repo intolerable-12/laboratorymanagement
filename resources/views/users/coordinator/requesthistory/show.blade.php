@@ -148,7 +148,7 @@
                                     <td>{{ $reservation->items->count() }}</td>
                                     <td><span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span></td>
                                     <td class="text-center">
-                                        <a href="{{ route($routePrefix . '.reservations.show', $reservation) }}" class="btn btn-sm btn-outline-primary" title="View reservation">
+                                        <a href="{{ route($routePrefix . '.reservations.show', ['reservation' => $reservation, 'readonly' => 1]) }}" class="btn btn-sm btn-outline-primary" title="View reservation">
                                             <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                             <span class="visually-hidden">View reservation</span>
                                         </a>
@@ -209,7 +209,7 @@
                                     <td>{{ $borrow->items->count() }}</td>
                                     <td><span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span></td>
                                     <td class="text-center">
-                                        <a href="{{ route($routePrefix . '.borrow.show', $borrow) }}" class="btn btn-sm btn-outline-primary" title="View borrow request">
+                                        <a href="{{ route($routePrefix . '.borrow.show', ['borrowTransaction' => $borrow, 'readonly' => 1]) }}" class="btn btn-sm btn-outline-primary" title="View borrow request">
                                             <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                             <span class="visually-hidden">View borrow request</span>
                                         </a>

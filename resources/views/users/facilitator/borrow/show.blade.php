@@ -10,6 +10,7 @@
 
 @section('content')
     @php
+        $isReadOnly = request()->boolean('readonly');
         $canReview = $borrowTransaction->status === 'Instructor Approved'
             || ($borrowTransaction->status === 'Pending' && $borrowTransaction->borrower?->role?->role_name === 'Instructor');
         $statusTone = match ($borrowTransaction->status) {
@@ -23,77 +24,74 @@
             'Returned' => 'success',
             'Overdue' => 'danger',
             'Rejected' => 'danger',
-							'Cancelled' => 'danger',
+            'Cancelled' => 'danger',
             default => 'secondary',
         };
         $statusLabel = $borrowTransaction->statusLabel();
+
+        $checkoutStillOpen = in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed'], true)
+            && ! $borrowTransaction->checked_out_at;
     @endphp
-    <div class="account-page">
 
-        @if (session('status'))
-            <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
-        @endif
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
+        <div>
+            <h2 class="h4 fw-semibold mb-1 text-dark">{{ $borrowTransaction->borrow_no }}</h2>
+            <p class="mb-0 text-secondary">Final review for {{ $borrowTransaction->requesterName() }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @unless ($isReadOnly)
+                @if ($checkoutStillOpen)
+                    <a href="{{ route('facilitator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
+                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                    </a>
+                @endif
+            @endunless
+            <a href="{{ route('facilitator.borrow.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        </div>
+    </div>
 
-        @include('users.shared.request-approval-indicator', ['approvalRequest' => $borrowTransaction])
+    @if (session('status'))
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
+    @endif
+    @error('status')
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ $message }}</div>
+    @enderror
 
-        <div class="row g-4">
-            <div class="col-12">
-                <div class="card section-card border-0 h-100">
-                    <div class="card-body p-4 p-xl-5">
-                        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
-                            <div>
-                                <h3 class="h4 fw-semibold mb-1 text-dark">Borrow Summary</h3>
-                                <p class="mb-0 text-secondary">Verify the requested items before approving.</p>
-                            </div>
-                            @php
-                                $statusTone = match ($borrowTransaction->status) {
-                                    'Pending' => 'warning',
-                                    'Instructor Approved' => 'info',
-                                    'Facilitator Approved' => 'primary',
-                                    'Coordinator Approved' => 'success',
-                                    'Partially Borrowed' => 'warning',
-                                    'Borrowed' => 'success',
-                                    'Partially Returned' => 'primary',
-                                    'Returned' => 'success',
-                                    'Overdue' => 'danger',
-                                    'Rejected' => 'danger',
-									'Cancelled' => 'danger',
-                                    default => 'secondary',
-                                };
-                            @endphp
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="small text-secondary">
-                                    <span class="d-block text-uppercase">Last activity</span>
-                                    <span class="fw-semibold text-dark">{{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</span>
-                                </div>
-                                <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
-                                @if ($borrowTransaction->status === 'Coordinator Approved')
-                                    <a href="{{ route('facilitator.checkout.show', $borrowTransaction) }}" class="btn btn-success px-3">
-                                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
-                                    </a>
-                                @endif
-                                <a href="{{ route('facilitator.borrow.index') }}" class="btn btn-outline-secondary px-3">Back to Queue</a>
-                            </div>
+    @include('users.shared.request-approval-indicator', ['approvalRequest' => $borrowTransaction])
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card admin-card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+                        <div>
+                            <h3 class="h5 fw-semibold mb-1 text-dark">Borrow Summary</h3>
+                            <p class="mb-0 text-secondary">Verify the requested items before approving.</p>
                         </div>
+                        <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
+                    </div>
 
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester</div><div class="fw-semibold text-dark">{{ $borrowTransaction->requesterName() }}</div><div class="small text-secondary">{{ $borrowTransaction->requesterStudentId() }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $borrowTransaction->requesterEmail() ?? '—' }}</div><div class="small text-secondary">{{ $borrowTransaction->requesterContactNumber() ?? 'No contact number' }} · {{ $borrowTransaction->requesterDepartmentName() ?? 'No department' }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Borrowed At</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div><div class="small text-secondary">Due {{ $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '—' }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Updated</div><div class="fw-semibold text-dark">{{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</div><div class="small text-secondary">Submitted {{ $borrowTransaction->created_at?->format('M d, Y h:i A') }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Items</div><div class="fw-semibold text-dark">{{ $borrowTransaction->items->count() }} item{{ $borrowTransaction->items->count() === 1 ? '' : 's' }}</div><div class="small text-secondary">Borrow request</div></div></div>
-                        </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester</div><div class="fw-semibold text-dark">{{ $borrowTransaction->requesterName() }}</div><div class="small text-secondary">{{ $borrowTransaction->requesterStudentId() }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $borrowTransaction->requesterEmail() ?? '—' }}</div><div class="small text-secondary">{{ $borrowTransaction->requesterContactNumber() ?? 'No contact number' }} · {{ $borrowTransaction->requesterDepartmentName() ?? 'No department' }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Borrowed At</div><div class="fw-semibold text-dark">{{ $borrowTransaction->borrowed_at?->format('M d, Y h:i A') ?? '—' }}</div><div class="small text-secondary">Due {{ $borrowTransaction->due_at?->format('M d, Y h:i A') ?? '—' }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Updated</div><div class="fw-semibold text-dark">{{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</div><div class="small text-secondary">Submitted {{ $borrowTransaction->created_at?->format('M d, Y h:i A') }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Items</div><div class="fw-semibold text-dark">{{ $borrowTransaction->items->count() }} item{{ $borrowTransaction->items->count() === 1 ? '' : 's' }}</div><div class="small text-secondary">Borrow request</div></div></div>
+                    </div>
 
-                        @if ($borrowTransaction->remarks)
-                            <div class="mb-4">
-                                <div class="small text-secondary text-uppercase mb-2">Remarks</div>
-                                <div class="text-dark">{{ $borrowTransaction->remarks }}</div>
-                            </div>
-                        @endif
-
-                        @unless ($canReview)
+                    @if ($borrowTransaction->remarks)
                         <div class="mb-4">
-                            <h4 class="h5 fw-semibold mb-3 text-dark">Requested Items</h4>
+                            <div class="small text-secondary text-uppercase mb-2">Remarks</div>
+                            <div class="text-dark">{{ $borrowTransaction->remarks }}</div>
+                        </div>
+                    @endif
+
+                    @if (! $canReview || $isReadOnly)
+                        <div class="mb-4">
+                            <h4 class="h6 fw-semibold mb-3 text-dark">Requested Items</h4>
                             <div class="table-responsive">
                                 <table class="table align-middle">
                                     <thead>
@@ -129,97 +127,113 @@
                                 </table>
                             </div>
                         </div>
-                        @endunless
+                    @endif
 
-                        @if ($canReview)
-                            <div data-shared-remarks>
-                                <div class="card border-0 bg-light h-100">
-                                    <div class="card-body p-3 p-xl-4">
-                                        <form id="borrow-approve-form" method="POST" action="{{ route('facilitator.borrow.approve', $borrowTransaction) }}">
-                                            @csrf
-                                            <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                            @if ($borrowTransaction->laboratory?->campus === 'IBED')
-                                                <div class="card border-0 bg-white mb-3">
-                                                    <div class="card-body p-3">
-                                                        <h4 class="h6 fw-semibold text-dark mb-3">Approval schedule</h4>
-                                                        <div class="row g-3">
-                                                            <div class="col-12">
-                                                                <label class="form-label fw-semibold text-dark">Borrowed At</label>
-                                                                <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
-                                                                @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                            </div>
-                                                            <div class="col-12">
-                                                                <label class="form-label fw-semibold text-dark">Due At</label>
-                                                                <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
-                                                                @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                            </div>
+                    @if ($canReview && ! $isReadOnly)
+                        <div data-shared-remarks>
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body p-3 p-xl-4">
+                                    <form id="borrow-approve-form" method="POST" action="{{ route('facilitator.borrow.approve', $borrowTransaction) }}">
+                                        @csrf
+                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                        @if ($borrowTransaction->laboratory?->campus === 'IBED')
+                                            <div class="card border-0 bg-white mb-3">
+                                                <div class="card-body p-3">
+                                                    <h4 class="h6 fw-semibold text-dark mb-3">Approval schedule</h4>
+                                                    <div class="row g-3">
+                                                        <div class="col-12">
+                                                            <label class="form-label fw-semibold text-dark">Borrowed At</label>
+                                                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                                                            @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <label class="form-label fw-semibold text-dark">Due At</label>
+                                                            <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
+                                                            @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                                         </div>
                                                     </div>
                                                 </div>
-                                            @endif
-                                            @include('users.facilitator.partials.review-item-editor', [
-                                                'requestKind' => 'borrow',
-                                                'requestItems' => $borrowTransaction->items,
-                                                'equipmentItems' => $equipmentItems,
-                                                'allowChemicals' => false,
-                                                'resultsUrl' => route('facilitator.borrow.show', $borrowTransaction),
-                                            ])
-                                        </form>
-
-                                        <div class="card border-0 bg-light mt-3 mb-0">
-                                            <div class="card-body p-3 p-xl-4">
-                                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
-                                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
-                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
+                                        @endif
+                                        @include('users.facilitator.partials.review-item-editor', [
+                                            'requestKind' => 'borrow',
+                                            'requestItems' => $borrowTransaction->items,
+                                            'equipmentItems' => $equipmentItems,
+                                            'allowChemicals' => false,
+                                            'resultsUrl' => route('facilitator.borrow.show', $borrowTransaction),
+                                        ])
+                                    </form>
+
+                                    <div class="card border-0 bg-light mt-3 mb-0">
+                                        <div class="card-body p-3 p-xl-4">
+                                            <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                            <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                            <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                            @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
+                                    </div>
 
-                                        <div>
-                                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
-                                                <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.borrow.reject', $borrowTransaction) }}" class="d-inline-block">
-                                                    @csrf
-                                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                                    <button type="submit" class="btn btn-danger" style="min-width: 100px;" onclick="return confirm('Reject this borrow request?');">Reject</button>
-                                                </form>
-                                                <button type="submit" form="borrow-approve-form" class="btn btn-success" style="min-width: 100px;" onclick="return confirm('Approve this borrow request?');">{{ $borrowTransaction->laboratory?->campus === 'IBED' ? 'Approve request' : 'Approve and Forward' }}</button>
-                                            </div>
+                                    <div>
+                                        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                                            <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.borrow.reject', $borrowTransaction) }}" class="d-inline-block">
+                                                @csrf
+                                                <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                                <button type="submit" class="btn btn-danger" style="min-width: 100px;" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                            </form>
+                                            <button type="submit" form="borrow-approve-form" class="btn btn-success" style="min-width: 100px;" onclick="return confirm('Approve this borrow request?');">{{ $borrowTransaction->laboratory?->campus === 'IBED' ? 'Approve request' : 'Approve and Forward' }}</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        @endif
+                        </div>
+                    @endif
 
-                        @if ($borrowTransaction->laboratory?->campus === 'IBED' && $borrowTransaction->status === 'Coordinator Approved')
-                            <div class="card border-0 bg-light mt-3">
-                                <div class="card-body p-3 p-xl-4">
-                                    <h4 class="h6 fw-semibold text-dark mb-2">Reschedule borrow request</h4>
-                                    <p class="small text-secondary mb-3">Update the approved IBED borrow schedule before checkout.</p>
-                                    <form method="POST" action="{{ route('facilitator.borrow.reschedule', $borrowTransaction) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-12">
-                                                <label class="form-label fw-semibold text-dark">Borrowed At</label>
-                                                <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
-                                                @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
-                                            <div class="col-12">
-                                                <label class="form-label fw-semibold text-dark">Due At</label>
-                                                <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
-                                                @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
+                    @if (! $isReadOnly && $borrowTransaction->laboratory?->campus === 'IBED' && $borrowTransaction->status === 'Coordinator Approved')
+                        <div class="card border-0 bg-light mt-3">
+                            <div class="card-body p-3 p-xl-4">
+                                <h4 class="h6 fw-semibold text-dark mb-2">Reschedule borrow request</h4>
+                                <p class="small text-secondary mb-3">Update the approved IBED borrow schedule before checkout.</p>
+                                <form method="POST" action="{{ route('facilitator.borrow.reschedule', $borrowTransaction) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Borrowed At</label>
+                                            <input type="datetime-local" name="borrowed_at" value="{{ old('borrowed_at', optional($borrowTransaction->borrowed_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('borrowed_at') is-invalid @enderror" required>
+                                            @error('borrowed_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
-                                        @error('status')<div class="alert alert-danger small border-0">{{ $message }}</div>@enderror
-                                        <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Reschedule this IBED borrow request?');">Save new schedule</button>
-                                    </form>
-                                </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Due At</label>
+                                            <input type="datetime-local" name="due_at" value="{{ old('due_at', optional($borrowTransaction->due_at)->format('Y-m-d\TH:i')) }}" class="form-control @error('due_at') is-invalid @enderror" required>
+                                            @error('due_at')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    @error('status')<div class="alert alert-danger small border-0">{{ $message }}</div>@enderror
+                                    <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Reschedule this IBED borrow request?');">Save new schedule</button>
+                                </form>
                             </div>
-                        @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card admin-card h-100">
+                <div class="card-body p-4">
+                    <h3 class="h5 fw-semibold mb-4 text-dark">Transaction Log</h3>
+                    <div class="vstack gap-3">
+                        <div class="activity-item">
+                            <div class="fw-semibold text-dark mb-1">Request Submitted</div>
+                            <div class="small text-secondary">{{ $borrowTransaction->created_at?->format('M d, Y h:i A') }}</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="fw-semibold text-dark mb-1">Last Updated</div>
+                            <div class="small text-secondary">{{ $borrowTransaction->updated_at?->format('M d, Y h:i A') }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 @endsection

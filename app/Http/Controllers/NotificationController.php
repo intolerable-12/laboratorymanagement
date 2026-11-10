@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\RequestNotificationService;
 use Illuminate\Http\Request;
+use App\Models\Notification;
 
 class NotificationController extends Controller
 {
@@ -37,14 +38,18 @@ class NotificationController extends Controller
         return view('notifications.index', compact('layout', 'notifications', 'unreadCount', 'roleName'));
     }
 
-    public function show(Request $request, UserNotification $notification)
+    public function show(Request $request, Notification $notification)
     {
         $user = $request->user();
 
         abort_unless($user, 403);
-        abort_unless($notification->user_no === $user->userNo, 403);
+
+        // The route-model binding gave us a Notification row; verify ownership.
+        abort_unless((int) $notification->user_no === (int) $user->userNo, 403);
 
         $service = app(RequestNotificationService::class);
+
+        // Re-fetch through the scoped service so unauthorized rows can't leak.
         $notification = $service->notificationsFor($user)
             ->whereKey($notification->getKey())
             ->firstOrFail();

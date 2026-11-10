@@ -373,6 +373,7 @@
 
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <input type="hidden" name="direction" value="{{ $currentDirection }}">
+                <input type="hidden" name="laboratory_id" value="{{ $laboratoryId }}">
 
                 <div class="modal fade" id="chemicalFiltersModal" tabindex="-1" aria-labelledby="chemicalFiltersModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -523,6 +524,7 @@
                         data-live-search-filter
                         aria-label="Select laboratory for chemical list"
                     >
+                        <option value="">All Laboratories</option>
                         @foreach ($laboratories as $laboratory)
                             <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
                         @endforeach
@@ -742,11 +744,19 @@
         </div>
     </div>
 
-        </div>
-
         @if ($chemicals->count())
             <div class="mt-4" data-live-search-pagination>
-                {{ $chemicals->withQueryString()->links('pagination::bootstrap-5') }}
+                {{ $chemicals->appends(array_filter([
+                    'search' => $search,
+                    'status' => $status,
+                    'type' => $type,
+                    'category_id' => $categoryId,
+                    'laboratory_id' => $laboratoryId,
+                    'hazard_classification' => $hazard,
+                    'low_stock' => $lowStock,
+                    'sort' => $currentSort,
+                    'direction' => $currentDirection,
+                ], static fn ($value) => $value !== '' && $value !== null))->links('pagination::bootstrap-5') }}
             </div>
         @endif
     </div>

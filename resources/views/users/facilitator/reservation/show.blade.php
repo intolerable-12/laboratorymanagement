@@ -10,6 +10,7 @@
 
 @section('content')
     @php
+        $isReadOnly = request()->boolean('readonly');
         $canReview = $reservation->status === 'Instructor Approved'
             || ($reservation->status === 'Pending' && $reservation->user?->role?->role_name === 'Instructor');
         $statusTone = match ($reservation->status) {
@@ -17,67 +18,79 @@
             'Instructor Approved' => 'info',
             'Facilitator Approved' => 'primary',
             'Coordinator Approved' => 'success',
-            'Rejected' => 'danger',
-							'Cancelled' => 'danger',
+            'Rejected', 'Cancelled' => 'danger',
             default => 'secondary',
         };
         $statusLabel = $reservation->statusLabel();
+
+        $checkoutStillOpen = $borrowTransaction
+            && in_array($borrowTransaction->status, ['Coordinator Approved', 'Facilitator Approved', 'Partially Borrowed'], true)
+            && ! $borrowTransaction->checked_out_at;
     @endphp
-    <div class="account-page">
 
-        @if (session('status'))
-            <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
-        @endif
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
+        <div>
+            <h2 class="h4 fw-semibold mb-1 text-dark">{{ $reservation->reservation_no }}</h2>
+            <p class="mb-0 text-secondary">Final review for {{ $reservation->requesterName() }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @unless ($isReadOnly)
+                @if (in_array($reservation->status, ['Coordinator Approved', 'Facilitator Approved'], true) && $checkoutStillOpen)
+                    <form method="POST" action="{{ route('facilitator.reservations.dismiss', $reservation) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Dismiss and cancel this approved reservation?');">
+                            <i class="fa-solid fa-ban me-1"></i> Dismiss
+                        </button>
+                    </form>
+                    <a href="{{ route('facilitator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
+                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                    </a>
+                @endif
+            @endunless
+            <a href="{{ route('facilitator.reservations.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        </div>
+    </div>
 
-        @include('users.shared.request-approval-indicator', ['approvalRequest' => $reservation])
+    @if (session('status'))
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
+    @endif
+    @error('status')
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ $message }}</div>
+    @enderror
 
-        <div class="row g-4">
-            <div class="col-12">
-                <div class="card section-card border-0 h-100">
-                    <div class="card-body p-4 p-xl-5">
-                        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
-                            <div>
-                                <h3 class="h4 fw-semibold mb-1 text-dark">Reservation Summary</h3>
-                                <p class="mb-0 text-secondary">Verify the laboratory and item availability before approving.</p>
-                            </div>
-                            @php
-                                $statusTone = match ($reservation->status) {
-                                    'Pending' => 'warning',
-                                    'Instructor Approved' => 'info',
-                                    'Facilitator Approved' => 'primary',
-                                    'Coordinator Approved' => 'success',
-                                    'Rejected' => 'danger',
-									'Cancelled' => 'danger',
-                                    default => 'secondary',
-                                };
-                            @endphp
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
-                                @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction)
-                                    <a href="{{ route('facilitator.checkout.show', $borrowTransaction) }}" class="btn btn-success px-3">
-                                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
-                                    </a>
-                                @endif
-                                <a href="{{ route('facilitator.reservations.index') }}" class="btn btn-outline-secondary px-3">Back to Queue</a>
-                            </div>
+    @include('users.shared.request-approval-indicator', ['approvalRequest' => $reservation])
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card admin-card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+                        <div>
+                            <h3 class="h5 fw-semibold mb-1 text-dark">Reservation Summary</h3>
+                            <p class="mb-0 text-secondary">Verify the laboratory and item availability before approving.</p>
                         </div>
+                        <span class="badge text-bg-{{ $statusTone }}">{{ $statusLabel }}</span>
+                    </div>
 
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester</div><div class="fw-semibold text-dark">{{ $reservation->requesterName() }}</div><div class="small text-secondary">{{ $reservation->requesterStudentId() }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->requesterEmail() ?? '—' }}</div><div class="small text-secondary">{{ $reservation->requesterContactNumber() ?? 'No contact number' }} · {{ $reservation->requesterDepartmentName() ?? 'No department' }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Laboratory</div><div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? '—' }}</div><div class="small text-secondary">{{ $reservation->laboratory?->laboratory_code }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Schedule</div><div class="fw-semibold text-dark">{{ $reservation->reservation_date?->format('M d, Y') }}</div><div class="small text-secondary">{{ substr((string) $reservation->start_time, 0, 5) }} - {{ substr((string) $reservation->end_time, 0, 5) }}</div></div></div>
-                            <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Participants</div><div class="fw-semibold text-dark">{{ $reservation->expected_participants }}</div><div class="small text-secondary">{{ $reservation->schoolYear?->school_year }} | {{ $reservation->semester?->semester_name }}</div></div></div>
-                        </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester</div><div class="fw-semibold text-dark">{{ $reservation->requesterName() }}</div><div class="small text-secondary">{{ $reservation->requesterStudentId() }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Requester contact</div><div class="fw-semibold text-dark">{{ $reservation->requesterEmail() ?? '—' }}</div><div class="small text-secondary">{{ $reservation->requesterContactNumber() ?? 'No contact number' }} · {{ $reservation->requesterDepartmentName() ?? 'No department' }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Laboratory</div><div class="fw-semibold text-dark">{{ $reservation->laboratory?->laboratory_name ?? '—' }}</div><div class="small text-secondary">{{ $reservation->laboratory?->laboratory_code }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Schedule</div><div class="fw-semibold text-dark">{{ $reservation->reservation_date?->format('M d, Y') }}</div><div class="small text-secondary">{{ substr((string) $reservation->start_time, 0, 5) }} - {{ substr((string) $reservation->end_time, 0, 5) }}</div></div></div>
+                        <div class="col-md-6"><div class="account-summary-card h-100"><div class="small text-secondary">Participants</div><div class="fw-semibold text-dark">{{ $reservation->expected_participants }}</div><div class="small text-secondary">{{ $reservation->schoolYear?->school_year }} | {{ $reservation->semester?->semester_name }}</div></div></div>
+                    </div>
 
+                    <div class="mb-4">
+                        <div class="small text-secondary text-uppercase mb-2">Purpose</div>
+                        <div class="text-dark">{{ $reservation->purpose }}</div>
+                    </div>
+
+                    @if (! $canReview || $isReadOnly)
                         <div class="mb-4">
-                            <div class="small text-secondary text-uppercase mb-2">Purpose</div>
-                            <div class="text-dark">{{ $reservation->purpose }}</div>
-                        </div>
-
-                        @unless ($canReview)
-                        <div class="mb-4">
-                            <h4 class="h5 fw-semibold mb-3 text-dark">Requested Items</h4>
+                            <h4 class="h6 fw-semibold mb-3 text-dark">Requested Items</h4>
                             <div class="table-responsive">
                                 <table class="table align-middle">
                                     <thead>
@@ -110,107 +123,130 @@
                                 </table>
                             </div>
                         </div>
-                        @endunless
+                    @endif
 
-                        @if ($canReview)
-                            <div data-shared-remarks>
-                                <div class="card border-0 bg-light h-100">
-                                    <div class="card-body p-3 p-xl-4">
-                                        <form id="borrow-approve-form" method="POST" action="{{ route('facilitator.reservations.approve', $reservation) }}">
-                                            @csrf
-                                            <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                            @if ($reservation->laboratory?->campus === 'IBED')
-                                                <div class="card border-0 bg-white mb-3">
-                                                    <div class="card-body p-3">
-                                                        <h4 class="h6 fw-semibold text-dark mb-3">Approval schedule</h4>
-                                                        <div class="row g-3">
-                                                            <div class="col-12">
-                                                                <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                                                                <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
-                                                                @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-semibold text-dark">Start Time</label>
-                                                                <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" data-native-date-time class="form-control @error('start_time') is-invalid @enderror" required>
-                                                                @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-semibold text-dark">End Time</label>
-                                                                <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
-                                                                @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                            </div>
+                    @if ($canReview && ! $isReadOnly)
+                        <div data-shared-remarks>
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body p-3 p-xl-4">
+                                    <form id="borrow-approve-form" method="POST" action="{{ route('facilitator.reservations.approve', $reservation) }}">
+                                        @csrf
+                                        <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                        @if ($reservation->laboratory?->campus === 'IBED')
+                                            <div class="card border-0 bg-white mb-3">
+                                                <div class="card-body p-3">
+                                                    <h4 class="h6 fw-semibold text-dark mb-3">Approval schedule</h4>
+                                                    <div class="row g-3">
+                                                        <div class="col-12">
+                                                            <label class="form-label fw-semibold text-dark">Reservation Date</label>
+                                                            <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
+                                                            @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Start Time</label>
+                                                            <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" data-native-date-time class="form-control @error('start_time') is-invalid @enderror" required>
+                                                            @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">End Time</label>
+                                                            <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
+                                                            @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                                         </div>
                                                     </div>
                                                 </div>
-                                            @endif
-                                            @include('users.facilitator.partials.review-item-editor', [
-                                                'requestKind' => 'reservation',
-                                                'requestItems' => $reservation->items,
-                                                'equipmentItems' => $equipmentItems,
-                                                'chemicalItems' => $chemicalItems,
-                                                'resultsUrl' => route('facilitator.reservations.show', $reservation),
-                                            ])
-                                        </form>
-
-                                        <div class="card border-0 bg-light mt-3 mb-0">
-                                            <div class="card-body p-3 p-xl-4">
-                                                <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
-                                                <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
-                                                <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror"  data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
-                                                @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                             </div>
+                                        @endif
+                                        @include('users.facilitator.partials.review-item-editor', [
+                                            'requestKind' => 'reservation',
+                                            'requestItems' => $reservation->items,
+                                            'equipmentItems' => $equipmentItems,
+                                            'chemicalItems' => $chemicalItems,
+                                            'resultsUrl' => route('facilitator.reservations.show', $reservation),
+                                        ])
+                                    </form>
+
+                                    <div class="card border-0 bg-light mt-3 mb-0">
+                                        <div class="card-body p-3 p-xl-4">
+                                            <label for="borrow-action-remarks" class="form-label fw-semibold text-dark mb-1">Remarks</label>
+                                            <p class="small text-secondary mb-3">Use the same note for either action. Remarks are optional when approving and required when rejecting.</p>
+                                            <textarea id="borrow-action-remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" data-shared-remarks-input placeholder="Add an approval note or explain why the request is rejected">{{ old('remarks') }}</textarea>
+                                            @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
+                                    </div>
 
-                                         <div>
-                                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
-                                                <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.reservations.reject', $reservation) }}" class="d-inline-block">
-                                                    @csrf
-                                                    <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
-                                                    <button type="submit" class="btn btn-danger" style="min-width: 100px;" onclick="return confirm('Reject this borrow request?');">Reject</button>
-                                                </form>
-                                                <button type="submit" form="borrow-approve-form" class="btn btn-success" style="min-width: 100px;" onclick="return confirm('Approve this reservation request?');">{{ $reservation->laboratory?->campus === 'IBED' ? 'Approve request' : 'Approve and forward' }}</button>
-                                            </div>
+                                    <div>
+                                        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                                            <form id="borrow-reject-form" method="POST" action="{{ route('facilitator.reservations.reject', $reservation) }}" class="d-inline-block">
+                                                @csrf
+                                                <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-shared-remarks-field>
+                                                <button type="submit" class="btn btn-danger" style="min-width: 100px;" onclick="return confirm('Reject this borrow request?');">Reject</button>
+                                            </form>
+                                            <button type="submit" form="borrow-approve-form" class="btn btn-success" style="min-width: 100px;" onclick="return confirm('Approve this reservation request?');">{{ $reservation->laboratory?->campus === 'IBED' ? 'Approve request' : 'Approve and forward' }}</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        @endif
+                        </div>
+                    @endif
 
-                        @if ($reservation->laboratory?->campus === 'IBED' && $reservation->status === 'Coordinator Approved' && $borrowTransaction?->status === 'Coordinator Approved')
-                            <div class="card border-0 bg-light mt-3">
-                                <div class="card-body p-3 p-xl-4">
-                                    <h4 class="h6 fw-semibold text-dark mb-2">Reschedule reservation</h4>
-                                    <p class="small text-secondary mb-3">Update the approved IBED reservation before checkout.</p>
-                                    <form method="POST" action="{{ route('facilitator.reservations.reschedule', $reservation) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-12">
-                                                <label class="form-label fw-semibold text-dark">Reservation Date</label>
-                                                <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
-                                                @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold text-dark">Start Time</label>
-                                                <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" data-native-date-time class="form-control @error('start_time') is-invalid @enderror" required>
-                                                @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold text-dark">End Time</label>
-                                                <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
-                                                @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                            </div>
+                    @if (! $isReadOnly && $reservation->laboratory?->campus === 'IBED' && $reservation->status === 'Coordinator Approved' && $borrowTransaction?->status === 'Coordinator Approved')
+                        <div class="card border-0 bg-light mt-3">
+                            <div class="card-body p-3 p-xl-4">
+                                <h4 class="h6 fw-semibold text-dark mb-2">Reschedule reservation</h4>
+                                <p class="small text-secondary mb-3">Update the approved IBED reservation before checkout.</p>
+                                <form method="POST" action="{{ route('facilitator.reservations.reschedule', $reservation) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Reservation Date</label>
+                                            <input type="date" name="reservation_date" value="{{ old('reservation_date', optional($reservation->reservation_date)->format('Y-m-d')) }}" data-native-date-time class="form-control @error('reservation_date') is-invalid @enderror" required>
+                                            @error('reservation_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
-                                        @error('status')<div class="alert alert-danger small border-0">{{ $message }}</div>@enderror
-                                        <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Reschedule this IBED reservation?');">Save new schedule</button>
-                                    </form>
-                                </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark">Start Time</label>
+                                            <input type="time" name="start_time" value="{{ old('start_time', substr((string) $reservation->start_time, 0, 5)) }}" data-native-date-time class="form-control @error('start_time') is-invalid @enderror" required>
+                                            @error('start_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark">End Time</label>
+                                            <input type="time" name="end_time" value="{{ old('end_time', substr((string) $reservation->end_time, 0, 5)) }}" data-native-date-time class="form-control @error('end_time') is-invalid @enderror" required>
+                                            @error('end_time')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    @error('status')<div class="alert alert-danger small border-0">{{ $message }}</div>@enderror
+                                    <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Reschedule this IBED reservation?');">Save new schedule</button>
+                                </form>
                             </div>
-                        @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card admin-card h-100">
+                <div class="card-body p-4">
+                    <h3 class="h5 fw-semibold mb-4 text-dark">Approval History</h3>
+                    <div class="vstack gap-3">
+                        @forelse ($reservation->approvalLogs as $log)
+                            <div class="activity-item">
+                                <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
+                                    <div class="fw-semibold text-dark">{{ $log->action }}</div>
+                                    <span class="badge text-bg-light border text-secondary">{{ $log->role }}</span>
+                                </div>
+                                <div class="small text-secondary mb-1">By {{ $log->approvedBy?->first_name ?? 'System' }} {{ $log->approvedBy?->last_name ?? '' }}</div>
+                                <div class="small text-secondary">{{ $log->approved_at?->format('M d, Y h:i A') }}</div>
+                                @if ($log->remarks)
+                                    <div class="small text-dark mt-2">{{ $log->remarks }}</div>
+                                @endif
+                            </div>
+                        @empty
+                            <div class="text-secondary">No approval action has been recorded yet.</div>
+                        @endforelse
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 @endsection

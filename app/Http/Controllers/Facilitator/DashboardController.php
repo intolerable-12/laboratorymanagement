@@ -59,6 +59,12 @@ class DashboardController extends Controller
         $borrowedEquipment = $this->outstandingQuantity($activeBorrowItems, 'Equipment');
         $totalChemicalRecords = Chemical::forCampus($campus)->count();
         $expiredChemicals = Chemical::forCampus($campus)->expired()->count();
+        $expiringChemicals = Chemical::query()->forCampus($campus)
+            ->where('status', 'Active')
+            ->whereNotNull('expiration_date')
+            ->whereDate('expiration_date', '>=', now()->toDateString())
+            ->whereDate('expiration_date', '<=', now()->addDays(30)->toDateString())
+            ->count();
         $laboratories = Laboratory::query()
             ->forCampus($campus)
             ->withCount(['equipment', 'chemicals'])
@@ -101,23 +107,24 @@ class DashboardController extends Controller
             'laboratoryInventory' => $laboratoryInventory,
             'checkinCount' => $checkinCount,
             'checkoutCount' => $checkoutCount,
-            'equipmentStats' => [
+            'dashboardStats' => [
+                // Row 1
                 ['label' => 'Unique equipment', 'value' => number_format($uniqueEquipment), 'note' => 'Distinct equipment records in inventory'],
                 ['label' => 'Total equipment', 'value' => number_format($totalEquipmentUnits), 'note' => 'Whole equipment units in inventory'],
+                ['label' => 'Chemicals in laboratory', 'value' => number_format($totalChemicalRecords), 'note' => 'Active chemical records'],
+                ['label' => 'Quantity in laboratory', 'breakdown' => $chemicalQuantityInLaboratory, 'note' => 'Current stock grouped by unit'],
+
+                // Row 2
+                ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out'],
+                ['label' => 'Expiring chemicals', 'value' => number_format($expiringChemicals), 'note' => 'Expire within the next 30 days', 'tone' => 'danger'],
+                ['label' => 'Low stock items', 'value' => number_format($lowStockEquipment + $lowStockChemicals), 'note' => 'Equipment and chemicals at or below threshold', 'tone' => 'warning'],
+                ['label' => 'Ready for checkout', 'value' => number_format($checkoutBorrows->count()), 'note' => 'Scheduled requests ready now'],
+
+                // Row 3
                 ['label' => 'Damaged equipment', 'value' => number_format((int) $damagedEquipment), 'note' => 'Units marked damaged', 'tone' => 'secondary'],
                 ['label' => 'Low stock equipment', 'value' => number_format($lowStockEquipment), 'note' => 'Equipment at or below its stock threshold', 'tone' => 'warning'],
-                ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out'],
-            ],
-            'chemicalStats' => [
-                ['label' => 'Chemicals in laboratory', 'value' => number_format($totalChemicalRecords), 'note' => 'Active chemical records'],
                 ['label' => 'Expired chemicals', 'value' => number_format($expiredChemicals), 'note' => 'Marked expired or past the expiration date', 'tone' => 'danger'],
                 ['label' => 'Low stock chemicals', 'value' => number_format($lowStockChemicals), 'note' => 'Chemicals at or below minimum stock', 'tone' => 'warning'],
-                ['label' => 'Quantity in laboratory', 'breakdown' => $chemicalQuantityInLaboratory, 'note' => 'Current stock grouped by unit'],
-                ['label' => 'Borrowed chemical', 'breakdown' => $borrowedChemicalQuantity, 'note' => 'Outstanding quantity grouped by unit'],
-            ],
-            'operationalStats' => [
-                ['label' => 'Ready for checkout', 'value' => number_format($checkoutBorrows->count()), 'note' => 'Scheduled requests ready now'],
-                ['label' => 'Low stock items', 'value' => number_format($lowStockEquipment + $lowStockChemicals), 'note' => 'Equipment and chemicals at or below threshold'],
             ],
         ]);
     }

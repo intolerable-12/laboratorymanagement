@@ -61,13 +61,20 @@ class Reservation extends Model
 
     public function statusLabel(): string
     {
-        if ($this->status === 'Coordinator Approved' && $this->laboratory?->campus === Campus::IBED) {
-            return 'IBED Laboratory In-charge approved';
+        if ($this->status === 'Coordinator Approved'
+            && $this->laboratory?->campus === \App\Support\Campus::IBED) {
+            return 'Laboratory In-charge Approved';
         }
 
-        return $this->status === 'Facilitator Approved'
-            ? 'Laboratory In-charge Approved'
-            : $this->status;
+        return match ($this->status) {
+            'Pending' => 'Pending',
+            'Instructor Approved' => 'Instructor Approved',
+            'Facilitator Approved' => 'Laboratory In-charge Approved',
+            'Coordinator Approved' => 'Coordinator Approved',
+            'Rejected' => 'Rejected',
+            'Cancelled' => 'Cancelled',
+            default => $this->status,
+        };
     }
 
     public function scopeForCampus(Builder $query, ?string $campus): Builder

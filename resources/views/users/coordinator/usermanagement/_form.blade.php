@@ -2,6 +2,11 @@
     $statuses = ['Active'];
     $genders = ['Male', 'Female'];
     $selectedRoleId = old('role_id', $user->role_id ?? '');
+    $isCoordinator = strtolower((string) ($user?->role?->role_name ?? '')) === 'coordinator';
+    $selectedRoleName = $selectedRoleId
+        ? strtolower((string) (\App\Models\Role::find($selectedRoleId)?->role_name ?? ''))
+        : '';
+    $showCampusField = $selectedRoleName === 'laboratory in-charge';
 @endphp
 
 <div class="row g-3">
@@ -64,40 +69,50 @@
         @error('contact_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-4">
-        <label class="form-label" for="role_id">Role</label>
-        <select id="role_id" name="role_id" class="form-select admin-form-control @error('role_id') is-invalid @enderror" required>
-            <option value="">Select role</option>
-            @foreach ($roles as $roleOption)
-                <option value="{{ $roleOption->id }}" data-role-name="{{ strtolower($roleOption->role_name) }}" @selected(old('role_id', $user->role_id ?? '') == $roleOption->id)>{{ $roleOption->role_name }}</option>
-            @endforeach
-        </select>
-        @error('role_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+    @if ($isCoordinator)
+        <input type="hidden" name="role_id" value="{{ $user->role_id }}">
+    @else
+        <div class="col-md-4">
+            <label class="form-label" for="role_id">Role</label>
+            <select id="role_id" name="role_id" class="form-select admin-form-control @error('role_id') is-invalid @enderror" required>
+                <option value="">Select role</option>
+                @foreach ($roles as $roleOption)
+                    <option value="{{ $roleOption->id }}" data-role-name="{{ strtolower($roleOption->role_name) }}" @selected(old('role_id', $user->role_id ?? '') == $roleOption->id)>{{ $roleOption->role_name }}</option>
+                @endforeach
+            </select>
+            @error('role_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @endif
 
-    <div id="department-field" class="col-md-4" @if (!filled($selectedRoleId)) hidden @endif>
-        <label class="form-label" for="department_id">Department</label>
-        <select id="department_id" name="department_id" class="form-select admin-form-control @error('department_id') is-invalid @enderror">
-            <option value="">No department</option>
-            @foreach ($departments as $department)
-                <option value="{{ $department->id }}" data-department-code="{{ strtoupper($department->department_code) }}" data-department-name="{{ strtoupper($department->department_name) }}" @selected(old('department_id', $user->department_id ?? '') == $department->id)>{{ $department->department_name }}</option>
-            @endforeach
-        </select>
-        <div id="department-help" class="form-text"></div>
-        @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+    @unless ($isCoordinator)
+        <div id="department-field" class="col-md-4" @if (!filled($selectedRoleId)) hidden @endif>
+            <label class="form-label" for="department_id">Department</label>
+            <select id="department_id" name="department_id" class="form-select admin-form-control @error('department_id') is-invalid @enderror">
+                <option value="">No department</option>
+                @foreach ($departments as $department)
+                    <option value="{{ $department->id }}" data-department-code="{{ strtoupper($department->department_code) }}" data-department-name="{{ strtoupper($department->department_name) }}" @selected(old('department_id', $user->department_id ?? '') == $department->id)>{{ $department->department_name }}</option>
+                @endforeach
+            </select>
+            <div id="department-help" class="form-text"></div>
+            @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @endunless
 
-    <div class="col-md-4">
-        <label class="form-label" for="campus">Campus assignment</label>
-        <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror">
-            <option value="">Derived from department</option>
-            @foreach (\App\Support\Campus::values() as $campus)
-                <option value="{{ $campus }}" @selected(old('campus', $user->campus ?? '') === $campus)>{{ $campus }} campus</option>
-            @endforeach
-        </select>
-        <div class="form-text">Required only for Laboratory In-charge accounts.</div>
-        @error('campus') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+    @if ($isCoordinator)
+        <input type="hidden" name="campus" value="{{ $user->campus ?? 'Main' }}">
+    @else
+        <div id="campus-field" class="col-md-4" @if (! $showCampusField) hidden @endif>
+            <label class="form-label" for="campus">Campus assignment</label>
+            <select id="campus" name="campus" class="form-select admin-form-control @error('campus') is-invalid @enderror">
+                <option value="">Derived from department</option>
+                @foreach (\App\Support\Campus::values() as $campus)
+                    <option value="{{ $campus }}" @selected(old('campus', $user->campus ?? '') === $campus)>{{ $campus }} campus</option>
+                @endforeach
+            </select>
+            <div class="form-text">Required only for Laboratory In-charge accounts.</div>
+            @error('campus') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @endif
 
     <div class="col-md-4">
         <label class="form-label" for="status">Status</label>
@@ -131,8 +146,12 @@
             const departmentField = document.getElementById('department-field');
             const departmentSelect = document.getElementById('department_id');
             const departmentHelp = document.getElementById('department-help');
+            const campusField = document.getElementById('campus-field');
+            const campusSelect = document.getElementById('campus');
+            const roleHidden = document.getElementById('role_id_hidden');
+            const campusHidden = document.getElementById('campus_hidden');
 
-            if (!roleSelect || !departmentField || !departmentSelect) {
+            if (!roleSelect) {
                 return;
             }
 
@@ -141,30 +160,27 @@
                 instructor: new Set(['JHS', 'SHS', 'COL']),
                 'laboratory in-charge': new Set(['JHS', 'SHS', 'COL']),
             };
-            const departmentOptions = Array.from(departmentSelect.options).map(function (option) {
-                return option.cloneNode(true);
-            });
 
-            const departmentType = function (option) {
+            const departmentOptions = departmentSelect
+                ? Array.from(departmentSelect.options).map((option) => option.cloneNode(true))
+                : [];
+
+            const departmentType = (option) => {
                 const code = (option.dataset.departmentCode || '').trim().toUpperCase();
                 const name = (option.dataset.departmentName || '').trim().toUpperCase();
 
-                if (code === 'JHS' || name.includes('JUNIOR HIGH')) {
-                    return 'JHS';
-                }
-
-                if (code === 'SHS' || name.includes('SENIOR HIGH')) {
-                    return 'SHS';
-                }
-
-                if (code === 'COL' || name.includes('COLLEGE')) {
-                    return 'COL';
-                }
+                if (code === 'JHS' || name.includes('JUNIOR HIGH')) return 'JHS';
+                if (code === 'SHS' || name.includes('SENIOR HIGH')) return 'SHS';
+                if (code === 'COL' || name.includes('COLLEGE')) return 'COL';
 
                 return code;
             };
 
-            const updateDepartments = function () {
+            const updateDepartments = () => {
+                if (!departmentField || !departmentSelect) {
+                    return;
+                }
+
                 const selectedRole = roleSelect.options[roleSelect.selectedIndex]?.dataset.roleName || '';
                 const allowedDepartments = restrictedDepartments[selectedRole] || null;
                 const selectedDepartment = departmentSelect.value;
@@ -175,45 +191,85 @@
                 if (selectedRole === '') {
                     departmentSelect.value = '';
                     departmentSelect.required = false;
-                    departmentHelp.textContent = '';
+                    if (departmentHelp) departmentHelp.textContent = '';
                     return;
                 }
 
-                const visibleOptions = departmentOptions.filter(function (option) {
-                    return !option.value || !allowedDepartments || allowedDepartments.has(departmentType(option));
-                });
+                const visibleOptions = departmentOptions.filter(
+                    (option) => !option.value || !allowedDepartments || allowedDepartments.has(departmentType(option)),
+                );
 
-                while (departmentSelect.firstChild) {
-                    departmentSelect.removeChild(departmentSelect.firstChild);
-                }
-
-                visibleOptions.forEach(function (option) {
-                    departmentSelect.appendChild(option.cloneNode(true));
-                });
+                departmentSelect.replaceChildren(...visibleOptions.map((o) => o.cloneNode(true)));
 
                 if (selectedDepartment && allowedDepartments) {
-                    if (Array.from(departmentSelect.options).some(function (option) {
-                        return option.value === selectedDepartment;
-                    })) {
-                        departmentSelect.value = selectedDepartment;
-                    } else {
-                        departmentSelect.value = '';
-                    }
+                    const hasOption = Array.from(departmentSelect.options).some((o) => o.value === selectedDepartment);
+                    departmentSelect.value = hasOption ? selectedDepartment : '';
                 }
 
                 departmentSelect.required = selectedRole === 'student' || selectedRole === 'instructor';
 
-                if (selectedRole === 'student') {
-                    departmentHelp.textContent = 'Student accounts may be assigned to SHS or College only.';
-                } else if (selectedRole === 'instructor' || selectedRole === 'laboratory in-charge') {
-                    departmentHelp.textContent = 'Available departments: JHS, SHS, and College.';
-                } else {
-                    departmentHelp.textContent = '';
+                if (departmentHelp) {
+                    if (selectedRole === 'student') {
+                        departmentHelp.textContent = 'Student accounts may be assigned to SHS or College only.';
+                    } else if (selectedRole === 'instructor' || selectedRole === 'laboratory in-charge') {
+                        departmentHelp.textContent = 'Available departments: JHS, SHS, and College.';
+                    } else {
+                        departmentHelp.textContent = '';
+                    }
                 }
             };
 
-            roleSelect.addEventListener('change', updateDepartments);
+            const updateCampus = () => {
+                if (!campusField || !campusSelect) {
+                    return;
+                }
+
+                const selectedRole = roleSelect.options[roleSelect.selectedIndex]?.dataset.roleName || '';
+
+                // Only Laboratory In-charge accounts need an explicit campus assignment.
+                const showCampus = selectedRole === 'laboratory in-charge';
+
+                campusField.hidden = !showCampus;
+                campusField.setAttribute('aria-hidden', showCampus ? 'false' : 'true');
+                campusSelect.required = showCampus;
+
+                if (!showCampus) {
+                    campusSelect.value = selectedRole === 'coordinator' ? 'Main' : '';
+                }
+
+                if (campusHidden) {
+                    campusHidden.value = campusSelect.value;
+                }
+            };
+
+            const syncMirrors = () => {
+                if (roleHidden) {
+                    roleHidden.value = roleSelect.value;
+                }
+                if (campusHidden) {
+                    campusHidden.value = campusSelect?.value ?? '';
+                }
+            };
+
+            // Skip change handlers when the server already locked the page (editing a coordinator).
+            const serverLocked = roleSelect.disabled === true;
+
+            if (!serverLocked) {
+                roleSelect.addEventListener('change', () => {
+                    updateDepartments();
+                    updateCampus();
+                    syncMirrors();
+                });
+
+                if (campusSelect) {
+                    campusSelect.addEventListener('change', syncMirrors);
+                }
+            }
+
+            // Still run the initial pass so the campus field hides when the current user is a coordinator.
             updateDepartments();
+            updateCampus();
+            syncMirrors();
         });
     </script>
 @endpush

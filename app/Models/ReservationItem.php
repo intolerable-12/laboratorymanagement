@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\BorrowItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,4 +53,5 @@ class ReservationItem extends Model
     {
         return $this->morphTo(__FUNCTION__, 'item_type', 'item_id');
     }
+
 }

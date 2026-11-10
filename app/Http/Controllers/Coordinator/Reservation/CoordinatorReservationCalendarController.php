@@ -15,7 +15,7 @@ class CoordinatorReservationCalendarController extends Controller
     {
         $this->ensureCoordinator($request);
 
-        $reservations = Reservation::with(['user.role', 'user.department', 'guestDepartment', 'assignedInstructor', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+        $reservations = Reservation::with(['user.role', 'laboratory', 'items.item', 'schoolYear', 'semester'])
             // Coordinators manage the Main campus calendar; IBED schedules
             // remain isolated to the IBED Laboratory In-charge calendar.
             ->forCampus(Campus::MAIN)
@@ -76,8 +76,7 @@ class CoordinatorReservationCalendarController extends Controller
                 'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
                 'student_id' => $reservation->requesterStudentId() ?? '—',
                 'student_email' => $reservation->requesterEmail() ?? '—',
-                'student_contact' => $reservation->requesterContactNumber() ?? '—',
-                'student_department' => $reservation->requesterDepartmentName() ?? '—',
+                'requester_role' => $reservation->user?->role?->role_name ?? 'Student',
                 'laboratory_name' => $reservation->laboratory?->laboratory_name ?? '—',
                 'laboratory_code' => $reservation->laboratory?->laboratory_code ?? '—',
                 'laboratory_location' => trim(collect([

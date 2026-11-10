@@ -45,14 +45,10 @@
             </div>
             <div class="modal-body">
                 <div class="alert alert-light border rounded-3 py-2 mb-3" data-picker-availability></div>
-                <div class="row g-3">
-                    <div class="col-sm-6">
+                                <div class="row g-3">
+                    <div class="col-12">
                         <label class="form-label fw-semibold text-dark" for="request-item-modal-quantity">Quantity</label>
                         <input id="request-item-modal-quantity" type="number" class="form-control" data-picker-quantity placeholder="Enter quantity">
-                    </div>
-                    <div class="col-sm-6 d-none" data-picker-unit-group>
-                        <label class="form-label fw-semibold text-dark" for="request-item-modal-unit">Unit</label>
-                        <input id="request-item-modal-unit" type="text" class="form-control" data-picker-unit placeholder="Unit">
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold text-dark" for="request-item-modal-remarks">Item note <span class="text-secondary fw-normal">(optional)</span></label>

@@ -11,16 +11,7 @@ trait BuildsBorrowCalendarEvents
 {
     protected function borrowTransactionsForCalendar(?User $user = null, ?string $campus = null): Collection
     {
-        $query = BorrowTransaction::with([
-            'borrower.role',
-            'borrower.department',
-            'guestDepartment',
-            'laboratory',
-            'items.item',
-            'releasedBy',
-            'receivedBy',
-            'assignedInstructor',
-        ])
+        $query = BorrowTransaction::with(['borrower.role', 'laboratory', 'items.item'])
             ->when($campus, fn ($query) => $query->forCampus($campus))
             ->when($user, fn ($query) => $query->forCampus($user->campusName()))
             ->when($user?->role?->role_name === 'Student', fn ($query) => $query->where('borrower_id', $user->userNo))
@@ -71,6 +62,11 @@ trait BuildsBorrowCalendarEvents
                 : ($borrowTransaction->borrower?->role?->role_name === 'Instructor' ? 'Instructor' : 'Student'),
             'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
             'student_id' => $borrowTransaction->requesterStudentId() ?? '-',
+            'requester_role' => $borrowTransaction->borrower?->role?->role_name ?? ($borrowTransaction->guest_key ? 'Guest' : 'Student'),
+            'status_label' => ($borrowTransaction->laboratory?->campus === \App\Support\Campus::IBED
+            && $borrowTransaction->status === 'Coordinator Approved')
+                ? 'Laboratory In-charge Approved'
+                : $borrowTransaction->status,
             'student_email' => $borrowTransaction->requesterEmail() ?? '-',
             'student_contact' => $borrowTransaction->requesterContactNumber() ?? '-',
             'student_department' => $borrowTransaction->requesterDepartmentName() ?? '-',

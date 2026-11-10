@@ -6,6 +6,7 @@
 
 @section('content')
     @php
+        $isReadOnly = request()->boolean('readonly');
         $statusTone = match ($reservation->status) {
             'Pending' => 'warning',
             'Instructor Approved' => 'info',
@@ -22,25 +23,32 @@
             <p class="mb-0 text-secondary">Final review for {{ $reservation->requesterName() }}</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            @if (
-                $reservation->status === 'Coordinator Approved'
-                && (
-                    ! $borrowTransaction
-                    || ($borrowTransaction->status === 'Coordinator Approved' && ! $borrowTransaction->checked_out_at)
+            @unless ($isReadOnly)
+                @if (
+                    $reservation->status === 'Coordinator Approved'
+                    && (
+                        ! $borrowTransaction
+                        || ($borrowTransaction->status === 'Coordinator Approved' && ! $borrowTransaction->checked_out_at)
+                    )
                 )
-            )
-                <form method="POST" action="{{ route('coordinator.reservations.dismiss', $reservation) }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Dismiss and cancel this approved reservation?');">
-                        <i class="fa-solid fa-ban me-1"></i> Dismiss
-                    </button>
-                </form>
-            @endif
-            @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction)
-                <a href="{{ route('coordinator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
-                    <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
-                </a>
-            @endif
+                    <form method="POST" action="{{ route('coordinator.reservations.dismiss', $reservation) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Dismiss and cancel this approved reservation?');">
+                            <i class="fa-solid fa-ban me-1"></i> Dismiss
+                        </button>
+                    </form>
+                @endif
+                @if (
+                    $reservation->status === 'Coordinator Approved'
+                    && $borrowTransaction
+                    && in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed'], true)
+                    && ! $borrowTransaction->checked_out_at
+                )
+                    <a href="{{ route('coordinator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
+                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                    </a>
+                @endif
+            @endunless
             <a href="{{ route('coordinator.reservations.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
         </div>
     </div>
@@ -115,7 +123,7 @@
                         </div>
                     </div>
 
-                    @if ($reservation->status === 'Facilitator Approved')
+                    @if ($reservation->status === 'Facilitator Approved' && ! $isReadOnly)
                         <div data-shared-remarks>
                                 <div class="card border-0 bg-light h-100">
                                     <div class="card-body p-3 p-xl-4">
@@ -167,7 +175,7 @@
                             </div>
                     @endif
 
-                    @if ($reservation->status === 'Coordinator Approved' && $borrowTransaction?->status === 'Coordinator Approved')
+                    @if (! $isReadOnly && $reservation->status === 'Coordinator Approved' && $borrowTransaction?->status === 'Coordinator Approved')
                         <div class="card border-0 bg-light mt-3">
                             <div class="card-body p-3 p-xl-4">
                                 <h4 class="h6 fw-semibold text-dark mb-2">Reschedule reservation</h4>

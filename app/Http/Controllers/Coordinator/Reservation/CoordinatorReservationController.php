@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Coordinator\Reservation;
 use App\Http\Controllers\Concerns\ValidatesReservationSchedule;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationEmailController;
+use App\Models\ReservationItem;
 use App\Models\ApprovalLog;
 use App\Models\BorrowItem;
 use App\Models\BorrowTransaction;
@@ -43,6 +44,9 @@ class CoordinatorReservationController extends Controller
 
         $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
             ->forCampus(Campus::MAIN)
+            ->whereDoesntHave('borrowTransactions', function ($query) {
+                $query->whereNotNull('checked_out_at');
+            })
             ->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
             ->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
             ->select('reservations.*')
@@ -349,9 +353,24 @@ class CoordinatorReservationController extends Controller
     {
         $reservation->loadMissing(['items', 'schoolYear']);
 
+        if ($reservation->items->isEmpty()) {
+            return null;
+        }
+
         $existingTransaction = $reservation->borrowTransactions()->lockForUpdate()->first();
 
         if ($existingTransaction) {
+            // Checkout has started — the borrow items must not change anymore.
+            if ($existingTransaction->checked_out_at !== null
+                || $existingTransaction->items()->where('quantity_checked_out', '>', 0)->exists()) {
+                return $existingTransaction;
+            }
+
+            // Sync borrow items to the (possibly edited) reservation items before
+            // any scan has occurred. This is what makes the facilitator's add /
+            // remove / quantity edits visible at checkout.
+            $this->syncBorrowItemsFromReservation($existingTransaction, $reservation);
+
             return $existingTransaction;
         }
 
@@ -388,7 +407,7 @@ class CoordinatorReservationController extends Controller
             'remarks' => $reservation->remarks,
         ]);
 
-        foreach ($reservation->items as $item) {
+         foreach ($reservation->items as $item) {
             BorrowItem::create([
                 'borrow_transaction_id' => $borrowTransaction->id,
                 'item_type' => $item->item_type,
@@ -406,6 +425,55 @@ class CoordinatorReservationController extends Controller
         }
 
         return $borrowTransaction;
+    }
+
+    private function syncBorrowItemsFromReservation(BorrowTransaction $borrowTransaction, Reservation $reservation): void
+    {
+        $reservation->loadMissing('items.item');
+
+        $reservationItems = $reservation->items->keyBy(
+            fn (ReservationItem $item) => $item->item_type.':'.$item->item_id,
+        );
+
+        // Load the current borrow items once, then track deletions locally so the
+        // upsert loop works against the post-delete state.
+        $existingBorrowItems = $borrowTransaction->items()
+            ->get()
+            ->keyBy(fn (BorrowItem $item) => $item->item_type.':'.$item->item_id);
+
+        foreach ($existingBorrowItems as $key => $borrowItem) {
+            if (! $reservationItems->has($key)) {
+                $borrowItem->delete();
+                $existingBorrowItems->forget($key);
+            }
+        }
+
+        foreach ($reservationItems as $key => $reservationItem) {
+            $remarks = $reservationItem->remarks;
+
+            if ($existingBorrowItems->has($key)) {
+                $existingBorrowItems->get($key)->update([
+                    'quantity_borrowed' => $reservationItem->quantity,
+                    'remarks' => $remarks,
+                ]);
+                continue;
+            }
+
+            BorrowItem::create([
+                'borrow_transaction_id' => $borrowTransaction->id,
+                'item_type' => $reservationItem->item_type,
+                'item_id' => $reservationItem->item_id,
+                'quantity_borrowed' => $reservationItem->quantity,
+                'quantity_checked_out' => 0,
+                'quantity_returned' => 0,
+                'quantity_used' => 0,
+                'quantity_lost' => 0,
+                'quantity_damaged' => 0,
+                'condition_out' => 'Good',
+                'condition_in' => null,
+                'remarks' => $remarks,
+            ]);
+        }
     }
 
     private function guardForCoordinator(Reservation $reservation): void

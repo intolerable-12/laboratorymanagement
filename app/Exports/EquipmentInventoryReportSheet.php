@@ -507,13 +507,28 @@ class EquipmentInventoryReportSheet implements Export, FromArray, WithColumnWidt
 
     private function remarksForSchoolYear(Collection $periods, SchoolYear $schoolYear): string
     {
-        return $periods
+        $raw = $periods
             ->filter(fn ($period): bool => (int) $period->school_year_id === (int) $schoolYear->id)
             ->pluck('remarks')
             ->filter(fn ($remark): bool => trim((string) $remark) !== '')
-            ->map(fn ($remark): string => trim((string) $remark))
-            ->unique()
             ->implode(' ');
+
+        return $this->latestRemarkSentence($raw);
+    }
+
+    private function latestRemarkSentence(string $raw): string
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return '';
+        }
+
+        // Remarks are appended to the same period row over time; keep only the
+        // last sentence so the report shows the most recent change, not the trail.
+        $sentences = preg_split('/(?<=[.!?])\s+/', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return trim((string) end($sentences));
     }
 
     private function remarksForEquipment(?object $equipment): string

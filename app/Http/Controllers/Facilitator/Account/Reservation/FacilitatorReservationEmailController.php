@@ -61,6 +61,19 @@ class FacilitatorReservationEmailController
 		);
 	}
 
+	public function sendDismissedToRequester(Reservation $reservation, User $facilitator): void
+	{
+		$this->send(
+			reservation: $reservation,
+			reviewerRole: 'IBED Laboratory In-charge',
+			decisionLabel: 'Dismissed by Laboratory In-charge',
+			subjectPrefix: 'Reservation dismissed',
+			bodyMessage: 'Your approved reservation has been dismissed and cancelled by the IBED Laboratory In-charge.',
+			reason: null,
+			actorName: $this->buildUserName($facilitator),
+		);
+	}
+
 	private function send(
 		Reservation $reservation,
 		string $reviewerRole,

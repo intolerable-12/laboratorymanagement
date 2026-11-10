@@ -585,6 +585,7 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
                 Route::get('/{reservation}', [FacilitatorReservationController::class, 'show'])->name('show');
                 Route::post('/{reservation}/approve', [FacilitatorReservationController::class, 'approve'])->name('approve');
                 Route::post('/{reservation}/reject', [FacilitatorReservationController::class, 'reject'])->name('reject');
+                Route::post('/{reservation}/dismiss', [FacilitatorReservationController::class, 'dismiss'])->name('dismiss');
                 Route::patch('/{reservation}/reschedule', [FacilitatorReservationController::class, 'reschedule'])->name('reschedule');
             });
 

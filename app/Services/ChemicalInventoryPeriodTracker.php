@@ -91,7 +91,13 @@ class ChemicalInventoryPeriodTracker
         $period->ending_quantity = $newQuantity;
         $period->remarks = $this->appendRemark(
             $period->remarks,
-            sprintf('Quantity changed from %s to %s %s.', $this->formatQuantity($previousQuantity), $this->formatQuantity($newQuantity), $chemical->unit),
+            sprintf(
+                'Quantity changed from %s to %s %s on %s.',
+                $this->formatQuantity($previousQuantity),
+                $this->formatQuantity($newQuantity),
+                $chemical->unit ?: 'unit',
+                $changedAt->format('m/d/Y'),
+            ),
         );
         $period->save();
     }
@@ -125,12 +131,22 @@ class ChemicalInventoryPeriodTracker
             semesterIndex: (int) $semesterIndex,
             semesterCount: $semesters->count(),
         );
-        $period->ending_quantity = (float) $chemical->quantity;
+
+        $previousQuantity = (float) ($period->ending_quantity ?? $chemical->quantity + $usageDelta);
+        $newQuantity = (float) $chemical->quantity;
+
+        $period->ending_quantity = $newQuantity;
         $period->used_quantity = max(0, round((float) $period->used_quantity + $usageDelta, 2));
-        $unit = $chemical->unit ?: 'unit';
-        $period->remarks = $this->appendRemark($period->remarks, $usageDelta > 0
-            ? 'Used: '.$this->formatQuantity(abs($usageDelta)).' '.$unit.'.'
-            : 'Usage reversed: '.$this->formatQuantity(abs($usageDelta)).' '.$unit.'.');
+        $period->remarks = $this->appendRemark(
+            $period->remarks,
+            sprintf(
+                'Quantity changed from %s to %s %s on %s.',
+                $this->formatQuantity($previousQuantity),
+                $this->formatQuantity($newQuantity),
+                $chemical->unit ?: 'unit',
+                $usedAt->format('m/d/Y'),
+            ),
+        );
         $period->save();
     }
 

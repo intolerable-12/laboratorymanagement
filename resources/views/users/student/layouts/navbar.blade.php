@@ -37,13 +37,26 @@
                     </span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li><a class="dropdown-item" href="{{ route('notifications.index') }}">Notifications</a></li>
-                    <li><a class="dropdown-item" href="{{ route('student.myaccount') }}">My Account</a></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('notifications.index') }}">
+                            <i class="fa-regular fa-bell me-2 text-secondary" aria-hidden="true"></i>
+                            Notifications
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('student.myaccount') }}">
+                            <i class="fa-solid fa-user me-2 text-secondary" aria-hidden="true"></i>
+                            My Account
+                        </a>
+                    </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="dropdown-item text-danger">Logout</button>
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="fa-solid fa-right-from-bracket me-2" aria-hidden="true"></i>
+                                Logout
+                            </button>
                         </form>
                     </li>
                 </ul>

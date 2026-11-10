@@ -36,43 +36,13 @@
         ])
 
         <section class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <i class="fa-solid fa-microscope text-primary"></i>
-                <i class="fa-solid fa-flask text-success"></i>
-                <h3 class="h4 fw-semibold mb-0 text-dark">Equipment &amp; Chemical Overview</h3>
-            </div>
             <div class="row g-3 g-xl-4">
-                @foreach ($equipmentStats as $metric)
+                @foreach ($dashboardStats as $metric)
                     <div class="col-12 col-sm-6 col-xl-3">
                         @php
                             $metricUrl = match ($metric['label']) {
                                 'Damaged equipment' => route('facilitator.equipment.index', ['condition' => 'Damaged']),
                                 'Low stock equipment' => route('facilitator.equipment.index', ['low_stock' => '1']),
-                                default => null,
-                            };
-                        @endphp
-                        @if ($metricUrl)
-                            <a href="{{ $metricUrl }}" class="d-block h-100 text-decoration-none" aria-label="View damaged equipment">
-                        @endif
-                        <div class="card metric-card border-0 h-100">
-                            <div class="card-body p-4">
-                                <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
-                                <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
-                                <div class="small text-secondary">{{ $metric['note'] }}</div>
-                                @if ($metricUrl)
-                                    <div class="small fw-semibold text-primary mt-3">See more <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i></div>
-                                @endif
-                            </div>
-                        </div>
-                        @if ($metricUrl)
-                            </a>
-                        @endif
-                    </div>
-                @endforeach
-                @foreach ($chemicalStats as $metric)
-                    <div class="col-12 col-sm-6 col-xl-4">
-                        @php
-                            $metricUrl = match ($metric['label']) {
                                 'Expired chemicals' => route('facilitator.chemicals.index', ['status' => 'Expired']),
                                 'Low stock chemicals' => route('facilitator.chemicals.index', ['low_stock' => '1']),
                                 default => null,
@@ -110,20 +80,6 @@
                     </div>
                 @endforeach
             </div>
-        </section>
-
-        <section class="row g-3 g-xl-4 mb-4">
-            @foreach ($operationalStats as $metric)
-                <div class="col-12 col-sm-6 col-xl-4">
-                    <div class="card metric-card border-0 h-100">
-                        <div class="card-body p-4">
-                            <div class="text-uppercase small fw-semibold text-secondary mb-3">{{ $metric['label'] }}</div>
-                            <div class="display-6 fw-semibold mb-2 text-dark">{{ $metric['value'] }}</div>
-                            <div class="small text-secondary">{{ $metric['note'] }}</div>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
         </section>
 
         @include('partials.laboratory-inventory-summary', ['laboratoryInventory' => $laboratoryInventory])

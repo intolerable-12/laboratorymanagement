@@ -18,69 +18,56 @@
             <div class="col-lg-6">
                 <div class="card section-card border-0 h-100">
                     <div class="card-body p-4 p-xl-5">
-                        <div>
-                            <div class="account-profile-header d-flex align-items-center gap-3 mb-4">
-                                <div class="account-avatar">
-                                    @if ($avatarUrl)
-                                        <img src="{{ $avatarUrl }}" alt="Profile photo">
-                                    @else
-                                        <span>{{ $initials }}</span>
-                                    @endif
-                                </div>
-                                <div>
-                                    <div class="h4 fw-semibold mb-1 text-dark">{{ $displayName }}</div>
-                                    <div class="text-secondary">{{ $email }}</div>
-                                </div>
+                        <div class="account-profile-header d-flex align-items-center gap-3 mb-4">
+                            <div class="account-avatar">
+                                @if ($avatarUrl)
+                                    <img src="{{ $avatarUrl }}" alt="Profile photo">
+                                @else
+                                    <span>{{ $initials }}</span>
+                                @endif
                             </div>
+                            <div>
+                                <div class="h4 fw-semibold mb-1 text-dark">{{ $displayName }}</div>
+                                <div class="text-secondary">{{ $email }}</div>
+                            </div>
+                        </div>
 
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold text-dark">User ID</label>
-                                    <input type="text" name="userID" class="form-control account-input" value="{{ $userIdValue }}" readonly aria-describedby="facilitator-user-id-help">
-                                    <div id="facilitator-user-id-help" class="form-text">Your User ID is managed by the administrator.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-dark">First Name</label>
-                                    <input type="text" name="first_name" class="form-control account-input" value="{{ $user->first_name }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-dark">Middle Name</label>
-                                    <input type="text" name="middle_name" class="form-control account-input" value="{{ $user->middle_name }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-dark">Last Name</label>
-                                    <input type="text" name="last_name" class="form-control account-input" value="{{ $user->last_name }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-dark">Suffix</label>
-                                    <input type="text" name="suffix" class="form-control account-input" value="{{ $user->suffix }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-dark">Contact Number</label>
-                                    <input type="text" name="contact_number" class="form-control account-input" value="{{ $user->contact_number }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-dark">Gender</label>
-                                    <input type="text" name="gender" class="form-control account-input" value="{{ $user->gender }}" disabled>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold text-dark">Birth Date</label>
-                                    <input type="date" name="birth_date" class="form-control account-input" value="{{ $birthDateInput }}" disabled>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold text-dark">Department</label>
-                                    <select name="department_id" class="form-select account-input" disabled>
-                                        <option value="">Select department</option>
-                                        @foreach ($departments as $department)
-                                            <option value="{{ $department->id }}" @selected((string) old('department_id', $departmentId) === (string) $department->id)>
-                                                {{ $department->department_name }}
-                                            </option>
-                                            <div class="form-text">Profile details are managed by the administrator.</div>
-                                        @endforeach
-                                    </select>
-                                    <div class="form-text">Profile details are managed by the administrator.</div>
-                                </div>
-                            </div>
+                        <dl class="row g-3 mb-0">
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">User ID</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $userIdValue }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">First Name</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $user->first_name ?: '—' }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Middle Name</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $user->middle_name ?: '—' }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Last Name</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $user->last_name ?: '—' }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Suffix</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $user->suffix ?: '—' }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Contact Number</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $user->contact_number ?: '—' }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Gender</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">{{ $user->gender ?: '—' }}</dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Birth Date</dt>
+                            <dd class="col-sm-8 mb-3 text-dark">
+                                {{ $user->birth_date?->format('F j, Y') ?? $birthDateInput ?? '—' }}
+                            </dd>
+
+                            <dt class="col-sm-4 small text-uppercase text-secondary fw-semibold">Department</dt>
+                            <dd class="col-sm-8 mb-0 text-dark">
+                                {{ $departments->firstWhere('id', $departmentId)?->department_name ?? '—' }}
+                            </dd>
+                        </dl>
+
+                        <div class="small text-secondary mt-4">
+                            <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>
+                            Profile details are managed by the administrator.
                         </div>
                     </div>
                 </div>

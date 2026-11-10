@@ -91,9 +91,11 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
                 }
 
                 $periodRemarks = $this->remarksForSchoolYear($periods, $schoolYear, $chemical);
+
                 $currentRemark = $schoolYear->id === $latestSchoolYearId
-                    ? trim((string) ($chemical->remarks ?? ''))
+                    ? $this->stripSafetyBoilerplate((string) ($chemical->remarks ?? ''))
                     : '';
+
                 $row[] = collect([$periodRemarks, $currentRemark])
                     ->filter()
                     ->unique()
@@ -104,6 +106,19 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
         }
 
         return $rows;
+    }
+
+    private function stripSafetyBoilerplate(string $remark): string
+    {
+        // Remove only the standard safety-handling advisory; leave any other
+        // user-entered remark on the chemical record intact.
+        $cleaned = preg_replace(
+            '/\s*Store and handle according to chemical safety requirements\.\s*/i',
+            ' ',
+            $remark,
+        );
+
+        return trim((string) $cleaned);
     }
 
     public function startCell(): string
@@ -406,15 +421,28 @@ class ChemicalInventoryReportSheet implements Export, FromArray, WithColumnWidth
 
     private function remarksForSchoolYear(Collection $periods, SchoolYear $schoolYear, Chemical $chemical): string
     {
-        $yearPeriods = $periods->filter(fn ($period): bool => (int) $period->school_year_id === (int) $schoolYear->id);
-        $remarks = $yearPeriods->pluck('remarks')->filter()->map(fn ($remark): string => trim((string) $remark));
-        $used = (float) $yearPeriods->sum(fn ($period): float => (float) $period->used_quantity);
+        $raw = $periods
+            ->filter(fn ($period): bool => (int) $period->school_year_id === (int) $schoolYear->id)
+            ->pluck('remarks')
+            ->filter(fn ($remark): bool => trim((string) $remark) !== '')
+            ->implode(' ');
 
-        if ($used > 0) {
-            $remarks->push('Used: '.rtrim(rtrim(number_format($used, 2, '.', ''), '0'), '.').' '.($chemical->unit ?: 'unit').'.');
+        return $this->latestRemarkSentence($raw);
+    }
+
+    private function latestRemarkSentence(string $raw): string
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return '';
         }
 
-        return $remarks->filter()->unique()->implode(' ');
+        // Remarks are appended to the same period row over time; keep only the
+        // last sentence so the report shows the most recent change, not the trail.
+        $sentences = preg_split('/(?<=[.!?])\s+/', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return trim((string) end($sentences));
     }
 
     private function remarksForChemical(?Chemical $chemical): string

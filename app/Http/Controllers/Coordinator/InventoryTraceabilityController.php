@@ -550,7 +550,8 @@ class InventoryTraceabilityController extends Controller
                 $event['details'],
             ])),
             'title' => $event['title'],
-            'start' => $event['occurred_at']->format('Y-m-d\TH:i:s'),
+            'start' => $event['occurred_at']->format('Y-m-d'),
+            'allDay' => true,
             'backgroundColor' => $color,
             'borderColor' => $color,
             'textColor' => '#ffffff',
@@ -564,6 +565,7 @@ class InventoryTraceabilityController extends Controller
                 'reference' => $event['reference'],
                 'details' => $event['details'],
                 'occurred_at' => $event['occurred_at']->format('F j, Y h:i A'),
+                'time_label' => $event['occurred_at']->format('g:i A'),
             ],
         ];
     }
@@ -697,23 +699,25 @@ class InventoryTraceabilityController extends Controller
     {
         $condition = $this->conditionFromRemarks($log->remarks);
 
-        $reason = match ($log->action) {
-            'Borrow' => 'Borrowed / checked out.',
-            'Return' => $changed > 0
-                ? 'Returned after check-in and added back to available stock.'  
-                : 'Returned after check-in but not added back to available stock'.($condition ? ' because it was '.$condition.'.' : '.'),
-            'Purchase', 'Stock In' => 'Restocked / quantity added by the '.$this->actorLabel().'.',
-            'Stock Out' => 'Stock removed by the '.$this->actorLabel().'.',
-            'Damage' => 'Damaged.',
-            'Lost' => 'Lost.',
-            'Expired' => 'Expired chemical stock deducted.',
-            'For Disposal' => 'Chemical stock marked for disposal and deducted.',
-            'Maintenance' => 'Moved to maintenance.',
-            'Adjustment' => $changed >= 0
-                ? 'Inventory correction added stock.'
-                : 'Inventory correction deducted stock.',
-            default => ucfirst($log->action).'.',
-        };
+                $performedByLabel = $this->performedByRoleLabel($log->performedBy);
+
+            $reason = match ($log->action) {
+                'Borrow' => 'Borrowed / checked out.',
+                'Return' => $changed > 0
+                    ? 'Returned after check-in and added back to available stock.'  
+                    : 'Returned after check-in but not added back to available stock'.($condition ? ' because it was '.$condition.'.' : '.'),
+                'Purchase', 'Stock In' => 'Restocked / quantity added by the '.$performedByLabel.'.',
+                'Stock Out' => 'Stock removed by the '.$performedByLabel.'.',
+                'Damage' => 'Damaged.',
+                'Lost' => 'Lost.',
+                'Expired' => 'Expired chemical stock deducted.',
+                'For Disposal' => 'Chemical stock marked for disposal and deducted.',
+                'Maintenance' => 'Moved to maintenance.',
+                'Adjustment' => $changed >= 0
+                    ? 'Inventory correction added stock.'
+                    : 'Inventory correction deducted stock.',
+                default => ucfirst($log->action).'.',
+            };
 
         $before = (float) $log->quantity_after - $changed;
 
@@ -742,5 +746,16 @@ class InventoryTraceabilityController extends Controller
         return $user
             ? trim(collect([$user->first_name, $user->middle_name, $user->last_name, $user->suffix])->filter()->implode(' '))
             : 'System';
+    }
+
+    private function performedByRoleLabel(?User $user): string
+    {
+        $roleName = $user?->role?->role_name;
+
+        return match ($roleName) {
+            'Laboratory In-charge' => 'in-charge',
+            'Coordinator'          => 'coordinator',
+            default                => 'user',
+        };
     }
 }

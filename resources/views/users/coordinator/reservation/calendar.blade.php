@@ -73,7 +73,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="account-summary-card h-100">
-                                            <div class="small text-secondary" data-reservation-requester-label>Student</div>
+                                            <div class="small text-secondary" data-reservation-requester-label>Requester</div>
                                             <div class="fw-semibold text-dark" data-reservation-student-name>—</div>
                                             <div class="small text-secondary" data-reservation-student-id>—</div>
                                             <div class="small text-secondary" data-reservation-student-email>—</div>

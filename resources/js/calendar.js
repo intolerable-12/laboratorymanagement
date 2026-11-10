@@ -171,7 +171,6 @@ export const initializeCalendars = () => {
                 typeBadge: modalElement.querySelector('[data-reservation-calendar-type]'),
                 badge: modalElement.querySelector('[data-reservation-calendar-status]'),
                 reservationNo: modalElement.querySelector('[data-reservation-reservation-no]'),
-                referenceLabel: modalElement.querySelector('[data-reservation-reference-label]'),
                 requesterLabel: modalElement.querySelector('[data-reservation-requester-label]'),
                 studentName: modalElement.querySelector('[data-reservation-student-name]'),
                 studentId: modalElement.querySelector('[data-reservation-student-id]'),
@@ -229,7 +228,7 @@ export const initializeCalendars = () => {
             navLinks: true,
             selectable: false,
             editable: false,
-            dayMaxEventRows: true,
+            dayMaxEventRows: 2,
             events,
             eventDisplay: 'block',
             eventTimeFormat: {
@@ -287,12 +286,15 @@ export const initializeCalendars = () => {
                     modalSelectors.typeBadge.className = `badge ${isBorrow ? 'text-bg-primary' : 'text-bg-success'} fs-6 px-3 py-2`;
                 }
                 setTextContent(modalSelectors.reservationNo, props.reservation_no);
-                setTextContent(modalSelectors.referenceLabel, isBorrow ? 'Borrow No.' : 'Reservation No.');
-                setTextContent(modalSelectors.scheduleLabel, isBorrow ? 'Borrow Period' : 'Reservation Schedule');
+
+                // "Student" by default, but label it "Instructor" when the requester is one.
+                const requesterRole = props.requester_role ?? 'Student';
                 setTextContent(
                     modalSelectors.requesterLabel,
-                    props.requester_role || 'Student',
+                    requesterRole === 'Instructor' ? 'Instructor' : (requesterRole === 'Guest' ? 'Guest' : 'Student'),
+                    'Requester'
                 );
+
                 setTextContent(modalSelectors.studentName, props.student_name);
                 setTextContent(modalSelectors.studentId, props.student_id);
                 setTextContent(modalSelectors.studentEmail, props.student_email);
@@ -319,7 +321,7 @@ export const initializeCalendars = () => {
 
                 if (modalSelectors.badge) {
                     modalSelectors.badge.className = `badge ${statusBadgeClass(props.status, props.event_type)}`;
-                    modalSelectors.badge.textContent = props.status ?? 'Scheduled';
+                    modalSelectors.badge.textContent = props.status_label ?? props.status ?? 'Scheduled';
                 }
 
                 renderReservationItems(modalSelectors.itemsBody, props.items ?? [], props.event_type);

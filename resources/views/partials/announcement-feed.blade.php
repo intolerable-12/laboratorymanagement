@@ -13,7 +13,6 @@
     <div class="card-body p-4 p-xl-5">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4 mb-4">
             <div class="hero-copy">
-                <div class="social-eyebrow mb-3">Announcements</div>
                 <h2>{{ $feedTitle }}</h2>
                 <p class="mb-0 text-secondary">{{ $feedSubtitle }}</p>
             </div>

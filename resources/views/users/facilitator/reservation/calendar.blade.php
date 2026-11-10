@@ -40,7 +40,9 @@
                         <p class="mb-0 text-secondary">Use the toolbar to switch between month, week, and day views.</p>
                     </div>
                     <div class="reservation-calendar-legend d-flex flex-wrap gap-2">
-                        <span class="badge text-bg-success px-3 py-2">Coordinator Approved</span>
+                        <span class="badge text-bg-success px-3 py-2">
+                            {{ auth()->user()->campusName() === \App\Support\Campus::IBED ? 'Laboratory In-charge Approved' : 'Coordinator Approved' }}
+                        </span>
                     </div>
                 </div>
 
@@ -78,7 +80,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="account-summary-card h-100">
-                                            <div class="small text-secondary" data-reservation-requester-label>Student</div>
+                                            <div class="small text-secondary" data-reservation-requester-label>Requester</div>
                                             <div class="fw-semibold text-dark" data-reservation-student-name>—</div>
                                             <div class="small text-secondary" data-reservation-student-id>—</div>
                                             <div class="small text-secondary" data-reservation-student-email>—</div>

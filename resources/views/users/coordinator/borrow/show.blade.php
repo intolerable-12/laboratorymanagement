@@ -5,17 +5,27 @@
 @section('page-subtitle', 'Take the final coordinator action on laboratory in-charge-approved borrow requests')
 
 @section('content')
+
+    @php
+        $isReadOnly = request()->boolean('readonly');
+
+        $checkoutStillOpen = in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed'], true)
+            && ! $borrowTransaction->checked_out_at;
+    @endphp
+
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
         <div>
             <h2 class="h4 fw-semibold mb-1 text-dark">{{ $borrowTransaction->borrow_no }}</h2>
             <p class="mb-0 text-secondary">Final review for {{ $borrowTransaction->requesterName() }}</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            @if ($borrowTransaction->status === 'Coordinator Approved')
-                <a href="{{ route('coordinator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
-                    <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
-                </a>
-            @endif
+            @unless ($isReadOnly)
+                @if ($checkoutStillOpen)
+                    <a href="{{ route('coordinator.checkout.show', $borrowTransaction) }}" class="btn btn-success">
+                        <i class="fa-solid fa-barcode me-1"></i> Proceed to checkout
+                    </a>
+                @endif
+            @endunless
             <a href="{{ route('coordinator.borrow.index') }}" class="btn btn-outline-secondary">Back to Queue</a>
         </div>
     </div>
@@ -100,7 +110,7 @@
                         </div>
                     </div>
 
-                    @if ($borrowTransaction->status === 'Facilitator Approved')
+                    @if ($borrowTransaction->status === 'Facilitator Approved' && ! $isReadOnly)
                         <div data-shared-remarks>
                                 <div class="card border-0 bg-light h-100">
                                     <div class="card-body p-3 p-xl-4">
@@ -147,7 +157,7 @@
                             </div>
                     @endif
 
-                    @if ($borrowTransaction->status === 'Coordinator Approved')
+                    @if (! $isReadOnly && $borrowTransaction->status === 'Coordinator Approved')
                         <div class="card border-0 bg-light mt-3">
                             <div class="card-body p-3 p-xl-4">
                                 <h4 class="h6 fw-semibold text-dark mb-2">Reschedule checkout</h4>

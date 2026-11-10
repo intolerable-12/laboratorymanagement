@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ReservationItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,5 +63,26 @@ class BorrowItem extends Model
     public function item(): MorphTo
     {
         return $this->morphTo(__FUNCTION__, 'item_type', 'item_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (BorrowItem $item): void {
+            if (! $item->wasChanged('remarks')) {
+                return;
+            }
+
+            $reservationId = $item->borrowTransaction?->reservation_id;
+
+            if (! $reservationId) {
+                return;
+            }
+
+            ReservationItem::query()
+                ->where('reservation_id', $reservationId)
+                ->where('item_type', $item->item_type)
+                ->where('item_id', $item->item_id)
+                ->update(['remarks' => $item->remarks]);
+        });
     }
 }

@@ -33,6 +33,7 @@ class CoordinatorBorrowController extends Controller
 
 		$borrows = BorrowTransaction::with(['borrower', 'laboratory', 'items.item', 'releasedBy', 'receivedBy'])
 			->forCampus(Campus::MAIN)
+			->whereNotIn('borrow_transactions.status', ['Returned', 'Cancelled', 'Rejected'])
 			->leftJoin('users as borrowers', 'borrow_transactions.borrower_id', '=', 'borrowers.userNo')
 			->select('borrow_transactions.*')
 			->orderBy($sortableColumns[$sort], $direction)
