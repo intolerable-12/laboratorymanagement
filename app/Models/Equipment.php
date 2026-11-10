@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
 
 class Equipment extends Model
 {
@@ -38,6 +38,12 @@ class Equipment extends Model
         'serial_number',
         'purchase_date',
         'manufacturing_date',
+        'lifespan_mode',
+        'lifespan_months',
+        'lifespan_years',
+        'lifespan_expires_at',
+        'lifespan_alert_notified_at',
+        'lifespan_supplier_alert_sent_at',
         'quantity',
         'available_quantity',
         'low_stock_threshold',
@@ -62,6 +68,11 @@ class Equipment extends Model
         return [
             'purchase_date' => 'date',
             'manufacturing_date' => 'date',
+            'lifespan_months' => 'integer',
+            'lifespan_years' => 'integer',
+            'lifespan_expires_at' => 'datetime',
+            'lifespan_alert_notified_at' => 'datetime',
+            'lifespan_supplier_alert_sent_at' => 'datetime',
             'quantity' => 'integer',
             'available_quantity' => 'integer',
             'low_stock_threshold' => 'integer',

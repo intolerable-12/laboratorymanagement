@@ -20,6 +20,7 @@ use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowController;
 use App\Http\Controllers\Coordinator\Borrow\CoordinatorBorrowEmailController;
 use App\Http\Controllers\Coordinator\EquipmentCategoryController;
 use App\Http\Controllers\Coordinator\EquipmentController;
+use App\Http\Controllers\EquipmentLifespanController;
 use App\Http\Controllers\Coordinator\EquipmentBulkImportController;
 use App\Http\Controllers\Coordinator\EquipmentBarcodePrintController;
 use App\Http\Controllers\Coordinator\Chemical\ChemicalBulkImportController;
@@ -140,6 +141,8 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
         Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/inventory/traceability', [InventoryTraceabilityController::class, 'index'])->name('inventory-traceability.index');
+        Route::get('/equipment-lifespans', [EquipmentLifespanController::class, 'index'])->name('equipment-lifespans.index');
+        Route::put('/equipment-lifespans/{equipment}', [EquipmentLifespanController::class, 'update'])->name('equipment-lifespans.update');
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', fn () => redirect()->route('coordinator.reports.equipment.index'))->name('index');
@@ -497,6 +500,8 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
         });
 
         Route::get('/inventory/traceability', [InventoryTraceabilityController::class, 'index'])->name('inventory-traceability.index');
+        Route::get('/equipment-lifespans', [EquipmentLifespanController::class, 'index'])->name('equipment-lifespans.index');
+        Route::put('/equipment-lifespans/{equipment}', [EquipmentLifespanController::class, 'update'])->name('equipment-lifespans.update');
 
         Route::prefix('laboratories')
             ->name('laboratories.')

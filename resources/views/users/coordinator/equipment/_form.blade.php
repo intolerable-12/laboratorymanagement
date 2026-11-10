@@ -25,6 +25,7 @@
     $imageUrl = !empty($equipment?->image) ? asset('storage/' . $equipment->image) : null;
     $manufacturingDate = old('manufacturing_date', optional($equipment?->manufacturing_date)->format('Y-m-d'));
     $purchaseDate = old('purchase_date', optional($equipment?->purchase_date)->format('Y-m-d'));
+    $lifespanExpiryDate = old('lifespan_expires_at', optional($equipment?->lifespan_expires_at)->format('Y-m-d'));
     $isRequestable = old('is_requestable', $equipment?->is_requestable ?? true);
 @endphp
 
@@ -134,6 +135,13 @@
                 <input type="date" id="purchase_date" name="purchase_date" value="{{ $purchaseDate }}" @if ($manufacturingDate) min="{{ $manufacturingDate }}" @endif class="form-control admin-form-control @error('purchase_date') is-invalid @enderror">
                 <div class="form-text">Enter the date when the equipment was purchased.</div>
                 @error('purchase_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label" for="lifespan_expires_at">Lifespan expiry date</label>
+                <input type="date" id="lifespan_expires_at" name="lifespan_expires_at" value="{{ $lifespanExpiryDate }}" min="{{ now()->toDateString() }}" class="form-control admin-form-control @error('lifespan_expires_at') is-invalid @enderror">
+                <div class="form-text">Optional. Leave blank if no expiry date is set.</div>
+                @error('lifespan_expires_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">

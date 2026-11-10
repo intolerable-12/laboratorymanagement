@@ -198,6 +198,7 @@ class EquipmentController extends Controller
         $data['barcode'] = $this->generateBarcodeValue($data['equipment_code']);
         $data['available_quantity'] = $data['quantity'];
         $data['supplier_alert_sent_at'] = null;
+        $this->applyLifespanExpiry($data);
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('equipment', 'public');
@@ -248,6 +249,7 @@ class EquipmentController extends Controller
         $previousAvailableQuantity = (int) $equipment->available_quantity;
         $previousTotalQuantity = (int) $equipment->quantity;
         $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
+        $this->applyLifespanExpiry($data, $equipment);
 
         if ((int) ($equipment->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
             $data['supplier_alert_sent_at'] = null;
@@ -442,6 +444,7 @@ class EquipmentController extends Controller
             'serial_number' => ['nullable', 'string', 'max:150'],
             'purchase_date' => ['nullable', 'date'],
             'manufacturing_date' => ['nullable', 'date'],
+            'lifespan_expires_at' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'quantity' => ['required', 'integer', 'min:0'],
             'condition' => ['required', Rule::in(['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'])],
             'status' => ['required', Rule::in(['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'])],
@@ -467,6 +470,31 @@ class EquipmentController extends Controller
         }
 
         return $data;
+    }
+
+    private function applyLifespanExpiry(array &$data, ?Equipment $equipment = null): void
+    {
+        if (! array_key_exists('lifespan_expires_at', $data)) {
+            return;
+        }
+
+        $expiryDate = $data['lifespan_expires_at'] ?? null;
+        $currentExpiryDate = $equipment?->lifespan_expires_at?->toDateString();
+
+        if ($equipment && $expiryDate === $currentExpiryDate) {
+            unset($data['lifespan_expires_at']);
+
+            return;
+        }
+
+        $data['lifespan_expires_at'] = $expiryDate
+            ? Carbon::createFromFormat('Y-m-d', $expiryDate)->endOfDay()
+            : null;
+        $data['lifespan_mode'] = $expiryDate ? 'date' : null;
+        $data['lifespan_months'] = null;
+        $data['lifespan_years'] = null;
+        $data['lifespan_alert_notified_at'] = null;
+        $data['lifespan_supplier_alert_sent_at'] = null;
     }
 
     private function availableQuantityAfterTotalChange(Equipment $equipment, int $newQuantity): int

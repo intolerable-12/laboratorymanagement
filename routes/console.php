@@ -15,3 +15,7 @@ Schedule::command('borrow:notify-schedule')
 Schedule::command('inventory:notify-suppliers')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('equipment:notify-lifespan-expiry')
+    ->everyMinute()
+    ->withoutOverlapping();

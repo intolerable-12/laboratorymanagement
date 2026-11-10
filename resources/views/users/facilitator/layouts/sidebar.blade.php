@@ -28,9 +28,10 @@
         $isChemicalGroup = request()->routeIs('facilitator.chemicals.*', 'facilitator.chemical.categories.*')
             && ! request()->routeIs('facilitator.chemicals.traceability*');
         $isInventoryAlerts = request()->routeIs('facilitator.inventory-alerts.*');
+        $isEquipmentLifespans = request()->routeIs('facilitator.equipment-lifespans.*');
         $isSupplierGroup = request()->routeIs('facilitator.suppliers.*');
         $isTraceability = request()->routeIs('facilitator.inventory-traceability.*', 'facilitator.equipment.traceability*', 'facilitator.chemicals.traceability*');
-        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isInventoryAlerts || $isSupplierGroup || $isTraceability;
+        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isInventoryAlerts || $isSupplierGroup || $isTraceability || $isEquipmentLifespans;
         $isReservationsGroup = request()->routeIs('facilitator.reservations.*');
         $isReservationsIndex = request()->routeIs('facilitator.reservations.index');
         $isReservationsCalendar = request()->routeIs('facilitator.reservations.calendar');
@@ -138,6 +139,11 @@
                             href="{{ route('facilitator.inventory-traceability.index') }}" title="Traceability">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
                             <span class="sidebar-item__label">Traceability</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentLifespans ? 'active' : '' }}"
+                            href="{{ route('facilitator.equipment-lifespans.index') }}" title="Equipment Lifespan">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-hourglass-half"></i></span>
+                            <span class="sidebar-item__label">Equipment Lifespan</span>
                         </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isSupplierGroup ? 'active' : '' }}"
                             href="{{ route('facilitator.suppliers.index') }}" title="Suppliers">

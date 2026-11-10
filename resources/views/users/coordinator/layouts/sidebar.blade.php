@@ -28,7 +28,8 @@
         && ! request()->routeIs('coordinator.chemicals.traceability');
         $isSupplierGroup = request()->routeIs('coordinator.suppliers.*', 'coordinator.inventory-alerts.*');
         $isTraceability = request()->routeIs('coordinator.inventory-traceability.*', 'coordinator.equipment.traceability', 'coordinator.chemicals.traceability');
-        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isSupplierGroup || $isTraceability;
+        $isEquipmentLifespans = request()->routeIs('coordinator.equipment-lifespans.*');
+        $isInventoryGroup = $isEquipmentGroup || $isChemicalGroup || $isSupplierGroup || $isTraceability || $isEquipmentLifespans;
 
         $isUserManagementGroup = request()->routeIs('coordinator.users.*', 'coordinator.departments.*');
         $isAcademicPeriods = request()->routeIs('coordinator.academic-periods.*');
@@ -150,6 +151,11 @@
                             href="{{ route('coordinator.inventory-traceability.index') }}" title="Traceability">
                             <span class="sidebar-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
                             <span class="sidebar-item__label">Traceability</span>
+                        </a>
+                        <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ $isEquipmentLifespans ? 'active' : '' }}"
+                            href="{{ route('coordinator.equipment-lifespans.index') }}" title="Equipment Lifespan">
+                            <span class="sidebar-item__icon"><i class="fa-solid fa-hourglass-half"></i></span>
+                            <span class="sidebar-item__label">Equipment Lifespan</span>
                         </a>
                         <a class="nav-link rounded-3 py-2 px-3 d-flex align-items-center gap-2 {{ request()->routeIs('coordinator.suppliers.*') ? 'active' : '' }}"
                             href="{{ route('coordinator.suppliers.index') }}" title="Suppliers">
