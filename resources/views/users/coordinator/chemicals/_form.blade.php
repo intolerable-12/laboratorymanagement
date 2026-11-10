@@ -128,12 +128,6 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label" for="manufactured_date">Manufactured date</label>
-                <input type="date" id="manufactured_date" name="manufactured_date" value="{{ $manufacturedDate }}" class="form-control admin-form-control @error('manufactured_date') is-invalid @enderror">
-                @error('manufactured_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
                 <label class="form-label" for="received_date">Received date</label>
                 <input type="date" id="received_date" name="received_date" value="{{ $receivedDate }}" @if ($manufacturedDate) min="{{ $manufacturedDate }}" @endif class="form-control admin-form-control @error('received_date') is-invalid @enderror">
                 @error('received_date') <div class="invalid-feedback">{{ $message }}</div> @enderror

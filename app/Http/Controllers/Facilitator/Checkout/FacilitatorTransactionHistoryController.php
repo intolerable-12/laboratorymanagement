@@ -8,6 +8,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Chemical;
 use App\Models\Equipment;
 use App\Models\User;
+use App\Support\Campus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -102,8 +103,12 @@ class FacilitatorTransactionHistoryController extends Controller
             ->whereHas('role', fn (Builder $query) => $query->whereIn('role_name', ['Laboratory In-charge', 'Coordinator']))
             ->pluck('userNo');
 
+            $campus = $this->isCoordinator($request)
+            ? \App\Support\Campus::MAIN
+            : $request->user()->campusName();
+
         return BarcodeLog::query()
-            ->when(! $this->isCoordinator($request), fn (Builder $query) => $query->whereHas('borrowTransaction.laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->where('campus', $request->user()->campusName())))
+            ->whereHas('borrowTransaction.laboratory', fn (Builder $laboratoryQuery) => $laboratoryQuery->where('campus', $campus))
             ->where(function (Builder $query) use ($checkoutStaffUserNos): void {
                 $query
                     ->whereIn('user_no', $checkoutStaffUserNos)

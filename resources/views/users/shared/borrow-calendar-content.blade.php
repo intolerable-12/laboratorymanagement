@@ -30,7 +30,9 @@
                     <p class="mb-0 text-secondary">Each request appears on its borrow deadline only.</p>
                 </div>
                 <div class="reservation-calendar-legend d-flex flex-wrap gap-2">
-                    <span class="badge text-bg-primary px-3 py-2">Coordinator Approved</span>
+                    <span class="badge text-bg-primary px-3 py-2">
+                        {{ auth()->user()->campusName() === \App\Support\Campus::IBED ? 'Laboratory In-charge Approved' : 'Coordinator Approved' }}
+                    </span>
                     <span class="badge text-bg-info px-3 py-2">Borrowed / Partially Returned</span>
                 </div>
             </div>
@@ -68,7 +70,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="account-summary-card h-100">
-                                        <div class="small text-secondary">Student</div>
+                                        <div class="small text-secondary" data-reservation-requester-label>Requester</div>
                                         <div class="fw-semibold text-dark" data-reservation-student-name>-</div>
                                         <div class="small text-secondary" data-reservation-student-id>-</div>
                                     </div>

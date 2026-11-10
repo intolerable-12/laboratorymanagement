@@ -348,6 +348,7 @@
 
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <input type="hidden" name="direction" value="{{ $currentDirection }}">
+                <input type="hidden" name="laboratory_id" value="{{ $laboratoryId }}">
 
                 <div class="modal fade" id="equipmentFiltersModal" tabindex="-1" aria-labelledby="equipmentFiltersModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -481,13 +482,14 @@
                             @endif
                         @endforeach
                         <label for="equipment-table-laboratory" class="small text-secondary text-nowrap">Laboratory</label>
-                        <select
+                        <select 
                             id="equipment-table-laboratory"
                             name="laboratory_id"
                             class="form-select form-select-sm admin-form-control"
                             data-live-search-filter
                             aria-label="Select laboratory for equipment list"
                         >
+                            <option value="">All Laboratories</option>
                             @foreach ($laboratories as $laboratory)
                                 <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
                             @endforeach
@@ -690,7 +692,16 @@
 
         @if ($equipmentItems->count())
             <div class="mt-4" data-live-search-pagination>
-                {{ $equipmentItems->withQueryString()->links('pagination::bootstrap-5') }}
+                {{ $equipmentItems->appends(array_filter([
+                    'search' => $search,
+                    'status' => $status,
+                    'category_id' => $categoryId,
+                    'laboratory_id' => $laboratoryId,
+                    'condition' => $condition,
+                    'low_stock' => $lowStock,
+                    'sort' => $currentSort,
+                    'direction' => $currentDirection,
+                ], static fn ($value) => $value !== '' && $value !== null))->links('pagination::bootstrap-5') }}
             </div>
         @endif
     </div>

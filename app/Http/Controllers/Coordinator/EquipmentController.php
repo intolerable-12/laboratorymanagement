@@ -210,6 +210,7 @@ class EquipmentController extends Controller
             quantity: $equipment->available_quantity,
             performedBy: (int) $request->user()->userNo,
             remarks: 'Equipment added to inventory by the '.$this->actorLabel().'.',
+            performedAt: $equipment->purchase_date?->copy()->startOfDay() ?? now(),
         );
 
         return redirect()->route($this->routePrefix().'.equipment.index')->with('status', 'Equipment created successfully.');
@@ -245,6 +246,7 @@ class EquipmentController extends Controller
         $data = $this->validateEquipment($request, $equipment);
         Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
         $previousAvailableQuantity = (int) $equipment->available_quantity;
+        $previousTotalQuantity = (int) $equipment->quantity;
         $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
 
         if ((int) ($equipment->supplier_id ?? 0) !== (int) ($data['supplier_id'] ?? 0)) {
@@ -267,6 +269,12 @@ class EquipmentController extends Controller
             quantityAfter: (int) $equipment->available_quantity,
             performedBy: (int) $request->user()->userNo,
             remarks: 'Equipment quantity updated by the coordinator.',
+        );
+
+        app(\App\Services\EquipmentInventoryPeriodTracker::class)->recordQuantityChange(
+            equipment: $equipment,
+            previousQuantity: $previousTotalQuantity,
+            newQuantity: (int) $equipment->quantity,
         );
 
         return redirect()->route($this->routePrefix().'.equipment.index', $request->query())->with('status', 'Equipment updated successfully.');
@@ -325,6 +333,13 @@ class EquipmentController extends Controller
                 }
 
                 $equipment->update($updates);
+
+                app(\App\Services\EquipmentInventoryPeriodTracker::class)->recordQuantityChange(
+                    equipment: $equipment,
+                    previousQuantity: $previousTotalQuantity,
+                    newQuantity: (int) $equipment->quantity,
+                    changedAt: $transactionAt,
+                );
 
                 try {
                     app(InventoryTraceabilityLogger::class)->record(
@@ -472,7 +487,14 @@ class EquipmentController extends Controller
 
     private function generateEquipmentCode(Laboratory $laboratory): string
     {
-        $prefix = 'EQ-' . $laboratory->sequenceCode();
+        // Use the full laboratory code (e.g. LAB-MAIN-001 → LABMAIN001).
+        $labSegment = strtoupper(str_replace('-', '', (string) $laboratory->laboratory_code));
+        if ($labSegment === '') {
+            // Fallback when a lab has no code yet — keep the sequence unique per lab id.
+            $labSegment = 'LAB' . $laboratory->id;
+        }
+
+        $prefix = 'EQ-' . $labSegment;
         $prefixWithSeparator = $prefix . '-';
 
         // Keep archived equipment in the sequence so codes are never reused.

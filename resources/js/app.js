@@ -1223,22 +1223,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const buildFormUrl = (sourceForm = form) => {
-            const url = new URL(sourceForm.action, window.location.href);
-            const params = new URLSearchParams();
-
-            new FormData(sourceForm).forEach((value, name) => {
-                if (typeof value === 'string' && value !== '') {
-                    params.append(name, value);
-                }
-            });
-
-            params.delete('page');
-            url.search = params.toString();
-
-            return url;
-        };
-
         const updateResults = async (targetUrl, historyMode = 'replace') => {
             const sequence = ++requestSequence;
 
@@ -1269,8 +1253,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Grab the currently-rendered pagination for this results key
+                // before we swap the container.
+                const currentPagination = results.querySelector('[data-live-search-pagination]')
+                    ?? results.parentElement?.querySelector(':scope > [data-live-search-pagination]')
+                    ?? null;
+
+                const nextPagination = documentFragment.querySelector('[data-live-search-pagination]');
+
                 results.replaceWith(nextResults);
                 results = nextResults;
+
+                // Only swap a sibling pagination if the fetched document has one
+                // and it wasn't already inside the replaced results container.
+                if (currentPagination && nextPagination && !results.contains(nextPagination)) {
+                    currentPagination.replaceWith(nextPagination);
+                }
 
                 if (historyMode === 'push') {
                     window.history.pushState({}, '', targetUrl.pathname + targetUrl.search);
@@ -1289,10 +1287,89 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+                // Merge values from the main live-search form AND any inline GET filter
+        // forms rendered inside the results container (e.g. the table-header
+        // laboratory dropdown). Starting from a base URL lets the same helper
+        // power search, filter changes, and pagination.
+        const buildMergedUrl = (baseUrl, triggeringForm = null) => {
+            const url = new URL(baseUrl, window.location.href);
+            const params = new URLSearchParams();
+
+            const setParams = (sourceForm) => {
+                if (!sourceForm) {
+                    return;
+                }
+
+                new FormData(sourceForm).forEach((value, name) => {
+                    if (typeof value !== 'string') {
+                        return;
+                    }
+
+                    if (name === 'page' || name === '_token' || name === '_method') {
+                        return;
+                    }
+
+                    if (value === '') {
+                        params.delete(name);
+                        return;
+                    }
+
+                    params.set(name, value);
+                });
+            };
+
+            // 1. Triggering inline form first (laboratory change etc.).
+            if (triggeringForm && triggeringForm !== form) {
+                setParams(triggeringForm);
+            }
+
+            // 2. Main search form overrides: search box + filter-modal selects
+            //    + hidden sort/direction always reflect the latest UI state.
+            setParams(form);
+
+            // 3. Other inline forms contribute only params the main form did
+            //    NOT supply, so their hidden `search` values don't shadow the
+            //    one the user is typing.
+            const mainFormNames = new Set(
+                [...new FormData(form).keys()],
+            );
+
+            results.querySelectorAll('form').forEach((inlineForm) => {
+                if (inlineForm === form || inlineForm === triggeringForm) {
+                    return;
+                }
+
+                if ((inlineForm.method || '').toUpperCase() !== 'GET') {
+                    return;
+                }
+
+                new FormData(inlineForm).forEach((value, name) => {
+                    if (typeof value !== 'string' || value === '') {
+                        return;
+                    }
+
+                    if (name === 'page' || name === '_token' || name === '_method') {
+                        return;
+                    }
+
+                    if (mainFormNames.has(name)) {
+                        return;
+                    }
+
+                    params.set(name, value);
+                });
+            });
+
+            params.delete('page');
+            url.search = params.toString();
+
+            return url;
+        };
+
         form.addEventListener('submit', (event) => {
             event.preventDefault();
             window.clearTimeout(debounceTimer);
-            updateResults(buildFormUrl(), 'push');
+            updateResults(buildMergedUrl(form.action, null), 'push');
         });
 
         document.addEventListener('change', (event) => {
@@ -1302,32 +1379,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const filterForm = liveSearchFilter.form || liveSearchFilter.closest('form');
+            const filterForm = liveSearchFilter.form;
 
-            if (!filterForm) {
+            if (!filterForm || (filterForm.method || '').toUpperCase() !== 'GET') {
                 return;
             }
 
-            updateResults(buildFormUrl(filterForm), 'push');
+            event.preventDefault();
+
+            // Keep the main search form in sync so subsequent search typing doesn't
+            // revert the laboratory selection to the old server-rendered value.
+            const mainLabInput = form.querySelector('input[name="laboratory_id"]');
+
+            if (mainLabInput && filterForm.querySelector('select[name="laboratory_id"]')) {
+                mainLabInput.value = filterForm.querySelector('select[name="laboratory_id"]').value;
+            }
+
+            updateResults(buildMergedUrl(filterForm.action, filterForm), 'push');
         });
 
         searchInput.addEventListener('input', () => {
             window.clearTimeout(debounceTimer);
             debounceTimer = window.setTimeout(() => {
-                updateResults(buildFormUrl(), 'replace');
+                updateResults(buildMergedUrl(form.action, null), 'replace');
             }, 300);
         });
 
-        document.addEventListener('click', (event) => {
-            const paginationLink = event.target.closest(`${resultSelector} [data-live-search-pagination] a`);
+        // Preserve live filters when paginating within the results container.
+        const handlePaginationClick = (event) => {
+            const paginationLink = event.target.closest('[data-live-search-pagination] a');
 
-            if (!paginationLink || !results.contains(paginationLink)) {
+            if (!paginationLink) {
+                return;
+            }
+
+            // Determine which results container owns this pagination link:
+            // 1. Prefer the nearest [data-live-search-results] ancestor.
+            // 2. Otherwise, fall back to matching by URL path so pagination
+            //    rendered outside the container still routes to the right form.
+            const owningResults = paginationLink.closest('[data-live-search-results]');
+
+            let belongsHere = owningResults === results;
+
+            if (!belongsHere && !owningResults) {
+                const linkPath = new URL(paginationLink.href, window.location.href).pathname;
+                const formPath = new URL(form.action, window.location.href).pathname;
+
+                belongsHere = linkPath === formPath;
+            }
+
+            if (!belongsHere) {
                 return;
             }
 
             event.preventDefault();
-            updateResults(new URL(paginationLink.href, window.location.href), 'push');
-        });
+
+            const page = new URL(paginationLink.href, window.location.href).searchParams.get('page');
+            const targetUrl = buildMergedUrl(paginationLink.href, null);
+
+            if (page) {
+                targetUrl.searchParams.set('page', page);
+            } else {
+                targetUrl.searchParams.delete('page');
+            }
+
+            updateResults(targetUrl, 'push');
+        };
+
+        document.addEventListener('click', handlePaginationClick);
 
         window.addEventListener('popstate', () => {
             const formPath = new URL(form.action, window.location.href).pathname;

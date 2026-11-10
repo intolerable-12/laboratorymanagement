@@ -20,7 +20,7 @@ use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class ChemicalController extends Controller
 {
-    private const UNIT_OPTIONS = ['ml', 'cc', 'liter', 'kg', 'g'];
+    private const UNIT_OPTIONS = ['ml', 'cc', 'L', 'kg', 'g'];
 
     private const STORAGE_LOCATIONS = [
         'Cabinet 1',
@@ -218,9 +218,9 @@ class ChemicalController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateChemical($request);
-        Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
-        $data['chemical_code'] = $this->generateChemicalCode();
-        $data['barcode'] = $this->generateBarcodeValue();
+        $laboratory = Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        $data['chemical_code'] = $this->generateChemicalCode($laboratory);
+        $data['barcode'] = $this->generateBarcodeValue($data['chemical_code']);
         $data['supplier_alert_sent_at'] = null;
 
         if ($request->hasFile('image')) {
@@ -234,6 +234,7 @@ class ChemicalController extends Controller
             quantity: $chemical->quantity,
             performedBy: (int) $request->user()->userNo,
             remarks: 'Chemical added to inventory by the '.$this->actorLabel().'.',
+            performedAt: $chemical->received_date?->copy()->startOfDay() ?? now(),
         );
 
         return redirect()->route($this->routePrefix().'.chemicals.index')->with('status', 'Chemical created successfully.');
@@ -365,6 +366,8 @@ class ChemicalController extends Controller
 
                 $chemical->update($updates);
 
+                $consumedAmount = number_format($amount, 2).' '.$chemical->unit;
+
                 try {
                     app(InventoryTraceabilityLogger::class)->record(
                         item: $chemical,
@@ -372,7 +375,7 @@ class ChemicalController extends Controller
                         quantityAfter: (float) $chemical->quantity,
                         performedBy: (int) $request->user()->userNo,
                         remarks: $mode === 'deduct'
-                            ? 'Chemical stock decreased by the '.$this->actorLabel().' and marked '.$data['stock_up_status'].'.'
+                            ? 'Consumed: '.$consumedAmount.' ('.$data['stock_up_status'].'). Stock deducted by the '.$this->actorLabel().'.'
                             : 'Chemical stock increased by the '.$this->actorLabel().'.',
                         performedAt: $transactionAt,
                         action: $mode === 'deduct' ? 'Stock Out' : 'Stock In',
@@ -537,27 +540,35 @@ class ChemicalController extends Controller
         return $request->validate($rules, $messages);
     }
 
-    private function generateChemicalCode(): string
+    private function generateChemicalCode(Laboratory $laboratory): string
     {
-        $year = now()->format('y'); // Returns 2-digit year (e.g., '26')
-        $prefix = "CHEM-{$year}";
+        // Use the full laboratory code (e.g. LAB-MAIN-001 → LABMAIN001).
+        $labSegment = strtoupper(str_replace('-', '', (string) $laboratory->laboratory_code));
+        if ($labSegment === '') {
+            // Fallback when a lab has no code yet — keep the sequence unique per lab id.
+            $labSegment = 'LAB' . $laboratory->id;
+        }
 
-        // Count existing records created in the current year
-        $count = Chemical::withTrashed()
-            ->where('chemical_code', 'LIKE', "{$prefix}-%")
-            ->count() + 1;
+        $prefix = 'CHEM-' . $labSegment;
+        $prefixWithSeparator = $prefix . '-';
 
-        // Formats counter with 5 leading zeros (e.g., CHEM-26-00001)
-        return sprintf('%s-%05d', $prefix, $count);
+        // Keep archived chemicals in the sequence so codes are never reused.
+        $lastNumber = Chemical::withTrashed()
+            ->where('chemical_code', 'LIKE', $prefixWithSeparator.'%')
+            ->pluck('chemical_code')
+            ->map(function (string $chemicalCode) use ($prefixWithSeparator): int {
+                $number = substr($chemicalCode, strlen($prefixWithSeparator));
+
+                return ctype_digit($number) ? (int) $number : 0;
+            })
+            ->max() ?? 0;
+
+        return sprintf('%s%04d', $prefixWithSeparator, $lastNumber + 1);
     }
 
-    private function generateBarcodeValue(): string
+    private function generateBarcodeValue(string $chemicalCode): string
     {
-        do {
-            $barcode = 'CH-' . Str::upper(Str::random(6));
-        } while (Chemical::where('barcode', $barcode)->exists());
-
-        return $barcode;
+        return str_replace('-', '', $chemicalCode);
     }
 
     private function renderBarcodeSvg(string $barcode): string

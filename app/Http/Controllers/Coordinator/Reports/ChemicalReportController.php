@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Coordinator\Reports;
 use App\Exports\ChemicalInventoryReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Chemical;
+use App\Models\AcademicPeriod;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Support\AcademicPeriodSelection;
@@ -109,15 +110,30 @@ class ChemicalReportController extends Controller
 
     private function reportSemesters(string $campus): Collection
     {
-        $semesters = Semester::query()->where('campus', $campus)->orderBy('display_order')->orderBy('id')->get();
+        $startedSemesterIds = AcademicPeriod::query()
+            ->where('campus', $campus)
+            ->whereDate('start_date', '<=', now())
+            ->pluck('semester_id')
+            ->all();
+
+        $semesters = Semester::query()
+            ->where('campus', $campus)
+            ->whereIn('id', $startedSemesterIds)
+            ->orderBy('display_order')
+            ->orderBy('id')
+            ->get();
 
         if ($semesters->isNotEmpty()) {
             return $semesters;
         }
 
-        return collect([
-            (object) ['semester_name' => '1st Semester', 'display_order' => 1],
-            (object) ['semester_name' => '2nd Semester', 'display_order' => 2],
-        ]);
+        // Fallback: if no academic period has started yet, show the first semester
+        // so the page still works.
+        return Semester::query()
+            ->where('campus', $campus)
+            ->orderBy('display_order')
+            ->orderBy('id')
+            ->limit(1)
+            ->get();
     }
 }

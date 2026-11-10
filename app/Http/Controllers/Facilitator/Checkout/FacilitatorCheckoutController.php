@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Facilitator\Checkout;
 
 use App\Http\Controllers\Controller;
+use App\Models\Reservation;
+use App\Models\ReservationItem;
 use App\Models\AuditLog;
 use App\Models\BarcodeLog;
 use App\Models\BorrowItem;
@@ -49,6 +51,18 @@ class FacilitatorCheckoutController extends Controller
         $this->ensureTransactionAccess($request, $borrowTransaction);
 
         abort_unless(in_array($borrowTransaction->status, ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Returned'], true), 404);
+
+        // Sync from the reservation before checkout begins so item edits made
+        // by the facilitator after the borrow was created are reflected here.
+        if ($borrowTransaction->reservation_id
+            && $borrowTransaction->checked_out_at === null
+            && ! $borrowTransaction->items()->where('quantity_checked_out', '>', 0)->exists()) {
+            $reservation = $borrowTransaction->reservation;
+            if ($reservation) {
+                $this->syncBorrowItemsFromReservation($borrowTransaction, $reservation);
+                $borrowTransaction->refresh()->load(['items.item']);
+            }
+        }
 
         $borrowTransaction->load(['borrower', 'laboratory', 'reservation', 'items.item', 'releasedBy', 'barcodeLogs.item']);
 
@@ -182,10 +196,27 @@ class FacilitatorCheckoutController extends Controller
             }
 
             $newCheckedOut = round($checkedOut + $quantity, 2);
-            $borrowItem->update([
+            $borrowItemUpdate = [
                 'quantity_checked_out' => $newCheckedOut,
                 'condition_out' => $condition,
-            ]);
+            ];
+
+            // Chemicals are consumed at checkout. Stamp the consumed quantity
+            // onto the borrow item so the Borrow Review page (and, via the
+            // BorrowItem::saved observer, the Reservation Review page) shows it.
+            if ($itemType === 'Chemical') {
+                $unit = $inventoryItem->unit ?? 'unit';
+                $consumedLine = 'Consumed: '.number_format($newCheckedOut, 2).' '.$unit;
+                $existingRemarks = trim((string) $borrowItem->remarks);
+
+                $borrowItemUpdate['remarks'] = str_starts_with($existingRemarks, 'Consumed:')
+                    ? $existingRemarks
+                    : ($existingRemarks === ''
+                        ? $consumedLine
+                        : $consumedLine.' · '.$existingRemarks);
+            }
+
+            $borrowItem->update($borrowItemUpdate);
 
             $now = now();
             $itemName = $itemType === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name;
@@ -486,6 +517,55 @@ class FacilitatorCheckoutController extends Controller
         return redirect()
             ->route($this->routePrefix($request).'.checkout.show', $borrowTransaction)
             ->with('scan_status', $result['item_name'].' was removed from the checkout cart.');
+    }
+
+    private function syncBorrowItemsFromReservation(BorrowTransaction $borrowTransaction, Reservation $reservation): void
+    {
+        $reservation->loadMissing('items.item');
+
+        $reservationItems = $reservation->items->keyBy(
+            fn (ReservationItem $item) => $item->item_type.':'.$item->item_id,
+        );
+
+        // Load the current borrow items once, then track deletions locally so
+        // the upsert loop works against the post-delete state.
+        $existingBorrowItems = $borrowTransaction->items()
+            ->get()
+            ->keyBy(fn (BorrowItem $item) => $item->item_type.':'.$item->item_id);
+
+        foreach ($existingBorrowItems as $key => $borrowItem) {
+            if (! $reservationItems->has($key)) {
+                $borrowItem->delete();
+                $existingBorrowItems->forget($key);
+            }
+        }
+
+        foreach ($reservationItems as $key => $reservationItem) {
+            $remarks = $reservationItem->remarks;
+
+            if ($existingBorrowItems->has($key)) {
+                $existingBorrowItems->get($key)->update([
+                    'quantity_borrowed' => $reservationItem->quantity,
+                    'remarks' => $remarks,
+                ]);
+                continue;
+            }
+
+            BorrowItem::create([
+                'borrow_transaction_id' => $borrowTransaction->id,
+                'item_type' => $reservationItem->item_type,
+                'item_id' => $reservationItem->item_id,
+                'quantity_borrowed' => $reservationItem->quantity,
+                'quantity_checked_out' => 0,
+                'quantity_returned' => 0,
+                'quantity_used' => 0,
+                'quantity_lost' => 0,
+                'quantity_damaged' => 0,
+                'condition_out' => 'Good',
+                'condition_in' => null,
+                'remarks' => $remarks,
+            ]);
+        }
     }
 
     private function findScannedItem(BorrowTransaction $transaction, string $barcode): array

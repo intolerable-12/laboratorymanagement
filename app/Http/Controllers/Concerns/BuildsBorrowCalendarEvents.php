@@ -11,7 +11,7 @@ trait BuildsBorrowCalendarEvents
 {
     protected function borrowTransactionsForCalendar(?User $user = null, ?string $campus = null): Collection
     {
-        $query = BorrowTransaction::with(['borrower', 'laboratory', 'items.item'])
+        $query = BorrowTransaction::with(['borrower.role', 'laboratory', 'items.item'])
             ->when($campus, fn ($query) => $query->forCampus($campus))
             ->when($user, fn ($query) => $query->forCampus($user->campusName()))
             ->when($user?->role?->role_name === 'Student', fn ($query) => $query->where('borrower_id', $user->userNo))
@@ -59,6 +59,11 @@ trait BuildsBorrowCalendarEvents
             'reference_no' => $borrowTransaction->borrow_no,
             'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
             'student_id' => $borrowTransaction->requesterStudentId() ?? '-',
+            'requester_role' => $borrowTransaction->borrower?->role?->role_name ?? ($borrowTransaction->guest_key ? 'Guest' : 'Student'),
+            'status_label' => ($borrowTransaction->laboratory?->campus === \App\Support\Campus::IBED
+            && $borrowTransaction->status === 'Coordinator Approved')
+                ? 'Laboratory In-charge Approved'
+                : $borrowTransaction->status,
             'student_email' => $borrowTransaction->requesterEmail() ?? '-',
             'laboratory_name' => $laboratoryName,
             'laboratory_code' => $borrowTransaction->laboratory?->laboratory_code ?? '-',

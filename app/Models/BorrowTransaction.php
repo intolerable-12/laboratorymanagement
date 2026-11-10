@@ -69,7 +69,7 @@ class BorrowTransaction extends Model
     public function statusLabel(): string
     {
         if ($this->status === 'Coordinator Approved' && $this->laboratory?->campus === Campus::IBED) {
-            return 'IBED Laboratory In-charge approved';
+            return 'Laboratory In-charge approved';
         }
 
         return $this->status === 'Facilitator Approved'

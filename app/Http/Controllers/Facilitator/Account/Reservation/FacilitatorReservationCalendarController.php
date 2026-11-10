@@ -16,7 +16,7 @@ class FacilitatorReservationCalendarController extends Controller
 		$campus = $request->user()->campusName();
 		abort_unless($campus, 403);
 
-        $reservations = Reservation::with(['user', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+        $reservations = Reservation::with(['user.role', 'laboratory', 'items.item', 'schoolYear', 'semester'])
 			->forCampus($campus)
 			->forCalendar()
             ->whereNotNull('reservation_date')
@@ -71,6 +71,8 @@ class FacilitatorReservationCalendarController extends Controller
                 'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
                 'student_id' => $reservation->requesterStudentId() ?? '—',
                 'student_email' => $reservation->requesterEmail() ?? '—',
+                'requester_role' => $reservation->user?->role?->role_name ?? 'Student',
+                'status_label' => $reservation->statusLabel(),
                 'laboratory_name' => $reservation->laboratory?->laboratory_name ?? '—',
                 'laboratory_code' => $reservation->laboratory?->laboratory_code ?? '—',
                 'experiment_title' => $reservation->experiment_title ?? '—',

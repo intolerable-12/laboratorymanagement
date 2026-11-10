@@ -23,6 +23,7 @@ use Illuminate\Validation\ValidationException;
 class FacilitatorReservationController extends Controller
 {
 	use ValidatesReservationSchedule;
+	
 	public function index(Request $request)
 	{
 		$this->ensureFacilitator($request);
@@ -42,9 +43,12 @@ class FacilitatorReservationController extends Controller
 			$sort = 'reservation_date';
 		}
 
-		$reservations = Reservation::with(['user', 'laboratory', 'items.item', 'approvalLogs.approvedBy', 'schoolYear', 'semester'])
-			->forCampus($campus)
-			->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
+		$reservations = Reservation::with(['user.role', 'laboratory', 'items.item', 'schoolYear', 'semester'])
+            ->forCampus($campus)
+            ->whereDoesntHave('borrowTransactions', function ($query) {
+                $query->whereNotNull('checked_out_at');
+            })
+            ->leftJoin('users as reservation_users', 'reservations.user_no', '=', 'reservation_users.userNo')
 			->leftJoin('laboratories', 'reservations.laboratory_id', '=', 'laboratories.id')
 			->select('reservations.*')
 			->orderBy($sortableColumns[$sort], $direction)
@@ -288,7 +292,7 @@ class FacilitatorReservationController extends Controller
 				[
 					['label' => 'Laboratory', 'value' => $reservation->laboratory?->laboratory_name ?? '-'],
 					['label' => 'Schedule', 'value' => $reservation->reservation_date?->format('M d, Y') . ' | ' . substr((string) $reservation->start_time, 0, 5) . ' - ' . substr((string) $reservation->end_time, 0, 5)],
-					['label' => 'Status', 'value' => $reservation->status],
+					['label' => 'Status', 'value' => $reservation->statusLabel()],
 				],
 				$request->user()->userNo
 			);
@@ -430,9 +434,25 @@ class FacilitatorReservationController extends Controller
 	{
 		$reservation->loadMissing(['items', 'schoolYear']);
 
+		// Nothing to borrow — bail out before we look for an existing transaction.
+        if ($reservation->items->isEmpty()) {
+            return null;
+        }
+
 		$existingTransaction = $reservation->borrowTransactions()->lockForUpdate()->first();
 
 		if ($existingTransaction) {
+			// Checkout has started — the borrow items must not change anymore.
+			if ($existingTransaction->checked_out_at !== null
+				|| $existingTransaction->items()->where('quantity_checked_out', '>', 0)->exists()) {
+				return $existingTransaction;
+			}
+
+			// Sync borrow items to the (possibly edited) reservation items before
+			// any scan has occurred. This is what makes the facilitator's add /
+			// remove / quantity edits visible at checkout.
+			$this->syncBorrowItemsFromReservation($existingTransaction, $reservation);
+
 			return $existingTransaction;
 		}
 
@@ -483,6 +503,55 @@ class FacilitatorReservationController extends Controller
 		}
 
 		return $borrowTransaction;
+	}
+
+	private function syncBorrowItemsFromReservation(BorrowTransaction $borrowTransaction, Reservation $reservation): void
+	{
+		$reservation->loadMissing('items.item');
+
+		$reservationItems = $reservation->items->keyBy(
+			fn (ReservationItem $item) => $item->item_type.':'.$item->item_id,
+		);
+
+		// Load the current borrow items once, then track deletions locally so the
+		// upsert loop works against the post-delete state.
+		$existingBorrowItems = $borrowTransaction->items()
+			->get()
+			->keyBy(fn (BorrowItem $item) => $item->item_type.':'.$item->item_id);
+
+		foreach ($existingBorrowItems as $key => $borrowItem) {
+			if (! $reservationItems->has($key)) {
+				$borrowItem->delete();
+				$existingBorrowItems->forget($key);
+			}
+		}
+
+		foreach ($reservationItems as $key => $reservationItem) {
+			$remarks = $reservationItem->remarks;
+
+			if ($existingBorrowItems->has($key)) {
+				$existingBorrowItems->get($key)->update([
+					'quantity_borrowed' => $reservationItem->quantity,
+					'remarks' => $remarks,
+				]);
+				continue;
+			}
+
+			BorrowItem::create([
+				'borrow_transaction_id' => $borrowTransaction->id,
+				'item_type' => $reservationItem->item_type,
+				'item_id' => $reservationItem->item_id,
+				'quantity_borrowed' => $reservationItem->quantity,
+				'quantity_checked_out' => 0,
+				'quantity_returned' => 0,
+				'quantity_used' => 0,
+				'quantity_lost' => 0,
+				'quantity_damaged' => 0,
+				'condition_out' => 'Good',
+				'condition_in' => null,
+				'remarks' => $remarks,
+			]);
+		}
 	}
 
 	private function guardForFacilitator(Reservation $reservation): void
@@ -571,5 +640,58 @@ class FacilitatorReservationController extends Controller
 		$reservation->loadMissing('laboratory');
 
 		abort_unless($reservation->laboratory?->campus === $request->user()->campusName(), 403);
+	}
+
+	public function dismiss(Request $request, Reservation $reservation)
+	{
+		$this->ensureFacilitator($request);
+		$this->ensureFacilitatorCanAccess($request, $reservation);
+
+		abort_unless($reservation->laboratory?->campus === Campus::IBED, 403,
+			'Only IBED reservations can be dismissed by the Laboratory In-charge.');
+
+		if (! in_array($reservation->status, ['Coordinator Approved', 'Facilitator Approved'], true)) {
+			return back()->with('error', 'This reservation can no longer be dismissed.');
+		}
+
+		// Latest borrow transaction for this reservation, if any.
+		$borrowTransaction = $reservation->borrowTransactions()
+			->latest('id')
+			->first();
+
+		if ($borrowTransaction && $borrowTransaction->checked_out_at) {
+			return back()->with('error', 'Items have already been checked out — this reservation cannot be dismissed.');
+		}
+
+		$notificationService = app(RequestNotificationService::class);
+
+		DB::transaction(function () use ($request, $reservation, $borrowTransaction, $notificationService) {
+			$reservation->update(['status' => 'Cancelled']);
+
+			if ($borrowTransaction) {
+				$borrowTransaction->update(['status' => 'Cancelled']);
+			}
+
+			ApprovalLog::create([
+				'reservation_id' => $reservation->id,
+				'approved_by'    => $request->user()->userNo,
+				'role'           => 'Laboratory In-charge',
+				'action'         => 'Dismissed',
+				'remarks'        => 'Reservation dismissed by the IBED Laboratory In-charge.',
+				'approved_at'    => now(),
+			]);
+
+			$notificationService->notifyRequester(
+				$reservation,
+				'Reservation',
+				'Reservation dismissed',
+				'Your reservation ' . $reservation->reservation_no . ' was dismissed by the IBED Laboratory In-charge.'
+			);
+		});
+
+		app(FacilitatorReservationEmailController::class)->sendDismissedToRequester($reservation, $request->user());
+		return redirect()
+			->route('facilitator.reservations.index')
+			->with('status', 'IBED reservation dismissed successfully.');
 	}
 }

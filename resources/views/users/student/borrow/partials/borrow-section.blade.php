@@ -32,6 +32,15 @@
                     $image = $entry['image'];
                     $statusTone = $entry['status_tone'];
                     $statusLabel = $transaction->statusLabel();
+
+                    // Chemicals in the returned section are consumed on return,
+                    // not returned to available stock, so reflect that in the
+                    // per-item badge without changing the section grouping.
+                    $isChemical = strcasecmp((string) $entry['item_type'], 'Chemical') === 0;
+
+                    if ($sectionKey === 'returned' && $entry['status'] === 'Returned' && $isChemical) {
+                        $statusLabel = 'Consumed';
+                    }
                 @endphp
 
                 <article class="borrow-equipment-card {{ $viewMode === 'list' ? 'borrow-list-item' : '' }}">
@@ -67,7 +76,10 @@
 
                     @if ($entry['status'] === 'Returned')
                         <div class="borrow-equipment-meta text-success">
-                            <span><i class="fa-solid fa-circle-check"></i> Returned {{ $entry['returned_at'] }}</span>
+                            <span>
+                                <i class="fa-solid fa-circle-check"></i>
+                                {{ $isChemical ? 'Consumed' : 'Returned' }} {{ $entry['returned_at'] }}
+                            </span>
                         </div>
                     @elseif ($transaction->remarks)
                         <div class="small text-secondary mt-2">{{ Str::limit($transaction->remarks, 80) }}</div>

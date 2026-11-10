@@ -77,6 +77,23 @@ class DashboardController extends Controller
             ->where('is_read', false)
             ->whereHas('user.role', fn ($query) => $query->where('role_name', 'Coordinator'))
             ->count();
+        $chemicalQuantityInLaboratory = Chemical::query()
+            ->forCampus($campus)
+            ->selectRaw('unit, SUM(quantity) as total_quantity')
+            ->groupBy('unit')
+            ->get()
+            ->map(fn ($row): array => [
+                'unit' => $row->unit,
+                'value' => $this->formatQuantity((float) $row->total_quantity),
+            ])
+            ->values()
+            ->all();
+
+        $checkoutBorrowsCount = BorrowTransaction::forCampus($campus)
+            ->whereIn('status', ['Coordinator Approved', 'Partially Borrowed'])
+            ->whereNotNull('borrowed_at')
+            ->where('borrowed_at', '<=', Carbon::now())
+            ->count();
 
         $stats = [
             ['label' => 'Unique equipment', 'value' => number_format($totalEquipmentRecords), 'note' => 'Distinct equipment records in inventory', 'tone' => 'primary'],
@@ -92,24 +109,30 @@ class DashboardController extends Controller
             ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out', 'tone' => 'dark'],
             ['label' => 'Lab usage rate', 'value' => ($laboratoryUsage->isEmpty() ? 0 : (int) round($laboratoryUsage->avg('usage'))).'%', 'note' => 'Scheduled hours used this week', 'tone' => 'success'],
         ];
-        $equipmentStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
-            'Unique equipment',
-            'Total equipment',
-            'Damaged equipment',
-            'Low stock equipment',
-            'Borrowed equipment',
-        ], true)));
-        $chemicalStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
-            'Total chemicals',
-            'Expiring chemicals',
-            'Expired chemicals',
-            'Low stock chemicals',
-        ], true)));
-        $operationalStats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['label'], [
-            'Active reservations',
-            'Pending approvals',
-            'Lab usage rate',
-        ], true)));
+        $dashboardStats = [
+            // Row 1
+            ['label' => 'Unique equipment', 'value' => number_format($totalEquipmentRecords), 'note' => 'Distinct equipment records in inventory'],
+            ['label' => 'Total equipment', 'value' => number_format($totalEquipmentQuantity), 'note' => 'Units across active equipment'],
+            ['label' => 'Chemicals in laboratory', 'value' => number_format($totalChemicalRecords), 'note' => 'Active chemical records'],
+            ['label' => 'Quantity in laboratory', 'breakdown' => $chemicalQuantityInLaboratory, 'note' => 'Current stock grouped by unit'],
+
+            // Row 2
+            ['label' => 'Borrowed equipment', 'value' => number_format($borrowedEquipment), 'note' => 'Units currently checked out'],
+            ['label' => 'Expiring chemicals', 'value' => number_format($expiringChemicals), 'note' => 'Expire within the next 30 days'],
+            ['label' => 'Low stock items', 'value' => number_format($lowStockEquipment + $lowStockChemicals), 'note' => 'Equipment and chemicals at or below threshold'],
+            ['label' => 'Ready for checkout', 'value' => number_format($checkoutBorrowsCount), 'note' => 'Scheduled requests ready now'],
+
+            // Row 3
+            ['label' => 'Damaged equipment', 'value' => number_format((int) $damagedEquipment), 'note' => 'Units marked damaged'],
+            ['label' => 'Low stock equipment', 'value' => number_format($lowStockEquipment), 'note' => 'Equipment at or below its stock threshold'],
+            ['label' => 'Expired chemicals', 'value' => number_format($expiredChemicals), 'note' => 'Marked expired or past the expiration date'],
+            ['label' => 'Low stock chemicals', 'value' => number_format($lowStockChemicals), 'note' => 'Chemicals at or below minimum stock'],
+
+            // Row 4
+            ['label' => 'Active reservations', 'value' => number_format($activeReservations), 'note' => 'Coordinator-approved upcoming bookings'],
+            ['label' => 'Pending approvals', 'value' => number_format($reservationApprovals + $borrowApprovals), 'note' => 'Reservation and borrow requests'],
+            ['label' => 'Lab usage rate', 'value' => ($laboratoryUsage->isEmpty() ? 0 : (int) round($laboratoryUsage->avg('usage'))).'%', 'note' => 'Scheduled hours used this week'],
+        ];
 
         $maintenance = $this->maintenanceSummary($campus);
 
@@ -117,10 +140,7 @@ class DashboardController extends Controller
             'announcements' => $this->latestAnnouncements(4, $campus),
             'announcementCount' => Announcement::forCampus($campus)->count(),
             'publishedAnnouncementCount' => Announcement::forCampus($campus)->published()->count(),
-            'stats' => $stats,
-            'equipmentStats' => $equipmentStats,
-            'chemicalStats' => $chemicalStats,
-            'operationalStats' => $operationalStats,
+            'dashboardStats' => $dashboardStats,
             'laboratoryUsage' => $laboratoryUsage,
             'laboratoryInventory' => $laboratoryInventory,
             'checkinCount' => $checkinCount,

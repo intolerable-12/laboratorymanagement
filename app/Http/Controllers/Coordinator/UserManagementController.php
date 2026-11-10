@@ -69,7 +69,9 @@ class UserManagementController extends Controller
 
     public function edit(User $user)
     {
-        $roles = $this->manageableRoles();
+        $user->loadMissing('role', 'department');
+
+        $roles = $this->manageableRoles($user);
         $departments = $this->manageableDepartments();
 
         return view('users.coordinator.usermanagement.edit', compact('user', 'roles', 'departments'));
@@ -221,10 +223,16 @@ class UserManagementController extends Controller
             ->when($archived, fn (Builder $query) => $query->onlyTrashed(), fn (Builder $query) => $query->withoutTrashed());
     }
 
-    private function manageableRoles()
+    private function manageableRoles(?User $editing = null)
     {
         return Role::query()
-            ->where('role_name', '!=', 'Coordinator')
+            ->where(function ($query) use ($editing) {
+                $query->where('role_name', '!=', 'Coordinator');
+
+                if ($editing) {
+                    $query->orWhere('id', $editing->role_id);
+                }
+            })
             ->orderBy('role_name')
             ->get(['id', 'role_name']);
     }
@@ -256,11 +264,13 @@ class UserManagementController extends Controller
             'gender' => ['nullable', Rule::in(['Male', 'Female', 'Unspecified'])],
             'email' => ['required', 'email', 'max:255', 'regex:/^[A-Za-z0-9._%+\-]+@lccdo\.edu\.ph$/i', $emailRule],
             'contact_number' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9\s().-]{7,20}$/'],
-            'role_id' => [
+            'role_id' => array_filter([
                 'required',
                 'integer',
-                Rule::exists('roles', 'id')->where(fn (QueryBuilder $query) => $query->where('role_name', '!=', 'Coordinator')),
-            ],
+                $user && strtolower((string) ($user->loadMissing('role')->role?->role_name ?? '')) === 'coordinator'
+                    ? Rule::in([$user->role_id])   // coordinator: only their current role
+                    : Rule::exists('roles', 'id')->where(fn (QueryBuilder $query) => $query->where('role_name', '!=', 'Coordinator')),
+            ]),
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'status' => ['required', Rule::in(['Active'])],
             'password' => $user
@@ -288,8 +298,15 @@ class UserManagementController extends Controller
             ]);
 
             $validated['campus'] = Campus::normalize($request->input('campus'));
-        } else {
-            $validated['campus'] = null;
+        } elseif ($roleName === 'coordinator') {
+            // Coordinators are always Main campus.
+            $validated['campus'] = Campus::MAIN;
+
+            // Preserve the existing department — do not overwrite it from the request
+            // because the edit form does not expose it for coordinators.
+            if ($user) {
+                $validated['department_id'] = $user->department_id;
+            }
         }
 
         if ($roleName === 'student') {

@@ -125,11 +125,6 @@
                                             <div class="small text-secondary">
                                                 {{ $log->barcode }}
                                             </div>
-                                            @if ($log->item_type === 'Chemical')
-                                                <span class="badge rounded-pill {{ $item?->is_expired ? 'text-bg-danger' : ($item?->expiration_date ? 'text-bg-success' : 'text-bg-secondary') }} mt-2">
-                                                    Expiration: {{ $item?->expiration_date?->format('M d, Y') ?? 'Not set' }}
-                                                </span>
-                                            @endif
                                         </td>
                                         <td><span class="badge {{ $transactionClass }}">{{ $transactionLabel }}</span></td>
                                         <td>
