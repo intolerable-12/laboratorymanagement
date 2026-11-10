@@ -39,57 +39,70 @@ class StudentBorrowController extends Controller
 			->latest('borrowed_at')
 			->get();
 
-		$groupKeys = ['current', 'pending', 'returned', 'cancelled'];
-		$groupFilters = [
-			'current' => ['Coordinator Approved', 'Partially Borrowed', 'Borrowed', 'Partially Returned', 'Overdue'],
-			'pending' => ['Pending', 'Instructor Approved', 'Facilitator Approved'],
-			'returned' => ['Returned'],
-			'cancelled' => ['Cancelled'],
+		$groupKeys = ['current', 'consumed', 'pending', 'returned', 'cancelled'];
+		$statusGroups = [
+			'Coordinator Approved' => 'current',
+			'Partially Borrowed' => 'current',
+			'Borrowed' => 'current',
+			'Partially Returned' => 'current',
+			'Overdue' => 'current',
+			'Pending' => 'pending',
+			'Instructor Approved' => 'pending',
+			'Facilitator Approved' => 'pending',
+			'Returned' => 'returned',
+			'Cancelled' => 'cancelled',
 		];
 
-		$groupEntries = [];
-		foreach ($groupKeys as $key) {
-			$entries = collect();
+		$groupEntries = collect($groupKeys)
+			->mapWithKeys(fn (string $key): array => [$key => collect()])
+			->all();
+		foreach ($transactions as $transaction) {
+			$statusGroup = $statusGroups[$transaction->status] ?? null;
 
-			foreach ($transactions as $transaction) {
-				if (! in_array($transaction->status, $groupFilters[$key], true)) {
-					continue;
-				}
-
-				foreach ($transaction->items as $item) {
-					$borrowedItem = $item->item;
-					$entries->push([
-						'transaction' => $transaction,
-						'item' => $item,
-						'name' => $borrowedItem?->equipment_name ?? $borrowedItem?->chemical_name ?? 'Borrowed item',
-						'item_type' => $borrowedItem instanceof Equipment ? 'Equipment' : 'Chemical',
-						'image' => $borrowedItem?->image ? asset('storage/' . $borrowedItem->image) : null,
-						'lab_name' => $transaction->laboratory?->laboratory_name ?? $borrowedItem?->laboratory?->laboratory_name ?? 'Unassigned',
-						'quantity' => (int) ($item->quantity_borrowed ?? 0),
-						'status' => $transaction->status,
-						'status_tone' => match ($transaction->status) {
-							'Pending' => 'warning',
-							'Instructor Approved' => 'info',
-							'Facilitator Approved' => 'primary',
-							'Coordinator Approved' => 'success',
-							'Partially Borrowed' => 'warning',
-							'Borrowed' => 'success',
-							'Partially Returned' => 'primary',
-							'Returned' => 'success',
-							'Overdue' => 'danger',
-							'Cancelled' => 'danger',
-							default => 'secondary',
-						},
-						'borrowed_at' => $transaction->borrowed_at?->format('M d, Y') ?? '—',
-						'due_at' => $transaction->due_at?->format('M d, Y') ?? '—',
-						'returned_at' => $transaction->returned_at?->format('M d, Y') ?? '—',
-						'borrow_no' => $transaction->borrow_no,
-						'remarks' => $transaction->remarks,
-					]);
-				}
+			if ($statusGroup === null) {
+				continue;
 			}
 
-			$groupEntries[$key] = $entries;
+			foreach ($transaction->items as $item) {
+				$borrowedItem = $item->item;
+				$isConsumedChemical = $item->item_type === 'Chemical'
+					&& (float) ($item->quantity_checked_out ?? 0) > 0;
+				$sectionKey = $isConsumedChemical ? 'consumed' : $statusGroup;
+				$quantity = $isConsumedChemical
+					? (float) $item->quantity_checked_out
+					: (int) ($item->quantity_borrowed ?? 0);
+
+				$groupEntries[$sectionKey]->push([
+					'transaction' => $transaction,
+					'item' => $item,
+					'name' => $borrowedItem?->equipment_name ?? $borrowedItem?->chemical_name ?? 'Borrowed item',
+					'item_type' => $borrowedItem instanceof Equipment ? 'Equipment' : 'Chemical',
+					'image' => $borrowedItem?->image ? asset('storage/' . $borrowedItem->image) : null,
+					'lab_name' => $transaction->laboratory?->laboratory_name ?? $borrowedItem?->laboratory?->laboratory_name ?? 'Unassigned',
+					'quantity' => rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.'),
+					'quantity_unit' => $isConsumedChemical ? ($borrowedItem?->unit ?? '') : '',
+					'status' => $isConsumedChemical ? 'Consumed' : $transaction->status,
+					'status_label' => $isConsumedChemical ? 'Consumed' : $transaction->statusLabel(),
+					'status_tone' => $isConsumedChemical ? 'info' : match ($transaction->status) {
+						'Pending' => 'warning',
+						'Instructor Approved' => 'info',
+						'Facilitator Approved' => 'primary',
+						'Coordinator Approved' => 'success',
+						'Partially Borrowed' => 'warning',
+						'Borrowed' => 'success',
+						'Partially Returned' => 'primary',
+						'Returned' => 'success',
+						'Overdue' => 'danger',
+						'Cancelled' => 'danger',
+						default => 'secondary',
+					},
+					'borrowed_at' => $transaction->borrowed_at?->format('M d, Y') ?? '—',
+					'due_at' => $transaction->due_at?->format('M d, Y') ?? '—',
+					'returned_at' => $transaction->returned_at?->format('M d, Y') ?? '—',
+					'borrow_no' => $transaction->borrow_no,
+					'remarks' => $transaction->remarks,
+				]);
+			}
 		}
 
 		$viewMode = in_array($request->query('view'), ['card', 'list'], true) ? $request->query('view') : 'card';
@@ -152,6 +165,7 @@ class StudentBorrowController extends Controller
 				: 'student.borrow',
 			'sectionMeta' => [
 				'current' => ['label' => 'Current Borrowing', 'tone' => 'primary'],
+				'consumed' => ['label' => 'Consumed', 'tone' => 'info'],
 				'pending' => ['label' => 'Pending', 'tone' => 'warning'],
 				'returned' => ['label' => 'Returned', 'tone' => 'success'],
 				'cancelled' => ['label' => 'Cancelled', 'tone' => 'danger'],

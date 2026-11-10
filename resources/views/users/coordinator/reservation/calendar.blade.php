@@ -48,11 +48,12 @@
                 </script>
 
                 <div class="modal fade" tabindex="-1" aria-hidden="true" data-reservation-calendar-modal>
-                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
                         <div class="modal-content border-0 shadow">
                             <div class="modal-header border-0 pb-0">
                                 <div>
-                                    <div class="small text-uppercase fw-semibold text-secondary mb-2">Reservation details</div>
+                                    <div class="small text-uppercase fw-semibold text-secondary mb-2">Request details</div>
+                                    <span class="badge text-bg-success fs-6 px-3 py-2 mb-2" data-reservation-calendar-type>Reservation</span>
                                     <h5 class="modal-title fw-semibold text-dark" data-reservation-calendar-title>Reservation</h5>
                                 </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -66,7 +67,7 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="account-summary-card h-100">
-                                            <div class="small text-secondary">Reservation No.</div>
+                                            <div class="small text-secondary" data-reservation-reference-label>Reservation No.</div>
                                             <div class="fw-semibold text-dark" data-reservation-reservation-no>—</div>
                                         </div>
                                     </div>
@@ -75,6 +76,9 @@
                                             <div class="small text-secondary" data-reservation-requester-label>Requester</div>
                                             <div class="fw-semibold text-dark" data-reservation-student-name>—</div>
                                             <div class="small text-secondary" data-reservation-student-id>—</div>
+                                            <div class="small text-secondary" data-reservation-student-email>—</div>
+                                            <div class="small text-secondary" data-reservation-student-contact>—</div>
+                                            <div class="small text-secondary" data-reservation-student-department>—</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -82,6 +86,8 @@
                                             <div class="small text-secondary">Laboratory</div>
                                             <div class="fw-semibold text-dark" data-reservation-laboratory-name>—</div>
                                             <div class="small text-secondary" data-reservation-laboratory-code>—</div>
+                                            <div class="small text-secondary" data-reservation-laboratory-location>—</div>
+                                            <div class="small text-secondary" data-reservation-campus>—</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -92,7 +98,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="account-summary-card h-100">
-                                            <div class="small text-secondary">Schedule</div>
+                                            <div class="small text-secondary" data-reservation-schedule-label>Reservation Schedule</div>
                                             <div class="fw-semibold text-dark" data-reservation-date>—</div>
                                             <div class="small text-secondary" data-reservation-time>—</div>
                                         </div>
@@ -104,6 +110,27 @@
                                             <div class="small text-secondary">
                                                 <span data-reservation-school-year>—</span> | <span data-reservation-semester>—</span>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="account-summary-card h-100">
+                                            <div class="small text-secondary">Assigned Instructor</div>
+                                            <div class="fw-semibold text-dark" data-reservation-assigned-instructor>—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="account-summary-card h-100">
+                                            <div class="small text-secondary">Submitted</div>
+                                            <div class="fw-semibold text-dark" data-reservation-submitted-at>—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="account-summary-card h-100">
+                                            <div class="small text-secondary">Last Updated</div>
+                                            <div class="fw-semibold text-dark" data-reservation-updated-at>—</div>
                                         </div>
                                     </div>
                                 </div>
@@ -121,19 +148,20 @@
                                 <div>
                                     <h6 class="fw-semibold text-dark mb-3">Requested Items</h6>
                                     <div class="table-responsive">
-                                        <table class="table align-middle mb-0">
+                                        <table class="table align-middle mb-0 calendar-request-items">
                                             <thead>
                                                 <tr>
-                                                    <th class="text-dark">Type</th>
                                                     <th class="text-dark">Item</th>
-                                                    <th class="text-dark">Quantity</th>
-                                                    <th class="text-dark">Unit</th>
+                                                    <th class="text-dark">Requested</th>
+                                                    <th class="text-dark" data-borrow-only hidden>Checked Out</th>
+                                                    <th class="text-dark" data-borrow-only hidden>Condition Out</th>
+                                                    <th class="text-dark" data-borrow-only hidden>Progress</th>
                                                     <th class="text-dark">Remarks</th>
                                                 </tr>
                                             </thead>
                                             <tbody data-reservation-items-body>
                                                 <tr>
-                                                    <td colspan="5" class="text-center text-secondary py-4">Select a reservation on the calendar.</td>
+                                                    <td colspan="3" class="text-center text-secondary py-4">Select a reservation on the calendar.</td>
                                                 </tr>
                                             </tbody>
                                         </table>

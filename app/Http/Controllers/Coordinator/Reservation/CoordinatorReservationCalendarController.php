@@ -68,13 +68,27 @@ class CoordinatorReservationCalendarController extends Controller
             'borderColor' => $this->statusColor($reservation->status),
             'textColor' => '#ffffff',
             'extendedProps' => [
+                'event_type' => 'reservation',
                 'reservation_no' => $reservation->reservation_no,
+                'requester_role' => $reservation->isGuestRequest()
+                    ? 'Guest'
+                    : ($reservation->user?->role?->role_name === 'Instructor' ? 'Instructor' : 'Student'),
                 'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
                 'student_id' => $reservation->requesterStudentId() ?? '—',
                 'student_email' => $reservation->requesterEmail() ?? '—',
                 'requester_role' => $reservation->user?->role?->role_name ?? 'Student',
                 'laboratory_name' => $reservation->laboratory?->laboratory_name ?? '—',
                 'laboratory_code' => $reservation->laboratory?->laboratory_code ?? '—',
+                'laboratory_location' => trim(collect([
+                    $reservation->laboratory?->building,
+                    $reservation->laboratory?->room_number,
+                ])->filter()->implode(' / ')) ?: '—',
+                'campus' => $reservation->laboratory?->campus ?? '—',
+                'assigned_instructor' => $reservation->assignedInstructor
+                    ? trim($reservation->assignedInstructor->first_name.' '.$reservation->assignedInstructor->last_name)
+                    : '—',
+                'submitted_at' => $reservation->created_at?->format('M d, Y h:i A') ?? '—',
+                'updated_at' => $reservation->updated_at?->format('M d, Y h:i A') ?? '—',
                 'experiment_title' => $reservation->experiment_title ?? '—',
                 'purpose' => $reservation->purpose ?? '—',
                 'reservation_date' => $reservation->reservation_date?->format('F d, Y') ?? '—',
