@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Equipment;
+use App\Models\Laboratory;
 use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -11,19 +12,39 @@ use Illuminate\View\View;
 
 class EquipmentLifespanController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request)
     {
         $campus = $this->viewerCampus($request);
+        $search = trim((string) $request->query('search', ''));
+        $laboratoryId = (string) $request->query('laboratory_id', '');
+
+        $laboratories = Laboratory::query()
+            ->forCampus($campus)
+            ->orderBy('laboratory_name')
+            ->get(['id', 'laboratory_name']);
+
         $equipment = Equipment::query()
             ->with(['laboratory', 'supplier'])
             ->forCampus($campus)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('equipment_name', 'like', '%'.$search.'%')
+                        ->orWhere('equipment_code', 'like', '%'.$search.'%')
+                        ->orWhere('brand', 'like', '%'.$search.'%')
+                        ->orWhere('model', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($laboratoryId !== '', fn ($query) => $query->where('laboratory_id', $laboratoryId))
             ->orderBy('equipment_name')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return view('users.shared.equipment-lifespans.index', [
-            'campus' => $campus,
             'equipment' => $equipment,
-            'routePrefix' => request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator',
+            'campus' => $campus,
+            'search' => $search,
+            'laboratoryId' => $laboratoryId,
+            'laboratories' => $laboratories,
         ]);
     }
 

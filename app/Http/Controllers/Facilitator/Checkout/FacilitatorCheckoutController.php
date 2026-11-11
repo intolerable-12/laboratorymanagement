@@ -695,16 +695,34 @@ class FacilitatorCheckoutController extends Controller
         $baseRemarks = trim((string) $baseRemarks, " ·\t\n\r\0\x0B");
 
         $conditionQuantities = ['Damaged' => 0.0, 'Under Repair' => 0.0, 'Lost' => 0.0];
+        $checkoutNotes = [];
         BarcodeLog::query()
             ->where('borrow_transaction_id', $transaction->id)
             ->where('item_type', 'Equipment')
             ->where('item_id', $equipment->id)
             ->where('is_voided', false)
             ->get(['quantity', 'remarks'])
-            ->each(function (BarcodeLog $scan) use (&$conditionQuantities): void {
+            ->each(function (BarcodeLog $scan) use (&$conditionQuantities, &$checkoutNotes): void {
+                $scanRemarks = (string) $scan->remarks;
+
                 foreach (array_keys($conditionQuantities) as $condition) {
-                    if (str_contains((string) $scan->remarks, 'Checkout condition: '.$condition)) {
+                    if (str_contains($scanRemarks, 'Checkout condition: '.$condition)) {
                         $conditionQuantities[$condition] += (float) $scan->quantity;
+
+                        $remarksMarker = ' Remarks: ';
+                        $remarksPosition = strpos($scanRemarks, $remarksMarker);
+                        if ($remarksPosition !== false) {
+                            $operatorRemarks = substr($scanRemarks, $remarksPosition + strlen($remarksMarker));
+                            $conditionMarker = ' Checkout condition: '.$condition;
+                            if (str_ends_with($operatorRemarks, $conditionMarker)) {
+                                $operatorRemarks = substr($operatorRemarks, 0, -strlen($conditionMarker));
+                            }
+
+                            $operatorRemarks = trim($operatorRemarks);
+                            if ($operatorRemarks !== '') {
+                                $checkoutNotes[] = $operatorRemarks;
+                            }
+                        }
                     }
                 }
             });
@@ -714,6 +732,10 @@ class FacilitatorCheckoutController extends Controller
             if ($quantity > 0) {
                 $remarks[] = $condition.': '.rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
             }
+        }
+
+        foreach (array_unique($checkoutNotes) as $checkoutNote) {
+            $remarks[] = $checkoutNote;
         }
 
         if ($baseRemarks !== '') {
