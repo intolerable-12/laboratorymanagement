@@ -23,6 +23,9 @@
 
 @section('content')
     <div class="inventory-page">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            @include('users.instructor.inventory.partials.view-switcher', ['active' => 'equipment'])
+        </div>
         <div class="row g-3 g-xl-4 mb-4">
             <div class="col-12 col-sm-6"><div class="card metric-card h-100"><div class="card-body"><div class="small text-uppercase text-secondary mb-2">Laboratories</div><div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['laboratories'] }}</div><div class="small text-secondary">Laboratories in your {{ $campus }} campus</div></div></div></div>
             <div class="col-12 col-sm-6"><div class="card metric-card h-100"><div class="card-body"><div class="small text-uppercase text-secondary mb-2">Available equipment</div><div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['available_items'] }}</div><div class="small text-secondary">Active equipment available to browse</div></div></div></div>

@@ -74,6 +74,14 @@ import * as bootstrap from 'bootstrap';
             quantityInput.max = '';
             quantityInput.disabled = true;
             conditionInput.disabled = true;
+            // Clear the per-item condition lock (see showQuantityField)
+            [...conditionInput.options].forEach((opt) => {
+                opt.hidden = false;
+                opt.disabled = false;
+            });
+            conditionInput.style.pointerEvents = '';
+            conditionInput.classList.remove('bg-light');
+            document.querySelector('[data-checkin-condition-locked-hint]')?.classList.add('d-none');
             activeItemType = '';
             remarksWrapper?.classList.add('d-none');
             if (remarksInput) {
@@ -94,7 +102,7 @@ import * as bootstrap from 'bootstrap';
         const syncRemarksRequirement = () => {
             const hasScannedItem = activeItemType !== '';
             const requiresRemarks = hasScannedItem
-                && ['Lost', 'Damaged'].includes(conditionInput.value);
+                && ['Lost', 'Damaged', 'Under Repair'].includes(conditionInput.value);
 
             remarksWrapper?.classList.toggle('d-none', !hasScannedItem);
 
@@ -163,7 +171,39 @@ import * as bootstrap from 'bootstrap';
             quantityErrorElement?.classList.add('d-none');
             quantityInput.setCustomValidity('');
             quantityInput.disabled = false;
-            conditionInput.value = 'Good';
+
+            // Reset any previous condition lock, then re-apply for this item.
+            // Reset any previous lock, then re-apply.
+            [...conditionInput.options].forEach((opt) => {
+                opt.hidden = false;
+                opt.disabled = false;
+            });
+            conditionInput.style.pointerEvents = '';
+            conditionInput.classList.remove('bg-light');
+            const lockedHint = document.querySelector('[data-checkin-condition-locked-hint]');
+            if (lockedHint) lockedHint.classList.add('d-none');
+
+            const checkoutCondition = item?.dataset.itemCheckoutCondition || 'Good';
+            const problemConditions = ['Damaged', 'Lost', 'Under Repair'];
+
+            if (problemConditions.includes(checkoutCondition)) {
+                // Strict lock: only the exact checkout condition is shown,
+                // and the dropdown is not interactive. The <select> stays
+                // enabled so its value still submits with the form.
+                [...conditionInput.options].forEach((opt) => {
+                    const matches = opt.value === checkoutCondition;
+                    opt.hidden = !matches;
+                    opt.disabled = !matches;
+                });
+
+                conditionInput.value = checkoutCondition;
+                conditionInput.style.pointerEvents = 'none';
+                conditionInput.classList.add('bg-light');
+
+                if (lockedHint) lockedHint.classList.remove('d-none');
+            } else {
+                conditionInput.value = 'Good';
+            }
             conditionInput.disabled = false;
             if (remarksInput) {
                 remarksInput.value = '';
@@ -343,7 +383,7 @@ import * as bootstrap from 'bootstrap';
                 return true;
             }
 
-            const message = 'Remarks are required when the item is marked Lost or Damaged.';
+                        const message = 'Remarks are required when the item is marked Lost, Damaged, or Under Repair.';
             setRemarksError(message);
             remarksInput?.reportValidity();
             remarksInput?.focus({ preventScroll: true });

@@ -182,25 +182,25 @@
                                 $unit = $item->item_type === 'Chemical' ? ($item->item?->unit ?? 'unit') : 'unit(s)';
                             @endphp
                             @if ($item->item_type === 'Equipment')
-                            <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checkin-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="Equipment" data-checkin-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="unit(s)" data-item-maximum="{{ $outstanding }}">
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold text-dark">
-                                        {{ $itemName }}
-                                        @if ($item->item_type === 'Chemical' && $item->item?->is_expired)
-                                            <span class="badge text-bg-danger ms-1">Expired</span>
-                                        @endif
-                                        @if ($item->item_type === 'Chemical')
-                                            <span class="badge rounded-pill text-bg-secondary ms-1">Consumed — no check-in required</span>
-                                        @endif
+                                <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}" data-checkin-key="{{ $item->item_type }}:{{ $item->item_id }}" data-item-type="Equipment" data-checkin-barcode="{{ $item->item?->barcode ?? '' }}" data-item-name="{{ $itemName }}" data-item-unit="unit(s)" data-item-maximum="{{ $outstanding }}" data-item-checkout-condition="{{ $item->condition_out ?? 'Good' }}">
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold text-dark">
+                                            {{ $itemName }}
+                                            @if ($item->item_type === 'Chemical' && $item->item?->is_expired)
+                                                <span class="badge text-bg-danger ms-1">Expired</span>
+                                            @endif
+                                            @if ($item->item_type === 'Chemical')
+                                                <span class="badge rounded-pill text-bg-secondary ms-1">Consumed — no check-in required</span>
+                                            @endif
+                                        </div>
+                                        <div class="small text-secondary">{{ $item->item_type }} · {{ $item->item?->barcode ?? 'Barcode unavailable' }} · {{ $unit }}</div>
+                                        <div class="small text-secondary mt-1">Returned <span data-progress-returned>{{ number_format($returned, $precision) }}</span> · Used <span data-progress-used>{{ number_format($used, $precision) }}</span> · Damaged <span data-progress-damaged>{{ number_format($damaged, $precision) }}</span> · Lost <span data-progress-lost>{{ number_format($lost, $precision) }}</span></div>
                                     </div>
-                                    <div class="small text-secondary">{{ $item->item_type }} · {{ $item->item?->barcode ?? 'Barcode unavailable' }} · {{ $unit }}</div>
-                                    <div class="small text-secondary mt-1">Returned <span data-progress-returned>{{ number_format($returned, $precision) }}</span> · Used <span data-progress-used>{{ number_format($used, $precision) }}</span> · Damaged <span data-progress-damaged>{{ number_format($damaged, $precision) }}</span> · Lost <span data-progress-lost>{{ number_format($lost, $precision) }}</span></div>
+                                    <div class="text-end">
+                                        <div data-progress-accounted class="fw-semibold {{ $accounted + 0.001 >= $checkedOut ? 'text-success' : 'text-dark' }}">{{ number_format($accounted, $precision) }} / {{ number_format($checkedOut, $precision) }}</div>
+                                        <div data-progress-outstanding class="small text-{{ $accounted + 0.001 >= $checkedOut ? 'success' : 'secondary' }}">{{ $accounted + 0.001 >= $checkedOut ? 'Complete' : number_format($outstanding, $precision).' remaining' }}</div>
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <div data-progress-accounted class="fw-semibold {{ $accounted + 0.001 >= $checkedOut ? 'text-success' : 'text-dark' }}">{{ number_format($accounted, $precision) }} / {{ number_format($checkedOut, $precision) }}</div>
-                                    <div data-progress-outstanding class="small text-{{ $accounted + 0.001 >= $checkedOut ? 'success' : 'secondary' }}">{{ $accounted + 0.001 >= $checkedOut ? 'Complete' : number_format($outstanding, $precision).' remaining' }}</div>
-                                </div>
-                            </div>
                             @else
                             <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}">
                                 <div class="flex-grow-1">
@@ -275,6 +275,9 @@
                                 <option value="{{ $condition }}" @selected($condition === 'Good')>{{ $condition }}</option>
                             @endforeach
                         </select>
+                        <div class="form-text text-warning-emphasis d-none" data-checkin-condition-locked-hint>
+                            <i class="fa-solid fa-lock me-1"></i> This item was checked out as a problem condition — the check-in condition is locked to match.
+                        </div>
                     </div>
                     <div class="mt-3" data-checkin-remarks-wrapper>
                         <label for="checkin-remarks" class="form-label fw-semibold text-dark">Remarks</label>

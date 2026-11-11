@@ -317,7 +317,7 @@
     @endphp
     <div class="section-card mb-4">
         <div class="card-body p-3 p-xl-4">
-            <form method="GET" action="{{ route($tableRoute) }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="equipment">
+            <form id="equipment-filter-form" method="GET" action="{{ route($tableRoute) }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="equipment">
                 <div class="flex-grow-1">
                     <label for="equipment-search" class="form-label fw-medium mb-1">Search equipment</label>
                     <div class="input-group">
@@ -348,7 +348,6 @@
 
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <input type="hidden" name="direction" value="{{ $currentDirection }}">
-                <input type="hidden" name="laboratory_id" value="{{ $laboratoryId }}">
 
                 <div class="modal fade" id="equipmentFiltersModal" tabindex="-1" aria-labelledby="equipmentFiltersModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -393,7 +392,7 @@
 
                                     <div class="col-12 col-md-6 mb-5">
                                         <label for="equipment-filter-laboratory" class="form-label fw-medium">Laboratory</label>
-                                        <select id="equipment-filter-laboratory" name="laboratory_id" class="form-select admin-form-control">
+                                        <select id="equipment-filter-laboratory" name="laboratory_id" class="form-select admin-form-control" data-live-search-filter>
                                             <option value="">All laboratories</option>
                                             @foreach ($laboratories as $laboratory)
                                                 <option value="{{ $laboratory->id }}" @selected((string) $laboratoryId === (string) $laboratory->id)>{{ $laboratory->laboratory_name }}</option>
@@ -475,18 +474,14 @@
                             {{ $archived ? 'Archived Equipment' : 'Equipment List' }} - {{ $selectedLaboratory?->laboratory_name ?? 'All Laboratories' }}
                         </h3>
                     </div>
-                    <form method="GET" action="{{ route($tableRoute) }}" class="d-flex align-items-center gap-2">
-                        @foreach (request()->except(['page', 'laboratory_id']) as $queryName => $queryValue)
-                            @if (is_scalar($queryValue))
-                                <input type="hidden" name="{{ $queryName }}" value="{{ $queryValue }}">
-                            @endif
-                        @endforeach
+                    <div class="d-flex align-items-center gap-2">
                         <label for="equipment-table-laboratory" class="small text-secondary text-nowrap">Laboratory</label>
-                        <select 
+                        <select
                             id="equipment-table-laboratory"
                             name="laboratory_id"
+                            form="equipment-filter-form"
                             class="form-select form-select-sm admin-form-control"
-                            data-live-search-filter
+                            data-auto-submit-filter
                             aria-label="Select laboratory for equipment list"
                         >
                             <option value="">All Laboratories</option>
@@ -866,6 +861,55 @@
             </div>
         </div>
     @endif
+
+    </div>{{-- closes <div class="container-fluid py-4"> --}}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Delegated on document so it survives live-search DOM swaps.
+            document.addEventListener('change', (event) => {
+                const select = event.target.closest('[data-auto-submit-filter]');
+
+                if (!select) {
+                    return;
+                }
+
+                // Resolve the form via the native form="..." attribute
+                const form = select.form;
+
+                if (!form) {
+                    return;
+                }
+
+                // The modal <select name="laboratory_id"> lives inside the same form
+                const modalSelect = form.querySelector(
+                    'select[name="laboratory_id"]:not([data-auto-submit-filter])'
+                );
+
+                // Mirror the header value into the modal select so the submitted
+                // laboratory_id matches what the user picked in the header.
+                if (modalSelect) {
+                    modalSelect.value = select.value;
+                }
+
+                // Reset pagination so filtered results start on page 1
+                form.querySelector('input[name="page"]')?.remove();
+
+                form.requestSubmit();
+            });
+
+            // Mirror modal -> header once the page loads (delegated version of the old "initial sync")
+            const initialForm = document.getElementById('equipment-filter-form');
+            const initialHeader = initialForm?.querySelector('[data-auto-submit-filter]');
+            const initialModal = initialForm?.querySelector(
+                'select[name="laboratory_id"]:not([data-auto-submit-filter])'
+            );
+
+            if (initialHeader && initialModal) {
+                initialHeader.value = initialModal.value;
+            }
+        });
+    </script>
 
     <script>
         (() => {

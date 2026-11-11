@@ -216,6 +216,23 @@ class FacilitatorCheckoutController extends Controller
                         : $consumedLine.' · '.$existingRemarks);
             }
 
+            // Build the item-level remark BEFORE saving so it lands on the
+            // borrow_items row (which both review tables display under "Remarks").
+            $itemRemarkSuffix = null;
+
+            if ($itemType === 'Equipment'
+                && in_array($condition, ['Damaged', 'Lost', 'Under Repair'], true)
+                && $operatorRemarks !== '') {
+                $itemRemarkSuffix = sprintf('[%s] %s', $condition, $operatorRemarks);
+            }
+
+            if ($itemRemarkSuffix !== null) {
+                $existingItemRemarks = trim((string) $borrowItem->remarks);
+                $borrowItemUpdate['remarks'] = $existingItemRemarks === ''
+                    ? $itemRemarkSuffix
+                    : $existingItemRemarks."\n".$itemRemarkSuffix;
+            }
+
             $borrowItem->update($borrowItemUpdate);
 
             $now = now();

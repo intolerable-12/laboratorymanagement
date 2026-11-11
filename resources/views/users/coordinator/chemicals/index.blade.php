@@ -342,7 +342,7 @@
     @endphp
     <div class="section-card mb-4">
         <div class="card-body p-3 p-xl-4">
-            <form method="GET" action="{{ route($tableRoute) }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="chemicals">
+            <form id="chemical-filter-form" method="GET" action="{{ route($tableRoute) }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="chemicals">
                 <div class="flex-grow-1">
                     <label for="chemical-search" class="form-label fw-medium mb-1">Search chemicals</label>
                     <div class="input-group">
@@ -373,7 +373,6 @@
 
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <input type="hidden" name="direction" value="{{ $currentDirection }}">
-                <input type="hidden" name="laboratory_id" value="{{ $laboratoryId }}">
 
                 <div class="modal fade" id="chemicalFiltersModal" tabindex="-1" aria-labelledby="chemicalFiltersModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -510,18 +509,14 @@
                         {{ $archived ? 'Archived Chemicals' : 'Chemical List' }} - {{ $selectedLaboratory?->laboratory_name ?? 'All Laboratories' }}
                     </h3>
                 </div>
-                <form method="GET" action="{{ route($tableRoute) }}" class="d-flex align-items-center gap-2">
-                    @foreach (request()->except(['page', 'laboratory_id']) as $queryName => $queryValue)
-                        @if (is_scalar($queryValue))
-                            <input type="hidden" name="{{ $queryName }}" value="{{ $queryValue }}">
-                        @endif
-                    @endforeach
+                <div class="d-flex align-items-center gap-2">
                     <label for="chemical-table-laboratory" class="small text-secondary text-nowrap">Laboratory</label>
                     <select
                         id="chemical-table-laboratory"
                         name="laboratory_id"
+                        form="chemical-filter-form"
                         class="form-select form-select-sm admin-form-control"
-                        data-live-search-filter
+                        data-auto-submit-filter
                         aria-label="Select laboratory for chemical list"
                     >
                         <option value="">All Laboratories</option>
@@ -931,6 +926,51 @@
             </div>
         </div>
     @endif
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Delegated on document so it survives live-search DOM swaps.
+            document.addEventListener('change', (event) => {
+                const select = event.target.closest('[data-auto-submit-filter]');
+
+                if (!select) {
+                    return;
+                }
+
+                const form = select.form;
+
+                if (!form) {
+                    return;
+                }
+
+                // Mirror into the modal's laboratory select (if present) so the
+                // submitted laboratory_id matches the header choice.
+                const modalSelect = form.querySelector(
+                    'select[name="laboratory_id"]:not([data-auto-submit-filter])'
+                );
+
+                if (modalSelect) {
+                    modalSelect.value = select.value;
+                }
+
+                // Reset to page 1 when the filter changes
+                form.querySelector('input[name="page"]')?.remove();
+
+                form.requestSubmit();
+            });
+
+            // Initial sync on page load (modal -> header)
+            const initialForm = document.getElementById('chemical-filter-form');
+            const initialHeader = initialForm?.querySelector('[data-auto-submit-filter]');
+            const initialModal = initialForm?.querySelector(
+                'select[name="laboratory_id"]:not([data-auto-submit-filter])'
+            );
+
+            if (initialHeader && initialModal) {
+                initialHeader.value = initialModal.value;
+            }
+        });
+    </script>
 
     <script>
         (() => {

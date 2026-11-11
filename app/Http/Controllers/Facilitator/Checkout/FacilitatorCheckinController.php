@@ -98,7 +98,25 @@ class FacilitatorCheckinController extends Controller
                 $this->checkinError('barcode', 'This barcode is not one of the items borrowed by this student.');
             }
 
-            $checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
+            // Option A: if the item was checked out as Damaged / Lost / Under Repair,
+            // the same condition is forced on check-in. The front end locks the
+            // dropdown; this is the backend guard against a bypassed request.
+            $problemConditions = ['Damaged', 'Lost', 'Under Repair'];
+            $checkoutCondition = (string) $borrowItem->condition_out;
+
+            if (in_array($checkoutCondition, $problemConditions, true)
+                && (string) $data['condition_in'] !== $checkoutCondition) {
+                $this->checkinError(
+                    'condition_in',
+                    sprintf(
+                        'This item was checked out as "%s" and must be checked in as "%s". The condition is locked for this return.',
+                        $checkoutCondition,
+                        $checkoutCondition
+                    )
+                );
+            }
+
+$checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
             $returned = (float) $borrowItem->quantity_returned;
             $used = (float) ($borrowItem->quantity_used ?? 0);
             $lost = (float) $borrowItem->quantity_lost;
@@ -106,7 +124,7 @@ class FacilitatorCheckinController extends Controller
             $outstanding = max(0, round($checkedOut - $returned - $used - $lost - $damaged, 2));
 
             if ($outstanding <= 0) {
-                $this->checkinError('barcode', 'The returned quantity for this item has already been recorded.');
+                 $this->checkinError('barcode', 'There is no outstanding quantity to check in for this item. It may not have been checked out, or its return has already been recorded.');
             }
 
             $quantity = $this->checkinQuantity('Equipment', $data['quantity'] ?? null, $outstanding);
@@ -116,11 +134,11 @@ class FacilitatorCheckinController extends Controller
             }
 
             $condition = $data['condition_in'];
-            $requiresRemarks = in_array($condition, ['Lost', 'Damaged'], true);
+            $requiresRemarks = in_array($condition, ['Lost', 'Damaged', 'Under Repair'], true);
             $operatorRemarks = $requiresRemarks ? trim((string) ($data['remarks'] ?? '')) : '';
 
             if ($requiresRemarks && $operatorRemarks === '') {
-                $this->checkinError('remarks', 'Remarks are required when the item is marked Lost or Damaged.');
+                $this->checkinError('remarks', 'Remarks are required when the item is marked Lost, Damaged, or Under Repair.');
             }
 
             $isUsableReturn = in_array($condition, ['Excellent', 'Good', 'Fair'], true);
@@ -322,10 +340,10 @@ class FacilitatorCheckinController extends Controller
                 ->first();
 
             if (! $borrowItem) {
-                $this->checkinError('scan', 'The borrow item for this check-in line could not be found.');
+                $this->checkinError('barcode', 'This barcode is not one of the items borrowed by this student.');
             }
 
-            $quantity = (float) $scan->quantity;
+        $checkedOut = (float) ($borrowItem->quantity_checked_out ?? 0);
 
             if ($scan->item_type !== 'Equipment') {
                 $this->checkinError('scan', 'Chemicals are consumed during reservations and cannot be checked in.');
@@ -359,6 +377,7 @@ class FacilitatorCheckinController extends Controller
                 ->sum(fn (BarcodeLog $remainingScan): float => (float) $remainingScan->quantity);
             $remainingCondition = $remainingScans->first()?->condition_in;
 
+            $quantity = (float) $scan->quantity;
             $before = (float) $inventoryItem->available_quantity;
             $isUsableReturn = in_array($scan->condition_in, ['Excellent', 'Good', 'Fair'], true);
             $after = $isUsableReturn ? max(0, round($before - $quantity, 2)) : $before;
@@ -448,7 +467,7 @@ class FacilitatorCheckinController extends Controller
 
     private function findScannedItem(BorrowTransaction $transaction, string $barcode): array
     {
-        $equipment = Equipment::query()->where('barcode', $barcode)->first();
+        $equipment = Equipment::query()->withTrashed()->where('barcode', $barcode)->first();
         if ($equipment) {
             if ($transaction->items()->where('item_type', 'Equipment')->where('item_id', $equipment->id)->exists()) {
                 return ['Equipment', $equipment];
@@ -530,6 +549,7 @@ class FacilitatorCheckinController extends Controller
                 'damaged' => $damaged,
                 'accounted' => $accounted,
                 'outstanding' => max(0, round($checkedOut - $accounted, 2)),
+                'condition_out' => $item->condition_out ?? 'Good', 
             ];
             })->values()->all();
     }
