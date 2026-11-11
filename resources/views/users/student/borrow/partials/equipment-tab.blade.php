@@ -32,7 +32,6 @@
                         </td>
                         <td>
                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
-                            <div class="small text-secondary">{{ $equipment->status }}</div>
                         </td>
                         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-picker-row-action>Select <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></button></td>
                     </tr>

@@ -77,10 +77,6 @@
 
         <div data-live-search-results="instructor-chemical-laboratories">
             <section class="section-card" id="chemicalLaboratoriesTable">
-                <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5">
-                    <h3 class="h5 fw-semibold mb-3">Chemical laboratories</h3>
-                    <p class="text-secondary small mb-3">Choose a laboratory to continue to organic or inorganic chemicals.</p>
-                </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -99,8 +95,10 @@
                                             <div class="d-flex align-items-center gap-3">
                                                 <div class="inventory-table__media"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i></div>
                                                 <div>
-                                                    <a href="{{ route('instructor.inventory.chemicals.types.index', $laboratory) }}" class="fw-semibold text-dark text-decoration-none">{{ $laboratory->laboratory_name }}</a>
-                                                    <div class="small text-secondary">{{ $laboratory->laboratory_code ?: 'Laboratory' }}</div>
+                                                    <div class="inventory-table__name">
+                                                        <a href="{{ route('instructor.inventory.chemicals.types.index', $laboratory) }}">{{ $laboratory->laboratory_name }}</a>
+                                                    </div>
+                                                    <div class="inventory-table__meta">{{ $laboratory->laboratory_code ?: 'Laboratory' }}</div>
                                                 </div>
                                             </div>
                                         </td>

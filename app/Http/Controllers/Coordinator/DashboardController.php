@@ -256,7 +256,7 @@ class DashboardController extends Controller
                 'usage' => $usage,
                 'details' => $scheduledHours > 0
                     ? $reservationCount.' approved reservation(s); '.number_format($reservedHours, 1).' of '.number_format($scheduledHours, 1).' scheduled hours used'
-                    : 'No availability schedule recorded for this laboratory',
+                    : $reservationCount.' approved reservation(s); '.number_format($reservedHours, 1).' hour(s) reserved this week (no availability schedule set)',
             ];
         })->values();
     }

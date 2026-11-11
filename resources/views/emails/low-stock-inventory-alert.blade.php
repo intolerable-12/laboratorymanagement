@@ -10,7 +10,7 @@
         <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:20px; overflow:hidden;">
             <div style="padding:28px 32px; background:linear-gradient(135deg, #2f1636, #d91c77); color:#fff;">
                 <div style="font-size:13px; text-transform:uppercase; letter-spacing:.08em; opacity:.9; margin-bottom:8px;">Lourdes College Laboratory</div>
-                <h1 style="margin:0; font-size:25px; line-height:1.2;">Low stock alert</h1>
+                <h1 style="margin:0; font-size:25px; line-height:1.2;">Low Inventory Reorder Alert</h1>
             </div>
 
             <div style="padding:32px;">
