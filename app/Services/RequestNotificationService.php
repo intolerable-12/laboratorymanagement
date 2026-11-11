@@ -48,6 +48,27 @@ class RequestNotificationService
         ]);
     }
 
+    public function notifyInventoryStatusChanged(Equipment|Chemical $item, string $previousStatus): void
+    {
+        $item->load('laboratory');
+        $campus = Campus::normalize($item->laboratory?->campus);
+
+        if (! in_array($campus, Campus::values(), true)) {
+            return;
+        }
+
+        $itemType = $item instanceof Equipment ? 'Equipment' : 'Chemical';
+        $itemName = $item instanceof Equipment ? $item->equipment_name : $item->chemical_name;
+        $itemCode = $item instanceof Equipment ? $item->equipment_code : $item->chemical_code;
+        $laboratoryName = $item->laboratory?->laboratory_name ?? 'its laboratory';
+        $title = "{$itemType} status changed: {$itemName}";
+        $message = "{$itemType} {$itemName} ({$itemCode}) status changed from {$previousStatus} "
+            ."to {$item->status} in {$laboratoryName}.";
+
+        $this->campusInventoryStaff($campus)
+            ->each(fn (User $user) => $this->notifyUser($user, 'System', $title, $message, $item));
+    }
+
     public function notifyRoleUsers(
         string $roleName,
         string $type,
@@ -200,6 +221,37 @@ class RequestNotificationService
         return User::query()
             ->where('status', 'Active')
             ->whereHas('role', fn ($query) => $query->where('role_name', $roleName));
+    }
+
+    private function campusInventoryStaff(string $campus)
+    {
+        return User::query()
+            ->where('status', 'Active')
+            ->where(function (Builder $query) use ($campus): void {
+                $query->where(function (Builder $inChargeQuery) use ($campus): void {
+                    $inChargeQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery
+                        ->where('role_name', 'Laboratory In-charge'))
+                        ->where(function (Builder $assignmentQuery) use ($campus): void {
+                            $assignmentQuery->where('users.campus', $campus)
+                                ->orWhere(function (Builder $fallbackQuery) use ($campus): void {
+                                    $fallbackQuery->whereNull('users.campus')
+                                        ->whereHas('department', fn (Builder $departmentQuery) => $departmentQuery
+                                            ->where('campus', $campus));
+                                });
+                        });
+                });
+
+                if ($campus === Campus::MAIN) {
+                    $query->orWhere(function (Builder $coordinatorQuery): void {
+                        $coordinatorQuery->whereHas('role', fn (Builder $roleQuery) => $roleQuery
+                            ->where('role_name', 'Coordinator'))
+                            ->where(function (Builder $assignmentQuery): void {
+                                $assignmentQuery->where('users.campus', Campus::MAIN)
+                                    ->orWhereNull('users.campus');
+                            });
+                    });
+                }
+            });
     }
 
     private function emailUsers($users, string $requestType, string $requestNumber, string $headline, string $bodyMessage, string $actionUrl, string $actionLabel, array $summaryRows): void

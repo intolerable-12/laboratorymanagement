@@ -63,6 +63,10 @@ php artisan schedule:work
 
 The application must also have a working mail transport configured. Alert settings are managed from Coordinator Dashboard → Supplier Alert Settings, and suppliers are managed from Coordinator Dashboard → Suppliers.
 
+## Quarterly inventory reports
+
+The `reports:generate-quarterly` command creates equipment and chemical inventory workbooks for each campus on the first day of each calendar quarter. Reports are stored on Laravel's `public` disk under `reports/{campus}/`, recorded in the report archive, and available to campus users from Reports → Generated reports. Manual workbook generations are saved to the same archive. Keep the Laravel scheduler running and ensure the `public/storage` symlink exists (`php artisan storage:link`).
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

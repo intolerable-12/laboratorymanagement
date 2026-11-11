@@ -8,6 +8,7 @@ use App\Models\ChemicalCategory;
 use App\Models\Laboratory;
 use App\Models\Supplier;
 use App\Services\InventoryTraceabilityLogger;
+use App\Services\RequestNotificationService;
 use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -277,6 +278,7 @@ class ChemicalController extends Controller
         $this->ensureViewerCanAccess($request, $chemical);
         $data = $this->validateChemical($request, $chemical);
         Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        $previousStatus = (string) $chemical->status;
         $previousQuantity = (float) $chemical->quantity;
 
         if ((float) $chemical->minimum_stock !== (float) $data['minimum_stock']) {
@@ -302,6 +304,10 @@ class ChemicalController extends Controller
         }
 
         $chemical->update($data);
+
+        if ($previousStatus !== (string) $chemical->status) {
+            app(RequestNotificationService::class)->notifyInventoryStatusChanged($chemical, $previousStatus);
+        }
 
         app(InventoryTraceabilityLogger::class)->record(
             item: $chemical,

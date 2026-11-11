@@ -8,6 +8,7 @@ use App\Models\EquipmentCategory;
 use App\Models\Laboratory;
 use App\Models\Supplier;
 use App\Services\InventoryTraceabilityLogger;
+use App\Services\RequestNotificationService;
 use App\Support\Campus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -246,6 +247,7 @@ class EquipmentController extends Controller
         $this->ensureViewerCanAccess($request, $equipment);
         $data = $this->validateEquipment($request, $equipment);
         Laboratory::forViewerCampus($this->viewerCampus($request))->findOrFail($data['laboratory_id']);
+        $previousStatus = (string) $equipment->status;
         $previousAvailableQuantity = (int) $equipment->available_quantity;
         $previousTotalQuantity = (int) $equipment->quantity;
         $data['available_quantity'] = $this->availableQuantityAfterTotalChange($equipment, (int) $data['quantity']);
@@ -264,6 +266,10 @@ class EquipmentController extends Controller
         }
 
         $equipment->update($data);
+
+        if ($previousStatus !== (string) $equipment->status) {
+            app(RequestNotificationService::class)->notifyInventoryStatusChanged($equipment, $previousStatus);
+        }
 
         app(InventoryTraceabilityLogger::class)->record(
             item: $equipment,

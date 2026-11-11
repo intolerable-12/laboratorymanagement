@@ -16,6 +16,7 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
         private readonly Collection $semesters,
         private readonly array $signatories = [],
         private readonly ?string $campus = null,
+        private readonly bool $includeInventoryOutsideSchoolYears = false,
     ) {}
 
     /**
@@ -79,6 +80,10 @@ class EquipmentInventoryReportExport implements Export, WithMultipleSheets
 
     private function belongsToSelectedSchoolYear(Equipment $equipment): bool
     {
+        if ($this->includeInventoryOutsideSchoolYears) {
+            return true;
+        }
+
         $acquisitionDate = $equipment->purchase_date?->copy()->startOfDay()
             ?? $equipment->created_at?->copy()->startOfDay();
 

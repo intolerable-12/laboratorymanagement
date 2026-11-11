@@ -123,6 +123,13 @@ class FacilitatorCheckoutController extends Controller
             $inventoryItem = ($itemType === 'Equipment' ? Equipment::query() : Chemical::query())
                 ->lockForUpdate()
                 ->findOrFail($inventoryItem->id);
+            $transaction->loadMissing('laboratory');
+            $inventoryItem->loadMissing('laboratory');
+
+            if (Campus::normalize($inventoryItem->laboratory?->campus)
+                !== Campus::normalize($transaction->laboratory?->campus)) {
+                $this->checkoutError('barcode', 'This inventory item is no longer assigned to the request campus.');
+            }
 
             if ($itemType === 'Equipment' && ! $inventoryItem->is_requestable) {
                 $this->checkoutError('barcode', 'This equipment is inventory-only and cannot be borrowed or reserved.');
@@ -201,29 +208,20 @@ class FacilitatorCheckoutController extends Controller
                 'condition_out' => $condition,
             ];
 
-            // Chemicals are consumed at checkout. Stamp the consumed quantity
-            // onto the borrow item so the Borrow Review page (and, via the
-            // BorrowItem::saved observer, the Reservation Review page) shows it.
-            if ($itemType === 'Chemical') {
-                $unit = $inventoryItem->unit ?? 'unit';
-                $consumedLine = 'Consumed: '.number_format($newCheckedOut, 2).' '.$unit;
-                $existingRemarks = trim((string) $borrowItem->remarks);
-
-                $borrowItemUpdate['remarks'] = str_starts_with($existingRemarks, 'Consumed:')
-                    ? $existingRemarks
-                    : ($existingRemarks === ''
-                        ? $consumedLine
-                        : $consumedLine.' · '.$existingRemarks);
-            }
-
-            $borrowItem->update($borrowItemUpdate);
-
             $now = now();
             $itemName = $itemType === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name;
             $remarks = 'Barcode checkout for '.$transaction->borrow_no.' — '.$itemName.' for '.$this->borrowerName($transaction).'.';
 
             if ($operatorRemarks !== '') {
                 $remarks .= ' Remarks: '.$operatorRemarks;
+            }
+
+            if ($itemType === 'Chemical' && in_array($condition, ['Expired', 'For Disposal'], true)) {
+                $remarks .= ' Checkout status: '.$condition;
+            }
+
+            if ($itemType === 'Equipment' && in_array($condition, ['Damaged', 'Under Repair', 'Lost'], true)) {
+                $remarks .= ' Checkout condition: '.$condition;
             }
 
             InventoryLog::create([
@@ -251,6 +249,21 @@ class FacilitatorCheckoutController extends Controller
                 'ip_address' => $request->ip(),
                 'remarks' => $remarks,
             ]);
+
+            // Reflect consumed quantities and their selected status in both
+            // borrow and reservation review remarks.
+            if ($itemType === 'Chemical') {
+                $borrowItemUpdate['remarks'] = $this->chemicalCheckoutRemarks(
+                    $borrowItem,
+                    $transaction,
+                    $inventoryItem,
+                    $newCheckedOut,
+                );
+            } elseif ($itemType === 'Equipment') {
+                $borrowItemUpdate['remarks'] = $this->equipmentCheckoutRemarks($borrowItem, $transaction, $inventoryItem);
+            }
+
+            $borrowItem->update($borrowItemUpdate);
 
             $allCheckedOut = $transaction->items()
                 ->whereRaw('quantity_checked_out + 0.001 < quantity_borrowed')
@@ -429,7 +442,7 @@ class FacilitatorCheckoutController extends Controller
             }
 
             $newCheckedOut = round((float) $borrowItem->quantity_checked_out - $quantity, 2);
-            $borrowItem->update(['quantity_checked_out' => max(0, $newCheckedOut)]);
+            $newCheckedOut = max(0, $newCheckedOut);
 
             $now = now();
             $itemName = $scan->item_type === 'Equipment' ? $inventoryItem->equipment_name : $inventoryItem->chemical_name;
@@ -453,6 +466,19 @@ class FacilitatorCheckoutController extends Controller
                 'voided_at' => $now,
                 'remarks' => trim(($scan->remarks ? $scan->remarks.' ' : '').$remarks),
             ]);
+
+            $borrowItemUpdates = ['quantity_checked_out' => $newCheckedOut];
+            if ($scan->item_type === 'Chemical') {
+                $borrowItemUpdates['remarks'] = $this->chemicalCheckoutRemarks(
+                    $borrowItem,
+                    $transaction,
+                    $inventoryItem,
+                    $newCheckedOut,
+                );
+            } elseif ($scan->item_type === 'Equipment') {
+                $borrowItemUpdates['remarks'] = $this->equipmentCheckoutRemarks($borrowItem, $transaction, $inventoryItem);
+            }
+            $borrowItem->update($borrowItemUpdates);
 
             $hasActiveScans = BarcodeLog::query()
                 ->where('borrow_transaction_id', $transaction->id)
@@ -611,6 +637,92 @@ class FacilitatorCheckoutController extends Controller
         })->values()->all();
     }
 
+    private function chemicalCheckoutRemarks(
+        BorrowItem $borrowItem,
+        BorrowTransaction $transaction,
+        Chemical $chemical,
+        float $quantityCheckedOut,
+    ): string {
+        $existingRemarks = trim((string) $borrowItem->remarks);
+        $baseRemarks = preg_replace(
+            '/(?:^| · )(?:Consumed: [^·]*|Expired: [^·]*|For Disposal: [^·]*)/u',
+            '',
+            $existingRemarks,
+        );
+        $baseRemarks = trim((string) $baseRemarks, " ·\t\n\r\0\x0B");
+
+        $statusQuantities = ['Expired' => 0.0, 'For Disposal' => 0.0];
+        BarcodeLog::query()
+            ->where('borrow_transaction_id', $transaction->id)
+            ->where('item_type', 'Chemical')
+            ->where('item_id', $chemical->id)
+            ->where('is_voided', false)
+            ->get(['quantity', 'remarks'])
+            ->each(function (BarcodeLog $scan) use (&$statusQuantities): void {
+                foreach (array_keys($statusQuantities) as $status) {
+                    if (str_contains((string) $scan->remarks, 'Checkout status: '.$status)) {
+                        $statusQuantities[$status] += (float) $scan->quantity;
+                    }
+                }
+            });
+
+        $remarks = ['Consumed: '.number_format($quantityCheckedOut, 2).' '.($chemical->unit ?? 'unit')];
+        foreach ($statusQuantities as $status => $quantity) {
+            if ($quantity > 0) {
+                $formattedQuantity = rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
+                $remarks[] = $status.': '.$formattedQuantity;
+            }
+        }
+
+        if ($baseRemarks !== '') {
+            $remarks[] = $baseRemarks;
+        }
+
+        return implode(' · ', $remarks);
+    }
+
+    private function equipmentCheckoutRemarks(
+        BorrowItem $borrowItem,
+        BorrowTransaction $transaction,
+        Equipment $equipment,
+    ): string {
+        $existingRemarks = trim((string) $borrowItem->remarks);
+        $baseRemarks = preg_replace(
+            '/(?:^| · )(?:Damaged|Under Repair|Lost): [0-9]+(?:\.[0-9]+)?/u',
+            '',
+            $existingRemarks,
+        );
+        $baseRemarks = trim((string) $baseRemarks, " ·\t\n\r\0\x0B");
+
+        $conditionQuantities = ['Damaged' => 0.0, 'Under Repair' => 0.0, 'Lost' => 0.0];
+        BarcodeLog::query()
+            ->where('borrow_transaction_id', $transaction->id)
+            ->where('item_type', 'Equipment')
+            ->where('item_id', $equipment->id)
+            ->where('is_voided', false)
+            ->get(['quantity', 'remarks'])
+            ->each(function (BarcodeLog $scan) use (&$conditionQuantities): void {
+                foreach (array_keys($conditionQuantities) as $condition) {
+                    if (str_contains((string) $scan->remarks, 'Checkout condition: '.$condition)) {
+                        $conditionQuantities[$condition] += (float) $scan->quantity;
+                    }
+                }
+            });
+
+        $remarks = [];
+        foreach ($conditionQuantities as $condition => $quantity) {
+            if ($quantity > 0) {
+                $remarks[] = $condition.': '.rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
+            }
+        }
+
+        if ($baseRemarks !== '') {
+            $remarks[] = $baseRemarks;
+        }
+
+        return implode(' · ', $remarks);
+    }
+
     private function checkoutQuantity(string $itemType, mixed $rawQuantity, float $remaining): float|int
     {
         if ($rawQuantity === null || $rawQuantity === '') {
@@ -674,12 +786,15 @@ class FacilitatorCheckoutController extends Controller
 
     private function ensureTransactionAccess(Request $request, BorrowTransaction $borrowTransaction): void
     {
-        if ($this->isCoordinator($request)) {
-            return;
-        }
-
         $borrowTransaction->loadMissing('laboratory');
-        abort_unless($borrowTransaction->laboratory?->campus === $request->user()->campusName(), 404);
+        $campus = $this->isCoordinator($request)
+            ? Campus::MAIN
+            : $request->user()->campusName();
+
+        abort_unless(
+            Campus::normalize($borrowTransaction->laboratory?->campus) === Campus::normalize($campus),
+            404,
+        );
     }
 
     private function isCoordinator(Request $request): bool

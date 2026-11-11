@@ -16,6 +16,7 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
         private readonly Collection $semesters,
         private readonly array $signatories = [],
         private readonly ?string $campus = null,
+        private readonly bool $includeInventoryOutsideSchoolYears = false,
     ) {}
 
     public function sheets(): array
@@ -74,6 +75,10 @@ class ChemicalInventoryReportExport implements Export, WithMultipleSheets
 
     private function belongsToSelectedSchoolYear(Chemical $chemical): bool
     {
+        if ($this->includeInventoryOutsideSchoolYears) {
+            return true;
+        }
+
         $acquisitionDate = $chemical->received_date?->copy()->startOfDay()
             ?? $chemical->created_at?->copy()->startOfDay();
 

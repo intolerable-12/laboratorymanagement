@@ -19,3 +19,8 @@ Schedule::command('inventory:notify-suppliers')
 Schedule::command('equipment:notify-lifespan-expiry')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('reports:generate-quarterly')
+    ->quarterly()
+    ->at('00:00')
+    ->withoutOverlapping();

@@ -33,6 +33,9 @@
         <div class="d-flex flex-wrap gap-2">
             <span class="badge rounded-pill text-bg-light border text-secondary px-3 py-2">{{ number_format($equipmentCount) }} equipment</span>
             <span class="badge rounded-pill text-bg-light border text-secondary px-3 py-2">{{ number_format($laboratoryCount) }} laboratory sheets</span>
+            <a href="{{ route($routePrefix.'.reports.index') }}" class="btn btn-sm btn-outline-primary">
+                <i class="fa-solid fa-box-archive me-1"></i>View generated reports
+            </a>
         </div>
     </div>
 

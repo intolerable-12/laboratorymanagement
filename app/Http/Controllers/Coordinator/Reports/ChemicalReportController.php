@@ -2,24 +2,21 @@
 
 namespace App\Http\Controllers\Coordinator\Reports;
 
-use App\Exports\ChemicalInventoryReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Chemical;
-use App\Models\AcademicPeriod;
 use App\Models\SchoolYear;
-use App\Models\Semester;
+use App\Services\ReportGenerationService;
 use App\Support\AcademicPeriodSelection;
 use App\Support\Campus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class ChemicalReportController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, ReportGenerationService $reportGenerationService): View
     {
         $campus = $this->viewerCampus($request);
         $schoolYears = SchoolYear::query()
@@ -31,7 +28,7 @@ class ChemicalReportController extends Controller
 
         return view('users.coordinator.reports.chemicals', [
             'schoolYears' => $schoolYears,
-            'semesters' => $this->reportSemesters($campus),
+            'semesters' => $reportGenerationService->semestersForCampus($campus),
             'campus' => $campus,
             'currentSchoolYearId' => AcademicPeriodSelection::currentSchoolYearId($campus),
             'chemicalCount' => Chemical::query()
@@ -44,7 +41,7 @@ class ChemicalReportController extends Controller
         ]);
     }
 
-    public function export(Request $request): Response
+    public function export(Request $request, ReportGenerationService $reportGenerationService): Response
     {
         $campus = $this->viewerCampus($request);
         $data = $request->validate([
@@ -85,17 +82,15 @@ class ChemicalReportController extends Controller
             ];
         }
 
-        $filename = 'chemical-inventory-report-'.now()->format('Y-m-d_H-i-s').'.xlsx';
-
-        return Excel::download(
-            new ChemicalInventoryReportExport(
-                schoolYears: $schoolYears,
-                semesters: $this->reportSemesters($campus),
-                signatories: $signatories,
-                campus: $campus,
-            ),
-            $filename,
+        $report = $reportGenerationService->generate(
+            type: 'chemicals',
+            campus: $campus,
+            schoolYears: $schoolYears,
+            signatories: $signatories,
+            generatedBy: $request->user()?->getAuthIdentifier(),
         );
+
+        return Storage::disk('public')->download($report->path, $report->file_name);
     }
 
     private function viewerCampus(Request $request): string
@@ -106,34 +101,5 @@ class ChemicalReportController extends Controller
     private function routePrefix(Request $request): string
     {
         return $request->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
-    }
-
-    private function reportSemesters(string $campus): Collection
-    {
-        $startedSemesterIds = AcademicPeriod::query()
-            ->where('campus', $campus)
-            ->whereDate('start_date', '<=', now())
-            ->pluck('semester_id')
-            ->all();
-
-        $semesters = Semester::query()
-            ->where('campus', $campus)
-            ->whereIn('id', $startedSemesterIds)
-            ->orderBy('display_order')
-            ->orderBy('id')
-            ->get();
-
-        if ($semesters->isNotEmpty()) {
-            return $semesters;
-        }
-
-        // Fallback: if no academic period has started yet, show the first semester
-        // so the page still works.
-        return Semester::query()
-            ->where('campus', $campus)
-            ->orderBy('display_order')
-            ->orderBy('id')
-            ->limit(1)
-            ->get();
     }
 }

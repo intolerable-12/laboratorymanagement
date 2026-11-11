@@ -36,6 +36,7 @@ use App\Http\Controllers\Coordinator\Reservation\CoordinatorReservationControlle
 use App\Http\Controllers\Coordinator\ReservationHistory\RequestHistoryController;
 use App\Http\Controllers\Coordinator\Reports\ChemicalReportController;
 use App\Http\Controllers\Coordinator\Reports\EquipmentReportController;
+use App\Http\Controllers\Coordinator\Reports\ReportArchiveController;
 use App\Http\Controllers\Coordinator\UserManagementController;
 use App\Http\Controllers\Coordinator\UserAccountRequestController;
 use App\Http\Controllers\Facilitator\DashboardController as FacilitatorDashboardController;
@@ -145,7 +146,11 @@ Route::middleware(['auth', 'role:Coordinator', 'audit'])->prefix('coordinator')-
         Route::put('/equipment-lifespans/{equipment}', [EquipmentLifespanController::class, 'update'])->name('equipment-lifespans.update');
 
         Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('/', fn () => redirect()->route('coordinator.reports.equipment.index'))->name('index');
+            Route::get('/', [ReportArchiveController::class, 'index'])->name('index');
+            Route::post('/generate-quarterly', [ReportArchiveController::class, 'generateNow'])->name('generate-quarterly');
+            Route::delete('/archive', [ReportArchiveController::class, 'destroyMany'])->name('destroy-many');
+            Route::get('/archive/{report}/download', [ReportArchiveController::class, 'download'])->name('download');
+            Route::delete('/archive/{report}', [ReportArchiveController::class, 'destroy'])->name('destroy');
             Route::get('/equipment', [EquipmentReportController::class, 'index'])->name('equipment.index');
             Route::get('/equipment/export', [EquipmentReportController::class, 'export'])->name('equipment.export');
             Route::get('/chemicals', [ChemicalReportController::class, 'index'])->name('chemicals.index');
@@ -475,7 +480,11 @@ Route::middleware(['auth', 'role:Laboratory In-charge', 'audit'])
         Route::get('/request-history/{user}', [FacilitatorRequestHistoryController::class, 'show'])->name('requesthistory.show');
 
         Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('/', fn () => redirect()->route('facilitator.reports.equipment.index'))->name('index');
+            Route::get('/', [ReportArchiveController::class, 'index'])->name('index');
+            Route::post('/generate-quarterly', [ReportArchiveController::class, 'generateNow'])->name('generate-quarterly');
+            Route::delete('/archive', [ReportArchiveController::class, 'destroyMany'])->name('destroy-many');
+            Route::get('/archive/{report}/download', [ReportArchiveController::class, 'download'])->name('download');
+            Route::delete('/archive/{report}', [ReportArchiveController::class, 'destroy'])->name('destroy');
             Route::get('/equipment', [EquipmentReportController::class, 'index'])->name('equipment.index');
             Route::get('/equipment/export', [EquipmentReportController::class, 'export'])->name('equipment.export');
             Route::get('/chemicals', [ChemicalReportController::class, 'index'])->name('chemicals.index');
