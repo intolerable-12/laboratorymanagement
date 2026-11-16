@@ -113,7 +113,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">Remarks</label>
-                            <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Optional notes for the instructor">{{ old('remarks', $details['remarks'] ?? '') }}</textarea>
+                            <textarea name="remarks" rows="3" class="form-control @error('remarks') is-invalid @enderror" placeholder="Optional notes">{{ old('remarks', $details['remarks'] ?? '') }}</textarea>
                             @error('remarks')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                     </div>

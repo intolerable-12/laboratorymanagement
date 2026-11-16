@@ -29,6 +29,15 @@
                         <td>
                             <div class="fw-semibold text-dark">{{ $equipment->equipment_name }}</div>
                             <div class="small text-secondary">{{ $equipment->equipment_code }}</div>
+                            @php $reservedCount = (float) ($reservedMap['Equipment:'.$equipment->id] ?? 0); @endphp
+                            @if ($reservedCount > 0)
+                                <div class="mt-1">
+                                    <span class="badge rounded-pill text-bg-info text-dark">
+                                        <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>
+                                        Reserved for laboratory activity: {{ rtrim(rtrim(number_format($reservedCount, 2, '.', ''), '0'), '.') }} unit(s)
+                                    </span>
+                                </div>
+                            @endif
                         </td>
                         <td>
                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>

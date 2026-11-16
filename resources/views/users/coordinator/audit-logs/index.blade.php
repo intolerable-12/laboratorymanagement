@@ -4,6 +4,9 @@
 @section('page-title', 'Audit Log')
 
 @php
+    // Maps log action names to Bootstrap badge color tones for the action column.
+    // Actions not in this map fall back to 'secondary' below — add new action
+    // names here when the logging layer gains new verbs.
     $actionTones = [
         'Create' => 'success',
         'Update' => 'warning',
@@ -19,6 +22,8 @@
 @endphp
 
 @section('content')
+    {{-- Page header with export link. $filters is passed through so the export
+         mirrors whatever the user is currently viewing. --}}
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <div class="text-secondary">Review the actions performed across LabCentral.</div>
@@ -29,6 +34,9 @@
         </a>
     </div>
 
+    {{-- Metric cards. $stats must include: total, today, last_7_days, actors.
+         Blank numbers here mean the controller isn't building that array
+         correctly or is missing one of those keys. --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-6 col-xl-3">
             <div class="card metric-card h-100">
@@ -69,6 +77,9 @@
     </div>
 
     @php
+        // Counts active filters to show as a badge on the Filters button.
+        // 'search' is excluded because it has its own dedicated input.
+        // Empty string and null are excluded so "clear filters" lands on zero.
         $activeFilterCount = collect($filters)
             ->except('search')
             ->filter(static fn ($value) => $value !== '' && $value !== null)
@@ -81,6 +92,9 @@
                     <label for="audit-log-search" class="form-label fw-medium mb-1">Search audit logs</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white admin-form-control" aria-hidden="true"><i class="fa-solid fa-magnifying-glass text-secondary"></i></span>
+                        {{-- $filters['search'] must always be present (default '')
+                             even when no search is applied — otherwise this throws
+                             an undefined index error. --}}
                         <input type="search" id="audit-log-search" name="search" value="{{ $filters['search'] }}"
                             placeholder="Name, user ID, module, action, record, or IP" class="form-control admin-form-control">
                     </div>
@@ -92,12 +106,17 @@
                     </button>
                     <button type="button" class="btn btn-outline-secondary px-3" data-bs-toggle="modal" data-bs-target="#auditLogFiltersModal" aria-controls="auditLogFiltersModal">
                         <i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>Filters
+                        {{-- Badge only appears when at least one filter is active. --}}
                         @if ($activeFilterCount > 0)
                             <span class="badge rounded-pill text-bg-primary ms-1">{{ $activeFilterCount }}</span>
                         @endif
                     </button>
                 </div>
 
+                {{-- Filter modal — the inputs are part of the same GET form, so
+                     "Apply filters" submits the whole thing (search + filters).
+                     Inputs must be inside the <form> for that to work, which they
+                     are. Moving this modal outside the form will break Apply. --}}
                 <div class="modal fade" id="auditLogFiltersModal" tabindex="-1" aria-labelledby="auditLogFiltersModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
                         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -113,6 +132,9 @@
                                 <div class="row g-3">
                                     <div class="col-12 col-md-6">
                                         <label for="audit-log-filter-module" class="form-label fw-medium">Module</label>
+                                        {{-- $modules must be an array of strings. The
+                                             strict === comparison below means any
+                                             mismatch in casing will fail to pre-select. --}}
                                         <select id="audit-log-filter-module" name="module" class="form-select admin-form-control">
                                             <option value="">All modules</option>
                                             @foreach ($modules as $module)
@@ -123,6 +145,7 @@
 
                                     <div class="col-12 col-md-6">
                                         <label for="audit-log-filter-action" class="form-label fw-medium">Action</label>
+                                        {{-- Same strict comparison caveat as module. --}}
                                         <select id="audit-log-filter-action" name="action" class="form-select admin-form-control">
                                             <option value="">All actions</option>
                                             @foreach ($actions as $action)
@@ -133,6 +156,10 @@
 
                                     <div class="col-12 col-md-6">
                                         <label for="audit-log-filter-role" class="form-label fw-medium">Actor role</label>
+                                        {{-- Casts both sides to string — IDs from the
+                                             query string arrive as strings, while the
+                                             model's id is an int. Without the cast,
+                                             the selected role never pre-selects. --}}
                                         <select id="audit-log-filter-role" name="role_id" class="form-select admin-form-control">
                                             <option value="">All roles</option>
                                             @foreach ($roles as $role)
@@ -154,8 +181,13 @@
                             </div>
 
                             <div class="modal-footer px-4 py-3 border-top">
+                                {{-- Clear filters links to the bare index, dropping
+                                     all query params including search. --}}
                                 <a href="{{ route('coordinator.audit-logs.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                {{-- Apply submits the parent form. data-bs-dismiss
+                                     closes the modal in case the browser doesn't
+                                     navigate (e.g. validation on the server). --}}
                                 <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
                             </div>
                         </div>
@@ -172,6 +204,8 @@
                     <h2 class="h5 fw-semibold mb-1">System activity</h2>
                     <p class="mb-3 text-secondary">Newest entries appear first. Expand a row to inspect its request details.</p>
                 </div>
+                {{-- firstItem/lastItem return null on an empty page, hence the
+                     ?? 0 fallbacks. --}}
                 <span class="small text-secondary">{{ $logs->firstItem() ?? 0 }}–{{ $logs->lastItem() ?? 0 }} of {{ number_format($logs->total()) }}</span>
             </div>
         </div>
@@ -193,11 +227,20 @@
                     <tbody>
                         @forelse ($logs as $log)
                             @php
+                                // Builds a display name from the user's parts,
+                                // filtered to drop nulls and joined. Falls back to
+                                // 'System' when no user is attached.
                                 $actor = $log->user;
                                 $actorName = $actor
                                     ? trim(collect([$actor->first_name, $actor->middle_name, $actor->last_name, $actor->suffix])->filter()->implode(' '))
                                     : 'System';
+
+                                // Unique id per row for the collapsible detail row.
                                 $detailsId = 'audit-details-'.$log->id;
+
+                                // Only include keys with meaningful values so we
+                                // don't render empty "Old values" / "New values"
+                                // sections on logs where nothing was recorded.
                                 $details = array_filter([
                                     'Old values' => $log->old_values,
                                     'New values' => $log->new_values,
@@ -210,16 +253,23 @@
                                     <div class="small text-secondary">{{ $log->performed_at?->format('h:i:s A') ?? '—' }}</div>
                                 </td>
                                 <td>
+                                    {{-- Falls back to 'System' if the composed name
+                                         is empty (user exists but has no name parts). --}}
                                     <div class="fw-medium text-dark">{{ $actorName !== '' ? $actorName : 'System' }}</div>
                                     <div class="small text-secondary">{{ $actor?->userID ?? 'System event' }}</div>
                                 </td>
                                 <td>
+                                    {{-- Action badge — falls back to 'secondary'
+                                         for actions not in $actionTones. --}}
                                     <span class="badge text-bg-{{ $actionTones[$log->action] ?? 'secondary' }}">{{ $log->action }}</span>
                                 </td>
                                 <td>{{ $log->module }}</td>
                                 <td>{{ $log->record_id ?? '—' }}</td>
                                 <td class="small">{{ $log->ip_address ?? '—' }}</td>
                                 <td class="text-center pe-4">
+                                    {{-- Expands the detail row below via Bootstrap
+                                         collapse. aria-controls references the row
+                                         id for screen readers. --}}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $detailsId }}"
                                         aria-expanded="false" aria-controls="{{ $detailsId }}" title="Show details">
                                         <i class="fa-solid fa-chevron-down"></i><span class="visually-hidden">Show details</span>
@@ -233,8 +283,14 @@
                                     @else
                                         <div class="row g-3">
                                             @foreach ($details as $label => $value)
+                                                {{-- User agent takes full width; old/new values
+                                                     split into two columns. --}}
                                                 <div class="col-12 {{ $label === 'User agent' ? '' : 'col-xl-6' }}">
                                                     <div class="small fw-semibold text-secondary mb-1">{{ $label }}</div>
+                                                    {{-- Arrays are pretty-printed as JSON.
+                                                         Scrolling is capped at 220px so large
+                                                         diffs don't blow up the row height.
+                                                         Values are escaped by {{ }} — no XSS. --}}
                                                     <pre class="small bg-white border rounded-3 p-3 mb-0" style="max-height: 220px; overflow: auto; white-space: pre-wrap;">{{ is_array($value) ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $value }}</pre>
                                                 </div>
                                             @endforeach
@@ -255,8 +311,12 @@
             </div>
         </div>
 
+        {{-- Pagination only renders when there's more than one page. --}}
         @if ($logs->hasPages())
             <div class="card-footer bg-white border-0 px-4 px-xl-5 py-4">
+                {{-- Same caveat as the announcement index: links() drops the
+                     current query string. If filters are lost on page 2,
+                     use ->appends(request()->query())->links() instead. --}}
                 {{ $logs->links() }}
             </div>
         @endif

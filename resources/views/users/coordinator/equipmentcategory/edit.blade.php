@@ -5,12 +5,18 @@
 @section('page-subtitle', 'Update category details while preserving equipment references')
 
 @section('content')
+    {{-- Page-level error banner. If it appears but no field is highlighted
+         red, the validation rule's key doesn't match any input name in the
+         partial. --}}
     @if ($errors->any())
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
             Please review the highlighted fields and try again.
         </div>
     @endif
 
+    {{-- Decorative hero banner. Interpolates the category name directly — safe
+         because Blade escapes it via {{ }}. If the name is ever blank on a
+         corrupted record, the header reads "Edit ." with a trailing period. --}}
     <div class="hero-banner equipment-hero rounded-4 p-4 p-lg-5 mb-4">
         <div class="row g-4 align-items-center">
             <div class="col-lg-8">
@@ -45,10 +51,21 @@
 
     <div class="section-card">
         <div class="card-body p-4 p-xl-5">
+            {{-- Update form. @method('PUT') is required because HTML forms only
+                 send GET/POST. A 404 on this page usually means the
+                 {equipment_category} parameter in web.php doesn't match the
+                 model's route key, or the record no longer exists. --}}
             <form method="POST" action="{{ route('coordinator.equipment.categories.update', $equipmentCategory) }}">
                 @csrf
                 @method('PUT')
 
+                {{-- Same partial as create, but passed the bound model so fields
+                     pre-fill and the submit label reads "Save changes". If fields
+                     render blank, verify the controller passes the model as
+                     $equipmentCategory (not $category or $model). --}}
+                {{-- Note: formAction and formMethod are passed but the partial
+                     version I reviewed doesn't reference either. Harmless if
+                     unused, but confirm if you're relying on them. --}}
                 @include('users.coordinator.equipmentcategory._form', [
                     'equipmentCategory' => $equipmentCategory,
                     'formAction' => route('coordinator.equipment.categories.update', $equipmentCategory),

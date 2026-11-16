@@ -5,7 +5,13 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+
+    // Hardcoded to false — meaning every action button below (edit, archive,
+    // restore, stock-up) renders for facilitators too. Unlike the chemical
+    // categories page which derives this from the route prefix, this page
+    // never enables read-only. Confirm that's intentional.
     $isReadOnly = false;
+
     $tabQuery = request()->except('page');
     $listQuery = request()->query();
     $tableRoute = $archived ? $routePrefix.'.equipment.archived' : $routePrefix.'.equipment.index';
@@ -45,6 +51,9 @@
 
 @section('content')
     <style>
+        /* All of the styles below are scoped to .equipment-table or to the
+           stock-up modal. Nothing leaks globally, so adding this <style> block
+           to a page that already has another one won't clash. */
 
         .equipment-table .table-column-compact .stock-up-trigger {
             width: 100%;
@@ -60,7 +69,8 @@
         }
 
         .stock-up-trigger {
-            /* removed min-width so it can shrink to fit narrow columns */
+            /* min-width intentionally removed so the button can shrink to fit
+               narrow Quantity/Condition columns after a column resize. */
             display: block;
             width: 100%;
             max-width: 100%;
@@ -188,6 +198,8 @@
             border-color: #bfdbfe !important;
         }
 
+        /* Column resize handles — only rendered on th[data-resizable] via the
+           JS at the bottom of this file. */
         .equipment-table th[data-resizable] {
             position: relative;
             user-select: none;
@@ -210,7 +222,7 @@
             background: rgba(13, 110, 253, .35);
         }
 
-        /* Optional: disable the compact max-width once resized */
+        /* Once a column is resized, drop the compact max-width so it can grow. */
         .equipment-table th[data-resizable].is-resized,
         .equipment-table td[data-resizable] {
             max-width: none;
@@ -235,6 +247,8 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
+    {{-- Only first error is shown — the stock-up modal submissions use AJAX,
+         but any non-AJAX validation failure lands here. --}}
     @if ($errors->any())
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ $errors->first() }}</div>
     @endif
@@ -244,6 +258,10 @@
             <div class="text-secondary">Manage equipment records and categories.</div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
+            {{-- Tab switcher: Equipment vs Equipment Category. The active tab
+                 styling is driven by $onEquipment / $onCategories, which check
+                 route names — so navigating to a create/edit/show page keeps
+                 the Equipment tab highlighted. --}}
             <div class="btn-group shadow-sm" role="group">
                 <a href="{{ route($routePrefix.'.equipment.index', $tabQuery) }}"
                    class="btn {{ $onEquipment ? 'btn-primary' : 'btn-outline-secondary' }}">
@@ -254,6 +272,7 @@
                     <i class="fa-solid fa-layer-group me-2"></i>Equipment Category
                 </a>
             </div>
+            {{-- Bulk import is only offered on the active tab. --}}
             @unless ($archived)
                 <button type="button" class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#bulk-import-equipment-modal">
                     <i class="fa-solid fa-file-import me-2"></i>Bulk import
@@ -262,6 +281,11 @@
         </div>
     </div>
 
+    {{-- Bulk import modal. The CSV headers here MUST match the importer's
+         validation rules — otherwise rows silently fail on mismatched columns.
+         'low_stock_threshold' is included here even though the equipment form
+         partial has no input for it; that means bulk import is currently the
+         only way to set the threshold. --}}
     @unless ($archived)
         @include('users.coordinator.partials.bulk-import-modal', [
             'resourceSlug' => 'equipment',
@@ -271,7 +295,8 @@
         ])
     @endunless
 
-    {{-- Metrics Cards --}}
+    {{-- Metric cards. $stats must include: total, available, maintenance,
+         archived — missing keys throw "Undefined index". --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card metric-card h-100">
@@ -313,10 +338,17 @@
 
     {{-- Search & Filter Section --}}
     @php
+        // Counts every filter key present (including empty strings). If a
+        // filter key is added with a non-empty default, the badge will always
+        // show at least 1. The chemical index uses ->except('search')->filter()
+        // for the same purpose — this one doesn't filter empty values.
         $activeFilterCount = collect($filters)->except('search')->count();
     @endphp
     <div class="section-card mb-4">
         <div class="card-body p-3 p-xl-4">
+            {{-- The whole filter modal is nested INSIDE this form. Bootstrap
+                 won't move it, so its inputs submit with the parent form.
+                 Moving it outside the <form> breaks "Apply filters". --}}
             <form id="equipment-filter-form" method="GET" action="{{ route($tableRoute) }}" class="d-flex flex-column flex-md-row gap-2 align-items-md-end" data-live-search-form="equipment">
                 <div class="flex-grow-1">
                     <label for="equipment-search" class="form-label fw-medium mb-1">Search equipment</label>
@@ -346,6 +378,8 @@
                     </button>
                 </div>
 
+                {{-- Sort state travels with the filter submit — otherwise
+                     searching loses the current sort column. --}}
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <input type="hidden" name="direction" value="{{ $currentDirection }}">
 
@@ -374,6 +408,7 @@
 
                                     <div class="col-12 col-md-6">
                                         <label for="equipment-filter-low-stock" class="form-label fw-medium">Stock level</label>
+                                        {{-- '1' as a string — must match $lowStock from the query string. --}}
                                         <select id="equipment-filter-low-stock" name="low_stock" class="form-select admin-form-control">
                                             <option value="">All stock levels</option>
                                             <option value="1" @selected($lowStock === '1')>Low stock only</option>
@@ -382,6 +417,8 @@
 
                                     <div class="col-12 col-md-6">
                                         <label for="equipment-filter-category" class="form-label fw-medium">Category</label>
+                                        {{-- Both sides cast to string — query ids are
+                                             strings, model ids are ints. --}}
                                         <select id="equipment-filter-category" name="category_id" class="form-select admin-form-control">
                                             <option value="">All categories</option>
                                             @foreach ($categories as $category)
@@ -390,8 +427,13 @@
                                         </select>
                                     </div>
 
+                                    {{-- mb-5 gives extra spacing so the modal's
+                                         scrollable body doesn't clip this row. --}}
                                     <div class="col-12 col-md-6 mb-5">
                                         <label for="equipment-filter-laboratory" class="form-label fw-medium">Laboratory</label>
+                                        {{-- data-live-search-filter triggers the live-search
+                                             JS; data-auto-submit-filter on the header select
+                                             syncs this modal select with the header one. --}}
                                         <select id="equipment-filter-laboratory" name="laboratory_id" class="form-select admin-form-control" data-live-search-filter>
                                             <option value="">All laboratories</option>
                                             @foreach ($laboratories as $laboratory)
@@ -413,6 +455,7 @@
                             </div>
 
                             <div class="modal-footer px-4 py-3 border-top">
+                                {{-- Clear filters drops the whole query string. --}}
                                 <a href="{{ $archived ? route($routePrefix.'.equipment.archived') : route($routePrefix.'.equipment.index') }}" class="btn btn-link text-secondary text-decoration-none me-auto">Clear filters</a>
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary px-4" data-bs-dismiss="modal">Apply filters</button>
@@ -424,12 +467,19 @@
         </div>
     </div>
 
+    {{-- Barcode selection scope. sessionStorage persists selections across
+         pagination — same key as the selection JS further down. --}}
     <div data-live-search-results="equipment" data-barcode-selection="equipment" data-barcode-storage-key="labcentral.bulk-barcode.equipment">
+        {{-- Standalone form for bulk barcode print. Hidden ids[] inputs are
+             injected by the selection JS as the user checks rows. --}}
         <form id="equipment-bulk-print-form" method="GET" action="{{ route($routePrefix.'.equipment.barcode-print-multiple') }}" target="_blank"></form>
-        {{-- Equipment Switcher Bar (Placed directly on top of the table) --}}
+
+        {{-- Active / Archived tab switcher + Print selected + Add button. --}}
         <div class="d-flex justify-content-between align-items-center mb-3">
 
             {{-- Left side: Active / Archived switcher --}}
+            {{-- aria-label says "Chemical view switcher" on an Equipment page —
+                 likely a copy-paste leftover. Should read "Equipment view switcher". --}}
             <div class="btn-group shadow-sm"
                 role="group"
                 aria-label="Chemical view switcher">
@@ -441,6 +491,7 @@
                     <span class="badge {{ $archived ? 'bg-secondary text-white' : 'bg-white text-primary' }} ms-2"></span>
                 </a>
 
+                {{-- "Archived equipement" — misspelling. Should be "equipment". --}}
                 <a href="{{ route($routePrefix.'.equipment.archived', $tabQuery) }}"
                 class="btn {{ $archived ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2">
                     <i class="fa-solid fa-box-archive me-2"></i>
@@ -449,8 +500,11 @@
                 </a>
 
             </div>
-            {{-- Right side: Add equipment --}}
+
+            {{-- Right side: bulk print + add --}}
             <div class="d-flex flex-wrap gap-2">
+                {{-- Submits the standalone bulk-print form above via form="".
+                     Disabled until at least one row is checked. --}}
                 <button type="submit" form="equipment-bulk-print-form" class="btn btn-outline-dark px-4" data-barcode-submit disabled>
                     <i class="fa-solid fa-print me-2"></i>Print selected (<span data-barcode-count>0</span>)
                 </button>
@@ -467,7 +521,11 @@
 
         {{-- Table Section --}}
         <div class="section-card" id="equipmentTable">
-            <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5v mb-3"> 
+            {{-- px-xl-5v has a stray trailing "v" — invalid Bootstrap class.
+                 Should be px-xl-5. Harmless (unknown classes ignored) but
+                 indicates a typo; if px-xl-5 spacing is missing here, this
+                 is why. --}}
+            <div class="card-header bg-white border-0 pt-4 px-4 px-xl-5v mb-3">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                     <div>
                         <h3 class="h5 fw-semibold mb-0">
@@ -476,6 +534,9 @@
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <label for="equipment-table-laboratory" class="small text-secondary text-nowrap">Laboratory</label>
+                        {{-- Header laboratory select uses form="equipment-filter-form"
+                             to submit through the filter form. The sync JS below
+                             mirrors this into the modal laboratory select. --}}
                         <select
                             id="equipment-table-laboratory"
                             name="laboratory_id"
@@ -519,6 +580,10 @@
                                         <i class="fa-solid {{ $sortIcon('laboratory') }} small"></i>
                                     </a>
                                 </th>
+                                {{-- data-resizable enables the drag handle.
+                                     Only Quantity and Condition columns are
+                                     resizable; add the attribute elsewhere if
+                                     you want more. --}}
                                 <th scope="col" class="table-column-compact" data-resizable>
                                     <a href="{{ $sortUrl('quantity') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                                         <span>Quantity</span>
@@ -551,8 +616,14 @@
                         <tbody>
                             @forelse ($equipmentItems as $equipment)
                                 @php
+                                    // Restore window: 5 years from soft-delete.
                                     $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
                                     $canRestore = $restoreDeadline?->isFuture() ?? false;
+
+                                    // Low stock depends on low_stock_threshold
+                                    // being set. The equipment form partial has
+                                    // no input for it — bulk import is currently
+                                    // the only way to set it.
                                     $isLowStock = $equipment->low_stock_threshold !== null
                                         && (int) $equipment->available_quantity <= (int) $equipment->low_stock_threshold;
                                 @endphp
@@ -574,6 +645,8 @@
                                                 <div class="small text-secondary d-flex flex-wrap align-items-center gap-2">
                                                     <span>{{ $equipment->equipment_code }}</span>
                                                 </div>
+                                                {{-- "Inventory only" badge for
+                                                     non-requestable items. --}}
                                                 @if (! $equipment->is_requestable)
                                                     <span class="badge rounded-pill text-bg-secondary mt-1">
                                                         <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Inventory only
@@ -588,6 +661,10 @@
                                     <td>{{ $equipment->category->category_name ?? '-' }}</td>
                                     <td>{{ $equipment->laboratory->laboratory_name ?? '-' }}</td>
                                     <td class="text-center table-column-compact">
+                                        {{-- Stock-up trigger. All data-* attributes
+                                             here are read by the modal-open JS.
+                                             Renaming any of them requires a
+                                             matching JS change. --}}
                                         @if (!$archived && !$isReadOnly)
                                             <button
                                                 type="button"
@@ -609,16 +686,23 @@
                                                     <i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>
                                                 </span>
                                             </button>
-                                        @else   
+                                        @else
                                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} / {{ $equipment->quantity }}</div>
                                             <div class="small text-secondary">Available / Total</div>
                                         @endif
                                     </td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
+                                            {{-- Status tone chain only handles
+                                                 Available/Maintenance/Borrowed.
+                                                 'Reserved' and 'Unavailable'
+                                                 fall through to 'secondary'. --}}
                                             <span class="badge text-bg-{{ $archived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">
                                                 {{ $archived ? 'Archived' : $equipment->status }}
                                             </span>
+                                            {{-- Low-stock badge — the AJAX update
+                                                 below toggles its visibility
+                                                 after a stock change. --}}
                                             @if (!$archived && $isLowStock)
                                                 <span class="badge text-bg-warning" data-stock-up-low-stock>Low Stock</span>
                                             @endif
@@ -643,9 +727,12 @@
                                             <a href="{{ route($routePrefix.'.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info" title="Traceability" aria-label="Traceability">
                                                 <i class="fa-solid fa-clock-rotate-left"></i>
                                             </a>
+                                            {{-- Barcode print opens a new tab. --}}
                                             <a href="{{ route($routePrefix.'.equipment.barcode-print', $equipment) }}" class="btn btn-sm btn-outline-dark" title="Print barcode" aria-label="Print barcode" target="_blank" rel="noopener noreferrer">
                                                 <i class="fa-solid fa-print"></i>
                                             </a>
+                                            {{-- Action buttons branch on archived vs active:
+                                                 archived shows Restore, active shows Edit + Archive. --}}
                                             @if (!$isReadOnly && $archived)
                                                 @if ($canRestore)
                                                     <form action="{{ route($routePrefix.'.equipment.restore', $equipment) }}" method="POST" class="d-inline">
@@ -676,6 +763,8 @@
                                 </tr>
                             @empty
                                 <tr>
+                                    {{-- Colspan must match the number of <th>s: 9
+                                         on the archived tab, 8 on active. --}}
                                     <td colspan="{{ $archived ? 9 : 8 }}" class="text-center text-secondary py-5">No equipment found.</td>
                                 </tr>
                             @endforelse
@@ -685,6 +774,9 @@
             </div>
         </div>
 
+        {{-- Pagination. appends() with array_filter guarantees filter params
+             survive paging. If paging loses sort order or filters, this
+             array is the place to check. --}}
         @if ($equipmentItems->count())
             <div class="mt-4" data-live-search-pagination>
                 {{ $equipmentItems->appends(array_filter([
@@ -701,6 +793,10 @@
         @endif
     </div>
 
+    {{-- Stock-up modal trio. All three modals (main, confirm, success) are
+         driven by the JS further down. This block is entirely skipped on the
+         archived tab and for read-only users — meaning the JS below will also
+         early-return (modal not found). --}}
     @if (!$isReadOnly && !$archived)
         <div class="modal fade stock-up-modal" id="stock-up-modal" tabindex="-1" aria-labelledby="stock-up-modal-label" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -719,6 +815,7 @@
                         @csrf
                         @method('PATCH')
                         <div class="modal-body">
+                            {{-- Read-only info cards populated by JS on modal open. --}}
                             <div class="stock-up-info-grid mb-4">
                                 <div class="stock-up-info-card">
                                     <div class="stock-up-info-card__label">Supplier</div>
@@ -733,6 +830,8 @@
                                     <div class="stock-up-info-card__value" data-stock-up-current></div>
                                 </div>
                             </div>
+                            {{-- Supplier assignment — separate AJAX save flow
+                                 from the main quantity submit. --}}
                             <section class="stock-up-supplier-panel" aria-labelledby="equipment-supplier-heading">
                                 <div class="stock-up-section__eyebrow">Supplier workflow</div>
                                 <h6 class="stock-up-section__title" id="equipment-supplier-heading">Assign a supplier</h6>
@@ -747,6 +846,8 @@
                                     <button type="button" class="btn btn-outline-primary text-nowrap" data-stock-up-save-supplier><i class="fa-solid fa-link me-1"></i>Save supplier</button>
                                 </div>
                                 <button type="button" class="btn btn-link btn-sm px-0 mt-2" data-stock-up-toggle-add><i class="fa-solid fa-plus me-1"></i>Add new supplier</button>
+                                {{-- Inline "add new supplier" panel — hidden
+                                     until toggled by JS. --}}
                                 <div class="stock-up-add-panel d-none border rounded-3 p-3 mt-2" data-stock-up-add-panel>
                                     <div class="small text-secondary mb-2">New supplier details</div>
                                     <div class="row g-2">
@@ -764,31 +865,45 @@
                                     </div>
                                 </div>
                             </section>
+                            {{-- Feedback banner for AJAX supplier operations. --}}
                             <div class="alert d-none py-2" data-stock-up-feedback role="alert"></div>
+                            {{-- Main quantity adjustment panel. --}}
                             <section class="stock-up-quantity-panel" aria-labelledby="equipment-quantity-heading">
                                 <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                     <div>
                                         <div class="stock-up-section__eyebrow">Inventory update</div>
                                         <h6 class="stock-up-section__title mb-0" id="equipment-quantity-heading">Adjust quantity</h6>
                                     </div>
+                                    {{-- Add / Deduct mode toggle. --}}
                                     <div class="btn-group btn-group-sm" role="group" aria-label="Update mode">
                                         <input type="radio" class="btn-check" name="stock_up_mode" id="stock-up-mode-add" value="add" checked>
                                         <label class="btn btn-outline-success" for="stock-up-mode-add">
                                             <i class="fa-solid fa-plus me-1"></i>Add
                                         </label>
-                                        <input type="radio" class="btn-check" name="stock_up_mode" id="stock-up-mode-deduct" value="deduct">
+                                        <input type="radio" class="btn-check" name="stock_up-mode-deduct" id="stock-up-mode-deduct" value="deduct">
                                         <label class="btn btn-outline-danger" for="stock-up-mode-deduct">
                                             <i class="fa-solid fa-minus me-1"></i>Deduct
                                         </label>
                                     </div>
                                 </div>
 
+                                {{-- Quantity input. pattern=[0-9]+ is numeric
+                                     only (no decimals) — matches equipment
+                                     quantities which are whole units. --}}
                                 <label for="stock-up-quantity" class="visually-hidden">Quantity</label>
                                 <input type="text" inputmode="numeric" pattern="[0-9]+" class="form-control form-control-lg" id="stock-up-quantity" name="stock_up_quantity" placeholder="Enter quantity to add" autocomplete="off" required>
-                                <div class="form-text" data-stock-up-quantity-hint>Enter the number of units to add to this equipment’s stock.</div>
+                                <div class="form-text" data-stock-up-quantity-hint>Enter the number of units to add to this equipment's stock.</div>
 
+                                {{-- Deduction condition — only enabled and required
+                                     in deduct mode. JS toggles disabled/required. --}}
                                 <div class="mt-3 d-none" data-stock-up-deduction-condition-wrap>
                                     <label for="stock-up-condition" class="form-label small fw-semibold">Condition for deduction</label>
+                                    {{-- NOTE: these options differ from the
+                                         chemical stock-up which uses "Expired"
+                                         and "For Disposal". If the controller
+                                         shares a validation rule across both
+                                         resources, one side will reject valid
+                                         submissions. --}}
                                     <select id="stock-up-condition" name="stock_up_condition" class="form-select" data-stock-up-deduction-condition disabled>
                                         <option value="">Select condition</option>
                                         <option value="Damaged">Damaged</option>
@@ -799,6 +914,9 @@
 
                                 <hr class="my-3">
 
+                                {{-- Transaction date — cannot be future. JS checks
+                                     the value against the max attribute before
+                                     submitting, in addition to browser enforcement. --}}
                                 <div class="mb-3">
                                     <label for="stock-up-transaction-date" class="form-label small fw-semibold">Transaction date</label>
                                     <input type="date" class="form-control" id="stock-up-transaction-date" name="transaction_date" value="{{ today()->toDateString() }}" max="{{ today()->toDateString() }}" required>
@@ -820,6 +938,8 @@
                 </div>
             </div>
         </div>
+
+        {{-- Confirmation + success modals driven by the JS below. --}}
         <div class="modal fade stock-up-confirm-modal" id="stock-up-confirm-modal" tabindex="-1" aria-labelledby="stock-up-confirm-modal-label" aria-describedby="stock-up-confirm-message" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content border-0 shadow-lg rounded-4">
@@ -862,6 +982,10 @@
         </div>
     @endif
 
+    {{-- The layout (@extends) opens a <div class="container-fluid py-4"> and
+         this stray closing </div> closes it. If the layout ever stops opening
+         that container, the whole page structure breaks — a fragile pairing
+         worth being aware of. --}}
     </div>{{-- closes <div class="container-fluid py-4"> --}}
 
     <script>
@@ -874,14 +998,14 @@
                     return;
                 }
 
-                // Resolve the form via the native form="..." attribute
+                // Resolve the form via the native form="..." attribute.
                 const form = select.form;
 
                 if (!form) {
                     return;
                 }
 
-                // The modal <select name="laboratory_id"> lives inside the same form
+                // The modal <select name="laboratory_id"> lives inside the same form.
                 const modalSelect = form.querySelector(
                     'select[name="laboratory_id"]:not([data-auto-submit-filter])'
                 );
@@ -892,13 +1016,14 @@
                     modalSelect.value = select.value;
                 }
 
-                // Reset pagination so filtered results start on page 1
+                // Reset pagination so filtered results start on page 1.
                 form.querySelector('input[name="page"]')?.remove();
 
                 form.requestSubmit();
             });
 
-            // Mirror modal -> header once the page loads (delegated version of the old "initial sync")
+            // Initial sync on load — the header is the source of truth here
+            // (mirror header -> modal), reversed from the change handler above.
             const initialForm = document.getElementById('equipment-filter-form');
             const initialHeader = initialForm?.querySelector('[data-auto-submit-filter]');
             const initialModal = initialForm?.querySelector(
@@ -913,6 +1038,8 @@
 
     <script>
         (() => {
+            // Stock-up modal. Bails out cleanly if the modal doesn't exist
+            // (archived tab or read-only mode).
             const modal = document.getElementById('stock-up-modal');
 
             if (modal) {
@@ -945,8 +1072,13 @@
                 const purchaseDateInput = modal.querySelector('#stock-up-purchase-date');
                 const modeAdd = modal.querySelector('#stock-up-mode-add');
                 const modeDeduct = modal.querySelector('#stock-up-mode-deduct');
+
+                // Tracks the row button that opened the modal — all row-scoped
+                // data (unit, urls, current stock) is read from its data-* attrs.
                 let activeTrigger = null;
 
+                // Promise-based Bootstrap confirmation. Resolves true on
+                // confirm, false on cancel/close.
                 const askForConfirmation = (message, title = 'Confirm action') => {
                     if (!confirmationModal || !confirmationTitle || !confirmationMessage || !confirmationAcceptButton) {
                         return Promise.resolve(true);
@@ -993,6 +1125,8 @@
                     feedback.textContent = '';
                 };
 
+                // Success modal shown after the main modal hides — the hidden
+                // event handler below chains the two modals.
                 const showSuccessModal = ({ amount, isDeduct, total }) => {
                     if (!successModal || !successMessage || !successTotal) {
                         bootstrap.Modal.getOrCreateInstance(modal).hide();
@@ -1012,6 +1146,8 @@
                     bootstrap.Modal.getOrCreateInstance(modal).hide();
                 };
 
+                // Updates hint/placeholder/required-state when the mode
+                // (add/deduct) toggles.
                 const updateQuantityHint = () => {
                     const isDeduct = modeDeduct?.checked;
                     quantityHint.textContent = isDeduct
@@ -1032,6 +1168,8 @@
                     supplier.textContent = supplierSelect.selectedOptions[0]?.textContent?.trim() || 'Not set';
                 };
 
+                // AJAX helper for supplier save / quick-store. Throws a
+                // user-readable error message on failure.
                 const requestJson = async (url, formData, method = 'POST') => {
                     const response = await fetch(url, {
                         method,
@@ -1077,6 +1215,7 @@
                     return true;
                 };
 
+                // Populate the modal from the row button's data-* attributes.
                 modal.addEventListener('show.bs.modal', (event) => {
                     const trigger = event.relatedTarget;
 
@@ -1120,6 +1259,9 @@
                     }
                 });
 
+                // Quick-add supplier: creates via AJAX, then assigns via
+                // saveSupplier (skipping the confirm since the add was already
+                // confirmed).
                 addSupplierButton.addEventListener('click', async () => {
                     if (!newSupplierName.value.trim() || !newSupplierEmail.value.trim()) {
                         showFeedback('Enter the supplier name and email before adding the supplier.');
@@ -1156,6 +1298,9 @@
                     }
                 });
 
+                // Main submit. Validates client-side, confirms, then AJAX posts
+                // the whole form. On success, updates the row in place (no
+                // reload) and shows the success modal.
                 form.addEventListener('submit', async (event) => {
                     event.preventDefault();
 
@@ -1212,6 +1357,7 @@
                             throw new Error(payload.message || validationErrors[0] || 'Unable to update equipment stock.');
                         }
 
+                        // Update the row in place with the server's response.
                         const available = Number(payload.available_quantity);
                         const total = Number(payload.quantity);
                         activeTrigger.querySelector('[data-stock-up-display]').textContent = `${available} / ${total}`;
@@ -1224,10 +1370,14 @@
                         activeTrigger.dataset.stockUpDate = payload.purchase_date_formatted || activeTrigger.dataset.stockUpDate;
                         activeTrigger.dataset.stockUpDateIso = payload.purchase_date_iso || activeTrigger.dataset.stockUpDateIso;
                         purchaseDate.textContent = activeTrigger.dataset.stockUpDate;
+
+                        // Toggle the low-stock badge. Note this selector
+                        // silently no-ops on archived rows (badge doesn't
+                        // exist there).
                         activeTrigger.closest('tr')?.querySelector('[data-stock-up-low-stock]')?.classList.toggle('d-none', !payload.low_stock);
+
                         showSuccessModal({ amount, isDeduct, total });
                     } catch (error) {
-                        console.error('Stock-up submit failed:', error);
                         showFeedback(error.message);
                         submitButton.disabled = false;
                     }
@@ -1241,6 +1391,9 @@
         })();
 
         (() => {
+            // Bulk barcode selection. Uses sessionStorage so selections persist
+            // across pagination. If selections linger unexpectedly (e.g. from a
+            // previous session), the storageKey below is what's carrying them.
             const scope = document.querySelector('[data-barcode-selection="equipment"]');
 
             if (!scope) {
@@ -1264,6 +1417,10 @@
                 }
             };
 
+            // Reconciles the DOM with selectedIds: checks visible checkboxes,
+            // rebuilds the hidden ids[] inputs on the bulk-print form, updates
+            // the count badge and submit button, and manages the select-all
+            // indeterminate state.
             const syncScope = (currentScope) => {
                 const items = [...currentScope.querySelectorAll('[data-barcode-item]')];
                 const selectAll = currentScope.querySelector('[data-barcode-select-all]');
@@ -1335,6 +1492,8 @@
 
             syncScope(scope);
 
+            // Live-search replaces the whole scope element on update. Watch for
+            // that and re-sync the new scope with the persisted selection.
             let observedScope = scope;
             new MutationObserver(() => {
                 const nextScope = document.querySelector('[data-barcode-selection="equipment"]');
@@ -1344,9 +1503,14 @@
                 }
             }).observe(document.body, { childList: true, subtree: true });
 
+            // -------- Column resizer --------
             const table = document.querySelector('.equipment-table');
             if (!table) return;
 
+            // Saved widths are stored by COLUMN INDEX (not by header name).
+            // Adding, removing, or reordering columns will misalign every
+            // existing user's widths until they clear localStorage. If you
+            // change the table structure, bump this key to v2 to force reset.
             const STORAGE_KEY = 'labcentral.equipment.colWidths';
             let savedWidths = {};
 
@@ -1359,7 +1523,7 @@
             const headerRow = table.querySelector('thead tr');
             const headers = [...headerRow.querySelectorAll('th')];
 
-            // Apply saved widths first
+            // Apply saved widths first.
             headers.forEach((th, index) => {
                 if (savedWidths[index]) {
                     th.style.width = savedWidths[index] + 'px';
@@ -1370,7 +1534,7 @@
             });
 
             function applyToColumn(index, widthPx) {
-                // Apply width to every cell in that column (so body follows)
+                // Apply width to every cell in that column (so body follows).
                 [...table.querySelectorAll('tr')].forEach(row => {
                     const cell = row.children[index];
                     if (cell) {
@@ -1392,7 +1556,8 @@
                 } catch (e) { /* ignore */ }
             }
 
-            // Only attach handles to th[data-resizable]
+            // Only attach handles to th[data-resizable] — this is the single
+            // source of truth for which columns are resizable.
             headers.forEach((th, index) => {
                 if (!th.hasAttribute('data-resizable')) return;
 

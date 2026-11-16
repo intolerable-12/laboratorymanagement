@@ -77,6 +77,24 @@ class InventoryLog extends Model
 
     public function movementLabel(): string
     {
+        // A return that didn't increase available stock was a problem return
+        // (Damaged / Under Repair / Lost). Label it by the actual condition
+        // instead of "Added" so the traceability log reflects what happened.
+        if ($this->action === 'Return' && (float) $this->quantity_changed <= 0) {
+            $remarks = (string) ($this->remarks ?? '');
+
+            if (str_contains($remarks, 'tagged Lost')) {
+                return 'Lost';
+            }
+
+            if (str_contains($remarks, 'tagged Damaged')
+                || str_contains($remarks, 'tagged Under Repair')) {
+                return 'Damaged';
+            }
+
+            return 'Written Off';
+        }
+
         return match ($this->action) {
             'Return', 'Purchase', 'Stock In' => 'Added',
             'Borrow', 'Damage', 'Lost', 'Stock Out' => 'Deducted',
@@ -88,11 +106,34 @@ class InventoryLog extends Model
 
     public function movementTone(): string
     {
-        return $this->movementLabel() === 'Added' ? 'success' : ($this->movementLabel() === 'Deducted' ? 'danger' : 'secondary');
+        return match ($this->movementLabel()) {
+            'Added'      => 'success',
+            'Deducted'   => 'danger',
+            'Damaged'    => 'warning',
+            'Lost'       => 'danger',
+            'Written Off'=> 'secondary',
+            default      => 'secondary',
+        };
     }
 
     public function sourceLabel(): string
     {
+        // For unusable returns, spell out what kind of return it was.
+        if ($this->action === 'Return' && (float) $this->quantity_changed <= 0) {
+            $remarks = (string) ($this->remarks ?? '');
+
+            if (str_contains($remarks, 'tagged Lost')) {
+                return 'Lost return';
+            }
+
+            if (str_contains($remarks, 'tagged Damaged')
+                || str_contains($remarks, 'tagged Under Repair')) {
+                return 'Damaged return';
+            }
+
+            return 'Written-off return';
+        }
+
         return match ($this->action) {
             'Borrow' => 'Student request',
             'Return' => 'Student return',

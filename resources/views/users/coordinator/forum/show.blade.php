@@ -1,7 +1,7 @@
 @extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
-    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator'; // Route group prefix.
 @endphp
 
 @section('title', 'Forum Management')
@@ -9,9 +9,10 @@
 
 @section('content')
     @if (session('status'))
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div> {{-- Success flash after save/reply. --}}
     @endif
 
+    {{-- Hero banner with post title + meta. --}}
     <div class="hero-banner social-hero rounded-4 p-4 p-lg-5 mb-4">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
             <div>
@@ -35,10 +36,15 @@
         <div class="col-xl-8">
             <article class="card social-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">
+                    {{-- Pinned / locked / hidden badges from shared partial. --}}
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                     </div>
 
+                    {{-- Author block. Name falls back to blank (not "System")
+                         when the user is deleted — only the avatar gets the 'S'
+                         fallback initial. If that inconsistency ever matters,
+                         add `?: 'Deleted user'` to the name. --}}
                     <div class="d-flex align-items-start gap-3 mb-4">
                         <div class="feed-avatar">{{ strtoupper(mb_substr(trim(($forumPost->user?->first_name ?? 'S') . ' ' . ($forumPost->user?->last_name ?? '')), 0, 1)) }}</div>
                         <div>
@@ -49,30 +55,39 @@
                         </div>
                     </div>
 
+                    {{-- Post body. Rendered raw via {!! !!} — safe only if the
+                         forum form sanitizes HTML on save. Highest-risk spot
+                         on this page because it's user-authored content. --}}
                     <div class="rte-content post-body mb-4">
                         {!! $forumPost->content !!}
                     </div>
 
+                    {{-- Moderation toggles. PUT form with three plain
+                         checkboxes — no hidden companion inputs. So when a
+                         toggle is unchecked, the field is absent from the POST
+                         payload. The controller MUST default missing checkbox
+                         fields to false (e.g. $request->boolean('is_pinned')),
+                         or unchecking won't actually change anything. --}}
                     <form method="POST" action="{{ route($routePrefix.'.forum.update', $forumPost) }}" class="moderation-panel vstack gap-3">
                         @csrf
                         @method('PUT')
 
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="is_pinned" name="is_pinned" value="1" @checked($forumPost->is_pinned)>
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_pinned" name="is_pinned" value="1" @checked($forumPost->is_pinned)> {{-- Missing = false on save. --}}
                             <label class="form-check-label ms-1" for="is_pinned">
                                 <i class="fa-solid fa-thumbtack me-1 text-secondary"></i> Pinned
                             </label>
                         </div>
 
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="is_locked" name="is_locked" value="1" @checked($forumPost->is_locked)>
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_locked" name="is_locked" value="1" @checked($forumPost->is_locked)> {{-- Missing = false on save. --}}
                             <label class="form-check-label ms-1" for="is_locked">
                                 <i class="fa-solid fa-lock me-1 text-secondary"></i> Locked
                             </label>
                         </div>
 
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="is_hidden" name="is_hidden" value="1" @checked($forumPost->is_hidden)>
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_hidden" name="is_hidden" value="1" @checked($forumPost->is_hidden)> {{-- Missing = false on save. --}}
                             <label class="form-check-label ms-1" for="is_hidden">
                                 <i class="fa-solid fa-eye-slash me-1 text-secondary"></i> Hidden
                             </label>
@@ -85,6 +100,9 @@
                 </div>
             </article>
 
+            {{-- Reply form — hidden when the post is locked. If the reply form
+                 is missing on a post that should allow replies, check the
+                 is_locked value on the loaded post. --}}
             @if (! $forumPost->is_locked)
                 <div class="card social-card border-0 mb-4">
                     <div class="card-body p-4 p-xl-5">
@@ -94,6 +112,9 @@
                         <form method="POST" action="{{ route($routePrefix.'.forum.comments.store', $forumPost) }}" class="vstack gap-3">
                             @csrf
 
+                            {{-- Top-level reply — no parent_comment_id, so this
+                                 lands as a root comment. Nested replies go through
+                                 the recursive comment partial. --}}
                             @include('partials.rich-text-editor', [
                                 'name' => 'comment',
                                 'label' => 'Comment',
@@ -111,6 +132,10 @@
                 </div>
             @endif
 
+            {{-- Comments section — recursive partial renders the thread tree.
+                 $commentTree must be a Collection of root comments with nested
+                 children pre-loaded, or nested replies won't show (the partial
+                 re-checks children eagerly). --}}
             <div class="card social-card border-0">
                 <div class="card-body p-4 p-xl-5">
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -118,11 +143,14 @@
                             <i class="fa-solid fa-comments me-2 text-primary"></i>Comments
                         </h3>
                         <span class="badge rounded-pill text-bg-light text-dark border">
+                            {{-- Root thread count only, not total comments —
+                                 a thread with 10 replies still counts as 1. --}}
                             <i class="fa-solid fa-sitemap me-1"></i>{{ count($commentTree) }} root threads
                         </span>
                     </div>
 
                     @forelse ($commentTree as $comment)
+                        {{-- Recursive include — the partial re-includes itself for children. --}}
                         @include('users.coordinator.forum.partials.comment', ['comment' => $comment, 'forumPost' => $forumPost, 'level' => 0])
                     @empty
                         <div class="text-secondary">
@@ -134,6 +162,9 @@
         </div>
 
         <div class="col-xl-4">
+            {{-- Sticky sidebar. Depends on the parent row using align-items-start
+                 (which it does). Changing that to stretch will break the sticky
+                 behavior silently. --}}
             <div class="card social-card border-0 sticky-xl-top social-sticky-card">
                 <div class="card-body p-4 vstack gap-3">
                     <div>
@@ -145,6 +176,10 @@
                         </h3>
                     </div>
 
+                    {{-- Priority status: Hidden > Locked > Pinned > Open.
+                         Matches the priority used on the index badges. If a post
+                         is both pinned and locked, this shows "Locked" —
+                         intentional, since locked is the more restrictive state. --}}
                     <div class="social-summary-card">
                         <div class="small text-secondary">
                             <i class="fa-solid fa-circle-info me-1"></i> Status

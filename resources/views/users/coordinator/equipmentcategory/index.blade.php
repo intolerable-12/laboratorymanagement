@@ -2,6 +2,10 @@
 
 @php
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+
+    // Facilitators get view-only mode. Every edit/delete/create button below
+    // is guarded by !$isReadOnly. If a facilitator ever sees these controls,
+    // this flag or a conditional was changed.
     $isReadOnly = $routePrefix === 'facilitator';
 @endphp
 
@@ -17,6 +21,8 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
+    {{-- Tab switcher. The active tab is 'btn-primary', inactive is
+         'btn-outline-secondary' — matches the equipment index pattern. --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <div class="small text-uppercase text-secondary">Equipment management</div>
@@ -32,6 +38,8 @@
         </div>
     </div>
 
+    {{-- Metric cards. $stats must include: total, with_items, empty. A blank
+         card means one of those keys is missing from the controller payload. --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">
             <div class="card metric-card h-100">
@@ -62,11 +70,16 @@
         </div>
     </div>
 
+    {{-- Filter form. $hasEquipment must be a string ('', 'with', or 'empty')
+         — the strict === comparisons below will silently fail to preselect
+         if the controller passes null or an int. --}}
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
             <form method="GET" action="{{ route($routePrefix.'.equipment.categories.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-6">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
+                    {{-- $search must default to '' (empty string) in the
+                         controller — if it's null, the input renders "null". --}}
                     <input
                         type="search"
                         id="search"
@@ -101,6 +114,10 @@
                     <h3 class="h5 fw-semibold mb-3">Category list</h3>
                 </div>
 
+                {{-- Add button hardcoded to 'coordinator.' despite the
+                     !$isReadOnly guard. It works because coordinators can hit
+                     this route, but it's inconsistent with the View link below
+                     which uses $routePrefix. --}}
                 @if (!$isReadOnly)
                     <a href="{{ route('coordinator.equipment.categories.create') }}" class="btn btn-primary mb-3 px-4">Add category</a>
                 @endif
@@ -123,12 +140,22 @@
                         @forelse ($categories as $category)
                             <tr>
                                 <td class="ps-4 fw-semibold text-dark">{{ $category->category_name }}</td>
+                                {{-- Status chip styling from shared CSS
+                                     (.equipment-status-chip / __dot). If the dot
+                                     ever disappears, that stylesheet changed. --}}
                                 <td><span class="equipment-status-chip"><span class="equipment-status-chip__dot"></span>{{ $category->category_code }}</span></td>
+                                {{-- equipment_count requires ->withCount('equipment')
+                                     in the controller. If this always shows 0 despite
+                                     equipment existing, the eager count is missing. --}}
                                 <td>{{ $category->equipment_count }}</td>
                                 <td class="equipment-category-table-description text-secondary">{{ $category->description ?? '—' }}</td>
                                 <td class="text-end pe-4">
+                                    {{-- aria-label says "Laboratory row actions" on an
+                                         Equipment Category page — copy-paste leftover.
+                                         Should read "Category row actions". --}}
                                     <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
                                             <!-- View Icon -->
+                                            {{-- View uses $routePrefix so it works for both roles. --}}
                                             <a href="{{ route($routePrefix.'.equipment.categories.show', $category) }}"
                                                 class="btn btn-sm btn-outline-secondary"
                                                 title="View" aria-label="View">
@@ -136,6 +163,10 @@
                                             </a>
 
                                             <!-- Edit Icon -->
+                                            {{-- Edit and delete are coordinator-only and
+                                                 hardcode 'coordinator.' routes. Harmless
+                                                 because of the !$isReadOnly guard, but
+                                                 inconsistent with the View link above. --}}
                                             @if (!$isReadOnly)
                                             <a href="{{ route('coordinator.equipment.categories.edit', $category) }}"
                                                 class="btn btn-sm btn-outline-primary"
@@ -147,6 +178,9 @@
                                             <form action="{{ route('coordinator.equipment.categories.destroy', $category) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
+                                                {{-- Confirmation dialog says "Delete this
+                                                     laboratory?" — copy-paste bug. Should
+                                                     say "Delete this category?". --}}
                                                 <button type="submit" class="btn btn-sm btn-outline-danger"
                                                     onclick="return confirm('Delete this laboratory?');"
                                                     title="Delete" aria-label="Delete">
@@ -168,6 +202,8 @@
         </div>
     </div>
 
+    {{-- Pagination preserves search/filter via withQueryString(). If filters
+         are lost when paging, that method was removed. --}}
     <div class="mt-4">
         {{ $categories->withQueryString()->links('pagination::bootstrap-5') }}
     </div>

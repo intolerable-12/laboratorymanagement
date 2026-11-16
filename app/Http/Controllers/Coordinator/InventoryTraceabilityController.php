@@ -469,20 +469,28 @@ class InventoryTraceabilityController extends Controller
             );
             $isCheckout = $scan->action === 'Borrow';
             $isCheckin = $scan->action === 'Return';
+            $condition = $isCheckin ? $scan->condition_in : $borrowItem?->condition_out;
+            $isProblemReturn = $isCheckin
+                && ! $scan->is_voided
+                && in_array((string) $condition, ['Damaged', 'Under Repair', 'Lost'], true);
+
             $title = match (true) {
                 $isCheckout && $scan->is_voided => 'Checkout record voided',
                 $isCheckout => 'Item checked out',
                 $isCheckin && $scan->is_voided => 'Check-in record voided',
+                $isProblemReturn && $condition === 'Lost' => 'Item returned lost',
+                $isProblemReturn && $condition === 'Damaged' => 'Item returned damaged',
+                $isProblemReturn && $condition === 'Under Repair' => 'Item returned under repair',
                 $isCheckin => 'Item checked in',
                 default => $scan->action.' barcode scan',
             };
-            $condition = $isCheckin ? $scan->condition_in : $borrowItem?->condition_out;
 
             $quantityAfter = $matchingInventoryLog
                 ? (float) $matchingInventoryLog->quantity_after
                 : (float) $scan->quantity;
 
-            $details = collect([
+           $details = collect([
+                $isProblemReturn ? 'Returned as '.$condition.'.' : null,
                 $transaction?->requesterName() ? 'Requested by '.$transaction->requesterName().'.' : null,
                 $borrowItem ? 'Requested quantity: '.$this->quantityText((float) $borrowItem->quantity_borrowed, $itemType, $itemUnit).'.' : null,
                 $condition ? ($isCheckin ? 'Condition in: ' : 'Condition out: ').$condition.'.' : null,
@@ -500,11 +508,28 @@ class InventoryTraceabilityController extends Controller
                     ])->filter()->implode(' '),
             ])->filter()->implode(' ');
 
+            $scanTone = match (true) {
+                $scan->is_voided => 'secondary',
+                $isCheckout => 'warning',
+                $isProblemReturn && $condition === 'Lost' => 'danger',
+                $isProblemReturn => 'warning',
+                $isCheckin => 'success',
+                default => 'info',
+            };
+
+            $scanIcon = match (true) {
+                $isCheckout => 'fa-arrow-right-to-bracket',
+                $isProblemReturn && $condition === 'Lost' => 'fa-circle-exclamation',
+                $isProblemReturn => 'fa-triangle-exclamation',
+                $isCheckin => 'fa-arrow-right-from-bracket',
+                default => 'fa-barcode',
+            };
+
             $events->push($this->event(
                 occurredAt: $scan->scanned_at,
                 type: $isCheckout ? 'checkout' : ($isCheckin ? 'checkin' : 'scan'),
-                tone: $scan->is_voided ? 'secondary' : ($isCheckout ? 'warning' : ($isCheckin ? 'success' : 'info')),
-                icon: $isCheckout ? 'fa-arrow-right-to-bracket' : ($isCheckin ? 'fa-arrow-right-from-bracket' : 'fa-barcode'),
+                tone: $scanTone,
+                icon: $scanIcon,
                 title: $title,
                 actor: $this->userName($scan->user),
                 actorLabel: $isCheckout ? 'Checkout staff' : ($isCheckin ? 'Check-in staff' : 'Scanner'),
@@ -680,9 +705,13 @@ class InventoryTraceabilityController extends Controller
     {
         return match ($log->action) {
             'Borrow' => 'Item borrowed / stock deducted',
-            'Return' => $changed > 0
-                ? 'Item returned / stock restocked'
-                : 'Item returned / not restocked',
+            'Return' => match (true) {
+                $changed > 0 => 'Item returned / stock restocked',
+                str_contains((string) $log->remarks, 'tagged Lost') => 'Item returned lost',
+                str_contains((string) $log->remarks, 'tagged Damaged') => 'Item returned damaged',
+                str_contains((string) $log->remarks, 'tagged Under Repair') => 'Item returned under repair',
+                default => 'Item returned / not restocked',
+            },
             'Purchase', 'Stock In' => 'Stock restocked / added',
             'Stock Out' => 'Stock deducted / removed',
             'Damage' => 'Damaged stock deducted',

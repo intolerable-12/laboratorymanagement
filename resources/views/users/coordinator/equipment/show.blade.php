@@ -5,21 +5,40 @@
 @section('page-subtitle', 'Review the selected item, its image, and inventory details')
 
 @php
+    // Route prefix used by every route() call below. Must match the route
+    // group this page renders under.
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+
+    // $isArchived requires the Equipment model to use SoftDeletes — otherwise
+    // trashed() throws "Call to undefined method".
     $isArchived = $equipment->trashed();
+
+    // Restore window: 5 years from soft delete. $canRestore is computed but
+    // NOT used in this file — no restore button is rendered. If restore is
+    // ever added to this page, this flag is ready to use; otherwise remove it.
     $restoreDeadline = $equipment->deleted_at?->copy()->addYears(5);
     $canRestore = $restoreDeadline?->isFuture() ?? false;
+
+    // Low stock depends on low_stock_threshold being set. Note: the equipment
+    // form partial has no input for this field — bulk import is currently the
+    // only way to set it. New records created through the UI will never show
+    // "Low Stock" here until the threshold is set some other way.
     $isLowStock = $equipment->low_stock_threshold !== null
         && (int) $equipment->available_quantity <= (int) $equipment->low_stock_threshold;
 @endphp
 
 @section('content')
+    {{-- Archive banner — only shown when the record is soft-deleted.
+         Displays the restore deadline so the user knows the undo window. --}}
     @if ($isArchived)
         <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4">
             This equipment is archived. It can be restored until {{ $restoreDeadline?->format('F j, Y') ?? 'the archive deadline' }}.
         </div>
     @endif
 
+    {{-- Header row: back link + traceability + requestability chip.
+         The back link preserves the current query string via request()->query()
+         so filters from the index page survive the round-trip. --}}
     <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
         <a href="{{ $isArchived ? route($routePrefix.'.equipment.archived', request()->query()) : route($routePrefix.'.equipment.index', request()->query()) }}" class="inventory-back-link">
             <i class="fa-solid fa-arrow-left"></i>
@@ -29,6 +48,9 @@
             <a href="{{ route($routePrefix.'.equipment.traceability', $equipment) }}" class="btn btn-sm btn-outline-info">
                 <i class="fa-solid fa-clock-rotate-left me-1"></i>Traceability
             </a>
+            {{-- Chip reflects is_requestable — either "Available for requests"
+                 or "Inventory only". This is different from the archived
+                 status; a requestable item can still be archived. --}}
             <span class="inventory-chip"><i class="fa-solid fa-{{ $equipment->is_requestable ? 'circle-check' : 'lock' }}"></i> {{ $equipment->is_requestable ? 'Available for requests' : 'Inventory only' }}</span>
         </div>
     </div>
@@ -37,6 +59,8 @@
         <div class="col-xl-5">
             <div class="section-card h-100">
                 <div class="card-body p-4 p-xl-5">
+                    {{-- Image preview. Requires storage:link to be set up or
+                         the URL will 404 and show a broken image icon. --}}
                     <div class="equipment-preview-card mb-4">
                         @if ($equipment->image)
                             <img src="{{ asset('storage/' . $equipment->image) }}" alt="{{ $equipment->equipment_name }}" class="equipment-preview rounded-4">
@@ -51,6 +75,11 @@
                         @endif
                     </div>
 
+                    {{-- Barcode panel. The SVG is pre-rendered server-side and
+                         injected raw via {!! !!}. Safe only because it comes from
+                         a barcode library, not user input — if the barcode field
+                         ever includes unsanitized input, this becomes an XSS
+                         vector via SVG <script> tags. --}}
                     <div class="barcode-panel mb-4">
                         <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
                             <h3 class="h6 fw-semibold mb-0">Barcode</h3>
@@ -71,6 +100,9 @@
                         </div>
                     </div>
 
+                    {{-- Status/classification badges. Note the status tone chain
+                         only handles Available/Maintenance/Borrowed; 'Reserved'
+                         and 'Unavailable' silently fall through to 'secondary'. --}}
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         <span class="badge text-bg-{{ $isArchived ? 'secondary' : ($equipment->status === 'Available' ? 'success' : ($equipment->status === 'Maintenance' ? 'warning' : ($equipment->status === 'Borrowed' ? 'primary' : 'secondary'))) }}">{{ $isArchived ? 'Archived' : $equipment->status }}</span>
                         @if (!$isArchived && $isLowStock)
@@ -83,6 +115,9 @@
                         @endif
                     </div>
 
+                    {{-- Core identifiers / relations. Each relation accessor
+                         (category, laboratory, supplier) must be eager-loaded in
+                         the controller or each becomes a query on the page. --}}
                     <div class="vstack gap-3">
                         <div>
                             <div class="small text-uppercase text-secondary mb-1">Barcode</div>
@@ -108,6 +143,10 @@
         <div class="col-xl-7">
             <div class="section-card h-100">
                 <div class="card-body p-4 p-xl-5">
+                    {{-- Detail grid. Null-safe date formatting throughout.
+                         Note: 'Barcode' appears twice on this page — once in
+                         the left column's vstack and once here as a pill.
+                         If barcode display ever changes, both spots need updating. --}}
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Equipment code</div>
@@ -137,6 +176,11 @@
                             <div class="small text-uppercase text-secondary mb-1">Acquired date (purchase date)</div>
                             <div class="fw-semibold text-dark">{{ $equipment->purchase_date?->format('F j, Y') ?? '-' }}</div>
                         </div>
+                        {{-- Quantity cell shows available / total on one line and
+                             the low-stock threshold as a sub-line. The threshold
+                             line renders "Not configured" when null — that's the
+                             expected state for records created before
+                             low_stock_threshold was added. --}}
                         <div class="col-md-6">
                             <div class="small text-uppercase text-secondary mb-1">Quantity</div>
                             <div class="fw-semibold text-dark">{{ $equipment->available_quantity }} available / {{ $equipment->quantity }} total</div>

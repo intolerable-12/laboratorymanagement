@@ -1,15 +1,16 @@
 @extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
-    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator'; // Route group prefix.
 @endphp
 
 @section('title', 'Forum Management')
 @section('page-title', 'Forum Management')
 
 @section('content')
-    <div class="small text-secondary mb-3">Showing {{ $campus }} campus posts only.</div>
+    <div class="small text-secondary mb-3">Showing {{ $campus }} campus posts only.</div> {{-- $campus must come from controller. --}}
     <style>
+        /* Card hover treatment for clickable feed items. */
         .clickable-card {
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -18,6 +19,8 @@
             transform: translateY(-2px);
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
         }
+        /* Two-line clamp on post previews — non-standard CSS uses -webkit- prefixes.
+           Works in all modern browsers but won't fully clamp on older Firefox. */
         .forum-list-preview {
             display: -webkit-box;
             -webkit-box-orient: vertical;
@@ -27,10 +30,11 @@
     </style>
 
     @if (session('status'))
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div> {{-- Success flash. --}}
     @endif
 
-    {{-- Metrics Cards --}}
+    {{-- Stats bar. $stats must include: total, pinned, locked, hidden.
+         Any missing key throws "Undefined index". --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card metric-card h-100">
@@ -66,18 +70,23 @@
         </div>
     </div>
 
-    {{-- Search & Filter Section --}}
+    {{-- Search + category filter. Note the quick-filter pills below ALSO
+         submit filter changes via links — so this form and the pills must
+         stay in sync (both use 'search' and 'category' param names). --}}
     <div class="card social-card border-0 mb-4">
         <div class="card-body p-4 p-xl-5">
             <form method="GET" action="{{ route($routePrefix.'.forum.index') }}" class="vstack gap-3">
                 <div class="row g-3 align-items-end">
                     <div class="col-12 col-lg-8">
                         <label for="search" class="form-label fw-medium mb-1">Search</label>
+                        {{-- $search must default to '' in the controller. --}}
                         <input type="search" id="search" name="search" value="{{ $search }}" placeholder="Title, content, or author" class="form-control social-input">
                     </div>
 
                     <div class="col-12 col-lg-4">
                         <label for="category" class="form-label fw-medium mb-1">Category</label>
+                        {{-- Strict === comparison — casing/whitespace
+                             mismatch will fail to preselect. --}}
                         <select id="category" name="category" class="form-select social-input">
                             <option value="">All categories</option>
                             @foreach ($categories as $option)
@@ -87,6 +96,9 @@
                     </div>
                 </div>
 
+                {{-- Quick filter pills. Each is a link that preserves the
+                     current search but swaps the category. The active pill
+                     uses btn-primary; others use outline. --}}
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route($routePrefix.'.forum.index', array_filter(['search' => $search], fn ($value) => $value !== null && $value !== '')) }}" class="btn btn-sm rounded-pill {{ $category === '' ? 'btn-primary' : 'btn-outline-secondary' }}">All</a>
                     @foreach ($categories as $option)
@@ -101,7 +113,7 @@
         </div>
     </div>
 
-    {{-- Feed Header & View Switcher Bar --}}
+    {{-- Feed header + view toggle. --}}
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-3">
         <div>
             <h3 class="h4 fw-semibold mb-0 text-dark">Moderation feed</h3>
@@ -113,7 +125,11 @@
                 <i class="fa-solid fa-plus me-1"></i> New post
             </a>
 
-            {{-- Switcher Button Group with Font Awesome Icons --}}
+            {{-- View toggle. Uses inline onclick — the script that defines
+                 switchForumView is at the bottom of this file. If the toggle
+                 ever throws "switchForumView is not defined", the script block
+                 didn't load (e.g. blade escape swallowed it, or the browser
+                 blocked it). --}}
             <div class="btn-group" role="group" aria-label="View toggle">
                 <button type="button" class="btn btn-outline-secondary" id="btnListView" onclick="switchForumView('list')">
                     <i class="fa-solid fa-list me-1"></i> List
@@ -125,36 +141,55 @@
         </div>
     </div>
 
-    {{-- LIST VIEW SECTION (DEFAULT) --}}
+    {{-- LIST VIEW — the default. Hidden when the user picks card view. --}}
     <div id="listViewSection">
         @forelse ($forumPosts as $forumPost)
             @php
+                // Author name fallback is "Student" — a slightly odd default if
+                // the user is deleted, but consistent with the codebase's
+                // "assume student" convention.
                 $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Student';
                 $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
-                        $postUrl = route($routePrefix.'.forum.show', $forumPost);
+                        $postUrl = route($routePrefix.'.forum.show', $forumPost); // Note: indented oddly, but harmless.
             @endphp
             <article class="card social-card post-card border-0 mb-3 position-relative clickable-card">
                 <div class="card-body p-3 p-xl-4">
                     <div class="d-flex gap-3">
+                        {{-- Feed avatar with author initial. --}}
                         <div class="feed-avatar">{{ $authorInitial }}</div>
                         <div class="flex-grow-1 min-w-0">
                             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                                {{-- Shared badges partial: pinned / locked / hidden etc. --}}
                                 @include('partials.forum-post-badges', ['forumPost' => $forumPost])
                             </div>
 
                             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
                                 <div>
+                                    {{-- stretched-link makes the whole card clickable
+                                         (the ::after pseudo-element covers the card).
+                                         The "Review post" button below uses
+                                         pe-none so it doesn't intercept the click. --}}
                                     <h3 class="h4 fw-semibold mb-2 text-dark">
                                         <a href="{{ $postUrl }}" class="text-dark text-decoration-none stretched-link">{{ $forumPost->title }}</a>
                                     </h3>
                                     <div class="small text-secondary">{{ $authorName }} · {{ $forumPost->created_at?->format('M d, Y h:i A') }}</div>
                                 </div>
 
+                                {{-- pe-none is required for stretched-link to work
+                                     here — without it, clicking "Review post"
+                                     would do nothing (it's a span, not a link). --}}
                                 <span class="btn btn-outline-primary rounded-pill align-self-start pe-none">Review post</span>
                             </div>
 
+                            {{-- rte-preview clamps to 2 lines via forum-list-preview CSS.
+                                 Raw HTML rendered via {!! !!} — content is
+                                 author-controlled, but the forum form should
+                                 sanitize on save. --}}
                             <div class="rte-preview mt-2 text-secondary forum-list-preview">{!! $forumPost->content !!}</div>
 
+                            {{-- Counts require ->withCount('comments') or a
+                                 cached comments_count column. views is a
+                                 denormalized counter incremented elsewhere. --}}
                             <div class="d-flex flex-wrap gap-4 mt-3 small text-secondary">
                                 <span><i class="fa-regular fa-comments me-1"></i>{{ $forumPost->comments_count }} comments</span>
                                 <span><i class="fa-regular fa-eye me-1"></i>{{ $forumPost->views }} views</span>
@@ -170,11 +205,14 @@
         @endforelse
     </div>
 
-    {{-- CARD VIEW SECTION --}}
+    {{-- CARD VIEW — hidden by default; shown via JS toggle. --}}
     <div id="cardViewSection" class="d-none">
         <div class="row g-3 g-xl-4 mb-4">
             @forelse ($forumPosts as $forumPost)
                 @php
+                    // Duplicated from the list view above. If author formatting
+                    // ever changes, both spots need updating — or extract into
+                    // a shared @php block at the top of the file.
                     $authorName = trim(($forumPost->user?->first_name ?? '') . ' ' . ($forumPost->user?->last_name ?? '')) ?: 'Student';
                     $authorInitial = strtoupper(mb_substr($authorName, 0, 1));
                     $postUrl = route($routePrefix.'.forum.show', $forumPost);
@@ -184,6 +222,7 @@
                         <div class="card-body p-4 d-flex flex-column">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                                 <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+                                    {{-- feed-avatar-sm — smaller variant used in cards. --}}
                                     <div class="feed-avatar feed-avatar-sm">{{ $authorInitial }}</div>
                                     <div class="text-truncate min-w-0">
                                         <div class="fw-semibold text-dark small text-truncate">{{ $authorName }}</div>
@@ -196,11 +235,16 @@
                             </div>
 
                             <div class="mb-2">
+                                {{-- stretched-link on this card too — the whole
+                                     card is clickable. --}}
                                 <h4 class="h5 fw-semibold mb-2 text-dark">
                                     <a href="{{ $postUrl }}" class="text-dark text-decoration-none stretched-link">{{ $forumPost->title }}</a>
                                 </h4>
                             </div>
 
+                            {{-- Full content — no line clamp here (the
+                                 forum-list-preview class is list-view only).
+                                 Long posts will expand the card height. --}}
                             <div class="rte-preview small text-secondary mb-4 flex-grow-1">{!! $forumPost->content !!}</div>
 
                             <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto small text-secondary">
@@ -223,14 +267,20 @@
         </div>
     </div>
 
-    {{-- Pagination --}}
+    {{-- Pagination. Uses plain links() — no withQueryString(), so search and
+         category filters are LOST when paging. Compare with other indexes
+         which use ->withQueryString(). If users report "filters reset on
+         page 2", this is why. --}}
     <div class="mt-4">
         {{ $forumPosts->links('pagination::bootstrap-5') }}
     </div>
 
-    {{-- View Switcher Logic --}}
+    {{-- View preference persister. Runs on DOMContentLoaded to restore the
+         user's last chosen view, and switchForumView() saves the preference
+         to localStorage on toggle. --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Default 'list' if localStorage is empty or inaccessible.
             const activeView = localStorage.getItem('forum_view_preference') || 'list';
             switchForumView(activeView);
         });
@@ -241,6 +291,9 @@
             const btnList = document.getElementById('btnListView');
             const btnCard = document.getElementById('btnCardView');
 
+            // Early return guard is missing — if any element is null (e.g. a
+            // partial swap removed the button group), this throws. Adding
+            // `if (!listView || !cardView) return;` would make it safer.
             if (mode === 'card') {
                 listView.classList.add('d-none');
                 cardView.classList.remove('d-none');
@@ -261,7 +314,7 @@
                 btnCard.classList.add('btn-outline-secondary');
             }
 
-            localStorage.setItem('forum_view_preference', mode);
+            localStorage.setItem('forum_view_preference', mode); // Persist choice.
         }
     </script>
 @endsection

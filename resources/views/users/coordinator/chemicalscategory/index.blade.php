@@ -1,7 +1,13 @@
 @extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
+    // Route prefix used by every route() call below. Must match the route
+    // group this page renders under, otherwise links 404.
     $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+
+    // Read-only mode for facilitators. Every action button below is wrapped in
+    // @if (!$isReadOnly). If a facilitator ever sees an Edit/Delete button,
+    // this flag was either flipped or a conditional was removed.
     $isReadOnly = $routePrefix === 'facilitator';
 @endphp
 
@@ -9,6 +15,8 @@
 @section('page-title', 'Chemical Categories')
 
 @section('content')
+    {{-- Flash messages. Missing success banner on a create/edit/delete usually
+         means the controller redirected without ->with('status', ...). --}}
     @if (session('status'))
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
@@ -17,6 +25,9 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
+    {{-- Header with tab switcher. The Chemical tab is outlined (inactive) and
+         the Category tab is primary (active) — this is the visual cue for
+         which tab the user is on. --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <div class="small text-uppercase text-secondary">Chemical management</div>
@@ -32,6 +43,9 @@
         </div>
     </div>
 
+    {{-- Metric cards. $stats must include: total, with_items, empty. If any
+         card renders blank, one of those keys is missing from the
+         controller's payload. --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">
             <div class="card metric-card h-100">
@@ -62,11 +76,16 @@
         </div>
     </div>
 
+    {{-- Filter form. $hasChemicals must be a string ('', 'with', or 'empty')
+         — strict === comparisons below will fail silently if the controller
+         passes null or an int. --}}
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
             <form method="GET" action="{{ route($routePrefix.'.chemical.categories.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-6">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
+                    {{-- $search must default to '' (empty string) in the
+                         controller — if it's null, the input shows "null". --}}
                     <input
                         type="search"
                         id="search"
@@ -88,6 +107,8 @@
 
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
+                    {{-- Clear links to the bare index — drops all query params
+                         including search. --}}
                     <a href="{{ route($routePrefix.'.chemical.categories.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
             </form>
@@ -101,6 +122,10 @@
                     <h3 class="h5 fw-semibold mb-3">Category list</h3>
                 </div>
 
+                {{-- Add button hidden for facilitators via $isReadOnly. Note
+                     the route target is hardcoded to 'coordinator.' — if a
+                     facilitator ever bypassed this guard, the link would still
+                     work but only because that route exists. --}}
                 @if (!$isReadOnly)
                     <a href="{{ route('coordinator.chemical.categories.create') }}" class="btn btn-primary mb-3 px-4">Add category</a>
                 @endif
@@ -123,19 +148,32 @@
                         @forelse ($categories as $category)
                             <tr>
                                 <td class="ps-4 fw-semibold text-dark">{{ $category->category_name }}</td>
+                                {{-- Status chip styling is defined in shared CSS
+                                     (.equipment-status-chip). If the dot next to
+                                     the code stops rendering, that stylesheet
+                                     class is missing. --}}
                                 <td><span class="equipment-status-chip"><span class="equipment-status-chip__dot"></span>{{ $category->category_code }}</span></td>
+                                {{-- chemicals_count requires ->withCount('chemicals')
+                                     in the controller. If this always shows 0,
+                                     the eager count isn't being applied. --}}
                                 <td>{{ $category->chemicals_count }}</td>
                                 <td class="equipment-category-table-description text-secondary">{{ $category->description ?? '—' }}</td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group action-buttons" role="group" aria-label="Laboratory row actions">
-                                            <!-- View Icon -->
+                                            {{-- View link. Uses $routePrefix so it works for
+                                                 both roles. --}}
                                             <a href="{{ route($routePrefix.'.chemical.categories.show', $category) }}"
                                                 class="btn btn-sm btn-outline-secondary"
                                                 title="View" aria-label="View">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
 
-                                            <!-- Edit Icon -->
+                                            {{-- Edit and delete are coordinator-only. Note that
+                                                 the route targets below are hardcoded to
+                                                 'coordinator.' rather than $routePrefix —
+                                                 harmless because they're guarded by
+                                                 !$isReadOnly, but inconsistent with the
+                                                 View link above. --}}
                                             @if (!$isReadOnly)
                                             <a href="{{ route('coordinator.chemical.categories.edit', $category) }}"
                                                 class="btn btn-sm btn-outline-primary"
@@ -143,10 +181,13 @@
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </a>
 
-                                            <!-- Delete Icon -->
                                             <form action="{{ route('coordinator.chemical.categories.destroy', $category) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
+                                                {{-- Confirm text says "Delete this laboratory?"
+                                                     — likely a copy-paste leftover from the
+                                                     laboratory management page. Fix to say
+                                                     "category" for user clarity. --}}
                                                 <button type="submit" class="btn btn-sm btn-outline-danger"
                                                     onclick="return confirm('Delete this laboratory?');"
                                                     title="Delete" aria-label="Delete">
@@ -168,6 +209,8 @@
         </div>
     </div>
 
+    {{-- Pagination preserves filter params via withQueryString(). If filters
+         are lost on page 2, that method was removed or replaced. --}}
     <div class="mt-4">
         {{ $categories->withQueryString()->links('pagination::bootstrap-5') }}
     </div>
