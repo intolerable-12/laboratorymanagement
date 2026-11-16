@@ -36,6 +36,15 @@
                                     @endif
                                 </div>
                                 <div class="small text-secondary">{{ $chemical->chemical_code }}</div>
+                                @php $reservedCount = (float) ($reservedMap['Chemical:'.$chemical->id] ?? 0); @endphp
+                                @if ($reservedCount > 0)
+                                    <div class="mt-1">
+                                        <span class="badge rounded-pill text-bg-info text-dark">
+                                            <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>
+                                            Reserved for laboratory activity: {{ rtrim(rtrim(number_format($reservedCount, 2, '.', ''), '0'), '.') }} {{ $chemical->unit }}
+                                        </span>
+                                    </div>
+                                @endif
                             </td>
                             <td>{{ $chemical->laboratory?->laboratory_name ?? '—' }}</td>
                             <td>

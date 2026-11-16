@@ -4,10 +4,14 @@
 @section('page-title', 'Departments')
 
 @php
+    // Query string used by the tab switcher — drops only page so switching
+    // tabs preserves search/filters.
     $tabQuery = request()->except('page');
 @endphp
 
 @section('content')
+    {{-- Flash messages. Missing success banner on create/edit/delete usually
+         means the controller redirected without ->with('status', ...). --}}
     @if (session('status'))
         <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
     @endif
@@ -16,6 +20,8 @@
         <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
     @endif
 
+    {{-- Header + tab switcher. Note this whole page is hardcoded to
+         'coordinator.' — facilitators don't have access to user management. --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <div class="small text-uppercase text-secondary">User management</div>
@@ -25,6 +31,11 @@
             <a href="{{ route('coordinator.users.index', $tabQuery) }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-users me-2"></i>Users
             </a>
+            {{-- Account requests tab — shows a pending-count badge when any
+                 requests are waiting. $pendingAccountRequests must be passed
+                 by the controller on every tab for the badge to stay in sync.
+                 If the badge disappears when switching to Departments, that
+                 variable isn't being shared across these views. --}}
             <a href="{{ route('coordinator.users.requests.index') }}" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-user-clock me-2"></i>Account requests
                 @if (($pendingAccountRequests ?? 0) > 0)
@@ -37,6 +48,8 @@
         </div>
     </div>
 
+    {{-- Metric cards. $stats must include: total, with_users, empty. Blank
+         cards mean one of those keys is missing from the controller. --}}
     <div class="row g-3 g-xl-4 mb-4">
         <div class="col-12 col-sm-4">
             <div class="card metric-card h-100">
@@ -67,6 +80,8 @@
         </div>
     </div>
 
+    {{-- Search form. $search must default to '' in the controller — if it's
+         null, the input renders "null" instead of empty. --}}
     <div class="section-card mb-4">
         <div class="card-body p-4 p-xl-5">
             <form method="GET" action="{{ route('coordinator.departments.index') }}" class="row g-3 align-items-end">
@@ -84,6 +99,7 @@
 
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
+                    {{-- Clear links to the bare index — drops all query params. --}}
                     <a href="{{ route('coordinator.departments.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
                 </div>
             </form>
@@ -117,6 +133,12 @@
                     <tbody>
                         @forelse ($departments as $department)
                             @php
+                                // Drives the disabled-delete state below.
+                                // $department->users_count requires
+                                // ->withCount('users') in the controller or it
+                                // renders null and $hasUsers is always false —
+                                // meaning delete stays enabled even when users
+                                // are assigned.
                                 $hasUsers = $department->users_count > 0;
                             @endphp
                             <tr>
@@ -127,22 +149,33 @@
                                 <td class="text-secondary">{{ $department->description ?? '-' }}</td>
                                 <td class="text-center pe-4">
                                     <div class="btn-group action-buttons" role="group" aria-label="Department actions">
-                                        <!-- View -->
+                                        {{-- View link uses route-model binding. A 404
+                                             means the {department} parameter doesn't
+                                             match the model's route key. --}}
                                         <a href="{{ route('coordinator.departments.show', $department) }}"
                                             class="btn btn-sm btn-outline-secondary"
                                             title="View"
                                             aria-label="View">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
-                                        <!-- Edit -->
+                                        {{-- Edit link — same route-model binding
+                                             consideration. --}}
                                         <a href="{{ route('coordinator.departments.edit', $department) }}"
                                             class="btn btn-sm btn-outline-primary"
                                             title="Edit"
                                             aria-label="Edit">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </a>
+                                        {{-- Delete is disabled (not just hidden) when
+                                             users are assigned. This prevents FK
+                                             constraint violations at the DB level
+                                             and gives the user a clear tooltip
+                                             explaining why. The disabled state
+                                             depends entirely on $hasUsers above —
+                                             if delete becomes possible for
+                                             departments with users, check the
+                                             withCount('users') in the controller. --}}
                                         @if ($hasUsers)
-                                            <!-- Delete Disabled -->
                                             <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 disabled
@@ -151,7 +184,6 @@
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
                                         @else
-                                            <!-- Delete -->
                                             <form action="{{ route('coordinator.departments.destroy', $department) }}"
                                                 method="POST"
                                                 class="d-inline">
@@ -181,6 +213,8 @@
         </div>
     </div>
 
+    {{-- Pagination preserves search via withQueryString(). If the search is
+         lost when paging, that method was removed. --}}
     <div class="mt-4">
         {{ $departments->withQueryString()->links('pagination::bootstrap-5') }}
     </div>

@@ -13,6 +13,7 @@ use App\Models\SchoolYear;
 use App\Models\User;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Services\ReservedQuantityService;
 use App\Support\AcademicPeriodSelection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -280,7 +281,19 @@ class StudentBorrowController extends Controller
 		$selectedLaboratoryId = (int) $details['laboratory_id'];
 		$campus = $this->campusForUser($request);
 		$laboratory = Laboratory::forCampus($campus)->findOrFail($selectedLaboratoryId);
-		$search = trim((string) $request->query('search', ''));
+		$reservedBorrowDate = ! empty($details['borrowed_at'])
+            ? Carbon::parse($details['borrowed_at'])->startOfDay()
+            : null;
+
+        // Borrow picker counts BOTH sources (reservations + borrows),
+        // subtracting whatever has already been checked out.
+        $reservedMap = app(ReservedQuantityService::class)->forLaboratory(
+            $selectedLaboratoryId,
+            $reservedBorrowDate,
+            'borrows'
+        );
+
+        $search = trim((string) $request->query('search', ''));
 		$equipmentQuery = Equipment::query()
 			->forCampus($campus)
 			->requestable()
@@ -304,16 +317,17 @@ class StudentBorrowController extends Controller
 		$selectedEquipmentItems = Equipment::query()->forCampus($campus)->requestable()->whereIn('id', array_keys($oldEquipmentSelections))->get()->keyBy('id');
 
 		if ($request->ajax()) {
-			return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems'));
-		}
+            return view('users.student.borrow.partials.equipment-tab', compact('equipmentItems', 'reservedMap'));
+        }
 
-		return view('users.student.borrow.items', compact(
-			'details',
-			'laboratory',
-			'equipmentItems',
-			'oldEquipmentSelections',
-			'selectedEquipmentItems'
-		));
+        return view('users.student.borrow.items', compact(
+            'details',
+            'laboratory',
+            'equipmentItems',
+            'oldEquipmentSelections',
+            'selectedEquipmentItems',
+            'reservedMap'
+        ));
 	}
 
 	public function itemsStore(Request $request)
@@ -649,10 +663,31 @@ class StudentBorrowController extends Controller
 				continue;
 			}
 
-			$quantity = (int) $rawQuantity;
+			$quantity = (int) $rawQuantity;                                     // ← ADD THIS LINE
 
+			// Basic cap against raw inventory first
 			if ($quantity > (int) $equipment->available_quantity) {
 				$errors['equipment_items.' . $equipmentId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
+				continue;
+			}
+
+			// Enforcement: cap by available − combined reservations + borrows
+			$details = request()->session()->get(self::DRAFT_DETAILS, []);
+			$borrowDate = ! empty($details['borrowed_at'])
+				? Carbon::parse($details['borrowed_at'])
+				: null;
+			$combined = app(ReservedQuantityService::class)->forLaboratory(
+				$laboratoryId,
+				$borrowDate,
+				'both'
+			);
+			$reservedTotal = (float) ($combined['Equipment:'.$equipment->id] ?? 0);
+			$maxAllowed = max(0, (int) $equipment->available_quantity - (int) $reservedTotal);
+
+			if ($quantity > $maxAllowed) {
+				$errors['equipment_items.' . $equipmentId . '.quantity'] =
+					"Only {$maxAllowed} unit(s) of {$equipment->equipment_name} are available for this date (the rest are already reserved or borrowed for other activities).";
+
 				continue;
 			}
 

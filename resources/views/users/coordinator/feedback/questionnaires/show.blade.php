@@ -1,7 +1,10 @@
 @extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
-    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator'; // Route group prefix.
+
+    // Audience label — "Both" gets a friendly string, others are pluralized with a naive 's'.
+    // Any new audience value that doesn't pluralize cleanly needs an explicit mapping here.
     $audienceLabel = $feedbackQuestionnaire->audience === 'Both'
         ? 'Students and instructors'
         : $feedbackQuestionnaire->audience . 's';
@@ -12,11 +15,11 @@
 
 @section('content')
     @if (session('status'))
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div> {{-- Success flash. --}}
     @endif
 
     @if (session('error'))
-        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div> {{-- Error flash. --}}
     @endif
 
     <div class="feedback-questionnaire-page">
@@ -25,12 +28,15 @@
                 <div class="feedback-eyebrow">Questionnaire overview</div>
                 <h2 class="h3 fw-semibold mb-2 text-dark">{{ $feedbackQuestionnaire->topic }}</h2>
                 <div class="text-secondary small d-flex flex-wrap gap-2 align-items-center">
+                    {{-- Both counts require ->withCount('responses') and
+                         ->withCount('questions') in the controller. --}}
                     <span><i class="fa-solid fa-comments me-1"></i>{{ $feedbackQuestionnaire->responses_count }} responses</span>
                     <span class="text-secondary" aria-hidden="true">·</span>
                     <span><i class="fa-solid fa-list-check me-1"></i>{{ $feedbackQuestionnaire->questions_count }} questions</span>
                 </div>
             </div>
 
+            {{-- Edit + Back use $routePrefix so they work for both roles. --}}
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route($routePrefix.'.feedback.questionnaires.edit', $feedbackQuestionnaire) }}" class="btn btn-primary px-4">
                     <i class="fa-solid fa-pen-to-square me-2"></i>Edit questionnaire
@@ -47,6 +53,7 @@
                     <div class="feedback-eyebrow">Configuration</div>
                     <h3 class="h5 fw-semibold mb-0">Questionnaire details</h3>
                 </div>
+                {{-- Active/Inactive pill — pure display, doesn't toggle. --}}
                 <span class="feedback-status-pill {{ $feedbackQuestionnaire->is_active ? 'feedback-status-pill--active' : 'feedback-status-pill--inactive' }}">
                     <i class="fa-solid fa-circle"></i>{{ $feedbackQuestionnaire->is_active ? 'Active' : 'Inactive' }}
                 </span>
@@ -63,6 +70,9 @@
                         </tr>
                         <tr>
                             <th scope="row">Description</th>
+                            {{-- Rendered raw via {!! !!} because description is
+                                 rich-text HTML from the editor. Falls back to a
+                                 gray placeholder span when empty. --}}
                             <td colspan="3" class="rte-content">{!! $feedbackQuestionnaire->description ?: '<span class="text-secondary">No description provided.</span>' !!}</td>
                         </tr>
                     </tbody>
@@ -76,6 +86,7 @@
                     <div class="feedback-eyebrow">Question set</div>
                     <h3 class="h5 fw-semibold mb-0">Questions</h3>
                 </div>
+                {{-- Opens the questions modal further down the file. --}}
                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#questionnaireQuestionsModal" aria-controls="questionnaireQuestionsModal">
                     <i class="fa-solid fa-list-check me-2"></i>View questions
                 </button>
@@ -102,23 +113,35 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {{-- $responses is paginated separately from
+                             responses_count. If the count says 10 but the list
+                             shows 3 with no pagination, the two queries are
+                             scoped differently. --}}
                         @forelse ($responses as $response)
                             @php
                                 $roleName = $response->user?->role?->role_name;
                                 $roleIsStudent = $roleName === 'Student';
+                                // Only Student/Instructor are recognized; anything
+                                // else (e.g. Coordinator) shows "Unknown".
                                 $roleLabel = in_array($roleName, ['Student', 'Instructor'], true) ? $roleName : 'Unknown';
                             @endphp
                             <tr>
                                 <td>
                                     <div class="feedback-respondent">
+                                        {{-- Single-letter avatar from first_name initial.
+                                             Falls back to '?' if name is missing. --}}
                                         <div class="feedback-respondent-avatar">{{ strtoupper(substr((string) ($response->user?->first_name ?? '?'), 0, 1)) }}</div>
                                         <div>
+                                            {{-- "Last, First" format — omits middle/suffix.
+                                                 If the user was deleted, both lines show fallbacks. --}}
                                             <div class="fw-semibold text-dark">{{ $response->user?->last_name }}, {{ $response->user?->first_name }}</div>
                                             <div class="small text-secondary">{{ $response->user?->userID ?? 'Account unavailable' }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
+                                    {{-- Role pill — same pattern as the response
+                                         detail page. --}}
                                     <span class="feedback-role-pill {{ $roleIsStudent ? 'feedback-role-pill--student' : ($roleName === 'Instructor' ? 'feedback-role-pill--instructor' : 'feedback-role-pill--unknown') }}">
                                         <i class="fa-solid fa-{{ $roleIsStudent ? 'graduation-cap' : ($roleName === 'Instructor' ? 'chalkboard-user' : 'user') }} me-1"></i>{{ $roleLabel }}
                                     </span>
@@ -128,6 +151,9 @@
                                     <div class="small text-secondary">{{ $response->created_at?->format('h:i A') ?? '' }}</div>
                                 </td>
                                 <td class="text-end">
+                                    {{-- Response detail link needs BOTH models in the
+                                         route. Order matters — if the route signature
+                                         is different in web.php, this 404s. --}}
                                     <a href="{{ route($routePrefix.'.feedback.questionnaires.responses.show', [$feedbackQuestionnaire, $response]) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>View response
                                     </a>
@@ -145,11 +171,15 @@
             </div>
         </section>
 
+        {{-- Pagination preserves query string via withQueryString() — if
+             filters are ever added, they'll carry through page changes. --}}
         <div class="mt-4">
             {{ $responses->withQueryString()->links('pagination::bootstrap-5') }}
         </div>
     </div>
 
+    {{-- Questions modal — triggered by the "View questions" button above.
+         Reads from $feedbackQuestionnaire->questions, which must be eager-loaded. --}}
     <div class="modal fade feedback-questions-modal" id="questionnaireQuestionsModal" tabindex="-1" aria-labelledby="questionnaireQuestionsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0">
@@ -174,6 +204,8 @@
                                 @forelse ($feedbackQuestionnaire->questions as $question)
                                     <tr>
                                         <td class="feedback-index-column text-secondary fw-semibold">{{ $loop->iteration }}</td>
+                                        {{-- Rendered raw via {!! !!} — same sanitization
+                                             caveat as elsewhere in this file. --}}
                                         <td class="feedback-question-cell rte-content">{!! $question->question_text !!}</td>
                                         <td>
                                             <span class="feedback-type-pill">
@@ -182,6 +214,7 @@
                                             </span>
                                         </td>
                                         <td>
+                                            {{-- Required pill gets the --required modifier. --}}
                                             <span class="feedback-requirement-pill {{ $question->is_required ? 'feedback-requirement-pill--required' : '' }}">
                                                 <i class="fa-solid fa-{{ $question->is_required ? 'asterisk' : 'minus' }} me-1"></i>
                                                 {{ $question->is_required ? 'Required' : 'Optional' }}
@@ -190,7 +223,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center text-secondary py-5">No questions added yet.</td>
+                                        <td colspan="4" class="text-center text-secondary py-5">No questions added yet.</td> {{-- Colspan matches the 4 columns. --}}
                                     </tr>
                                 @endforelse
                             </tbody>

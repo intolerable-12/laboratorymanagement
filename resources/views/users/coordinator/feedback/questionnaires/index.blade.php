@@ -1,7 +1,7 @@
 @extends(request()->routeIs('facilitator.*') ? 'users.facilitator.layouts.app' : 'users.coordinator.layouts.app')
 
 @php
-    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator';
+    $routePrefix = request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator'; // Route group prefix.
 @endphp
 
 @section('title', 'Feedback Questionnaires')
@@ -9,11 +9,11 @@
 
 @section('content')
     @if (session('status'))
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">{{ session('status') }}</div> {{-- Success flash. --}}
     @endif
 
     @if (session('error'))
-        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div>
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">{{ session('error') }}</div> {{-- Error flash. --}}
     @endif
 
     <div class="row g-3 g-xl-4 mb-4">
@@ -21,7 +21,7 @@
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2"><i class="fa-solid fa-layer-group me-1"></i>Total</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['total'] }}</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['total'] }}</div> {{-- Requires $stats['total']. --}}
                 </div>
             </div>
         </div>
@@ -29,7 +29,7 @@
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2"><i class="fa-solid fa-circle-play me-1"></i>Active</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['active'] }}</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['active'] }}</div> {{-- Requires $stats['active']. --}}
                 </div>
             </div>
         </div>
@@ -37,7 +37,7 @@
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2"><i class="fa-solid fa-circle-pause me-1"></i>Inactive</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['inactive'] }}</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['inactive'] }}</div> {{-- Requires $stats['inactive']. --}}
                 </div>
             </div>
         </div>
@@ -45,7 +45,7 @@
             <div class="card metric-card h-100">
                 <div class="card-body">
                     <div class="small text-uppercase text-secondary mb-2"><i class="fa-solid fa-comments me-1"></i>Responses</div>
-                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['responses'] }}</div>
+                    <div class="display-6 fw-semibold mb-1 text-dark">{{ $stats['responses'] }}</div> {{-- Requires $stats['responses']. --}}
                 </div>
             </div>
         </div>
@@ -56,11 +56,11 @@
             <form method="GET" action="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="row g-3 align-items-end">
                 <div class="col-12 col-lg-8">
                     <label for="search" class="form-label fw-medium mb-1">Search</label>
-                    <input type="search" id="search" name="search" value="{{ $search }}" placeholder="Topic or description" class="form-control admin-form-control">
+                    <input type="search" id="search" name="search" value="{{ $search }}" placeholder="Topic or description" class="form-control admin-form-control"> {{-- $search must default to '' in controller. --}}
                 </div>
                 <div class="col-12 col-lg-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">Search</button>
-                    <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">Clear</a>
+                    <a href="{{ route($routePrefix.'.feedback.questionnaires.index') }}" class="btn btn-outline-secondary px-4">Clear</a> {{-- Drops all filters. --}}
                 </div>
             </form>
         </div>
@@ -96,12 +96,14 @@
                                 <td class="ps-3">
                                     <div class="fw-semibold text-dark">{{ $questionnaire->topic }}</div>
                                     <div class="small text-secondary">
+                                        {{-- Campus + audience. Audience label pluralized with naive 's'. --}}
                                         {{ $questionnaire->campus }} campus · {{ $questionnaire->audience === 'Both' ? 'Students and instructors' : $questionnaire->audience . 's' }}
                                     </div>
+                                    {{-- Strips HTML from rich-text description, truncates to 100 chars. --}}
                                     <div class="small text-secondary">{{ \Illuminate\Support\Str::limit(strip_tags($questionnaire->description ?? ''), 100) ?: '-' }}</div>
                                 </td>
-                                <td><span class="badge text-bg-light border text-dark">{{ $questionnaire->questions_count }}</span></td>
-                                <td><span class="badge text-bg-light border text-dark">{{ $questionnaire->responses_count }}</span></td>
+                                <td><span class="badge text-bg-light border text-dark">{{ $questionnaire->questions_count }}</span></td> {{-- Requires ->withCount('questions'). --}}
+                                <td><span class="badge text-bg-light border text-dark">{{ $questionnaire->responses_count }}</span></td> {{-- Requires ->withCount('responses'). --}}
                                 <td>
                                     <span class="badge text-bg-{{ $questionnaire->is_active ? 'success' : 'secondary' }}">
                                         {{ $questionnaire->is_active ? 'Active' : 'Inactive' }}
@@ -128,7 +130,7 @@
                                         <!-- Delete Icon -->
                                         <form action="{{ route($routePrefix.'.feedback.questionnaires.destroy', $questionnaire) }}"
                                             method="POST"
-                                            class="d-inline">
+                                            class="d-inline"> {{-- d-inline keeps the button in the btn-group row. --}}
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
@@ -144,7 +146,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-secondary py-5">No questionnaires created yet.</td>
+                                <td colspan="5" class="text-center text-secondary py-5">No questionnaires created yet.</td> {{-- Colspan matches the 5 columns. --}}
                             </tr>
                         @endforelse
                     </tbody>
@@ -154,6 +156,6 @@
     </div>
 
     <div class="mt-4">
-        {{ $questionnaires->withQueryString()->links('pagination::bootstrap-5') }}
+        {{ $questionnaires->withQueryString()->links('pagination::bootstrap-5') }} {{-- withQueryString() preserves search on page change. --}}
     </div>
 @endsection

@@ -1,5 +1,9 @@
 @php
+    // Route prefix used by the Cancel link at the bottom. Falls back to
+    // 'coordinator' when not inside the facilitator route group.
     $routePrefix = $routePrefix ?? (request()->routeIs('facilitator.*') ? 'facilitator' : 'coordinator');
+
+    // Default storage location options. Can be overridden by the caller.
     $storageLocations = $storageLocations ?? [
         'Cabinet 1',
         'Cabinet 2',
@@ -12,6 +16,10 @@
         'Other',
     ];
 
+    // Current selection. If the saved/old value isn't in the default list
+    // (e.g. a custom location that was entered before the list was finalized),
+    // the block below injects it so the select doesn't silently fall back to
+    // the first option on save.
     $selectedStorageLocation = old('storage_location', $equipment->storage_location ?? '');
 
     if ($selectedStorageLocation && ! in_array($selectedStorageLocation, $storageLocations, true)) {
@@ -20,18 +28,33 @@
 @endphp
 
 @php
+    // Fixed option lists for condition and status. If the model ever adds new
+    // statuses (e.g. "Damaged"), they must be added here or the value will
+    // render as the first option when editing a record that has it.
     $conditions = ['Excellent', 'Good', 'Fair', 'Damaged', 'Under Repair', 'Condemned'];
     $statuses = ['Available', 'Borrowed', 'Reserved', 'Unavailable', 'Maintenance'];
+
+    // Existing image URL, or null on create. Requires storage:link.
     $imageUrl = !empty($equipment?->image) ? asset('storage/' . $equipment->image) : null;
+
+    // Date values — old() wins on validation failure, model value on edit,
+    // empty string otherwise. optional() guards against a blank model.
     $manufacturingDate = old('manufacturing_date', optional($equipment?->manufacturing_date)->format('Y-m-d'));
     $purchaseDate = old('purchase_date', optional($equipment?->purchase_date)->format('Y-m-d'));
     $lifespanExpiryDate = old('lifespan_expires_at', optional($equipment?->lifespan_expires_at)->format('Y-m-d'));
+
+    // Boolean cast: old() may return the string "0"/"1" from the hidden
+    // input, so filter_var normalizes it before @checked sees it. If the
+    // switch ever fails to reflect the saved state, this is why.
     $isRequestable = old('is_requestable', $equipment?->is_requestable ?? true);
 @endphp
 
 <div class="row g-4 mb-4">
     <div class="col-lg-4">
         <div class="equipment-preview-card h-100">
+            {{-- Image preview. When there's no existing image, the placeholder
+                 and a hidden <img> are both rendered so the JS preview script
+                 always has a target — do not remove the hidden img. --}}
             @if ($imageUrl)
                 <img src="{{ $imageUrl }}" alt="{{ $equipment->equipment_name ?? 'Equipment image' }}" class="equipment-preview rounded-4 mb-3" data-image-preview data-image-preview-initial-src="{{ $imageUrl }}">
             @else
@@ -45,6 +68,8 @@
                 <img src="" alt="Equipment image preview" class="equipment-preview rounded-4 mb-3 d-none" data-image-preview data-image-preview-initial-src="">
             @endif
 
+            {{-- File input. Parent form must have enctype="multipart/form-data"
+                 or this is silently ignored on submit. --}}
             <label class="form-label" for="image">Equipment image</label>
             <input type="file" id="image" name="image" class="form-control admin-form-control @error('image') is-invalid @enderror" accept="image/*" data-image-preview-input>
             <div class="form-text">JPEG, PNG, or WEBP up to 4 MB.</div>
@@ -54,6 +79,8 @@
 
     <div class="col-lg-8">
         <div class="row g-3">
+            {{-- Informational banner about the auto-generated code. Additional
+                 lines render only on edit mode. --}}
             <div class="col-12">
                 <div class="alert alert-info border-0 rounded-4 mb-0">
                     The equipment code is generated automatically when you save this record and cannot be edited later.
@@ -74,6 +101,9 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="category_id">Category</label>
+                {{-- Loose == is deliberate — query-string ids are strings while
+                     model ids are ints. Switching to === will break
+                     pre-selection on edit. --}}
                 <select id="category_id" name="category_id" class="form-select admin-form-control @error('category_id') is-invalid @enderror" required>
                     <option value="">Select category</option>
                     @foreach ($categories as $category)
@@ -96,6 +126,7 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="supplier_id">Supplier</label>
+                {{-- Optional — empty means "No supplier". --}}
                 <select id="supplier_id" name="supplier_id" class="form-select admin-form-control @error('supplier_id') is-invalid @enderror">
                     <option value="">No supplier</option>
                     @foreach ($suppliers as $supplier)
@@ -132,6 +163,8 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="purchase_date">Acquired date (purchase date)</label>
+                {{-- min is set from manufacturing_date when present — a browser
+                     hint only. Backend must enforce this independently. --}}
                 <input type="date" id="purchase_date" name="purchase_date" value="{{ $purchaseDate }}" @if ($manufacturingDate) min="{{ $manufacturingDate }}" @endif class="form-control admin-form-control @error('purchase_date') is-invalid @enderror">
                 <div class="form-text">Enter the date when the equipment was purchased.</div>
                 @error('purchase_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -139,6 +172,7 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="lifespan_expires_at">Lifespan expiry date</label>
+                {{-- min is today's date — cannot set an already-expired lifespan. --}}
                 <input type="date" id="lifespan_expires_at" name="lifespan_expires_at" value="{{ $lifespanExpiryDate }}" min="{{ now()->toDateString() }}" class="form-control admin-form-control @error('lifespan_expires_at') is-invalid @enderror">
                 <div class="form-text">Optional. Leave blank if no expiry date is set.</div>
                 @error('lifespan_expires_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -146,6 +180,11 @@
 
             <div class="col-md-4">
                 <label class="form-label" for="quantity">Quantity</label>
+                {{-- min protects against setting total below the number of
+                     currently-unavailable units. On edit: existing_total −
+                     unavailable = minimum allowed. On create: 0.
+                     Backend must still validate this — the browser hint alone
+                     won't stop a tampered request. --}}
                 <input type="number" id="quantity" name="quantity" value="{{ old('quantity', $equipment->quantity ?? 0) }}" class="form-control admin-form-control @error('quantity') is-invalid @enderror" min="{{ isset($equipment) ? max(0, $equipment->quantity - $equipment->available_quantity) : 0 }}" required>
                 <div class="form-text">Total quantity. The available quantity will preserve units currently unavailable.</div>
                 @error('quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -173,6 +212,10 @@
 
             <div class="col-md-6">
                 <label class="form-label d-block" for="is_requestable">Request availability</label>
+                {{-- Hidden input before the checkbox ensures 0 is submitted
+                     when the switch is off. The @checked wrapper casts via
+                     filter_var so both '0'/'1' strings and true/false booleans
+                     work — required because old() returns strings. --}}
                 <div class="form-check form-switch mt-2">
                     <input type="hidden" name="is_requestable" value="0">
                     <input type="checkbox" id="is_requestable" name="is_requestable" value="1" class="form-check-input @error('is_requestable') is-invalid @enderror" @checked(filter_var($isRequestable, FILTER_VALIDATE_BOOLEAN))>
@@ -184,6 +227,9 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="storage_location">Storage location</label>
+                {{-- The option list may contain an injected custom value (see
+                     the PHP block at the top). This keeps existing custom
+                     locations selectable when editing a legacy record. --}}
                 <select id="storage_location" name="storage_location" class="form-select admin-form-control @error('storage_location') is-invalid @enderror">
                     <option value="">Select storage location</option>
                     @foreach ($storageLocations as $location)
@@ -193,6 +239,7 @@
                 @error('storage_location') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
+            {{-- Second info banner about the auto-generated barcode. --}}
             <div class="col-12">
                 <div class="alert alert-info border-0 rounded-4 mb-0">
                     The barcode will be generated automatically when you save this equipment.
@@ -215,6 +262,8 @@
             </div>
 
             <div class="col-12 text-end mt-2">
+                {{-- Cancel preserves query string via request()->query()
+                     so filters/pagination on the equipment index survive. --}}
                 <a href="{{ route($routePrefix.'.equipment.index', request()->query()) }}" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">{{ isset($equipment) ? 'Save changes' : 'Create equipment' }}</button>
             </div>

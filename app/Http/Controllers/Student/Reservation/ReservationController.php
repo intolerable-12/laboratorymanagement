@@ -12,6 +12,7 @@ use App\Models\ReservationItem;
 use App\Models\User;
 use App\Services\RequestNotificationService;
 use App\Services\SequentialCodeGenerator;
+use App\Services\ReservedQuantityService;
 use App\Support\AcademicPeriodSelection;
 use App\Support\ReservationParticipantLimit;
 use Illuminate\Http\Request;
@@ -93,6 +94,17 @@ class ReservationController extends Controller
         $selectedLaboratoryId = (int) $details['laboratory_id'];
 		$campus = $this->campusForUser($request);
 		$laboratory = Laboratory::forCampus($campus)->findOrFail($selectedLaboratoryId);
+        $reservedDate = ! empty($details['reservation_date'])
+            ? Carbon::parse($details['reservation_date'])->startOfDay()
+            : null;
+
+        // Reservation picker shows reserved counts based ONLY on
+        // Coordinator-Approved borrow transactions for the same lab/date.
+        $reservedMap = app(ReservedQuantityService::class)->forLaboratory(
+            $selectedLaboratoryId,
+            $reservedDate,
+            'reservations'
+        );
         $search = trim((string) $request->query('search', ''));
         $equipmentQuery = Equipment::with('laboratory')
 			->forCampus($campus)
@@ -135,17 +147,18 @@ class ReservationController extends Controller
             $fragment = $request->query('fragment', $activeTab);
 
             if ($fragment === 'equipment') {
-                return view('users.student.reservation.partials.equipment-tab', compact('equipmentItems', 'selectedLaboratoryId'));
+                return view('users.student.reservation.partials.equipment-tab', compact('equipmentItems', 'selectedLaboratoryId', 'reservedMap'));
             }
 
             if ($fragment === 'chemical') {
-                return view('users.student.reservation.partials.chemical-tab', compact('chemicalItems', 'selectedLaboratoryId'));
+                return view('users.student.reservation.partials.chemical-tab', compact('chemicalItems', 'selectedLaboratoryId', 'reservedMap'));
             }
         }
 
         return view('users.student.reservation.items', compact(
             'details', 'laboratory', 'equipmentItems', 'chemicalItems', 'activeTab', 'selectedLaboratoryId',
-            'oldEquipmentSelections', 'oldChemicalSelections', 'selectedEquipmentItems', 'selectedChemicalItems'
+            'oldEquipmentSelections', 'oldChemicalSelections', 'selectedEquipmentItems', 'selectedChemicalItems',
+            'reservedMap'
         ));
     }
 
@@ -541,6 +554,26 @@ class ReservationController extends Controller
 
             if ($quantity > (int) $equipment->available_quantity) {
                 $errors['equipment_items.' . $equipmentId . '.quantity'] = 'Requested quantity exceeds the available quantity.';
+
+                continue;
+            }
+
+            // Enforcement: cap by available − combined reservations + borrows
+            $details = request()->session()->get(self::DRAFT_DETAILS, []);
+            $reservationDate = ! empty($details['reservation_date'])
+                ? Carbon::parse($details['reservation_date'])
+                : null;
+            $combined = app(ReservedQuantityService::class)->forLaboratory(
+                $laboratoryId,
+                $reservationDate,
+                'both'
+            );
+            $reservedTotal = (float) ($combined[$equipment->item_type.':'.$equipment->id] ?? 0);
+            $maxAllowed = max(0, (int) $equipment->available_quantity - (int) $reservedTotal);
+
+            if ($quantity > $maxAllowed) {
+                $errors['equipment_items.' . $equipmentId . '.quantity'] =
+                    "Only {$maxAllowed} unit(s) of {$equipment->equipment_name} are available for this date (the rest are already reserved or borrowed for other activities).";
 
                 continue;
             }
