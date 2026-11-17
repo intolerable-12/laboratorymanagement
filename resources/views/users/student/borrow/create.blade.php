@@ -37,7 +37,28 @@
 
             <div class="card section-card border-0 mb-4">
                 <div class="card-body p-4 p-xl-5">
-                    <h3 class="h4 fw-semibold mb-4 text-dark">Borrow Details</h3>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <h3 class="h4 fw-semibold mb-0 text-dark">Borrow Details</h3>
+                        <div class="form-check form-switch mb-0">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="predefined-list-switch-borrow"
+                                data-predefined-list-toggle
+                                data-predefined-list-target="predefined-list-notice-borrow"
+                            >
+                            <label class="form-check-label fw-semibold text-dark" for="predefined-list-switch-borrow">
+                                Use a predefined list
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="predefined-list-notice-borrow" class="alert alert-info border-0 rounded-4 mb-4 d-none" role="note">
+                        <i class="fa-solid fa-circle-info me-2" aria-hidden="true"></i>
+                        Predefined equipment and chemical lists will be available in a future update.
+                    </div>
+
                     <div class="alert alert-info border-0 rounded-4 mb-4" role="note">
                         <strong>Borrowing instructions:</strong>
                         <ul class="mb-0 mt-2">
@@ -106,3 +127,25 @@
         </form>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-predefined-list-toggle]').forEach((toggle) => {
+                const targetId = toggle.dataset.predefinedListTarget;
+                const notice = document.getElementById(targetId);
+
+                if (!notice) {
+                    return;
+                }
+
+                const sync = () => {
+                    notice.classList.toggle('d-none', !toggle.checked);
+                };
+
+                toggle.addEventListener('change', sync);
+                sync();
+            });
+        });
+    </script>
+@endpush
